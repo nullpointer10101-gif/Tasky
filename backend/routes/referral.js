@@ -55,7 +55,7 @@ router.get('/:telegram_id', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const user = userRes.rows[0];
-        const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyBot'}?start=${user.referral_code}`;
+        const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyAppbot'}?start=${user.referral_code}`;
 
         const referredRes = await pool.query(`
             SELECT u.telegram_id, u.username, u.first_name, u.created_at, u.valid_referrals
