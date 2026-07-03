@@ -15,11 +15,11 @@ export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
 
 const PAGE_VARIANTS = {
-  initial:  { opacity: 0, y: 12 },
-  animate:  { opacity: 1, y: 0 },
-  exit:     { opacity: 0, y: -8 },
+  initial:  { opacity: 0 },
+  animate:  { opacity: 1 },
+  exit:     { opacity: 0 },
 }
-const PAGE_TRANSITION = { duration: 0.25, ease: [0.22, 1, 0.36, 1] }
+const PAGE_TRANSITION = { duration: 0.15 }
 
 // Resolve Telegram user or fallback for localhost dev
 const getTelegramUser = () => {

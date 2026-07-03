@@ -162,7 +162,7 @@ export default function Wallet({ user, refreshUser }) {
             <span className="text-4xl font-black tracking-tight text-white">{balance.toLocaleString()}</span>
             <span className="text-base font-bold text-white/70">TASKY</span>
           </div>
-          <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 backdrop-blur-sm">
+          <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 ">
             <div className="flex items-center gap-1.5">
               <Coins size={14} className="text-yellow-300" />
               <span className="text-white/70 text-[11px] font-bold uppercase tracking-wider">Live Rate</span>

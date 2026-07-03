@@ -260,10 +260,10 @@ export default function Rig({ user, refreshUser }) {
         
         <div className="relative z-10 p-2 text-white">
           <div className="flex justify-between items-start mb-4">
-            <span className="bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm flex items-center gap-1.5">
+            <span className="bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5">
               <Gem size={12} className="text-blue-200"/> {displayLevel}
             </span>
-            <span className={`bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-sm flex items-center gap-1.5 ${displayEff > 100 ? 'shadow-[0_0_10px_rgba(255,255,255,0.3)]' : ''}`}>
+            <span className={`bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5 ${displayEff > 100 ? 'shadow-[0_0_10px_rgba(255,255,255,0.3)]' : ''}`}>
               <Zap size={12} className={displayEff > 100 ? 'text-yellow-300' : 'text-blue-200'}/> {displayEff}% Efficiency
             </span>
           </div>
@@ -274,7 +274,7 @@ export default function Rig({ user, refreshUser }) {
             <span className="text-sm font-medium text-white/80">TASKY / hr</span>
           </div>
           
-          <div className="bg-black/20 rounded-xl px-3.5 py-2.5 backdrop-blur-md border border-white/10 flex items-center justify-between">
+          <div className="bg-black/20 rounded-xl px-3.5 py-2.5  border border-white/10 flex items-center justify-between">
             <span className="text-xs font-medium text-white/70">On-chain Holding</span>
             <span className="text-sm font-bold">{displayHolding} TASKY</span>
           </div>
@@ -347,7 +347,7 @@ export default function Rig({ user, refreshUser }) {
               </p>
 
               {/* Speed preview pill */}
-              <div className="mt-5 flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 backdrop-blur-sm">
+              <div className="mt-5 flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 ">
                 <Zap size={12} className="text-yellow-300" />
                 <span className="text-white font-black text-sm">{displaySpeed}</span>
                 <span className="text-white/50 text-xs font-medium">TASKY/hr · 4 hrs</span>
@@ -729,7 +729,7 @@ export default function Rig({ user, refreshUser }) {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+                  className="fixed inset-0 bg-black/60 z-40 "
                   onClick={() => setSelectedMachine(null)}
                />
                <motion.div
@@ -839,7 +839,7 @@ export default function Rig({ user, refreshUser }) {
                   initial={{ opacity: 0 }} 
                   animate={{ opacity: 1 }} 
                   exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-black/90 backdrop-blur-md"
+                  className="absolute inset-0 bg-black/90 "
                />
                <motion.div
                   initial={{ opacity: 0, scale: 0.8 }}

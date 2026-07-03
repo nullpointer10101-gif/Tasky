@@ -247,7 +247,7 @@ export default function Profile({ user }) {
             
             <div className="relative z-10 p-5 flex flex-col gap-4">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm flex-shrink-0 border border-white/20 shadow-inner">
+                <div className="w-10 h-10 rounded-2xl bg-white/20 flex items-center justify-center  flex-shrink-0 border border-white/20 shadow-inner">
                   <MessageCircle size={20} className="text-white" />
                 </div>
                 <div>
@@ -255,7 +255,7 @@ export default function Profile({ user }) {
                   <p className="text-[11px] text-indigo-100 leading-relaxed font-medium">{t('profile.feedbackDesc')}</p>
                 </div>
               </div>
-              <div className="flex bg-black/20 p-1.5 rounded-2xl backdrop-blur-md border border-white/10 focus-within:bg-black/30 transition-colors shadow-inner">
+              <div className="flex bg-black/20 p-1.5 rounded-2xl  border border-white/10 focus-within:bg-black/30 transition-colors shadow-inner">
                 <input 
                   type="text" 
                   id="feedback-input"

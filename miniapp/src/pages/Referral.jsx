@@ -80,7 +80,7 @@ export default function Referral({ user }) {
         <div className="relative z-10">
           <h2 className="font-bold mb-4">Your Invite Link</h2>
           
-          <div className="flex bg-black/20 rounded-xl p-1 mb-4 backdrop-blur-sm border border-white/10">
+          <div className="flex bg-black/20 rounded-xl p-1 mb-4  border border-white/10">
             <input 
               type="text" 
               readOnly 
