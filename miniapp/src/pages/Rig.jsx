@@ -93,18 +93,18 @@ export default function Rig({ user, refreshUser }) {
     }
   }, [walletAddress, status]);
 
-  // Polling & Timer
+  // Dynamic Polling & Timer
   useEffect(() => {
     if (!activeSession || activeSession.is_ready_to_claim) return;
 
-    const interval = setInterval(() => {
+    let timeoutId;
+    const tick = () => {
       const now = new Date();
       const end = new Date(activeSession.expected_claim_at);
       const start = new Date(activeSession.started_at);
       
       if (now >= end) {
         fetchStatus(false);
-        clearInterval(interval);
       } else {
         const diff = end - now;
         const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
@@ -117,10 +117,16 @@ export default function Rig({ user, refreshUser }) {
         const currentEarned = rate * elapsedHours;
         const maxEarned = rate * 4;
         setLiveEarnings(Math.min(currentEarned, maxEarned));
-      }
-    }, 1000);
 
-    return () => clearInterval(interval);
+        // Dynamic interval: 60s normally, 1s in the last 2 minutes
+        const nextInterval = diff > 120000 ? 60000 : 1000;
+        timeoutId = setTimeout(tick, nextInterval);
+      }
+    };
+    
+    tick(); // Start recursive timeout
+
+    return () => clearTimeout(timeoutId);
   }, [activeSession]);
 
   const handleStartMining = async () => {
@@ -317,18 +323,13 @@ export default function Rig({ user, refreshUser }) {
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
               {/* Animated orb — the single tap target */}
               <div className="relative mb-6">
-                {/* Slow outer pulse rings */}
-                {[0, 0.8, 1.6].map((delay, i) => (
-                  <motion.div key={i}
-                    className="absolute inset-0 rounded-full border border-indigo-400/20"
-                    animate={{ scale: [1, 2.2 + i * 0.3], opacity: [0.4, 0] }}
-                    transition={{ duration: 3, repeat: Infinity, delay, ease: 'easeOut' }}
-                  />
-                ))}
+                {/* Simplified static rings instead of heavy infinite pulse */}
+                <div className="absolute inset-0 rounded-full border border-indigo-400/20 opacity-40 scale-[1.5]" />
+                <div className="absolute inset-0 rounded-full border border-indigo-400/20 opacity-20 scale-[2.0]" />
                 {/* Press button */}
                 <motion.button
-                  className="relative w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-700 flex flex-col items-center justify-center  z-10 select-none"
-                  animate={{ scale: [1, 1.04, 1], boxShadow: ['0 0 40px rgba(99,102,241,0.4)', '0 0 70px rgba(99,102,241,0.7)', '0 0 40px rgba(99,102,241,0.4)'] }}
+                  className="relative w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-700 flex flex-col items-center justify-center  z-10 select-none shadow-[0_0_40px_rgba(99,102,241,0.4)]"
+                  animate={{ scale: [1, 1.04, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                   whileTap={{ scale: 0.9, transition: { duration: 0.12 } }}
                   onClick={handleStartMining}
@@ -372,11 +373,7 @@ export default function Rig({ user, refreshUser }) {
               {/* Top status bar */}
               <div className="flex items-center justify-between mb-5">
                 <div className="flex items-center gap-2">
-                  <motion.div
-                    className="w-2 h-2 rounded-full bg-emerald-400"
-                    animate={{ opacity: [1, 0.2, 1], scale: [1, 1.3, 1] }}
-                    transition={{ duration: 1.8, repeat: Infinity }}
-                  />
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Auto-Mining</span>
                 </div>
                 <div className="bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 font-mono text-sm font-black text-white/90">
@@ -388,28 +385,8 @@ export default function Rig({ user, refreshUser }) {
               <div className="flex flex-col items-center mb-5">
                 {/* Animated ring around earnings */}
                 <div className="relative w-36 h-36 flex items-center justify-center mb-1">
-                  {/* Slow rotating gradient ring */}
-                  <motion.div
-                    className="absolute inset-0 rounded-full border-[3px] border-indigo-500/60"
-                    animate={{ rotate: 360, borderColor: ['rgba(99,102,241,0.6)', 'rgba(167,139,250,0.9)', 'rgba(99,102,241,0.6)'] }}
-                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-                  />
-
-                  {/* Drifting particles (automatic, no tap) */}
-                  <AnimatePresence>
-                    {[...Array(3)].map((_, i) => (
-                      <motion.div
-                        key={`particle-${i}-${Math.floor(liveEarnings * 10 + i)}`}
-                        className="absolute text-[10px] font-black text-yellow-400/80 pointer-events-none whitespace-nowrap"
-                        style={{ left: `${30 + i * 20}%`, bottom: '60%' }}
-                        initial={{ opacity: 0, y: 0 }}
-                        animate={{ opacity: [0, 1, 0], y: -32 }}
-                        transition={{ duration: 2.5, delay: i * 0.9, repeat: Infinity, repeatDelay: 1.5 }}
-                      >
-                        +{(Number(displaySpeed) / 3600).toFixed(4)}
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
+                  {/* Static ring instead of heavy rotation */}
+                  <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/60" />
 
                   {/* Earnings text inside ring */}
                   <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center">
@@ -463,54 +440,36 @@ export default function Rig({ user, refreshUser }) {
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
               {/* Trophy orb with triple burst rings */}
               <div className="relative mb-5">
-                {[0, 0.5, 1].map((delay, i) => (
-                  <motion.div key={i}
-                    className="absolute inset-0 rounded-full bg-emerald-400/20"
-                    animate={{ scale: [1, 1.8 + i * 0.3], opacity: [0.6, 0] }}
-                    transition={{ duration: 1.6, repeat: Infinity, delay, ease: 'easeOut' }}
-                  />
-                ))}
-                <motion.div
-                  className="relative w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center  z-10"
-                  animate={{ scale: [1, 1.03, 1] }}
-                  transition={{ duration: 1.2, repeat: Infinity }}
-                >
+                {/* Static burst rings */}
+                <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-60 scale-[1.5]" />
+                <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-30 scale-[2.0]" />
+                <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center z-10 shadow-[0_0_30px_rgba(52,211,153,0.5)]">
                   <CheckCircle2 size={42} className="text-white" />
-                </motion.div>
+                </div>
               </div>
 
-              <motion.h3
-                animate={{ y: [0, -2, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-                className="text-2xl font-black text-white mb-1"
-              >
+              <h3 className="text-2xl font-black text-white mb-1">
                 Ready to Claim! 🏆
-              </motion.h3>
+              </h3>
               <p className="text-sm text-white/50 font-medium mb-5">Your 4-hour session is complete</p>
 
               {/* Reward amount */}
               <div className="w-full bg-white/5 border border-emerald-400/20 rounded-2xl p-4 mb-5">
                 <p className="text-[10px] text-emerald-400/70 uppercase font-bold tracking-widest mb-1">Total Mined</p>
-                <motion.div
-                  animate={{ scale: [1, 1.02, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                  className="text-3xl font-black text-emerald-300"
-                >
+                <div className="text-3xl font-black text-emerald-300">
                   +{Number(activeSession.rate_used * 4).toFixed(2)}
                   <span className="text-lg ml-1.5 text-emerald-400/70">TASKY</span>
-                </motion.div>
+                </div>
               </div>
 
               {/* Claim CTA */}
-              <motion.button
-                className="w-full font-black py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base  active:scale-95 transition-all"
-                animate={{ boxShadow: ['0 0 25px rgba(34,197,94,0.4)', '0 0 50px rgba(34,197,94,0.7)', '0 0 25px rgba(34,197,94,0.4)'] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
+              <button
+                className="w-full font-black py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base  active:scale-95 transition-transform shadow-[0_0_25px_rgba(34,197,94,0.4)]"
                 onClick={handleClaim}
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Claiming...' : '✦ Claim Rewards'}
-              </motion.button>
+              </button>
 
               <p className="text-[10px] text-white/30 font-medium mt-3">Tap above to add to your balance</p>
             </div>
@@ -640,17 +599,15 @@ export default function Rig({ user, refreshUser }) {
               const RarityIcon = isHidden ? HelpCircle : conf.Icon;
               
               const isShaking = shakingId === m.id;
-              
-              return (
-                 <motion.button
+                  <motion.button
                     key={m.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0, x: isShaking ? [0, -5, 5, -5, 5, 0] : 0 }}
-                    transition={{ duration: 0.3, delay: idx * 0.05, x: { duration: 0.3 } }}
+                    transition={{ duration: 0.3, delay: Math.min(idx, 8) * 0.05, x: { duration: 0.3 } }}
                     onClick={() => handleMachineTap(m)}
                     className={`
                        relative flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all overflow-hidden
-                       ${isOwned ? `bg-surface border-solid ${conf.border} shadow-sm hover:shadow-md` : ''}
+                       ${isOwned ? `bg-surface border-solid ${conf.border} shadow-sm` : ''}
                        ${isVisible ? `bg-surface-soft border-dashed ${conf.border} opacity-80` : ''}
                        ${isHidden ? `bg-surface-soft border-solid border-border opacity-50` : ''}
                     `}
@@ -660,7 +617,7 @@ export default function Rig({ user, refreshUser }) {
                           +{m.bonus}%
                        </div>
                     )}
-                    <div className={`w-12 h-12 rounded-xl mb-2 flex items-center justify-center ${isHidden ? 'bg-surface border border-border text-ink-faint' : conf.bg} ${isOwned ? conf.glow : ''}`}>
+                    <div className={`w-12 h-12 rounded-xl mb-2 flex items-center justify-center ${isHidden ? 'bg-surface border border-border text-ink-faint' : conf.bg}`}>
                        <RarityIcon size={24} className={isHidden ? 'text-ink-faint' : (isVisible ? 'text-ink-soft grayscale' : conf.color)} />
                     </div>
                     <div className="font-bold text-xs text-ink truncate w-full mb-0.5">

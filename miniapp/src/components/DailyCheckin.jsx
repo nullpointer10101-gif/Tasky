@@ -170,11 +170,7 @@ export default function DailyCheckin({ user, refreshUser }) {
                 className="flex flex-col items-center justify-center w-full py-2"
               >
                 <div className="relative mb-4">
-                  <motion.div 
-                    animate={{ scale: [1, 1.3, 1.1], rotate: [0, 180, 360] }}
-                    transition={{ duration: 4, repeat: Infinity }}
-                    className="absolute inset-0 bg-emerald-500 blur-3xl opacity-30 rounded-full"
-                  />
+                  <div className="absolute inset-0 bg-emerald-500/20 rounded-full scale-[1.2]" />
                   <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 flex items-center justify-center relative  z-10 rotate-3">
                     <Sparkles size={30} className="text-emerald-100 absolute top-2 right-2 opacity-60 animate-pulse" />
                     <span className="text-3xl font-black text-white  -rotate-3">+{reward.bonus_earned}</span>

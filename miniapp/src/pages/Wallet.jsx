@@ -237,16 +237,12 @@ export default function Wallet({ user, refreshUser }) {
           </div>
         ) : activeTab === 'withdraw' ? (
           <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6">
-            <motion.div 
-              className="relative flex items-center justify-center w-24 h-24"
-              animate={{ scale: [1, 1.03, 1] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full blur-xl" />
-              <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-lg relative z-10">
+            <div className="relative flex items-center justify-center w-24 h-24">
+              <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />
+              <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-sm relative z-10">
                 <Lock size={28} className="text-indigo-400" />
               </div>
-            </motion.div>
+            </div>
             
             <div className="space-y-2">
               <h2 className="text-2xl font-black text-ink">TASKY Isn't Live On-Chain Yet</h2>

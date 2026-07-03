@@ -189,32 +189,19 @@ export default function Referral({ user }) {
           >
             {/* The Vault Lock */}
             <div className="relative mb-8">
-              {/* Glowing back plate */}
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 w-32 h-32 rounded-full border border-dashed border-indigo-500/30 -mx-8 -my-8"
-              />
-              <motion.div
-                animate={{ rotate: -360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0 w-24 h-24 rounded-full border border-purple-500/20 -mx-4 -my-4"
-              />
+              {/* Glowing back plate (static) */}
+              <div className="absolute inset-0 w-32 h-32 rounded-full border border-dashed border-indigo-500/30 -mx-8 -my-8" />
+              <div className="absolute inset-0 w-24 h-24 rounded-full border border-purple-500/20 -mx-4 -my-4" />
               
               {/* Center Lock */}
-              <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white " style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
-                <Lock size={32} className="" />
-                <motion.div
-                  animate={{ scale: [1, 1.2, 1], opacity: [0, 1, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="absolute inset-0 rounded-2xl border-2 border-indigo-400"
-                />
+              <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-sm" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
+                <Lock size={32} />
               </div>
 
-              {/* Sparkles */}
-              <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1.5, repeat: Infinity }} className="absolute -top-4 -right-4 text-amber-400">
+              {/* Sparkles (CSS pulse) */}
+              <div className="absolute -top-4 -right-4 text-amber-400 animate-pulse">
                 <Sparkles size={20} />
-              </motion.div>
+              </div>
             </div>
 
             {/* Typography */}
