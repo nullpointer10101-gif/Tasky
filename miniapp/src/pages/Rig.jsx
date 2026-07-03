@@ -599,7 +599,9 @@ export default function Rig({ user, refreshUser }) {
               const RarityIcon = isHidden ? HelpCircle : conf.Icon;
               
               const isShaking = shakingId === m.id;
-                  <motion.button
+              
+              return (
+                 <motion.button
                     key={m.id}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0, x: isShaking ? [0, -5, 5, -5, 5, 0] : 0 }}
