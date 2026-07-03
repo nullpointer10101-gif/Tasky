@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "Главная",
+    "tasks": "Задания",
+    "referral": "Рефералы",
+    "rig": "Оборудование",
+    "wallet": "Кошелек",
+    "profile": "Профиль"
+  },
+  "profile": {
+    "totalBalance": "Общий Баланс",
+    "rankProgress": "Прогресс Ранга",
+    "settings": "Настройки",
+    "language": "Язык",
+    "notifications": "Уведомления",
+    "memberSince": "Участник С",
+    "spinsAvailable": "Доступно Вращений",
+    "feedback": "Отзыв",
+    "haveSuggestion": "Помогите улучшить Tasky",
+    "feedbackDesc": "Есть идея или нашли ошибку? Мы читаем каждое предложение.",
+    "feedbackPlaceholder": "Расскажите, что вы думаете...",
+    "send": "Отправить",
+    "supportLegal": "Поддержка и Право",
+    "liveSupport": "Служба Поддержки",
+    "liveSupportSub": "Общайтесь с нашей командой",
+    "faq": "Часто Задаваемые Вопросы",
+    "faqSub": "Ответы на частые вопросы",
+    "community": "Сообщество",
+    "communitySub": "Присоединяйтесь к группе Telegram",
+    "whitePaper": "Белая Книга",
+    "whitePaperSub": "Токеномика и видение TASKY",
+    "privacyPolicy": "Политика Конфиденциальности",
+    "privacyPolicySub": "Как мы обрабатываем ваши данные",
+    "genesis": "Участник Genesis",
+    "referrer": "Рефовод",
+    "streak": "Серия из 7 Дней",
+    "taskCompleter": "Исполнитель Заданий",
+    "unlockBadges": "Выполняйте задания, чтобы открывать значки!",
+    "achievements": "Достижения",
+    "id": "ID:"
+  }
+}

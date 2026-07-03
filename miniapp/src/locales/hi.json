@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "होम",
+    "tasks": "कार्य",
+    "referral": "रेफरल",
+    "rig": "रिग",
+    "wallet": "वॉलेट",
+    "profile": "प्रोफाइल"
+  },
+  "profile": {
+    "totalBalance": "कुल बैलेंस",
+    "rankProgress": "रैंक प्रगति",
+    "settings": "सेटिंग्स",
+    "language": "भाषा",
+    "notifications": "सूचनाएं",
+    "memberSince": "सदस्यता तिथि",
+    "spinsAvailable": "उपलब्ध स्पिन्स",
+    "feedback": "प्रतिक्रिया",
+    "haveSuggestion": "Tasky को बेहतर बनाने में हमारी मदद करें",
+    "feedbackDesc": "कोई विचार है या कोई बग मिला? हम हर एक सुझाव पढ़ते हैं।",
+    "feedbackPlaceholder": "हमें बताएं कि आप क्या सोचते हैं...",
+    "send": "भेजें",
+    "supportLegal": "समर्थन और कानूनी",
+    "liveSupport": "लाइव सपोर्ट",
+    "liveSupportSub": "हमारी टीम के साथ चैट करें",
+    "faq": "अक्सर पूछे जाने वाले प्रश्न",
+    "faqSub": "सामान्य सवालों के जवाब",
+    "community": "समुदाय",
+    "communitySub": "टेलीग्राम समूह से जुड़ें",
+    "whitePaper": "श्वेत पत्र",
+    "whitePaperSub": "TASKY टोकनोमिक्स और दृष्टिकोण",
+    "privacyPolicy": "गोपनीयता नीति",
+    "privacyPolicySub": "हम आपका डेटा कैसे संभालते हैं",
+    "genesis": "जेनेसिस सदस्य",
+    "referrer": "रेफरर",
+    "streak": "7-दिन की स्ट्रीक",
+    "taskCompleter": "कार्य पूरा करने वाला",
+    "unlockBadges": "बैज अनलॉक करने के लिए कार्य पूरे करें!",
+    "achievements": "उपलब्धियां",
+    "id": "ID:"
+  }
+}

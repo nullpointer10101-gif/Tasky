@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "Home",
+    "tasks": "Tasks",
+    "referral": "Referral",
+    "rig": "Rig",
+    "wallet": "Wallet",
+    "profile": "Profile"
+  },
+  "profile": {
+    "totalBalance": "Total Balance",
+    "rankProgress": "Rank Progress",
+    "settings": "Settings",
+    "language": "Language",
+    "notifications": "Notifications",
+    "memberSince": "Member Since",
+    "spinsAvailable": "Spins Available",
+    "feedback": "Feedback",
+    "haveSuggestion": "Help us improve Tasky",
+    "feedbackDesc": "Have an idea or found a bug? We read every single suggestion.",
+    "feedbackPlaceholder": "Tell us what you think...",
+    "send": "Send",
+    "supportLegal": "Support & Legal",
+    "liveSupport": "Live Support",
+    "liveSupportSub": "Chat with our team",
+    "faq": "FAQ",
+    "faqSub": "Common questions answered",
+    "community": "Community",
+    "communitySub": "Join Telegram group",
+    "whitePaper": "White Paper",
+    "whitePaperSub": "TASKY tokenomics & vision",
+    "privacyPolicy": "Privacy Policy",
+    "privacyPolicySub": "How we handle your data",
+    "genesis": "Genesis Member",
+    "referrer": "Referrer",
+    "streak": "7-Day Streak",
+    "taskCompleter": "Task Completer",
+    "unlockBadges": "Complete tasks to unlock badges!",
+    "achievements": "Achievements",
+    "id": "ID:"
+  }
+}

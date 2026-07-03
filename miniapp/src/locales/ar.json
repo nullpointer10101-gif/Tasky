@@ -1,0 +1,50 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "tasks": "المهام",
+    "referral": "الإحالة",
+    "rig": "المنصة",
+    "wallet": "المحفظة",
+    "profile": "الحساب"
+  },
+  "profile": {
+    "totalBalance": "إجمالي الرصيد",
+    "rankProgress": "تقدم التصنيف",
+    "settings": "الإعدادات",
+    "language": "اللغة",
+    "notifications": "الإشعارات",
+    "memberSince": "عضو منذ",
+    "spinsAvailable": "اللفات المتاحة",
+    "feedback": "ملاحظات",
+    "haveSuggestion": "ساعدنا في تحسين Tasky",
+    "feedbackDesc": "لديك فكرة أو وجدت خطأ؟ نحن نقرأ كل اقتراح.",
+    "feedbackPlaceholder": "أخبرنا برأيك...",
+    "send": "إرسال",
+    "supportLegal": "الدعم والقانوني",
+    "liveSupport": "الدعم المباشر",
+    "liveSupportSub": "تحدث مع فريقنا",
+    "faq": "الأسئلة الشائعة",
+    "faqSub": "إجابات على الأسئلة الشائعة",
+    "community": "المجتمع",
+    "communitySub": "انضم إلى مجموعة تيليجرام",
+    "whitePaper": "الورقة البيضاء",
+    "whitePaperSub": "رؤية TASKY",
+    "privacyPolicy": "سياسة الخصوصية",
+    "privacyPolicySub": "كيف نتعامل مع بياناتك",
+    "genesis": "عضو التأسيس",
+    "referrer": "المرجِع",
+    "streak": "سلسلة 7 أيام",
+    "taskCompleter": "مكمل المهام",
+    "unlockBadges": "أكمل المهام لفتح الشارات!",
+    "achievements": "الإنجازات",
+    "id": "معرف:"
+  },
+  "home": {
+    "hello": "مرحباً،",
+    "totalPortfolio": "إجمالي المحفظة",
+    "taskyBalance": "رصيد TASKY",
+    "totalEarned": "إجمالي ما تم كسبه",
+    "taskEarnings": "أرباح المهام",
+    "referralEarnings": "أرباح الإحالة"
+  }
+}

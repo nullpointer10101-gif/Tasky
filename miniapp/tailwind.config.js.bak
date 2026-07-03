@@ -1,0 +1,41 @@
+/** @type {import('tailwindcss').Config} */
+export default {
+  content: [
+    "./index.html",
+    "./src/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'sans-serif'],
+      },
+      colors: {
+        bg: '#0d0b1a',
+        surface: '#16132b',
+        'surface-soft': '#1c1836',
+        border: '#2a2548',
+        ink: '#ffffff',
+        'ink-soft': '#a8a3c4',
+        'ink-faint': '#6b6690',
+        success: '#22c55e',
+        'success-soft': 'rgba(34, 197, 94, 0.12)',
+        danger: '#ef4444',
+        'danger-soft': 'rgba(239, 68, 68, 0.12)',
+        warning: '#f59e0b',
+        'warning-soft': 'rgba(245, 158, 11, 0.12)',
+      },
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+        'gradient-blue': 'linear-gradient(135deg, #3b82f6, #06b6d4)',
+      },
+      borderRadius: {
+        '2xl': '16px',
+        'pill': '999px',
+      },
+      boxShadow: {
+        'soft': '0 4px 20px rgba(0, 0, 0, 0.15)',
+      }
+    },
+  },
+  plugins: [],
+}
