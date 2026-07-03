@@ -116,7 +116,7 @@ export default function SpinWheel({ user, refreshUser }) {
                 
 
                 {/* The Pointer */}
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-30 drop-shadow-[0_4px_10px_rgba(234,179,8,0.8)]">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-30 drop-">
                   <svg width="32" height="42" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M16 40L0 0H32L16 40Z" fill="url(#gold-grad)" stroke="#FEF08A" strokeWidth="2" strokeLinejoin="round" />
                     <defs>
@@ -159,8 +159,8 @@ export default function SpinWheel({ user, refreshUser }) {
                         className="absolute inset-0 flex flex-col items-center justify-start origin-center pointer-events-none pt-4"
                         style={{ transform: `rotate(${i * 45 + 22.5}deg)` }}
                       >
-                        <Icon size={18} color={prize.text} className="mb-1 drop-shadow-md opacity-80" />
-                        <span className="font-black text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]" style={{ color: prize.text }}>
+                        <Icon size={18} color={prize.text} className="mb-1  opacity-80" />
+                        <span className="font-black text-sm drop-" style={{ color: prize.text }}>
                           {prize.label}
                         </span>
                       </div>
@@ -168,7 +168,7 @@ export default function SpinWheel({ user, refreshUser }) {
                   })}
                   
                   {/* Center Glossy Peg */}
-                  <div className="absolute inset-0 m-auto w-14 h-14 rounded-full z-10 flex items-center justify-center shadow-[0_0_20px_rgba(0,0,0,0.9)] border-[3px] border-surface">
+                  <div className="absolute inset-0 m-auto w-14 h-14 rounded-full z-10 flex items-center justify-center  border-[3px] border-surface">
                     <div className="w-full h-full rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 flex items-center justify-center">
                       <div className="w-8 h-8 rounded-full border border-yellow-200/50 flex items-center justify-center bg-black/20">
                         <Star size={12} className="text-yellow-100" />
@@ -186,16 +186,16 @@ export default function SpinWheel({ user, refreshUser }) {
                 className="flex flex-col items-center justify-center w-full min-h-[280px]"
               >
                 <div className="relative mb-6">
-                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 border-4 border-yellow-200 flex items-center justify-center relative shadow-[0_0_50px_rgba(234,179,8,0.8)] z-10">
+                  <div className="w-32 h-32 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 border-4 border-yellow-200 flex items-center justify-center relative  z-10">
                     <Sparkles size={50} className="text-yellow-100 absolute top-4 right-4 opacity-50" />
-                    <span className="text-4xl font-black text-white drop-shadow-xl">+{reward.reward_earned}</span>
+                    <span className="text-4xl font-black text-white ">+{reward.reward_earned}</span>
                   </div>
                 </div>
                 <h3 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 mb-2">EPIC WIN!</h3>
                 <p className="text-sm text-ink-soft mb-6 font-medium">Your balance has been updated.</p>
                 <Button 
                   onClick={() => setReward(null)} 
-                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-black border-none shadow-[0_0_20px_rgba(234,179,8,0.4)] px-8 rounded-full"
+                  className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-400 hover:to-yellow-500 text-black font-black border-none  px-8 rounded-full"
                 >
                   AWESOME!
                 </Button>
@@ -205,7 +205,7 @@ export default function SpinWheel({ user, refreshUser }) {
 
           {!reward && (
             <Button 
-              className="w-full font-black text-lg py-4 mt-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 border-none shadow-[0_0_20px_rgba(99,102,241,0.4)] rounded-2xl transition-all active:scale-95"
+              className="w-full font-black text-lg py-4 mt-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 border-none  rounded-2xl transition-all active:scale-95"
               onClick={handleSpin}
               disabled={spinning || spinsAvailable <= 0 || spinsUsedToday >= 5}
             >

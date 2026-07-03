@@ -256,7 +256,7 @@ export default function Tasks({ user, refreshUser }) {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-              className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-3xl border-t border-border p-6 pb-12 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]"
+              className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-3xl border-t border-border p-6 pb-12 z-50 "
             >
               <div className="w-12 h-1.5 bg-border rounded-full mx-auto mb-6" />
               

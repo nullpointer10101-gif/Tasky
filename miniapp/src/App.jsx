@@ -126,7 +126,7 @@ export default function App() {
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
         <Header />
 
-        <main className="flex-1 overflow-y-auto hide-scrollbar pb-20">
+        <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={activePage}

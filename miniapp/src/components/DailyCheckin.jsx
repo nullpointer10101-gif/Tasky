@@ -139,13 +139,13 @@ export default function DailyCheckin({ user, refreshUser }) {
                       <div key={day} className="flex flex-col items-center flex-1">
                         <div 
                           className={`w-full aspect-square max-w-[44px] rounded-2xl flex items-center justify-center text-sm font-black border-2 transition-all duration-300 relative
-                            ${state === 'claimed' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 
-                              state === 'current' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 border-yellow-300 text-black shadow-[0_0_20px_rgba(234,179,8,0.5)] scale-110 z-10' : 
+                            ${state === 'claimed' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 ' : 
+                              state === 'current' ? 'bg-gradient-to-br from-yellow-400 to-yellow-600 border-yellow-300 text-black  scale-110 z-10' : 
                               'bg-surface-soft border-border text-ink-soft'}`}
                         >
                           {state === 'claimed' ? <Check size={18} strokeWidth={4} /> : `D${day}`}
                           {state === 'current' && (
-                             <Sparkles size={12} className="absolute -top-1 -right-1 text-yellow-100 drop-shadow-md animate-pulse" />
+                             <Sparkles size={12} className="absolute -top-1 -right-1 text-yellow-100  animate-pulse" />
                           )}
                         </div>
                       </div>
@@ -154,7 +154,7 @@ export default function DailyCheckin({ user, refreshUser }) {
                 </div>
 
                 <Button 
-                  className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${checkedInToday ? 'bg-surface-soft border-border text-ink-faint shadow-none' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border-none shadow-[0_0_20px_rgba(16,185,129,0.4)] active:scale-95'}`}
+                  className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${checkedInToday ? 'bg-surface-soft border-border text-ink-faint shadow-none' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border-none  active:scale-95'}`}
                   onClick={handleClaim} 
                   disabled={claiming || checkedInToday}
                 >
@@ -175,16 +175,16 @@ export default function DailyCheckin({ user, refreshUser }) {
                     transition={{ duration: 4, repeat: Infinity }}
                     className="absolute inset-0 bg-emerald-500 blur-3xl opacity-30 rounded-full"
                   />
-                  <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 flex items-center justify-center relative shadow-[0_0_40px_rgba(16,185,129,0.6)] z-10 rotate-3">
+                  <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 flex items-center justify-center relative  z-10 rotate-3">
                     <Sparkles size={30} className="text-emerald-100 absolute top-2 right-2 opacity-60 animate-pulse" />
-                    <span className="text-3xl font-black text-white drop-shadow-xl -rotate-3">+{reward.bonus_earned}</span>
+                    <span className="text-3xl font-black text-white  -rotate-3">+{reward.bonus_earned}</span>
                   </div>
                 </div>
                 <h3 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-emerald-500 mb-1 tracking-wider">STREAK EXTENDED!</h3>
                 <p className="text-xs text-ink-soft mb-5 font-medium">Come back tomorrow for more.</p>
                 <Button 
                   onClick={() => setReward(null)} 
-                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black border-none shadow-[0_0_20px_rgba(16,185,129,0.4)] px-10 rounded-full py-3 transition-all active:scale-95 tracking-wide"
+                  className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black border-none  px-10 rounded-full py-3 transition-all active:scale-95 tracking-wide"
                 >
                   AWESOME
                 </Button>

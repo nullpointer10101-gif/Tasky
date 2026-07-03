@@ -441,7 +441,7 @@ export default function Wallet({ user, refreshUser }) {
                 {!isConnected ? (
                   <Button
                     onClick={() => tonConnectUI.openModal()}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-[0_0_20px_rgba(99,102,241,0.3)]"
+                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 "
                   >
                     Connect Wallet to Swap
                   </Button>
@@ -454,7 +454,7 @@ export default function Wallet({ user, refreshUser }) {
                   <Button
                     onClick={handleSwap}
                     disabled={isSwapping}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-[0_0_20px_rgba(99,102,241,0.3)] disabled:opacity-70"
+                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500  disabled:opacity-70"
                   >
                     {isSwapping ? 'Processing...' : 'Request Swap →'}
                   </Button>

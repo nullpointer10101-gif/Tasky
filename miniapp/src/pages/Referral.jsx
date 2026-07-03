@@ -202,8 +202,8 @@ export default function Referral({ user }) {
               />
               
               {/* Center Lock */}
-              <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-[0_0_40px_rgba(99,102,241,0.5)]" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
-                <Lock size={32} className="drop-shadow-lg" />
+              <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white " style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
+                <Lock size={32} className="" />
                 <motion.div
                   animate={{ scale: [1, 1.2, 1], opacity: [0, 1, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}

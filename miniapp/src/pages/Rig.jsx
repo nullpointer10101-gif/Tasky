@@ -14,10 +14,10 @@ const containerVariants = {
 
 const getRarityConfig = (rarity) => {
   switch(rarity) {
-     case 'common': return { color: 'text-gray-400', border: 'border-gray-500/40', bg: 'bg-gray-500/10', glow: 'shadow-[0_0_15px_rgba(156,163,175,0.3)]', Icon: Cpu, badgeBg: 'bg-gray-500/20' };
-     case 'rare': return { color: 'text-blue-400', border: 'border-blue-500/50', bg: 'bg-blue-500/10', glow: 'shadow-[0_0_15px_rgba(59,130,246,0.4)]', Icon: Zap, badgeBg: 'bg-blue-500/20' };
-     case 'epic': return { color: 'text-purple-400', border: 'border-purple-500/50', bg: 'bg-purple-500/10', glow: 'shadow-[0_0_15px_rgba(168,85,247,0.4)]', Icon: Gem, badgeBg: 'bg-purple-500/20' };
-     case 'legendary': return { color: 'text-amber-400', border: 'border-amber-500/60', bg: 'bg-amber-500/10', glow: 'shadow-[0_0_20px_rgba(245,158,11,0.5)]', Icon: Crown, badgeBg: 'bg-amber-500/20' };
+     case 'common': return { color: 'text-gray-400', border: 'border-gray-500/40', bg: 'bg-gray-500/10', glow: '', Icon: Cpu, badgeBg: 'bg-gray-500/20' };
+     case 'rare': return { color: 'text-blue-400', border: 'border-blue-500/50', bg: 'bg-blue-500/10', glow: '', Icon: Zap, badgeBg: 'bg-blue-500/20' };
+     case 'epic': return { color: 'text-purple-400', border: 'border-purple-500/50', bg: 'bg-purple-500/10', glow: '', Icon: Gem, badgeBg: 'bg-purple-500/20' };
+     case 'legendary': return { color: 'text-amber-400', border: 'border-amber-500/60', bg: 'bg-amber-500/10', glow: '', Icon: Crown, badgeBg: 'bg-amber-500/20' };
      default: return { color: 'text-gray-400', border: 'border-gray-500/30', bg: 'bg-gray-500/10', glow: '', Icon: Cpu, badgeBg: 'bg-gray-500/20' };
   }
 }
@@ -263,7 +263,7 @@ export default function Rig({ user, refreshUser }) {
             <span className="bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5">
               <Gem size={12} className="text-blue-200"/> {displayLevel}
             </span>
-            <span className={`bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5 ${displayEff > 100 ? 'shadow-[0_0_10px_rgba(255,255,255,0.3)]' : ''}`}>
+            <span className={`bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5 ${displayEff > 100 ? '' : ''}`}>
               <Zap size={12} className={displayEff > 100 ? 'text-yellow-300' : 'text-blue-200'}/> {displayEff}% Efficiency
             </span>
           </div>
@@ -327,7 +327,7 @@ export default function Rig({ user, refreshUser }) {
                 ))}
                 {/* Press button */}
                 <motion.button
-                  className="relative w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-700 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(99,102,241,0.5)] z-10 select-none"
+                  className="relative w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-700 flex flex-col items-center justify-center  z-10 select-none"
                   animate={{ scale: [1, 1.04, 1], boxShadow: ['0 0 40px rgba(99,102,241,0.4)', '0 0 70px rgba(99,102,241,0.7)', '0 0 40px rgba(99,102,241,0.4)'] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                   whileTap={{ scale: 0.9, transition: { duration: 0.12 } }}
@@ -471,7 +471,7 @@ export default function Rig({ user, refreshUser }) {
                   />
                 ))}
                 <motion.div
-                  className="relative w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center shadow-[0_0_60px_rgba(34,197,94,0.6)] z-10"
+                  className="relative w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center  z-10"
                   animate={{ scale: [1, 1.03, 1] }}
                   transition={{ duration: 1.2, repeat: Infinity }}
                 >
@@ -503,7 +503,7 @@ export default function Rig({ user, refreshUser }) {
 
               {/* Claim CTA */}
               <motion.button
-                className="w-full font-black py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base shadow-[0_0_35px_rgba(34,197,94,0.55)] active:scale-95 transition-all"
+                className="w-full font-black py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base  active:scale-95 transition-all"
                 animate={{ boxShadow: ['0 0 25px rgba(34,197,94,0.4)', '0 0 50px rgba(34,197,94,0.7)', '0 0 25px rgba(34,197,94,0.4)'] }}
                 transition={{ duration: 1.8, repeat: Infinity }}
                 onClick={handleClaim}
@@ -737,7 +737,7 @@ export default function Rig({ user, refreshUser }) {
                   animate={{ y: 0 }}
                   exit={{ y: '100%' }}
                   transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                  className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-[2.5rem] p-6 z-50 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t border-border pb-10 max-h-[90vh] overflow-y-auto"
+                  className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-[2.5rem] p-6 z-50  border-t border-border pb-10 max-h-[90vh] overflow-y-auto"
                >
                   <button onClick={() => setSelectedMachine(null)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
                      <X size={20} />
