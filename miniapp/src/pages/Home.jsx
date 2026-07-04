@@ -163,7 +163,7 @@ export default function Home({ user, refreshUser }) {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-success mt-0.5">•</span>
-            <span>Minimum swap threshold is <strong className="text-ink">{swapRates.find(r => r.token_name === 'USDT' && r.is_active)?.min_tasky || 500} TASKY</strong>. Swap straight to your TON USDT wallet!</span>
+            <span>Minimum swap threshold is <strong className="text-ink">{swapRates.find(r => r.token_name === 'USDT' && r.is_active)?.min_tasky || 1000} TASKY</strong>. Swap straight to your TON USDT wallet!</span>
           </li>
         </ul>
       </Card>
