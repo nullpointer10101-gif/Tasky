@@ -371,6 +371,17 @@ const initDB = async () => {
     // Force update DOGS rate for existing databases
     await client.query(`UPDATE swap_rates SET tasky_per_unit = 0.25, min_tasky = 500 WHERE token_name = 'DOGS';`);
 
+    // ── PERFORMANCE INDEXES ───────────────────────────────────────────────────
+    await client.query(`
+      CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_user_tasks_telegram_id ON user_tasks(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_mining_sessions_telegram_id ON mining_sessions(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_swaps_telegram_id ON swaps(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_withdrawals_telegram_id ON withdrawals(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_users_total_referrals ON users(total_referrals DESC);
+    `);
+
     await client.query('COMMIT');
     console.log('Database tables initialized successfully.');
   } catch (err) {

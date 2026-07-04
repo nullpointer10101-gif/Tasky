@@ -7,6 +7,14 @@
     "wallet": "Wallet",
     "profile": "Profile"
   },
+  "home": {
+    "hello": "Hello,",
+    "totalPortfolio": "TOTAL PORTFOLIO",
+    "taskyBalance": "TASKY Balance",
+    "totalEarned": "Total Earned",
+    "taskEarnings": "Task Earnings",
+    "referralEarnings": "Referral Earnings"
+  },
   "profile": {
     "totalBalance": "Total Balance",
     "rankProgress": "Rank Progress",
