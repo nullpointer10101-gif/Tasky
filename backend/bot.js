@@ -271,7 +271,7 @@ bot.on('message', async (msg) => {
         } else {
             state.task.verification_type = 'proof_screenshot';
             state.step = 'addtask_reward';
-            bot.sendMessage(chatId, 'Enter reward amount:');
+            bot.sendMessage(chatId, 'Enter reward amount:\n\n*Ranges:*\nSimple: 15-30 TASKY\nProof-required: 40-80 TASKY\nFeatured: 100-200 TASKY', { parse_mode: 'Markdown' });
         }
     } else if (state.step === 'addtask_verification_type') {
         state.task.verification_type = text;
@@ -280,12 +280,12 @@ bot.on('message', async (msg) => {
             bot.sendMessage(chatId, 'Enter the Telegram chat username or ID to check membership against:');
         } else {
             state.step = 'addtask_reward';
-            bot.sendMessage(chatId, 'Enter reward amount:');
+            bot.sendMessage(chatId, 'Enter reward amount:\n\n*Ranges:*\nSimple: 15-30 TASKY\nProof-required: 40-80 TASKY\nFeatured: 100-200 TASKY', { parse_mode: 'Markdown' });
         }
     } else if (state.step === 'addtask_chat_id') {
         state.task.telegram_chat_id = text;
         state.step = 'addtask_reward';
-        bot.sendMessage(chatId, 'Enter reward amount:');
+        bot.sendMessage(chatId, 'Enter reward amount:\n\n*Ranges:*\nSimple: 15-30 TASKY\nProof-required: 40-80 TASKY\nFeatured: 100-200 TASKY', { parse_mode: 'Markdown' });
     } else if (state.step === 'addtask_reward') {
         state.task.reward_tasky = parseFloat(text);
         state.step = 'addtask_url';

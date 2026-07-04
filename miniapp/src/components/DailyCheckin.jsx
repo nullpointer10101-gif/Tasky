@@ -110,7 +110,7 @@ export default function DailyCheckin({ user, refreshUser }) {
               <Calendar size={18} className="text-emerald-400" />
               Daily Check-in
             </h2>
-            <p className="text-xs text-ink-soft">Earn 100 TASKY every day</p>
+            <p className="text-xs text-ink-soft">Earn up to 500 TASKY on milestones</p>
           </div>
         </div>
 
@@ -158,7 +158,32 @@ export default function DailyCheckin({ user, refreshUser }) {
                   onClick={handleClaim} 
                   disabled={claiming || checkedInToday}
                 >
-                  {claiming ? 'CLAIMING...' : checkedInToday ? (timeRemaining ? `COME BACK IN ${timeRemaining}` : 'COME BACK LATER') : 'CLAIM 100 TASKY'}
+                  {(() => {
+                    if (claiming) return 'CLAIMING...';
+                    if (checkedInToday) return timeRemaining ? `COME BACK IN ${timeRemaining}` : 'COME BACK LATER';
+                    
+                    let nextActualDay = user.streak_days + 1;
+                    if (!checkedInToday) {
+                      let brokeStreak = false;
+                      if (user.last_checkin) {
+                        const lastCheckinDate = new Date(user.last_checkin);
+                        const now = new Date();
+                        if (now.getTime() - lastCheckinDate.getTime() >= 2 * TWENTY_FOUR_HOURS) {
+                          brokeStreak = true;
+                        }
+                      } else {
+                        brokeStreak = true;
+                      }
+                      if (brokeStreak) nextActualDay = 1;
+                    }
+                    
+                    let expectedReward = 30;
+                    if (nextActualDay % 30 === 0) expectedReward = 500;
+                    else if (nextActualDay % 14 === 0) expectedReward = 200;
+                    else if (nextActualDay % 7 === 0) expectedReward = 100;
+                    
+                    return `CLAIM ${expectedReward} TASKY`;
+                  })()}
                 </Button>
               </motion.div>
             ) : (

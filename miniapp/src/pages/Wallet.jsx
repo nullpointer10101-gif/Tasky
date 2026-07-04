@@ -192,15 +192,27 @@ export default function Wallet({ user, refreshUser }) {
               <span className="text-white/70 text-[11px] font-bold uppercase tracking-wider">Live Rate</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-white font-black text-sm">{taskyPerUsdt} TASKY</span>
-              <span className="text-white/40 text-xs">=</span>
-              <span className="text-yellow-300 font-black text-sm">1 USDT</span>
+              {selectedDestination === 'DOGS' ? (
+                <>
+                  <span className="text-white font-black text-sm">1 TASKY</span>
+                  <span className="text-white/40 text-xs">=</span>
+                  <span className="text-yellow-300 font-black text-sm">4 DOGS</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-white font-black text-sm">{taskyPerUsdt} TASKY</span>
+                  <span className="text-white/40 text-xs">=</span>
+                  <span className="text-yellow-300 font-black text-sm">1 USDT</span>
+                </>
+              )}
             </div>
             <span className="text-[9px] bg-emerald-400/20 text-emerald-300 px-2 py-0.5 rounded-full font-black uppercase border border-emerald-400/30 tracking-wider">TON</span>
           </div>
 
           <p className="text-center text-white/40 text-[11px] mt-2 font-medium">
-            Your balance ≈ <strong className="text-white/80">{(balance / taskyPerUsdt).toFixed(4)} USDT</strong>
+            Your balance ≈ <strong className="text-white/80">
+              {selectedDestination === 'DOGS' ? (balance * 4).toLocaleString() + ' DOGS' : (balance / taskyPerUsdt).toFixed(4) + ' USDT'}
+            </strong>
           </p>
         </div>
       </div>

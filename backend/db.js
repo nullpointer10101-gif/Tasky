@@ -358,7 +358,7 @@ const initDB = async () => {
     // Ensure DOGS row exists
     await client.query(`
       INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
-      SELECT 'DOGS', 1000, 1000, 'TON', TRUE
+      SELECT 'DOGS', 0.25, 500, 'TON', TRUE
       WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'DOGS');
     `);
 
@@ -367,6 +367,9 @@ const initDB = async () => {
 
     // Force update the active flags
     await client.query(`UPDATE swap_rates SET is_active = CASE WHEN token_name = 'DOGS' THEN TRUE ELSE FALSE END;`);
+
+    // Force update DOGS rate for existing databases
+    await client.query(`UPDATE swap_rates SET tasky_per_unit = 0.25, min_tasky = 500 WHERE token_name = 'DOGS';`);
 
     await client.query('COMMIT');
     console.log('Database tables initialized successfully.');

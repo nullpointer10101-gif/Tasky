@@ -151,6 +151,10 @@ export default function Home({ user, refreshUser }) {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-success mt-0.5">•</span>
+            <span>Claim Daily Check-ins up to <strong className="text-ink">500 TASKY</strong> on milestone days!</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-success mt-0.5">•</span>
             <span>Refer friends and earn <strong className="text-ink">{referralData?.reward_per_referral} TASKY + {referralData?.spin_reward_per_referral} Spin</strong> per valid referral.</span>
           </li>
           <li className="flex items-start gap-2">

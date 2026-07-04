@@ -102,14 +102,17 @@ router.post('/checkin', async (req, res) => {
         }
         
         let newStreak = user.streak_days;
-        // If they checked in less than 48 hours ago, increment streak (looping after 7). Else reset to 1.
+        // If they checked in less than 48 hours ago, increment streak. Else reset to 1.
         if (lastCheckin && (now.getTime() - lastCheckin.getTime() < 2 * TWENTY_FOUR_HOURS)) {
-            newStreak = (newStreak % 7) + 1;
+            newStreak = newStreak + 1;
         } else {
             newStreak = 1;
         }
         
-        const reward = 100; // Flat 100 TASKY per day
+        let reward = 30;
+        if (newStreak % 30 === 0) reward = 500;
+        else if (newStreak % 14 === 0) reward = 200;
+        else if (newStreak % 7 === 0) reward = 100;
 
         await client.query(`
             UPDATE users 
