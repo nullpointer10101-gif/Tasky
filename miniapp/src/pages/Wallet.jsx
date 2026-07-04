@@ -401,8 +401,8 @@ export default function Wallet({ user, refreshUser }) {
                 {/* Destination Toggle */}
                 <div>
                   <label className="block text-[10px] font-black text-ink-soft uppercase tracking-widest mb-2">Select Destination</label>
-                  <div className="flex bg-surface-soft p-1 rounded-pill relative">
-                    {['USDT', 'DOGS'].map((token) => {
+                  <div className="flex bg-surface-soft p-1.5 rounded-2xl relative mb-6">
+                    {['DOGS', 'USDT'].map((token) => {
                       const tokenData = rates.find(r => r.token_name === token);
                       const isActive = tokenData ? tokenData.is_active : false;
                       const isSelected = selectedDestination === token;
@@ -578,11 +578,11 @@ export default function Wallet({ user, refreshUser }) {
               onClick={() => setIsUsdtTeaserOpen(false)}
             />
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
+              animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
+              exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
               transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-              className="fixed inset-0 m-auto w-[90%] max-w-sm h-fit bg-surface rounded-[2.5rem] p-8 z-50 border border-border shadow-2xl shadow-indigo-500/10"
+              className="fixed top-1/2 left-1/2 w-[90%] max-w-sm max-h-[90vh] overflow-y-auto bg-surface rounded-[2.5rem] p-8 z-50 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col"
             >
               <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
                 <X size={20} />
