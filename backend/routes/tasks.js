@@ -92,7 +92,7 @@ router.post('/complete', async (req, res) => {
         }
         const user = userRes.rows[0];
 
-        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none') {
+        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral') {
             if (task.verification_type === 'auto_telegram') {
                 if (!task.telegram_chat_id) {
                     await client.query('ROLLBACK');
@@ -112,6 +112,13 @@ router.post('/complete', async (req, res) => {
                     console.error('getChatMember error:', err.message);
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Please join the channel first, then try again' });
+                }
+            }
+
+            if (task.verification_type === 'auto_referral') {
+                if (user.total_referrals < 1) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'You need at least 1 referral to complete this task' });
                 }
             }
 

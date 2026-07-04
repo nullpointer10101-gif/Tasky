@@ -38,10 +38,14 @@ const delay = (ms) => new Promise(r => setTimeout(r, ms));
 const mockData = {
   getUser: { telegram_id: '123456', first_name: 'Aleem', username: 'aleem_crypto', balance: '28460', total_earned: '35000', task_earnings: '20000', referral_earnings: '15000', streak_days: 13, created_at: new Date('2025-01-10').toISOString(), tasks_done: 4, genesis_member: true, spins_available: 10, spins_used_today: 0, last_checkin: null },
   getTasks: [
-    { id: 1, title: 'Follow Tasky on X', subtitle: 'Stay updated with our latest news', reward_tasky: 500, type: 'social', verification_type: 'proof_screenshot', action_url: 'https://x.com', icon: 'Twitter' },
-    { id: 2, title: 'Retweet Pinned Post', subtitle: 'Spread the word!', reward_tasky: 300, type: 'social', verification_type: 'proof_url', action_url: 'https://x.com', icon: 'Repeat' },
-    { id: 3, title: 'Join Telegram Channel', subtitle: 'Join our community for daily updates', reward_tasky: 250, type: 'social', verification_type: 'none', action_url: 'https://t.me', icon: 'Telegram' },
-    { id: 4, title: 'YouTube Video Review', subtitle: 'Create a video review! Rules: 100+ subs, 20+ views, must use your referral link in description, and get 20+ valid referrals.', reward_tasky: 5000, type: 'bounty', verification_type: 'proof_url', action_url: 'https://youtube.com', icon: 'Youtube' }
+    { id: 1, title: 'Join Tasky Official Channel', subtitle: 'Get official updates, announcements, and news first', reward_tasky: 500, type: 'telegram', verification_type: 'auto_telegram', action_url: 'https://t.me/Tasky_Official', telegram_chat_id: 'Tasky_Official', is_featured: true, icon: 'Telegram' },
+    { id: 2, title: 'Join Tasky Community', subtitle: 'Connect with other members, ask questions, share your progress', reward_tasky: 500, type: 'telegram', verification_type: 'auto_telegram', action_url: 'https://t.me/TaskyOfficialCommunity', telegram_chat_id: 'TaskyOfficialCommunity', is_featured: true, icon: 'Telegram' },
+    { id: 3, title: 'Watch: How Tasky Works', subtitle: 'Watch our 60-second intro video', reward_tasky: 300, type: 'youtube', verification_type: 'proof_screenshot', action_url: 'https://youtube.com', is_featured: false, icon: 'Youtube' },
+    { id: 4, title: 'Invite Your First Friend', subtitle: 'Share your referral link with 1 friend', reward_tasky: 400, type: 'general', verification_type: 'auto_referral', action_url: '', is_featured: false, icon: 'Users' },
+    { id: 5, title: 'Follow Tasky on X', subtitle: 'Stay updated with real-time announcements', reward_tasky: 350, type: 'twitter', verification_type: 'proof_url', action_url: 'https://x.com/TaskyOfficial', is_featured: false, icon: 'Twitter' },
+    { id: 6, title: 'Retweet Our Launch Announcement', subtitle: 'Help spread the word, retweet our pinned post', reward_tasky: 400, type: 'twitter', verification_type: 'proof_url', action_url: 'https://x.com/TaskyOfficial/status/123', is_featured: false, icon: 'Twitter' },
+    { id: 7, title: 'Share Your Balance', subtitle: 'Post a screenshot of your TASKY balance in your story or group chat', reward_tasky: 250, type: 'general', verification_type: 'proof_screenshot', action_url: '', is_featured: false, icon: 'Share' },
+    { id: 8, title: 'Introduce Yourself in the Community', subtitle: "Say hi and share where you're joining from in our community group", reward_tasky: 200, type: 'telegram', verification_type: 'proof_screenshot', action_url: 'https://t.me/TaskyOfficialCommunity', is_featured: false, icon: 'MessageCircle' }
   ],
   getMySubmissions: [
     { id: 1, title: 'Watch YouTube Video', reward_tasky: 1000, status: 'approved', submitted_at: new Date().toISOString(), icon: 'Youtube' },
