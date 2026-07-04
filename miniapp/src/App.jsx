@@ -103,8 +103,19 @@ export default function App() {
   }
 
   if (!user) {
-    return <div className="h-screen flex items-center justify-center text-ink-soft bg-bg">Loading Vault...</div>
-  }
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden">
+        <div className="absolute inset-0 bg-indigo-500/5 mix-blend-overlay"></div>
+        <div className="relative w-20 h-20 mb-6">
+          <div className="absolute inset-0 rounded-2xl bg-indigo-500/20 animate-ping"></div>
+          <div className="absolute inset-0 rounded-2xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+            <span className="text-4xl font-black text-white">T</span>
+          </div>
+        </div>
+        <h1 className="text-2xl font-black text-ink mb-2">TASKY</h1>
+        <p className="text-sm font-medium text-ink-soft animate-pulse">Initializing Protocol...</p>
+      </div>
+    );
 
   if (user.is_banned) {
     return (

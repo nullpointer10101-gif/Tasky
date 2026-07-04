@@ -4,9 +4,9 @@ import { useTranslation } from '../i18n/I18nContext'
 
 const NAV_ITEMS = [
   { id: 'home',     key: 'nav.home',     Icon: Home },
+  { id: 'rig',      key: 'nav.rig',      Icon: Gem },
   { id: 'tasks',    key: 'nav.tasks',    Icon: ListChecks },
   { id: 'referral', key: 'nav.referral', Icon: Users },
-  { id: 'rig',      key: 'nav.rig',      Icon: Gem },
   { id: 'wallet',   key: 'nav.wallet',   Icon: Wallet },
   { id: 'profile',  key: 'nav.profile',  Icon: User },
 ]
