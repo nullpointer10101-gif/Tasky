@@ -87,11 +87,16 @@ export default function Wallet({ user, refreshUser }) {
   // Sync wallet address to backend when connected, if user object doesn't have it
   useEffect(() => {
     if (walletAddress && user && user.wallet_address !== walletAddress) {
-      saveWalletAddress(user.telegram_id || '123456', walletAddress).then(() => {
-        refreshUser();
+      saveWalletAddress(user.telegram_id || '123456', walletAddress).then(async ({ error }) => {
+        if (error) {
+          showToast(error, 'error');
+          await tonConnectUI.disconnect();
+        } else {
+          refreshUser();
+        }
       });
     }
-  }, [walletAddress, user]);
+  }, [walletAddress, user, tonConnectUI, showToast, refreshUser]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -109,11 +114,11 @@ export default function Wallet({ user, refreshUser }) {
   };
 
   const usdtRate = rates.find(r => r.token_name === 'USDT' && r.is_active);
-  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 500;
+  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 1000;
   
   const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
-  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 500;
-  const minSwap = currentRate ? Number(currentRate.min_tasky) : 500;
+  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 1000;
+  const minSwap = currentRate ? Number(currentRate.min_tasky) : 1000;
   const isSelectedActive = currentRate ? Boolean(currentRate.is_active) : false;
   
   const balance = Number(user?.balance || 0);

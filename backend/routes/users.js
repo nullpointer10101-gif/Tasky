@@ -149,6 +149,15 @@ router.post('/wallet', async (req, res) => {
     }
     
     try {
+        // Check if wallet is already connected to another account
+        const { rows: existingWallet } = await pool.query(`
+            SELECT telegram_id FROM users WHERE wallet_address = $1 AND telegram_id != $2
+        `, [wallet_address, telegram_id]);
+        
+        if (existingWallet.length > 0) {
+            return res.status(400).json({ error: 'Wallet is already connected to another account' });
+        }
+
         const { rows } = await pool.query(`
             UPDATE users SET wallet_address = $1 WHERE telegram_id = $2 RETURNING *
         `, [wallet_address, telegram_id]);
