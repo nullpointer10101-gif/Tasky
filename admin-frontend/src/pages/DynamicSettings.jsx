@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 export default function DynamicSettings() {
   const [config, setConfig] = useState({
     withdrawal: { min_withdrawal_tasky: 0, fee_percent: 0, usdt_rate: 0 },
-    referral: { reward_per_referral: 0, tasks_required_for_valid: 0 }
+    referral: { reward_per_referral: 0, tasks_required_for_valid: 0, spin_reward_per_referral: 0 }
   });
   const [loading, setLoading] = useState(true);
 
@@ -102,6 +102,15 @@ export default function DynamicSettings() {
                 type="number"
                 value={config.referral.tasks_required_for_valid}
                 onChange={e => setConfig({ ...config, referral: { ...config.referral, tasks_required_for_valid: Number(e.target.value) } })}
+                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-ink-soft mb-2">Spin Reward per Valid Invite</label>
+              <input
+                type="number"
+                value={config.referral.spin_reward_per_referral}
+                onChange={e => setConfig({ ...config, referral: { ...config.referral, spin_reward_per_referral: Number(e.target.value) } })}
                 className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
               />
             </div>

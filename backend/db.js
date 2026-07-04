@@ -141,12 +141,19 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS referral_rules (
         id SERIAL PRIMARY KEY,
         reward_per_referral NUMERIC DEFAULT 200,
-        tasks_required_for_valid INT DEFAULT 5
+        tasks_required_for_valid INT DEFAULT 3,
+        spin_reward_per_referral INT DEFAULT 1
       );
     `);
+    
+    // Check if column exists to handle migration for existing DB
     await client.query(`
-      INSERT INTO referral_rules (reward_per_referral, tasks_required_for_valid)
-      SELECT 200, 5
+      ALTER TABLE referral_rules ADD COLUMN IF NOT EXISTS spin_reward_per_referral INT DEFAULT 1;
+    `);
+
+    await client.query(`
+      INSERT INTO referral_rules (reward_per_referral, tasks_required_for_valid, spin_reward_per_referral)
+      SELECT 200, 3, 1
       WHERE NOT EXISTS (SELECT 1 FROM referral_rules);
     `);
 

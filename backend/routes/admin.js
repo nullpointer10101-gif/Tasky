@@ -73,8 +73,8 @@ router.post('/config', async (req, res) => {
     if (referral) {
       await client.query(`
         UPDATE referral_rules 
-        SET reward_per_referral = $1, tasks_required_for_valid = $2
-      `, [referral.reward_per_referral, referral.tasks_required_for_valid]);
+        SET reward_per_referral = $1, tasks_required_for_valid = $2, spin_reward_per_referral = $3
+      `, [referral.reward_per_referral, referral.tasks_required_for_valid, referral.spin_reward_per_referral]);
     }
 
     await client.query('COMMIT');

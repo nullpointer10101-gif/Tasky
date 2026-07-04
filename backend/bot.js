@@ -661,15 +661,15 @@ bot.onText(/\/setwithdrawrules (\d+) (\d+) ([\d.]+)/, async (msg, match) => {
     }
 });
 
-bot.onText(/\/setreferralrules (\d+) (\d+)/, async (msg, match) => {
+bot.onText(/\/setreferralrules (\d+) (\d+) (\d+)/, async (msg, match) => {
     const chatId = msg.chat.id;
     if (!isAdmin(msg)) return;
     try {
         await pool.query(`
             UPDATE referral_rules 
-            SET reward_per_referral = $1, tasks_required_for_valid = $2 
+            SET reward_per_referral = $1, tasks_required_for_valid = $2, spin_reward_per_referral = $3 
             WHERE id = 1
-        `, [match[1], match[2]]);
+        `, [match[1], match[2], match[3]]);
         bot.sendMessage(chatId, `Referral rules updated.`);
     } catch(e) {
         bot.sendMessage(chatId, 'Error setting referral rules.');

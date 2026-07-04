@@ -144,10 +144,10 @@ router.post('/complete', async (req, res) => {
                         [user.referred_by, telegram_id]
                     );
                     if (referrerRes.rows.length > 0) {
-                        await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + 1 WHERE telegram_id = $2`, [rules.reward_per_referral, user.referred_by]);
+                        await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, user.referred_by, rules.spin_reward_per_referral]);
                         await client.query('UPDATE users SET valid_referrals = valid_referrals + 1 WHERE telegram_id = $1', [telegram_id]);
                         if (bot && bot.sendMessage) {
-                            try { bot.sendMessage(user.referred_by, `🎉 Your referral @${user.username || user.first_name} is now valid! +${rules.reward_per_referral} TASKY added to your balance.`); } catch (e) {}
+                            try { bot.sendMessage(user.referred_by, `🎉 Your referral @${user.username || user.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
                         }
                     }
                 }
@@ -324,9 +324,9 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                         // Credit referrer
                         await client.query(`
                             UPDATE users
-                            SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + 1
+                            SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3
                             WHERE telegram_id = $2
-                        `, [rules.reward_per_referral, ut.referred_by]);
+                        `, [rules.reward_per_referral, ut.referred_by, rules.spin_reward_per_referral]);
 
                         // Mark the referred user so we don't double-credit
                         await client.query(
@@ -338,7 +338,7 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                         if (bot && bot.sendMessage) {
                             try {
                                 bot.sendMessage(ut.referred_by,
-                                    `🎉 Your referral @${ut.username || ut.first_name} is now valid! +${rules.reward_per_referral} TASKY added to your balance.`
+                                    `🎉 Your referral @${ut.username || ut.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`
                                 );
                             } catch (e) {}
                         }

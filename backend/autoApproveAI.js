@@ -51,10 +51,10 @@ async function runAutoApproveAI() {
                     [task.referred_by, task.telegram_id]
                 );
                 if (referrerRes.rows.length > 0) {
-                    await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + 1 WHERE telegram_id = $2`, [rules.reward_per_referral, task.referred_by]);
+                    await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, task.referred_by, rules.spin_reward_per_referral]);
                     await client.query('UPDATE users SET valid_referrals = valid_referrals + 1 WHERE telegram_id = $1', [task.telegram_id]);
                     if (bot && bot.sendMessage) {
-                        try { bot.sendMessage(task.referred_by, `🎉 Auto AI Verified: Your referral @${task.username || task.first_name} is now valid! +${rules.reward_per_referral} TASKY added to your balance.`); } catch (e) {}
+                        try { bot.sendMessage(task.referred_by, `🎉 Auto AI Verified: Your referral @${task.username || task.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
                     }
                 }
             }
