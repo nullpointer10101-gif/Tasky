@@ -6,6 +6,23 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+const getCache = new Map();
+const CACHE_TTL = 30000; // 30 seconds
+
+const originalGet = api.get;
+api.get = async (url, config) => {
+  const key = url + JSON.stringify(config || {});
+  if (getCache.has(key)) {
+    const cached = getCache.get(key);
+    if (Date.now() - cached.timestamp < CACHE_TTL) {
+      return Promise.resolve(cached.res);
+    }
+  }
+  const res = await originalGet(url, config);
+  getCache.set(key, { res, timestamp: Date.now() });
+  return res;
+};
+
 const wrap = async (fn) => {
   try {
     const res = await fn()
@@ -68,11 +85,20 @@ const mockData = {
   ]
 };
 
+const mockCache = new Map();
 const withMock = (mockValue, fn) => async (...args) => {
   if (isMock) {
+    const key = fn.toString() + JSON.stringify(args);
+    if (mockCache.has(key)) {
+      if (Date.now() - mockCache.get(key).timestamp < CACHE_TTL) {
+        return mockCache.get(key).res;
+      }
+    }
     await delay(300);
     const resolvedMockValue = typeof mockValue === 'function' ? mockValue(...args) : mockValue;
-    return { data: resolvedMockValue, error: null };
+    const res = { data: resolvedMockValue, error: null };
+    mockCache.set(key, { res, timestamp: Date.now() });
+    return res;
   }
   return wrap(fn(...args));
 };

@@ -131,8 +131,8 @@ export default function Rig({ user, refreshUser }) {
         const maxEarned = rate * 4;
         setLiveEarnings(Math.min(currentEarned, maxEarned));
 
-        // Dynamic interval: 60s normally, 1s in the last 2 minutes
-        const nextInterval = diff > 120000 ? 60000 : 1000;
+        // Smooth dynamic UI updates
+        const nextInterval = 50;
         timeoutId = setTimeout(tick, nextInterval);
       }
     };
@@ -398,20 +398,16 @@ export default function Rig({ user, refreshUser }) {
               <div className="flex flex-col items-center mb-5">
                 {/* Animated ring around earnings */}
                 <div className="relative w-36 h-36 flex items-center justify-center mb-1">
-                  {/* Static ring instead of heavy rotation */}
-                  <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/60" />
+                  {/* Dynamic rotating rings */}
+                  <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/20 border-t-indigo-400 animate-[spin_4s_linear_infinite]" />
+                  <div className="absolute inset-2 rounded-full border-[2px] border-purple-500/20 border-b-purple-400 animate-[spin_3s_linear_infinite_reverse]" />
 
                   {/* Earnings text inside ring */}
                   <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center">
                     <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-tight">Earned</span>
-                    <motion.span
-                      key={Math.floor(liveEarnings * 10)}
-                      initial={{ scale: 1.1, opacity: 0.6 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      className="text-2xl font-black text-white leading-tight"
-                    >
-                      {Number(liveEarnings).toFixed(3)}
-                    </motion.span>
+                    <span className="text-2xl font-black text-white leading-tight font-mono tracking-tighter">
+                      {Number(liveEarnings).toFixed(4)}
+                    </span>
                     <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">TASKY</span>
                   </div>
                 </div>
