@@ -3,8 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  html, body, #root {
-    @apply h-full w-full;
+  html, body {
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
