@@ -87,30 +87,44 @@ export default function Wallet({ user, refreshUser }) {
   // Sync wallet address to backend when connected, if user object doesn't have it
   useEffect(() => {
     if (walletAddress && user && user.wallet_address !== walletAddress) {
-      saveWalletAddress(user.telegram_id || '123456', walletAddress).then(async ({ error }) => {
-        if (error) {
-          showToast(error, 'error');
-          await tonConnectUI.disconnect();
-        } else {
-          refreshUser();
-        }
-      });
+      try {
+        saveWalletAddress(user.telegram_id || '123456', walletAddress).then(async ({ error }) => {
+          if (error) {
+            showToast(error, 'error');
+            await tonConnectUI.disconnect();
+          } else {
+            refreshUser();
+          }
+        }).catch(err => {
+          console.error('saveWalletAddress catch:', err);
+          showToast(err.message || 'Error saving wallet address', 'error');
+        });
+      } catch (err) {
+        console.error('saveWalletAddress outer catch:', err);
+        showToast(err.message || 'Error saving wallet address', 'error');
+      }
     }
   }, [walletAddress, user, tonConnectUI, showToast, refreshUser]);
 
   const fetchData = async () => {
-    setLoading(true);
-    if (activeTab === 'swap') {
-      const { data } = await getSwapRates();
-      if (data) setRates(data);
-    } else if (activeTab === 'withdraw') {
-      const { data } = await getWithdrawalSettings();
-      if (data) setWithdrawalSettings(data);
-    } else {
-      const { data } = await getSwapHistory(user?.telegram_id || '123456');
-      if (data) setHistory(data);
+    try {
+      setLoading(true);
+      if (activeTab === 'swap') {
+        const { data } = await getSwapRates();
+        if (data) setRates(data);
+      } else if (activeTab === 'withdraw') {
+        const { data } = await getWithdrawalSettings();
+        if (data) setWithdrawalSettings(data);
+      } else {
+        const { data } = await getSwapHistory(user?.telegram_id || '123456');
+        if (data) setHistory(data);
+      }
+    } catch (err) {
+      console.error('Wallet fetchData error:', err);
+      showToast(err.message || 'Error loading wallet data', 'error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const usdtRate = rates.find(r => r.token_name === 'USDT' && r.is_active);
@@ -133,22 +147,28 @@ export default function Wallet({ user, refreshUser }) {
     if (Number(swapAmount) > balance) return showToast('Insufficient balance', 'error');
     if (hasPendingSwap) return showToast('You already have a pending swap request.', 'error');
 
-    setIsSwapping(true);
-    // Send request without explicit wallet_address because the backend handles it securely based on the user's connection.
-    const { data, error } = await requestSwap({ 
-      telegram_id: user?.telegram_id, 
-      tasky_amount: Number(swapAmount),
-      destination_token: selectedDestination
-    });
-    setIsSwapping(false);
+    try {
+      setIsSwapping(true);
+      // Send request without explicit wallet_address because the backend handles it securely based on the user's connection.
+      const { data, error } = await requestSwap({ 
+        telegram_id: user?.telegram_id, 
+        tasky_amount: Number(swapAmount),
+        destination_token: selectedDestination
+      });
+      setIsSwapping(false);
 
-    if (data && !error) {
-      showToast('Swap request submitted successfully!');
-      setSwapAmount('');
-      setActiveTab('history');
-      refreshUser();
-    } else {
-      showToast(error || 'Failed to request swap', 'error');
+      if (data && !error) {
+        showToast('Swap request submitted successfully!');
+        setSwapAmount('');
+        setActiveTab('history');
+        refreshUser();
+      } else {
+        showToast(error || 'Failed to request swap', 'error');
+      }
+    } catch (err) {
+      console.error('handleSwap catch:', err);
+      setIsSwapping(false);
+      showToast(err.message || 'An error occurred during swap', 'error');
     }
   };
 
