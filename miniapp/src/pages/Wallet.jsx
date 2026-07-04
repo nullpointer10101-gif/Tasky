@@ -258,7 +258,7 @@ export default function Wallet({ user, refreshUser }) {
             <div className="h-48 bg-surface-soft rounded-2xl w-full" />
           </div>
         ) : activeTab === 'withdraw' ? (
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6">
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6 mt-6">
             <div className="relative flex items-center justify-center w-24 h-24">
               <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />
               <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-sm relative z-10">
@@ -453,9 +453,9 @@ export default function Wallet({ user, refreshUser }) {
                     })}
                     <motion.div
                       layoutId="swapDestinationIndicator"
-                      className="absolute top-1 bottom-1 w-[calc(50%-2px)] bg-surface rounded-2xl shadow-sm border border-border"
+                      className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-surface rounded-xl shadow-sm border border-border"
                       initial={false}
-                      animate={{ left: selectedDestination === 'USDT' ? '4px' : 'calc(50%)' }}
+                      animate={{ left: selectedDestination === 'DOGS' ? '6px' : '50%' }}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   </div>
