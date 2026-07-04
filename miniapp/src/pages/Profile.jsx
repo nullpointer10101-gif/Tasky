@@ -286,8 +286,8 @@ export default function Profile({ user }) {
             {[
               { icon: MessageCircle, label: t('profile.liveSupport'), sub: t('profile.liveSupportSub'), color: '#22d3ee', action: () => openLink('https://t.me/taskycs') },
               { icon: HelpCircle, label: t('profile.faq'), sub: t('profile.faqSub'), color: '#818cf8', action: () => setShowFaq(true) },
-              { icon: Globe, label: t('profile.community'), sub: t('profile.communitySub'), color: '#34d399', action: () => openLink('https://t.me/tasky') },
-              { icon: Globe, label: t('profile.officialChannel') || 'Official Channel', sub: t('profile.officialChannelSub') || 'Join our official channel', color: '#f59e0b', action: () => openLink('https://t.me/Tasky_Official') },
+              { icon: Globe, label: t('profile.community'), sub: t('profile.communitySub'), color: '#34d399', action: () => openLink('https://t.me/TaskyOfficialCommunity') },
+              { icon: Globe, label: t('profile.officialChannel'), sub: t('profile.officialChannelSub'), color: '#f59e0b', action: () => openLink('https://t.me/Tasky_Official') },
               { icon: FileText, label: t('profile.whitePaper'), sub: t('profile.whitePaperSub'), color: '#6366f1', action: () => setShowWhitepaper(true) },
               { icon: Lock, label: t('profile.privacyPolicy'), sub: t('profile.privacyPolicySub'), color: '#94a3b8', action: () => setShowPrivacy(true) },
             ].map((item, i) => {
