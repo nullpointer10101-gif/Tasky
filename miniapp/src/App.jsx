@@ -59,7 +59,20 @@ export default function App() {
           setMaintenance(true)
         } else {
           // If it's another error, just set user to a blank state so it doesn't hang infinitely
-          setUser({ ...tgUser, balance: 0 }) 
+          setUser({ 
+            ...tgUser, 
+            telegram_id: tgUser.id,
+            balance: 0,
+            total_earned: 0,
+            task_earnings: 0,
+            referral_earnings: 0,
+            streak_days: 0,
+            created_at: new Date().toISOString(),
+            tasks_done: 0,
+            spins_available: 0,
+            spins_used_today: 0,
+            is_banned: false
+          }) 
           setToast({ message: String(error), type: 'error' })
         }
       } else if (data) {

@@ -396,7 +396,7 @@ export default function Wallet({ user, refreshUser }) {
                   <ul className="space-y-3 text-xs text-red-500/80">
                     <li className="flex items-start gap-2">
                       <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
-                      <span><strong>One swap request every 24 hours.</strong> Accounts caught spamming will be banned.</span>
+                      <span><strong>Instant Processing.</strong> Swap requests are verified and processed in under 3 minutes. Accounts caught spamming will be banned.</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
@@ -511,7 +511,7 @@ export default function Wallet({ user, refreshUser }) {
                 </div>
 
                 <p className="text-center text-[10px] text-ink-soft font-medium">
-                  Note: One swap request every 24 hours
+                  Note: Swap requests are processed in under 3 minutes
                 </p>
 
                 {/* CTA — conditionally shown only when ready */}
