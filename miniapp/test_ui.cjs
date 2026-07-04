@@ -17,44 +17,34 @@ const puppeteer = require('puppeteer');
   });
 
   console.log('Navigating to app...');
-  await page.goto('http://localhost:5173/?mock=true', { waitUntil: 'networkidle2' });
-  
-  console.log('Waiting for initial load...');
-  await new Promise(r => setTimeout(r, 2000));
+  await page.goto('http://localhost:5173/?mock=true', { waitUntil: 'domcontentloaded' }); // don't wait for networkidle
   
   const tabs = ['Home', 'Tasks', 'Rig', 'Wallet', 'Referral', 'Profile'];
   
-  for (const tab of tabs) {
-    console.log(`Clicking tab: ${tab}`);
-    try {
-      await page.evaluate((tabName) => {
-        const spans = Array.from(document.querySelectorAll('span'));
-        const span = spans.find(s => s.textContent.trim() === tabName);
-        if (span && span.parentElement) {
-          span.parentElement.click();
-        }
-      }, tab);
-      await new Promise(r => setTimeout(r, 1000));
-    } catch (e) {
-      console.error(`Error clicking tab ${tab}:`, e);
+  // RAPID SWITCHING
+  for (let i = 0; i < 3; i++) {
+    for (const tab of tabs) {
+      console.log(`Rapidly clicking tab: ${tab}`);
+      try {
+        await page.evaluate((tabName) => {
+          const spans = Array.from(document.querySelectorAll('span'));
+          const span = spans.find(s => s.textContent.trim() === tabName);
+          if (span && span.parentElement) {
+            span.parentElement.click();
+          }
+        }, tab);
+        // almost NO delay, maybe 50ms
+        await new Promise(r => setTimeout(r, 50));
+      } catch (e) {
+        console.error(`Error clicking tab ${tab}:`, e);
+      }
     }
   }
 
-  // Check Wallet specifically, as requested
-  console.log('Clicking Wallet tab again to be sure...');
-  try {
-    await page.evaluate(() => {
-      const spans = Array.from(document.querySelectorAll('span'));
-      const span = spans.find(s => s.textContent.trim() === 'Wallet');
-      if (span && span.parentElement) {
-        span.parentElement.click();
-      }
-    });
-    await new Promise(r => setTimeout(r, 2000));
-  } catch (e) {}
-
-  await page.screenshot({ path: 'final_screen.png' });
-  console.log('Finished testing, took screenshot final_screen.png');
+  // Final screenshot
+  await new Promise(r => setTimeout(r, 1000));
+  await page.screenshot({ path: 'rapid_switch_final_screen.png' });
+  console.log('Finished testing, took screenshot rapid_switch_final_screen.png');
 
   await browser.close();
 })();

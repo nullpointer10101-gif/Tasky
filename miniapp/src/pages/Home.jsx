@@ -6,6 +6,7 @@ import DailyCheckin from '../components/DailyCheckin';
 import SpinWheel from '../components/SpinWheel';
 import { useTranslation } from '../i18n/I18nContext';
 import { getReferral, getSwapRates } from '../api';
+import { useToast } from '../App';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -17,21 +18,33 @@ const containerVariants = {
 
 export default function Home({ user, refreshUser }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const [swapRates, setSwapRates] = useState([]);
   const [referralData, setReferralData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchData = async () => {
-      const [refRes, ratesRes] = await Promise.all([
-        getReferral(user?.telegram_id || '123456'),
-        getSwapRates()
-      ]);
-      if (refRes.data) setReferralData(refRes.data);
-      if (ratesRes.data) setSwapRates(ratesRes.data);
-      setLoading(false);
+      try {
+        setLoading(true);
+        const [refRes, ratesRes] = await Promise.all([
+          getReferral(user?.telegram_id || '123456'),
+          getSwapRates()
+        ]);
+        if (!isMounted) return;
+        if (refRes.data) setReferralData(refRes.data);
+        if (ratesRes.data) setSwapRates(ratesRes.data);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Home fetchData error:', err);
+        showToast(err.message || 'Error loading home data', 'error');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
     fetchData();
+    return () => { isMounted = false; };
   }, [user]);
 
   if (!user || loading) {

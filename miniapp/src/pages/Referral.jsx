@@ -23,19 +23,28 @@ export default function Referral({ user }) {
   const { showToast } = useToast();
 
   useEffect(() => {
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [refRes, leadRes] = await Promise.all([
+          getReferral(user?.telegram_id || '123456'),
+          getReferralLeaderboard()
+        ]);
+        if (!isMounted) return;
+        if (refRes.data) setRefData(refRes.data);
+        if (leadRes.data) setLeaderboard(leadRes.data);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Referral fetchData error:', err);
+        showToast(err.message || 'Error loading referral data', 'error');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
     fetchData();
+    return () => { isMounted = false; };
   }, [user]);
-
-  const fetchData = async () => {
-    setLoading(true);
-    const [refRes, leadRes] = await Promise.all([
-      getReferral(user?.telegram_id || '123456'),
-      getReferralLeaderboard()
-    ]);
-    if (refRes.data) setRefData(refRes.data);
-    if (leadRes.data) setLeaderboard(leadRes.data);
-    setLoading(false);
-  };
 
   const handleCopy = () => {
     if (refData?.referral_link) {

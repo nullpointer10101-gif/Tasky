@@ -52,18 +52,42 @@ export default function Tasks({ user, refreshUser }) {
   const [proofData, setProofData] = useState('');
 
   useEffect(() => {
+    let isMounted = true;
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [tasksRes, subsRes] = await Promise.all([
+          getTasks(user?.telegram_id || '123456'),
+          getMySubmissions(user?.telegram_id || '123456')
+        ]);
+        if (!isMounted) return;
+        if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
+        if (subsRes.data) setSubmissions(subsRes.data);
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Tasks fetchData error:', err);
+        showToast(err.message || 'Error loading tasks', 'error');
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
     fetchData();
+    return () => { isMounted = false; };
   }, [user]);
 
-  const fetchData = async () => {
-    setLoading(true);
-    const [tasksRes, subsRes] = await Promise.all([
-      getTasks(user?.telegram_id || '123456'),
-      getMySubmissions(user?.telegram_id || '123456')
-    ]);
-    if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
-    if (subsRes.data) setSubmissions(subsRes.data);
-    setLoading(false);
+  // Expose fetchData for other functions
+  const reloadData = async () => {
+    try {
+      const [tasksRes, subsRes] = await Promise.all([
+        getTasks(user?.telegram_id || '123456'),
+        getMySubmissions(user?.telegram_id || '123456')
+      ]);
+      if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
+      if (subsRes.data) setSubmissions(subsRes.data);
+    } catch (err) {
+      console.error('Tasks reloadData error:', err);
+      showToast(err.message || 'Error reloading tasks', 'error');
+    }
   };
 
   const handleSelectTask = (task) => {
@@ -80,12 +104,12 @@ export default function Tasks({ user, refreshUser }) {
   };
 
   const handleSubmitProof = async () => {
-    setIsSubmitting(true);
-    let proof_screenshot_url = null;
-    let proof_url = null;
+    try {
+      setIsSubmitting(true);
+      let proof_screenshot_url = null;
+      let proof_url = null;
 
-    if (selectedTask.verification_type === 'proof_screenshot' && proofData) {
-      try {
+      if (selectedTask.verification_type === 'proof_screenshot' && proofData) {
         const formData = new FormData();
         formData.append('image', proofData);
         const imgRes = await fetch(import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '/api/upload' : `${import.meta.env.VITE_API_URL}/api/upload`, {
@@ -100,24 +124,24 @@ export default function Tasks({ user, refreshUser }) {
           setIsSubmitting(false);
           return;
         }
-      } catch (err) {
-        showToast('Image upload error', 'error');
-        setIsSubmitting(false);
-        return;
+      } else if (selectedTask.verification_type === 'proof_url') {
+        proof_url = proofData;
       }
-    } else if (selectedTask.verification_type === 'proof_url') {
-      proof_url = proofData;
-    }
 
-    const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
-    setIsSubmitting(false);
-    if (res.data) {
-      setSubmittedTask(selectedTask);
-      setSelectedTask(null);
-      fetchData();
-      refreshUser();
-    } else {
-      showToast(res.error || 'Failed to submit', 'error');
+      const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
+      setIsSubmitting(false);
+      if (res.data) {
+        setSubmittedTask(selectedTask);
+        setSelectedTask(null);
+        reloadData();
+        refreshUser();
+      } else {
+        showToast(res.error || 'Failed to submit', 'error');
+      }
+    } catch (err) {
+      console.error('handleSubmitProof error:', err);
+      setIsSubmitting(false);
+      showToast(err.message || 'Error submitting proof', 'error');
     }
   };
 

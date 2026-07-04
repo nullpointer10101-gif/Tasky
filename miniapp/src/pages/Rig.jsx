@@ -62,48 +62,71 @@ export default function Rig({ user, refreshUser }) {
   const [tonConnectUI] = useTonConnectUI();
   const walletAddress = useTonAddress();
 
-  const fetchStatus = async (showLoad = true) => {
-    if (showLoad) setLoading(true);
-    const [statusRes, levelsRes, machinesRes] = await Promise.all([
-      getMiningStatus(user?.telegram_id || '123456'),
-      getMiningLevels(),
-      getMachines(user?.telegram_id || '123456')
-    ]);
-    
-    if (statusRes.data) {
-      setStatus(statusRes.data);
-      setActiveSession(statusRes.data.active_session);
-      if (statusRes.data.active_session?.is_ready_to_claim) {
-        setLiveEarnings(statusRes.data.active_session.estimated_current_earned);
-        setTimeLeft('00:00:00');
+  const fetchStatus = async (showLoad = true, isMounted = { current: true }) => {
+    try {
+      if (showLoad) setLoading(true);
+      const [statusRes, levelsRes, machinesRes] = await Promise.all([
+        getMiningStatus(user?.telegram_id || '123456'),
+        getMiningLevels(),
+        getMachines(user?.telegram_id || '123456')
+      ]);
+      
+      if (!isMounted.current) return;
+
+      if (statusRes.data) {
+        setStatus(statusRes.data);
+        setActiveSession(statusRes.data.active_session);
+        if (statusRes.data.active_session?.is_ready_to_claim) {
+          setLiveEarnings(statusRes.data.active_session.estimated_current_earned);
+          setTimeLeft('00:00:00');
+        }
       }
-    }
-    if (levelsRes.data) {
-      setLevelsData(levelsRes.data);
-    }
-    if (machinesRes.data) {
-      setMachinesData(machinesRes.data);
-      if (machinesRes.data.unrevealed_new_machines?.length > 0) {
-         setRevealQueue(prev => {
-             const newIds = machinesRes.data.unrevealed_new_machines.filter(id => !prev.includes(id));
-             return [...prev, ...newIds];
-         });
+      if (levelsRes.data) {
+        setLevelsData(levelsRes.data);
       }
+      if (machinesRes.data) {
+        setMachinesData(machinesRes.data);
+        if (machinesRes.data.unrevealed_new_machines?.length > 0) {
+           setRevealQueue(prev => {
+               const newIds = machinesRes.data.unrevealed_new_machines.filter(id => !prev.includes(id));
+               return [...prev, ...newIds];
+           });
+        }
+      }
+    } catch (err) {
+      if (!isMounted.current) return;
+      console.error('Rig fetchStatus error:', err);
+      showToast(err.message || 'Error loading rig data', 'error');
+    } finally {
+      if (isMounted.current && showLoad) setLoading(false);
     }
-    if (showLoad) setLoading(false);
   };
 
   useEffect(() => {
-    fetchStatus();
+    const isMounted = { current: true };
+    fetchStatus(true, isMounted);
+    return () => { isMounted.current = false; };
   }, [user]);
 
   // Sync wallet address to backend when connected
   useEffect(() => {
+    let isMounted = true;
     if (walletAddress && status && status.wallet_address !== walletAddress) {
-      saveWalletAddress(user?.telegram_id || '123456', walletAddress).then(() => {
-        fetchStatus(false);
-      });
+      try {
+        saveWalletAddress(user?.telegram_id || '123456', walletAddress).then(() => {
+          if (isMounted) fetchStatus(false, { current: true });
+        }).catch(err => {
+          if (!isMounted) return;
+          console.error('Rig saveWalletAddress catch:', err);
+          showToast(err.message || 'Error saving wallet address', 'error');
+        });
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Rig saveWalletAddress outer catch:', err);
+        showToast(err.message || 'Error saving wallet address', 'error');
+      }
     }
+    return () => { isMounted = false; };
   }, [walletAddress, status]);
 
   // Dynamic Polling & Timer
@@ -150,14 +173,20 @@ export default function Rig({ user, refreshUser }) {
       return;
     }
 
-    setActionLoading(true);
-    const { data, error } = await startMiningSession(user?.telegram_id || '123456');
-    setActionLoading(false);
-    if (data) {
-      showToast('Mining session started!');
-      fetchStatus(false);
-    } else {
-      showToast(error || 'Failed to start mining', 'error');
+    try {
+      setActionLoading(true);
+      const { data, error } = await startMiningSession(user?.telegram_id || '123456');
+      setActionLoading(false);
+      if (data) {
+        showToast('Mining session started!');
+        fetchStatus(false, { current: true });
+      } else {
+        showToast(error || 'Failed to start mining', 'error');
+      }
+    } catch (err) {
+      console.error('handleStartMining error:', err);
+      setActionLoading(false);
+      showToast(err.message || 'Error starting mining', 'error');
     }
   };
 
@@ -169,15 +198,21 @@ export default function Rig({ user, refreshUser }) {
       return;
     }
 
-    setActionLoading(true);
-    const { data, error } = await claimMiningSession(user?.telegram_id || '123456');
-    setActionLoading(false);
-    if (data) {
-      showToast(`+${data.tasky_earned} TASKY claimed successfully!`);
-      refreshUser();
-      fetchStatus(false);
-    } else {
-      showToast(error || 'Failed to claim', 'error');
+    try {
+      setActionLoading(true);
+      const { data, error } = await claimMiningSession(user?.telegram_id || '123456');
+      setActionLoading(false);
+      if (data) {
+        showToast(`+${data.tasky_earned} TASKY claimed successfully!`);
+        refreshUser();
+        fetchStatus(false, { current: true });
+      } else {
+        showToast(error || 'Failed to claim', 'error');
+      }
+    } catch (err) {
+      console.error('handleClaim error:', err);
+      setActionLoading(false);
+      showToast(err.message || 'Error claiming rewards', 'error');
     }
   };
 
@@ -196,8 +231,13 @@ export default function Rig({ user, refreshUser }) {
     const activeRevealId = revealQueue[0];
     if (!activeRevealId) return;
     try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch (e) {}
-    await markMachineSeen(user?.telegram_id || '123456', activeRevealId);
-    setRevealQueue(prev => prev.slice(1));
+    try {
+      await markMachineSeen(user?.telegram_id || '123456', activeRevealId);
+      setRevealQueue(prev => prev.slice(1));
+    } catch (err) {
+      console.error('handleAcknowledgeReveal error:', err);
+      showToast(err.message || 'Error confirming reveal', 'error');
+    }
   };
 
   if (loading || !status || !levelsData || !machinesData) {
