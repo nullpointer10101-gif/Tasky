@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightLeft, History,
@@ -587,10 +588,11 @@ export default function Wallet({ user, refreshUser }) {
           )
         )}
       </div>
-      <AnimatePresence>
-        {isUsdtTeaserOpen && (
-          <div className="fixed inset-0 z-50">
-            <motion.div 
+      {isUsdtTeaserOpen ? createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-[999999] flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -598,17 +600,17 @@ export default function Wallet({ user, refreshUser }) {
               onClick={() => setIsUsdtTeaserOpen(false)}
             />
             
-            <div className="absolute inset-x-0 top-[15%] flex justify-center px-4 pointer-events-none">
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0, y: 20 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                className="relative w-full max-w-sm bg-surface rounded-[2.5rem] p-8 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col z-10 pointer-events-auto"
-              >
-                <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
-                  <X size={20} />
-                </button>
+            {/* Modal Container */}
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="relative w-full max-w-sm max-h-[90dvh] overflow-y-auto bg-surface rounded-[2.5rem] p-8 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col z-10 pointer-events-auto"
+            >
+              <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
+                <X size={20} />
+              </button>
               
               <div className="flex flex-col items-center mt-4 text-center">
                 <div className="relative flex items-center justify-center w-24 h-24 mb-4">
@@ -663,11 +665,11 @@ export default function Wallet({ user, refreshUser }) {
                   )}
                 </Button>
               </div>
-              </motion.div>
-            </div>
+            </motion.div>
           </div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      ) : null}
     </div>
   );
 }
