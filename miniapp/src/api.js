@@ -38,7 +38,7 @@ const mockData = {
     valid_referrals: 28,
     pending_referrals: 117,
     reward_per_referral: 200,
-    tasks_required_for_valid: 5
+    tasks_required_for_valid: 3
   },
   getReferralLeaderboard: [
     { id: 1, first_name: 'CryptoKing', valid_referrals: 450, total_referrals: 1200 },
