@@ -104,16 +104,28 @@ export default function App() {
 
   if (!user) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden">
+      <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden px-6 text-center">
         <div className="absolute inset-0 bg-indigo-500/5 mix-blend-overlay"></div>
-        <div className="relative w-20 h-20 mb-6">
-          <div className="absolute inset-0 rounded-2xl bg-indigo-500/20 animate-ping"></div>
-          <div className="absolute inset-0 rounded-2xl bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
-            <span className="text-4xl font-black text-white">T</span>
+        
+        {/* Recreated Logo in CSS */}
+        <div className="relative w-28 h-28 mb-8">
+          <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse"></div>
+          <div className="absolute inset-1 rounded-full bg-[#3F00E7] flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-white">
+            <span className="text-6xl font-black text-white" style={{ fontFamily: 'Impact, sans-serif', marginTop: '4px' }}>T</span>
           </div>
         </div>
-        <h1 className="text-2xl font-black text-ink mb-2">TASKY</h1>
-        <p className="text-sm font-medium text-ink-soft animate-pulse">Initializing Protocol...</p>
+        
+        <h1 className="text-3xl font-black text-ink mb-3 tracking-tight">TASKY</h1>
+        
+        <div className="space-y-1 mb-8">
+          <p className="text-base font-bold text-indigo-500">Complete Tasks. Earn Rewards.</p>
+          <p className="text-sm font-medium text-ink-soft">Your journey to building real wealth starts here.</p>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs font-bold text-ink-soft/50 animate-pulse bg-surface-soft px-4 py-2 rounded-full">
+          <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
+          Initializing Protocol...
+        </div>
       </div>
     );
   }
