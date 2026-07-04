@@ -38,6 +38,8 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS spins_used_today INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_spin_date DATE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users DROP COLUMN IF EXISTS notify_dogs_unlock;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS notify_usdt_unlock BOOLEAN DEFAULT FALSE;
     `);
 
     // MINING column additions
@@ -353,8 +355,18 @@ const initDB = async () => {
       WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
     `);
 
-    // Ensure only USDT remains
-    await client.query(`DELETE FROM swap_rates WHERE token_name != 'USDT';`);
+    // Ensure DOGS row exists
+    await client.query(`
+      INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
+      SELECT 'DOGS', 1000, 1000, 'TON', TRUE
+      WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'DOGS');
+    `);
+
+    // Ensure only USDT and DOGS remain
+    await client.query(`DELETE FROM swap_rates WHERE token_name NOT IN ('USDT', 'DOGS');`);
+
+    // Force update the active flags
+    await client.query(`UPDATE swap_rates SET is_active = CASE WHEN token_name = 'DOGS' THEN TRUE ELSE FALSE END;`);
 
     await client.query('COMMIT');
     console.log('Database tables initialized successfully.');

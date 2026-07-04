@@ -17,7 +17,7 @@ const isAdmin = (req, res, next) => {
 // GET /api/swap/rates
 router.get('/rates', async (req, res) => {
     try {
-        const { rows } = await pool.query("SELECT * FROM swap_rates WHERE is_active = TRUE AND token_name = 'USDT'");
+        const { rows } = await pool.query("SELECT * FROM swap_rates ORDER BY token_name ASC");
         res.json(rows);
     } catch (err) {
         console.error(err);
@@ -27,12 +27,12 @@ router.get('/rates', async (req, res) => {
 
 // POST /api/swap/request
 router.post('/request', async (req, res) => {
-    const { telegram_id, tasky_amount } = req.body;
+    const { telegram_id, tasky_amount, destination_token } = req.body;
     if (!telegram_id || !tasky_amount) {
         return res.status(400).json({ error: 'Missing params' });
     }
 
-    const receive_token = 'USDT';
+    const receive_token = (destination_token || 'USDT').toUpperCase();
     const amount = parseFloat(tasky_amount);
 
     const client = await pool.connect();
@@ -66,13 +66,18 @@ router.post('/request', async (req, res) => {
         }
         
         // get rate
-        const rateRes = await client.query('SELECT * FROM swap_rates WHERE token_name = $1 AND is_active = TRUE', [receive_token]);
+        const rateRes = await client.query('SELECT * FROM swap_rates WHERE token_name = $1', [receive_token]);
         if (rateRes.rows.length === 0) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'USDT swap rate not found or inactive' });
+            return res.status(400).json({ error: `${receive_token} swap rate not found` });
         }
         
         const rate = rateRes.rows[0];
+        if (!rate.is_active) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'This swap destination is not available yet' });
+        }
+        
         const minSwap = parseFloat(rate.min_tasky);
         
         if (amount < minSwap) {
@@ -147,6 +152,20 @@ router.get('/history/:telegram_id', async (req, res) => {
     try {
         const { rows } = await pool.query('SELECT * FROM swaps WHERE telegram_id = $1 ORDER BY requested_at DESC', [req.params.telegram_id]);
         res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// POST /api/swap/notify-usdt-unlock
+router.post('/notify-usdt-unlock', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'Missing telegram_id' });
+
+    try {
+        await pool.query('UPDATE users SET notify_usdt_unlock = TRUE WHERE telegram_id = $1', [telegram_id]);
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });

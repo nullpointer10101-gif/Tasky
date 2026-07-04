@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightLeft, History,
   CheckCircle2, Clock, Zap, Shield,
   BadgeCheck, Wallet as WalletIcon, ExternalLink, Coins,
-  Lock, ChevronDown, ChevronUp
+  Lock, ChevronDown, ChevronUp, X
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings } from '../api';
+import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock } from '../api';
 import { useToast } from '../App';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -60,6 +60,9 @@ export default function Wallet({ user, refreshUser }) {
   const [isSwapping, setIsSwapping] = useState(false);
   const [withdrawalSettings, setWithdrawalSettings] = useState(null);
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
+  const [selectedDestination, setSelectedDestination] = useState('DOGS');
+  const [isUsdtTeaserOpen, setIsUsdtTeaserOpen] = useState(false);
+  const [isNotified, setIsNotified] = useState(false);
   const { showToast } = useToast();
   
   const [tonConnectUI] = useTonConnectUI();
@@ -94,10 +97,13 @@ export default function Wallet({ user, refreshUser }) {
 
   const usdtRate = rates.find(r => r.token_name === 'USDT' && r.is_active);
   const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 500;
-  const minSwap = usdtRate ? Number(usdtRate.min_tasky) : 500;
+  
+  const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
+  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 500;
+  const minSwap = currentRate ? Number(currentRate.min_tasky) : 500;
   
   const balance = Number(user?.balance || 0);
-  const receiveUsdt = swapAmount ? (Number(swapAmount) / taskyPerUsdt).toFixed(4) : '0.0000';
+  const receiveAmount = swapAmount ? (Number(swapAmount) / taskyPerUnit).toFixed(4) : '0.0000';
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
@@ -110,7 +116,11 @@ export default function Wallet({ user, refreshUser }) {
 
     setIsSwapping(true);
     // Send request without explicit wallet_address because the backend handles it securely based on the user's connection.
-    const { data, error } = await requestSwap({ telegram_id: user?.telegram_id, tasky_amount: Number(swapAmount) });
+    const { data, error } = await requestSwap({ 
+      telegram_id: user?.telegram_id, 
+      tasky_amount: Number(swapAmount),
+      destination_token: selectedDestination
+    });
     setIsSwapping(false);
 
     if (data && !error) {
@@ -386,7 +396,58 @@ export default function Wallet({ user, refreshUser }) {
 
             <Card className="space-y-4 relative overflow-hidden rounded-3xl border-border">
               <div className="relative z-10 space-y-4">
-                <h3 className="font-black text-ink text-base">Swap TASKY to USDT</h3>
+                <h3 className="font-black text-ink text-base">Swap TASKY to {selectedDestination}</h3>
+
+                {/* Destination Toggle */}
+                <div>
+                  <label className="block text-[10px] font-black text-ink-soft uppercase tracking-widest mb-2">Select Destination</label>
+                  <div className="flex bg-surface-soft p-1 rounded-pill relative">
+                    {['USDT', 'DOGS'].map((token) => {
+                      const tokenData = rates.find(r => r.token_name === token);
+                      const isActive = tokenData ? tokenData.is_active : false;
+                      const isSelected = selectedDestination === token;
+                      
+                      return (
+                        <motion.button
+                          key={token}
+                          onClick={() => {
+                            if (!isActive) {
+                              if (window.Telegram?.WebApp?.HapticFeedback) {
+                                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                              }
+                              showToast(`${token} swap is coming soon`, 'info');
+                              setTimeout(() => setIsUsdtTeaserOpen(true), 300);
+                              return;
+                            }
+                            setSelectedDestination(token);
+                          }}
+                          whileTap={!isActive ? { x: [-2, 2, -2, 2, 0], transition: { duration: 0.3 } } : {}}
+                          className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-bold z-10 transition-all overflow-hidden rounded-xl ${
+                            isSelected ? 'text-ink' : isActive ? 'text-ink-soft hover:text-ink' : 'text-ink-faint opacity-70'
+                          }`}
+                        >
+                          {!isActive && (
+                            <motion.div
+                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-[200%] h-full"
+                              animate={{ x: ['-100%', '100%'] }}
+                              transition={{ repeat: Infinity, duration: 2, repeatDelay: 4, ease: 'linear' }}
+                            />
+                          )}
+                          {!isActive && <Lock size={14} className="relative z-10" />}
+                          <span className="relative z-10">{token}</span>
+                          {!isActive && <span className="relative z-10 ml-1 text-[9px] bg-ink-faint text-ink px-1.5 py-0.5 rounded-full uppercase tracking-wider font-bold">Soon</span>}
+                        </motion.button>
+                      );
+                    })}
+                    <motion.div
+                      layoutId="swapDestinationIndicator"
+                      className="absolute top-1 bottom-1 w-[calc(50%-2px)] bg-surface rounded-2xl shadow-sm border border-border"
+                      initial={false}
+                      animate={{ left: selectedDestination === 'USDT' ? '4px' : 'calc(50%)' }}
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  </div>
+                </div>
 
                 {/* Destination Wallet */}
                 <div>
@@ -426,7 +487,7 @@ export default function Wallet({ user, refreshUser }) {
                 {/* Receive Calculation — always visible */}
                 <div className="bg-surface-soft rounded-2xl p-4 border border-border text-center">
                   <span className="text-ink-soft text-xs font-bold block mb-1">You'll receive</span>
-                  <span className="font-black text-success text-2xl">≈ {receiveUsdt} USDT</span>
+                  <span className="font-black text-success text-2xl">≈ {receiveAmount} {selectedDestination}</span>
                 </div>
 
                 <p className="text-center text-[10px] text-ink-soft font-medium">
@@ -506,6 +567,84 @@ export default function Wallet({ user, refreshUser }) {
           )
         )}
       </div>
+      <AnimatePresence>
+        {isUsdtTeaserOpen && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
+              onClick={() => setIsUsdtTeaserOpen(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+              className="fixed inset-0 m-auto w-[90%] max-w-sm h-fit bg-surface rounded-[2.5rem] p-8 z-50 border border-border shadow-2xl shadow-indigo-500/10"
+            >
+              <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
+                <X size={20} />
+              </button>
+              
+              <div className="flex flex-col items-center mt-4 text-center">
+                <div className="relative flex items-center justify-center w-24 h-24 mb-4">
+                  <motion.div 
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
+                    transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
+                    className="absolute inset-0 bg-indigo-500/20 rounded-full" 
+                  />
+                  <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center relative z-10">
+                    <Coins size={28} className="text-indigo-400" />
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-surface rounded-full p-1 z-20">
+                    <div className="bg-indigo-500 text-white rounded-full p-1">
+                      <Lock size={12} />
+                    </div>
+                  </div>
+                </div>
+                
+                <h2 className="text-2xl font-black text-ink mb-2">USDT Swap — Coming Soon</h2>
+                
+                <div className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 rounded-lg mb-4 bg-indigo-500/10 text-indigo-500">
+                  Unlocking in Phase 2
+                </div>
+                
+                <p className="text-sm font-medium text-ink-soft mb-8 px-4 leading-relaxed">
+                  Soon you'll be able to swap your TASKY directly for USDT. Stay tuned for the unlock.
+                </p>
+
+                <Button 
+                  onClick={async () => {
+                    if (isNotified) return;
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                    }
+                    await notifyUsdtUnlock(user?.telegram_id || '123456');
+                    setIsNotified(true);
+                  }}
+                  disabled={isNotified}
+                  className={`w-full py-4 rounded-2xl font-black text-base transition-all ${
+                    isNotified 
+                      ? 'bg-success-soft text-success opacity-100' 
+                      : 'bg-ink text-surface active:scale-95 hover:bg-ink/90'
+                  }`}
+                >
+                  {isNotified ? (
+                    <div className="flex items-center justify-center gap-2">
+                      <CheckCircle2 size={18} />
+                      We'll notify you!
+                    </div>
+                  ) : (
+                    'Notify Me'
+                  )}
+                </Button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -56,7 +56,10 @@ const mockData = {
     unlock_message: 'Withdrawals unlock when TASKY launches on-chain',
     target_users_milestone: 500000
   },
-  getSwapRates: [{ token_name: 'USDT', tasky_per_unit: 500, min_tasky: 500, is_active: true }],
+  getSwapRates: [
+    { token_name: 'DOGS', tasky_per_unit: 1000, min_tasky: 1000, is_active: true },
+    { token_name: 'USDT', tasky_per_unit: 500, min_tasky: 500, is_active: false }
+  ],
   getSwapHistory: [
     { id: 1, telegram_id: '123456', tasky_amount: 1000, receive_token: 'USDT', receive_amount: 2, status: 'pending', requested_at: new Date().toISOString(), chain: 'TON' }
   ],
@@ -113,6 +116,7 @@ export const requestWithdrawal = withMock({ success: true }, (body) => async () 
   });
 })
 export const getWithdrawalHistory = withMock(mockData.getWithdrawalHistory, (id) => () => api.get(`/api/withdrawal/history/${id}`))
+export const notifyUsdtUnlock = withMock(() => ({ success: true }), (id) => () => api.post('/api/swap/notify-usdt-unlock', { telegram_id: id }))
 
 // Vault & Mining API
 mockData.getMiningStatus = {

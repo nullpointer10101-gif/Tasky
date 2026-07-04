@@ -1,68 +1,34 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+const http = require('http');
 
-(async () => {
-  const API = 'http://localhost:3000/api';
-  const telegram_id = 999888777;
-  
-  console.log('1. Registering mock user...');
-  await fetch(API + '/users/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ telegram_id, username: 'testuser' })
-  });
+const data = JSON.stringify({
+  telegram_id: '123456', // some dummy ID
+  tasky_amount: 1000,
+  destination_token: 'DOGS'
+});
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  await pool.query('UPDATE users SET balance = 5000 WHERE telegram_id = $1', [telegram_id]);
-  await pool.query('DELETE FROM swaps WHERE telegram_id = $1', [telegram_id]);
-  
-  console.log('2. Requesting first swap (valid TON format)...');
-  const swapRes = await fetch(API + '/swap/request', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegram_id,
-      tasky_amount: 1000,
-      wallet_address: 'EQA123456789012345678901234567890123456789012345'
-    })
-  });
-  const swap = await swapRes.json();
-  console.log('First swap response:', swap);
+const options = {
+  hostname: 'localhost',
+  port: 3000,
+  path: '/api/swap/request',
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Content-Length': data.length
+  }
+};
 
-  console.log('3. Requesting second swap while pending...');
-  const swap2Res = await fetch(API + '/swap/request', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegram_id,
-      tasky_amount: 1000,
-      wallet_address: 'EQA123456789012345678901234567890123456789012345'
-    })
+const req = http.request(options, (res) => {
+  let body = '';
+  res.on('data', (chunk) => body += chunk);
+  res.on('end', () => {
+    console.log(`Status Code: ${res.statusCode}`);
+    console.log(`Response Body: ${body}`);
   });
-  console.log('Second swap response:', await swap2Res.json());
+});
 
-  console.log('4. Completing swap as admin...');
-  const compRes = await fetch(API + '/swap/admin/complete', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-admin-id': process.env.ADMIN_TELEGRAM_ID },
-    body: JSON.stringify({
-      swap_id: swap.id,
-      tx_hash: 'abc123hash'
-    })
-  });
-  console.log('Complete swap response:', await compRes.json());
+req.on('error', (error) => {
+  console.error(error);
+});
 
-  console.log('5. Requesting third swap (cooldown test)...');
-  const swap3Res = await fetch(API + '/swap/request', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      telegram_id,
-      tasky_amount: 1000,
-      wallet_address: 'EQA123456789012345678901234567890123456789012345'
-    })
-  });
-  console.log('Third swap response:', await swap3Res.json());
-  
-  process.exit(0);
-})();
+req.write(data);
+req.end();

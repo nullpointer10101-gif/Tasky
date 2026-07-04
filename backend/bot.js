@@ -675,6 +675,59 @@ bot.onText(/\/setreferralrules (\d+) (\d+) (\d+)/, async (msg, match) => {
         bot.sendMessage(chatId, 'Error setting referral rules.');
     }
 });
+bot.onText(/\/toggleswapdestination (\w+) (on|off)/i, async (msg, match) => {
+    const chatId = msg.chat.id;
+    if (!isAdmin(msg)) return;
+    try {
+        const token = match[1].toUpperCase();
+        const isActive = match[2].toLowerCase() === 'on';
+        
+        const res = await pool.query(`
+            UPDATE swap_rates 
+            SET is_active = $1 
+            WHERE token_name = $2 RETURNING *
+        `, [isActive, token]);
+
+        if (res.rows.length === 0) {
+            bot.sendMessage(chatId, `Token ${token} not found in swap rates.`);
+        } else {
+            bot.sendMessage(chatId, `${token} swap is now ${isActive ? 'enabled' : 'disabled'}.`);
+        }
+    } catch(e) {
+        bot.sendMessage(chatId, 'Error toggling swap destination.');
+    }
+});
+
+bot.onText(/\/usdtnotifycount/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAdmin(msg)) return;
+    try {
+        const res = await pool.query('SELECT COUNT(*) as c FROM users WHERE notify_usdt_unlock = TRUE');
+        bot.sendMessage(chatId, `Users waiting for USDT unlock: ${res.rows[0].c}`);
+    } catch(e) {
+        bot.sendMessage(chatId, 'Error getting count.');
+    }
+});
+
+bot.onText(/\/notifyusdtlive/, async (msg) => {
+    const chatId = msg.chat.id;
+    if (!isAdmin(msg)) return;
+    try {
+        const res = await pool.query('SELECT telegram_id FROM users WHERE notify_usdt_unlock = TRUE');
+        let count = 0;
+        for (const row of res.rows) {
+            try {
+                bot.sendMessage(row.telegram_id, "🎉 USDT swap is now live! Swap your TASKY for USDT right now in the Wallet tab.");
+                count++;
+            } catch (e) {
+                // Ignore send errors
+            }
+        }
+        bot.sendMessage(chatId, `Notification sent to ${count} users.`);
+    } catch(e) {
+        bot.sendMessage(chatId, 'Error sending notifications.');
+    }
+});
 
 // --- MINING ADMIN COMMANDS ---
 
