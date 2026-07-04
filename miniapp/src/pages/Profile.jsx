@@ -284,7 +284,7 @@ export default function Profile({ user }) {
           <p className="text-[10px] font-black text-ink-faint uppercase tracking-widest px-1 mb-2">{t('profile.supportLegal')}</p>
           <Card className="rounded-2xl border-border p-0 overflow-hidden divide-y divide-border">
             {[
-              { icon: MessageCircle, label: t('profile.liveSupport'), sub: t('profile.liveSupportSub'), color: '#22d3ee', action: () => openLink('https://t.me/taskysupport') },
+              { icon: MessageCircle, label: t('profile.liveSupport'), sub: t('profile.liveSupportSub'), color: '#22d3ee', action: () => openLink('https://t.me/taskycs') },
               { icon: HelpCircle, label: t('profile.faq'), sub: t('profile.faqSub'), color: '#818cf8', action: () => setShowFaq(true) },
               { icon: Globe, label: t('profile.community'), sub: t('profile.communitySub'), color: '#34d399', action: () => openLink('https://t.me/tasky') },
               { icon: FileText, label: t('profile.whitePaper'), sub: t('profile.whitePaperSub'), color: '#6366f1', action: () => setShowWhitepaper(true) },
@@ -472,7 +472,7 @@ To exercise any of these rights, contact us via the Live Support channel.`
                   },
                   {
                     title: '8. Contact',
-                    body: `For any privacy-related questions or requests, please reach us via our official Telegram support channel: @taskysupport`
+                    body: `For any privacy-related questions or requests, please reach us via our official Telegram support channel: @taskycs`
                   },
                 ].map((section, i) => (
                   <div key={i}>
