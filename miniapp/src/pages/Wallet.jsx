@@ -416,6 +416,201 @@ export default function Wallet({ user, refreshUser }) {
                   <div className="flex bg-surface-soft p-1.5 rounded-2xl relative mb-6">
                     {['DOGS', 'USDT'].map((token) => {
                       const tokenData = rates.find(r => r.token_name === token);
+) : (
+          <Button onClick={() => tonConnectUI.openModal()} className="px-4 py-1.5 text-xs font-bold bg-ink text-surface rounded-lg active:scale-95 transition-all">
+            Connect
+          </Button>
+        )}
+      </Card>
+
+      <div className="flex bg-surface-soft p-1 rounded-pill relative">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-medium z-10 transition-colors ${activeTab === tab.id ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}
+            >
+              <Icon size={14} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+        <motion.div
+          layoutId="walletTabIndicator"
+          className="absolute top-1 bottom-1 w-[calc(33.333%-3px)] bg-surface rounded-2xl shadow-sm border border-border"
+          initial={false}
+          animate={{ left: activeTab === 'withdraw' ? '4px' : activeTab === 'swap' ? 'calc(33.333%)' : 'calc(66.666%)' }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+        />
+      </div>
+
+      <div className="flex-1 overflow-y-auto hide-scrollbar">
+        {loading ? (
+          <div className="space-y-3 animate-pulse">
+            <div className="h-20 bg-surface-soft rounded-2xl w-full" />
+            <div className="h-48 bg-surface-soft rounded-2xl w-full" />
+          </div>
+        ) : activeTab === 'withdraw' ? (
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6 mt-6">
+            <div className="relative flex items-center justify-center w-24 h-24">
+              <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />
+              <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-sm relative z-10">
+                <Lock size={28} className="text-indigo-400" />
+              </div>
+            </div>
+            
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black text-ink">TASKY Isn't Live On-Chain Yet</h2>
+              <p className="text-sm text-ink-soft font-medium max-w-xs mx-auto leading-relaxed">
+                {withdrawalSettings?.unlock_message || 'Withdrawals unlock when TASKY launches on-chain'}
+              </p>
+            </div>
+
+            {/* Static Roadmap */}
+            <div className="w-full max-w-sm mx-auto bg-surface border border-border rounded-2xl p-5 space-y-4 text-left shadow-sm">
+              <h3 className="font-bold text-sm text-ink mb-3">Token Launch Roadmap</h3>
+              
+              <div className="space-y-4 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-border">
+                <div className="relative flex items-center gap-4 z-10">
+                  <div className="w-6 h-6 rounded-full bg-success-soft border border-success flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 size={12} className="text-success" />
+                  </div>
+                  <span className="text-sm font-bold text-ink">Community Growth</span>
+                </div>
+                
+                <div className="relative flex items-center gap-4 z-10">
+                  <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center flex-shrink-0">
+                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+                  </div>
+                  <span className="text-sm font-bold text-ink">Smart Contract Deployment</span>
+                </div>
+
+                <div className="relative flex items-center gap-4 z-10 opacity-50">
+                  <div className="w-6 h-6 rounded-full bg-surface-soft border border-border flex items-center justify-center flex-shrink-0">
+                    <Lock size={10} className="text-ink-soft" />
+                  </div>
+                  <span className="text-sm font-medium text-ink-soft">Liquidity Pool</span>
+                </div>
+
+                <div className="relative flex items-center gap-4 z-10 opacity-50">
+                  <div className="w-6 h-6 rounded-full bg-surface-soft border border-border flex items-center justify-center flex-shrink-0">
+                    <Lock size={10} className="text-ink-soft" />
+                  </div>
+                  <span className="text-sm font-medium text-ink-soft">Withdrawals Unlock</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 pb-8">
+              <p className="text-xs text-ink-soft font-medium leading-relaxed max-w-[280px] mx-auto mb-3">
+                Your TASKY balance is safe and growing. Use Swap to convert small amounts to USDT right now.
+              </p>
+              <Button 
+                onClick={() => setActiveTab('swap')}
+                className="px-6 py-2.5 bg-ink text-surface rounded-xl font-bold text-sm active:scale-95 transition-all shadow-md"
+              >
+                Go to Swap
+              </Button>
+            </div>
+          </motion.div>
+        ) : activeTab === 'swap' ? (
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3">
+            
+            {/* Dopamine Banner */}
+            <Card className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border-orange-500/20">
+              <div className="flex gap-3 items-start">
+                <div className="mt-0.5 animate-pulse text-orange-500">
+                  <Zap size={18} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-orange-500 mb-1">Early Adopter Rates</h3>
+                  <p className="text-[11px] font-medium text-ink-soft leading-relaxed">
+                    You are swapping before the mainnet launch! Current rates are lower than expected launch prices. <strong className="text-ink">Hold your TASKY</strong> for maximum gains, or swap small amounts now if you need quick USDT.
+                  </p>
+                </div>
+              </div>
+            </Card>
+
+            {/* Key Points */}
+            <div className="grid grid-cols-2 gap-3">
+              {KEY_POINTS.slice(0,2).map((kp, i) => {
+                const Icon = kp.icon;
+                return (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.07 }}
+                    className={`flex flex-col gap-2.5 p-3.5 rounded-2xl border ${kp.cardBg} border-border shadow-sm`}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                       <div
+                         className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                         style={{ backgroundColor: `${kp.accentColor}18` }}
+                       >
+                         <Icon size={18} style={{ color: kp.accentColor }} />
+                       </div>
+                    </div>
+                    <div>
+                       <p className="text-xs font-black text-ink leading-tight mb-1">{kp.title}</p>
+                       <p className="text-[10px] text-ink-soft leading-relaxed">{kp.desc}</p>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            {/* Swap Rules & Info */}
+            <Card className="border-red-500/20 rounded-2xl overflow-hidden bg-red-500/5">
+              <button 
+                onClick={() => setIsRulesExpanded(!isRulesExpanded)}
+                className="w-full flex items-center justify-between p-3.5"
+              >
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-red-500/10">
+                    <Shield size={16} className="text-red-500" />
+                  </div>
+                  <h3 className="font-bold text-red-500 text-sm">Strict Swap Rules</h3>
+                </div>
+                {isRulesExpanded ? <ChevronUp size={16} className="text-red-400" /> : <ChevronDown size={16} className="text-red-400" />}
+              </button>
+              
+              {isRulesExpanded && (
+                <div className="px-4 pb-4 border-t border-red-500/10 pt-3.5">
+                  <ul className="space-y-3 text-xs text-red-500/80">
+                    <li className="flex items-start gap-2">
+                      <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
+                      <span><strong>One swap request every 24 hours.</strong> Accounts caught spamming will be banned.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
+                      <span>Swapped funds are sent directly to your connected TON wallet &mdash; absolutely no manual address changes allowed.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
+                      <span>Swap requests are processed within <strong>24 hours</strong>.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <div className="mt-1.5 min-w-[4px] h-[4px] rounded-full bg-red-500"></div>
+                      <span><strong>Swap availability:</strong> Open now for early adopters.</span>
+                    </li>
+                  </ul>
+                </div>
+              )}
+            </Card>
+
+            <Card className="space-y-4 relative overflow-hidden rounded-3xl border-border">
+              <div className="relative z-10 space-y-4">
+                <h3 className="font-black text-ink text-base">Swap TASKY to {selectedDestination}</h3>
+
+                {/* Destination Toggle */}
+                <div>
+                  <label className="block text-[10px] font-black text-ink-soft uppercase tracking-widest mb-2">Select Destination</label>
+                  <div className="flex bg-surface-soft p-1.5 rounded-2xl relative mb-6">
+                    {['DOGS', 'USDT'].map((token) => {
+                      const tokenData = rates.find(r => r.token_name === token);
                       const isActive = tokenData ? tokenData.is_active : false;
                       const isSelected = selectedDestination === token;
                       
@@ -423,15 +618,14 @@ export default function Wallet({ user, refreshUser }) {
                         <motion.button
                           key={token}
                           onClick={() => {
+                            setSelectedDestination(token);
                             if (!isActive) {
                               if (window.Telegram?.WebApp?.HapticFeedback) {
                                 window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
                               }
                               showToast(`${token} swap is coming soon`, 'info');
                               setTimeout(() => setIsUsdtTeaserOpen(true), 300);
-                              return;
                             }
-                            setSelectedDestination(token);
                           }}
                           whileTap={!isActive ? { x: [-2, 2, -2, 2, 0], transition: { duration: 0.3 } } : {}}
                           className={`relative flex-1 flex items-center justify-center gap-1.5 py-2 text-sm font-bold z-10 transition-all overflow-hidden rounded-xl ${
@@ -507,7 +701,15 @@ export default function Wallet({ user, refreshUser }) {
                 </p>
 
                 {/* CTA — conditionally shown only when ready */}
-                {!isConnected ? (
+                {!isSelectedActive ? (
+                  <Button 
+                    onClick={() => setIsUsdtTeaserOpen(true)}
+                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-surface-soft border border-border text-ink-soft disabled:opacity-100"
+                  >
+                    <Lock size={16} className="inline mr-2 -mt-1" />
+                    Unlocking Soon
+                  </Button>
+                ) : !isConnected ? (
                   <Button
                     onClick={() => tonConnectUI.openModal()}
                     className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 "
@@ -581,7 +783,8 @@ export default function Wallet({ user, refreshUser }) {
       </div>
       <AnimatePresence>
           {isUsdtTeaserOpen && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 z-50">
+              {/* Backdrop */}
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -589,16 +792,19 @@ export default function Wallet({ user, refreshUser }) {
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={() => setIsUsdtTeaserOpen(false)}
               />
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto bg-surface rounded-[2.5rem] p-8 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col z-10"
-              >
-                <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
-                  <X size={20} />
-                </button>
+              
+              {/* Modal Container */}
+              <div className="absolute inset-x-0 top-[15%] flex justify-center px-4 pointer-events-none">
+                <motion.div
+                  initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                  animate={{ scale: 1, opacity: 1, y: 0 }}
+                  exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                  transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+                  className="relative w-full max-w-sm bg-surface rounded-[2.5rem] p-8 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col z-10 pointer-events-auto"
+                >
+                  <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
+                    <X size={20} />
+                  </button>
               
               <div className="flex flex-col items-center mt-4 text-center">
                 <div className="relative flex items-center justify-center w-24 h-24 mb-4">
@@ -653,7 +859,8 @@ export default function Wallet({ user, refreshUser }) {
                   )}
                 </Button>
               </div>
-              </motion.div>
+                </motion.div>
+              </div>
             </div>
           )}
         </AnimatePresence>
