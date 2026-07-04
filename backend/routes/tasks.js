@@ -169,17 +169,25 @@ router.post('/complete', async (req, res) => {
             await recalculateTier(telegram_id);
             return res.json({ status: 'approved', new_balance: newBalance, tokens_earned: reward });
 
-        } else if (task.verification_type === 'proof_url') {
-            const proof_url = req.body.proof_url;
-            if (!proof_url || !/^https?:\/\//i.test(proof_url)) {
-                await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'Valid URL is required as proof' });
+        } else if (task.verification_type === 'proof_url' || task.verification_type === 'proof_username') {
+            const proof_data = req.body.proof_url;
+            
+            if (task.verification_type === 'proof_url') {
+                if (!proof_data || !/^https?:\/\//i.test(proof_data)) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'Valid URL is required as proof' });
+                }
+            } else if (task.verification_type === 'proof_username') {
+                if (!proof_data || proof_data.trim().length < 2) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'Username is required as proof' });
+                }
             }
 
             await client.query(`
                 INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
                 VALUES ($1, $2, 'pending', $3, NOW())
-            `, [telegram_id, task_id, proof_url]);
+            `, [telegram_id, task_id, proof_data.trim()]);
 
             await client.query('COMMIT');
 
@@ -191,9 +199,9 @@ router.post('/complete', async (req, res) => {
 
         } else {
             // Default to proof_screenshot logic
-            if (!proof_screenshot_url) {
+            if (!proof_screenshot_url || (!proof_screenshot_url.startsWith('http') && !proof_screenshot_url.includes('/uploads/'))) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'Screenshot required' });
+                return res.status(400).json({ error: 'Screenshot proof required' });
             }
 
             await client.query(`

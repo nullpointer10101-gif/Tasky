@@ -96,7 +96,7 @@ router.get('/tasks/pending', async (req, res) => {
     const query = `
       SELECT 
         ut.id as user_task_id, ut.submitted_at, ut.proof_screenshot_url,
-        t.id as task_id, t.title, t.reward_tasky,
+        t.id as task_id, t.title, t.reward_tasky, t.verification_type,
         u.telegram_id, u.username, u.first_name
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id

@@ -59,26 +59,38 @@ export default function TaskReviews() {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {tasks.map((task) => (
             <div key={task.user_task_id} className="bg-surface-soft border border-border rounded-3xl overflow-hidden flex flex-col">
-              {/* Proof Image Area */}
-              <div className="h-48 bg-black/50 relative group">
-                {task.proof_screenshot_url ? (
-                  <img 
-                    src={task.proof_screenshot_url.startsWith('http') ? task.proof_screenshot_url : "http://localhost:3000" + task.proof_screenshot_url} 
-                    alt="Proof" 
-                    className="w-full h-full object-cover"
-                  />
+              {/* Proof Area */}
+              <div className="h-48 bg-black/50 relative group flex flex-col items-center justify-center border-b border-border">
+                {task.verification_type === 'proof_url' || task.verification_type === 'proof_username' ? (
+                  <div className="p-4 text-center break-all w-full">
+                    <p className="text-ink-soft mb-2 uppercase text-xs font-bold tracking-wider">{task.verification_type === 'proof_username' ? 'Username Submitted:' : 'URL Submitted:'}</p>
+                    <a 
+                      href={task.verification_type === 'proof_url' ? task.proof_screenshot_url : `https://x.com/${task.proof_screenshot_url?.replace('@', '')}`}
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="text-indigo-400 font-bold hover:underline text-lg"
+                    >
+                      {task.proof_screenshot_url}
+                    </a>
+                  </div>
+                ) : task.proof_screenshot_url ? (
+                  <>
+                    <img 
+                      src={task.proof_screenshot_url.startsWith('http') ? task.proof_screenshot_url : "http://localhost:3000" + task.proof_screenshot_url} 
+                      alt="Proof" 
+                      className="w-full h-full object-cover"
+                    />
+                    <a 
+                      href={task.proof_screenshot_url.startsWith('http') ? task.proof_screenshot_url : "http://localhost:3000" + task.proof_screenshot_url}
+                      target="_blank" 
+                      rel="noreferrer"
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2"
+                    >
+                      View Full Image <ExternalLink size={16} />
+                    </a>
+                  </>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-ink-faint text-sm font-medium">No Image Uploaded</div>
-                )}
-                {task.proof_screenshot_url && (
-                  <a 
-                    href={task.proof_screenshot_url.startsWith('http') ? task.proof_screenshot_url : "http://localhost:3000" + task.proof_screenshot_url}
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white font-bold gap-2"
-                  >
-                    View Full Image <ExternalLink size={16} />
-                  </a>
+                  <div className="flex items-center justify-center h-full text-ink-faint text-sm font-medium">No Proof Submitted</div>
                 )}
               </div>
 
