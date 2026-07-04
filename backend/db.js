@@ -173,7 +173,7 @@ const initDB = async () => {
     `);
     await client.query(`
       INSERT INTO withdrawal_settings (min_withdrawal_tasky, fee_percent, usdt_rate, is_locked, unlock_message, target_users_milestone)
-      SELECT 2250, 35, 0.00003, TRUE, 'Withdrawals unlock when TASKY launches on-chain', 500000
+      SELECT 1000, 35, 0.00003, TRUE, 'Withdrawals unlock when TASKY launches on-chain', 500000
       WHERE NOT EXISTS (SELECT 1 FROM withdrawal_settings);
     `);
 
@@ -358,7 +358,7 @@ const initDB = async () => {
     // Ensure DOGS row exists
     await client.query(`
       INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
-      SELECT 'DOGS', 0.25, 500, 'TON', TRUE
+      SELECT 'DOGS', 0.5, 1000, 'TON', TRUE
       WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'DOGS');
     `);
 
@@ -369,7 +369,7 @@ const initDB = async () => {
     await client.query(`UPDATE swap_rates SET is_active = CASE WHEN token_name = 'DOGS' THEN TRUE ELSE FALSE END;`);
 
     // Force update DOGS rate for existing databases
-    await client.query(`UPDATE swap_rates SET tasky_per_unit = 0.25, min_tasky = 500 WHERE token_name = 'DOGS';`);
+    await client.query(`UPDATE swap_rates SET tasky_per_unit = 0.5, min_tasky = 1000 WHERE token_name = 'DOGS';`);
 
     // ── PERFORMANCE INDEXES ───────────────────────────────────────────────────
     await client.query(`

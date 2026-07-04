@@ -61,12 +61,8 @@ const mockData = {
     { id: 1, first_name: 'CryptoKing', valid_referrals: 450, total_referrals: 1200 },
     { id: 2, first_name: 'Satoshi', valid_referrals: 380, total_referrals: 890 }
   ],
-  getSwapRates: [
-    { id: 1, token_name: 'TON', tasky_per_unit: 1000, min_tasky: 500 },
-    { id: 2, token_name: 'USDT', tasky_per_unit: 500, min_tasky: 500 }
-  ],
   getWithdrawalSettings: { 
-    min_withdrawal_tasky: 2250, 
+    min_withdrawal_tasky: 1000, 
     fee_percent: 35, 
     usdt_rate: 0.00003,
     is_locked: true,
@@ -74,8 +70,8 @@ const mockData = {
     target_users_milestone: 500000
   },
   getSwapRates: [
-    { token_name: 'DOGS', tasky_per_unit: 1000, min_tasky: 1000, is_active: true },
-    { token_name: 'USDT', tasky_per_unit: 500, min_tasky: 500, is_active: false }
+    { token_name: 'DOGS', tasky_per_unit: 0.5, min_tasky: 1000, is_active: true },
+    { token_name: 'USDT', tasky_per_unit: 1000, min_tasky: 1000, is_active: false }
   ],
   getSwapHistory: [
     { id: 1, telegram_id: '123456', tasky_amount: 1000, receive_token: 'USDT', receive_amount: 2, status: 'pending', requested_at: new Date().toISOString(), chain: 'TON' }
