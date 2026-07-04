@@ -113,6 +113,7 @@ export default function Wallet({ user, refreshUser }) {
   const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
   const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 500;
   const minSwap = currentRate ? Number(currentRate.min_tasky) : 500;
+  const isSelectedActive = currentRate ? Boolean(currentRate.is_active) : false;
   
   const balance = Number(user?.balance || 0);
   const receiveAmount = swapAmount ? (Number(swapAmount) / taskyPerUnit).toFixed(4) : '0.0000';
