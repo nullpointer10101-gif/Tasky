@@ -580,25 +580,25 @@ export default function Wallet({ user, refreshUser }) {
         )}
       </div>
       <AnimatePresence>
-        {isUsdtTeaserOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"
-              onClick={() => setIsUsdtTeaserOpen(false)}
-            />
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
-              animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%' }}
-              exit={{ scale: 0.9, opacity: 0, x: '-50%', y: '-50%' }}
-              transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-              className="fixed top-1/2 left-1/2 w-[90%] max-w-sm max-h-[90vh] overflow-y-auto bg-surface rounded-[2.5rem] p-8 z-50 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col"
-            >
-              <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
-                <X size={20} />
-              </button>
+          {isUsdtTeaserOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setIsUsdtTeaserOpen(false)}
+              />
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+                className="relative w-full max-w-sm max-h-[90vh] overflow-y-auto bg-surface rounded-[2.5rem] p-8 border border-border shadow-2xl shadow-indigo-500/10 flex flex-col z-10"
+              >
+                <button onClick={() => setIsUsdtTeaserOpen(false)} className="absolute top-5 right-5 p-2 bg-surface-soft rounded-full text-ink-soft active:scale-95 transition-transform">
+                  <X size={20} />
+                </button>
               
               <div className="flex flex-col items-center mt-4 text-center">
                 <div className="relative flex items-center justify-center w-24 h-24 mb-4">
@@ -653,10 +653,10 @@ export default function Wallet({ user, refreshUser }) {
                   )}
                 </Button>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
     </div>
   );
 }
