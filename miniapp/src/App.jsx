@@ -15,9 +15,9 @@ export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
 
 const PAGE_VARIANTS = {
-  initial:  { opacity: 0 },
-  animate:  { opacity: 1 },
-  exit:     { opacity: 0 },
+  pageInitial:  { opacity: 0 },
+  pageAnimate:  { opacity: 1 },
+  pageExit:     { opacity: 0 },
 }
 const PAGE_TRANSITION = { duration: 0.15 }
 
@@ -127,13 +127,13 @@ export default function App() {
         <Header />
 
         <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll">
-          <AnimatePresence mode="wait" initial={false}>
+          <AnimatePresence mode="wait">
             <motion.div
               key={activePage}
               variants={PAGE_VARIANTS}
-              initial="initial"
-              animate="animate"
-              exit="exit"
+              initial="pageInitial"
+              animate="pageAnimate"
+              exit="pageExit"
               transition={PAGE_TRANSITION}
               className="h-full"
             >
