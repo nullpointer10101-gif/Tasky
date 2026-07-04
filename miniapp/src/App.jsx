@@ -116,6 +116,7 @@ export default function App() {
         <p className="text-sm font-medium text-ink-soft animate-pulse">Initializing Protocol...</p>
       </div>
     );
+  }
 
   if (user.is_banned) {
     return (
