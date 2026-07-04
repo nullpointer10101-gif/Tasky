@@ -65,6 +65,18 @@ export default function Wallet({ user, refreshUser }) {
   const [isNotified, setIsNotified] = useState(false);
   const { showToast } = useToast();
   
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (isUsdtTeaserOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [isUsdtTeaserOpen]);
+
   const [tonConnectUI] = useTonConnectUI();
   const walletAddress = useTonAddress();
   const isConnected = !!walletAddress;

@@ -36,6 +36,19 @@ export default function Rig({ user, refreshUser }) {
   const [tiersExpanded, setTiersExpanded] = useState(false);
   
   const [selectedMachine, setSelectedMachine] = useState(null);
+  
+  // Lock body scroll when modal is open
+  useEffect(() => {
+    if (selectedMachine) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'auto';
+    }
+    return () => {
+      document.body.style.overflow = 'auto';
+    };
+  }, [selectedMachine]);
+
   const [revealQueue, setRevealQueue] = useState([]);
   const [shakingId, setShakingId] = useState(null);
 
