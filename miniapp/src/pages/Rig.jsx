@@ -269,7 +269,7 @@ export default function Rig({ user, refreshUser }) {
 
   const displayLevel = status.level_name || 'No Vault';
   const displaySpeed = Number(status.effective_speed || 0).toFixed(2);
-  const displayHolding = Number(status.balance || 0).toLocaleString();
+  const displayHolding = Math.floor(Number(status.balance || 0)).toLocaleString();
   const displayEff = status.efficiency_percent || 100;
   
   const ownedCount = machinesData.machines.filter(m => m.status === 'owned').length;

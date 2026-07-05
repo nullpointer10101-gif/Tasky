@@ -130,7 +130,7 @@ export default function Profile({ user }) {
           <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 mb-3">
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-0.5">{t('profile.totalBalance')}</p>
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-white">{balance.toLocaleString()}</span>
+              <span className="text-3xl font-black text-white">{Math.floor(balance).toLocaleString()}</span>
               <span className="text-slate-400 text-sm font-bold">TASKY</span>
               <span className="ml-auto text-emerald-400 text-sm font-black">≈ {(balance / TASKY_PER_USDT).toFixed(4)} USDT</span>
             </div>

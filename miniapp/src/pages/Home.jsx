@@ -98,7 +98,7 @@ export default function Home({ user, refreshUser }) {
         <div className="relative z-10">
           <p className="text-sm font-medium text-white/80 mb-1">{t('home.totalPortfolio') || 'TOTAL PORTFOLIO'}</p>
           <div className="flex items-baseline gap-2">
-            <span className="text-4xl font-bold tracking-tight">{Number(user.balance).toLocaleString()}</span>
+            <span className="text-4xl font-bold tracking-tight">{Math.floor(Number(user.balance)).toLocaleString()}</span>
             <span className="text-lg font-medium text-white/90">TASKY</span>
           </div>
           <p className="text-sm mt-2 text-white/80">
@@ -117,7 +117,7 @@ export default function Home({ user, refreshUser }) {
             <Wallet size={16} className="text-blue-400" />
           </div>
           <p className="text-sm text-ink-faint mb-1">{t('home.taskyBalance') || 'TASKY Balance'}</p>
-          <p className="text-xl font-bold">{Number(user.balance).toLocaleString()}</p>
+          <p className="text-xl font-bold">{Math.floor(Number(user.balance)).toLocaleString()}</p>
         </Card>
         
         <Card className="flex flex-col">

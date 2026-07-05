@@ -118,6 +118,50 @@ bot.on('callback_query', async (query) => {
         } catch(e) {
              bot.sendMessage(chatId, 'Error verifying task.');
         }
+    } else if (data.startsWith('approve_') || data.startsWith('reject_')) {
+        const action = data.startsWith('approve_') ? 'approved' : 'rejected';
+        const userTaskId = data.split('_')[1];
+        
+        try {
+            const utRes = await pool.query('SELECT * FROM user_tasks WHERE id = $1', [userTaskId]);
+            if (utRes.rows.length === 0) {
+                return bot.answerCallbackQuery(query.id, { text: 'Task submission not found' });
+            }
+            
+            const ut = utRes.rows[0];
+            if (ut.status !== 'pending') {
+                return bot.answerCallbackQuery(query.id, { text: `Already ${ut.status}` });
+            }
+            
+            const taskRes = await pool.query('SELECT * FROM tasks WHERE id = $1', [ut.task_id]);
+            const task = taskRes.rows[0];
+            
+            if (action === 'approved') {
+                const reward = parseFloat(task.reward_tasky);
+                await pool.query('BEGIN');
+                await pool.query('UPDATE user_tasks SET status = $1, reviewed_at = NOW() WHERE id = $2', [action, userTaskId]);
+                await pool.query('UPDATE users SET balance = balance + $1 WHERE telegram_id = $2', [reward, ut.telegram_id]);
+                await pool.query('COMMIT');
+                
+                bot.sendMessage(ut.telegram_id, `✅ Your submission for "${task.title}" has been approved! +${reward} TASKY`);
+                bot.editMessageText(`✅ Approved by admin\n\n` + query.message.text, {
+                    chat_id: chatId,
+                    message_id: query.message.message_id
+                });
+            } else {
+                await pool.query('UPDATE user_tasks SET status = $1, reviewed_at = NOW(), rejection_reason = $3 WHERE id = $2', [action, userTaskId, 'Invalid proof']);
+                
+                bot.sendMessage(ut.telegram_id, `❌ Your submission for "${task.title}" was rejected. Please ensure you provide valid proof.`);
+                bot.editMessageText(`❌ Rejected by admin\n\n` + query.message.text, {
+                    chat_id: chatId,
+                    message_id: query.message.message_id
+                });
+            }
+            bot.answerCallbackQuery(query.id, { text: `Marked as ${action}` });
+        } catch (err) {
+            console.error('Admin approval error:', err);
+            bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
+        }
     }
 });
 

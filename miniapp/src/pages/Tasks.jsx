@@ -397,9 +397,11 @@ export default function Tasks({ user, refreshUser }) {
                     >
                       {isSubmitting 
                         ? 'Submitting...' 
-                        : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
-                          ? 'Complete Task' 
-                          : 'Submit Proof'}
+                        : selectedTask.verification_type === 'auto_referral' 
+                          ? 'Claim Reward'
+                          : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
+                            ? 'Complete Task' 
+                            : 'Submit Proof'}
                     </Button>
                   </div>
                 )}

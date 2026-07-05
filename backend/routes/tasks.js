@@ -122,9 +122,9 @@ router.post('/complete', async (req, res) => {
             }
 
             if (task.verification_type === 'auto_referral') {
-                if (user.total_referrals < 1) {
+                if (user.valid_referrals < 5) {
                     await client.query('ROLLBACK');
-                    return res.status(400).json({ error: 'You need at least 1 referral to complete this task' });
+                    return res.status(400).json({ error: `You need at least 5 valid referrals to complete this task. You have ${user.valid_referrals}.` });
                 }
             }
 
@@ -195,16 +195,28 @@ router.post('/complete', async (req, res) => {
                 adminMessage = `📋 New follow verification from @${user.username || user.first_name} for task: ${task.title}\nX Handle submitted: ${proof_data}`;
             }
 
-            await client.query(`
+            const result = await client.query(`
                 INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
                 VALUES ($1, $2, 'pending', $3, NOW())
+                RETURNING id
             `, [telegram_id, task_id, proof_data]);
+            const userTaskId = result.rows[0].id;
 
             await client.query('COMMIT');
 
             const adminId = process.env.ADMIN_TELEGRAM_ID;
             if (bot && bot.sendMessage && adminId) {
-                try { bot.sendMessage(adminId, adminMessage); } catch (e) {}
+                const opts = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                { text: '✅ Approve', callback_data: `approve_${userTaskId}` },
+                                { text: '❌ Reject', callback_data: `reject_${userTaskId}` }
+                            ]
+                        ]
+                    }
+                };
+                try { bot.sendMessage(adminId, adminMessage, opts); } catch (e) {}
             }
             return res.json({ status: 'pending', message: 'Submitted for review' });
 
@@ -215,16 +227,28 @@ router.post('/complete', async (req, res) => {
                 return res.status(400).json({ error: 'Screenshot proof required' });
             }
 
-            await client.query(`
+            const result = await client.query(`
                 INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
                 VALUES ($1, $2, 'pending', $3, NOW())
+                RETURNING id
             `, [telegram_id, task_id, proof_screenshot_url]);
+            const userTaskId = result.rows[0].id;
 
             await client.query('COMMIT');
 
             const adminId = process.env.ADMIN_TELEGRAM_ID;
             if (bot && bot.sendMessage && adminId) {
-                try { bot.sendMessage(adminId, `📋 New screenshot submission from @${user.username || user.first_name} for task: ${task.title}`); } catch (e) {}
+                const opts = {
+                    reply_markup: {
+                        inline_keyboard: [
+                            [
+                                { text: '✅ Approve', callback_data: `approve_${userTaskId}` },
+                                { text: '❌ Reject', callback_data: `reject_${userTaskId}` }
+                            ]
+                        ]
+                    }
+                };
+                try { bot.sendMessage(adminId, `📋 New screenshot submission from @${user.username || user.first_name} for task: ${task.title}`, opts); } catch (e) {}
             }
             return res.json({ status: 'pending', message: 'Submitted for review' });
         }

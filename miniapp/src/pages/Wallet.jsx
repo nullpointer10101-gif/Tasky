@@ -208,7 +208,7 @@ export default function Wallet({ user, refreshUser }) {
         <div className="relative z-10 p-5">
           <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-1">Available Balance</p>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-4xl font-black tracking-tight text-white">{balance.toLocaleString()}</span>
+            <span className="text-4xl font-black tracking-tight text-white">{Math.floor(balance).toLocaleString()}</span>
             <span className="text-base font-bold text-white/70">TASKY</span>
           </div>
           <div className="flex items-center justify-between bg-white/10 border border-white/20 rounded-2xl px-3.5 py-2.5 ">
@@ -565,7 +565,7 @@ export default function Wallet({ user, refreshUser }) {
                   </Button>
                 ) : swapAmount && Number(swapAmount) > balance ? (
                   <div className="w-full py-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center">
-                    Insufficient balance ({balance.toLocaleString()} TASKY available)
+                    Insufficient balance ({Math.floor(balance).toLocaleString()} TASKY available)
                   </div>
                 ) : swapAmount && Number(swapAmount) < minSwap ? (
                   <div className="w-full py-3.5 rounded-2xl bg-surface-soft border border-border text-ink-soft text-sm font-medium text-center">
