@@ -281,12 +281,7 @@ export default function Wallet({ user, refreshUser }) {
       </div>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        {loading ? (
-          <div className="space-y-3 animate-pulse">
-            <div className="h-20 bg-surface-soft rounded-2xl w-full" />
-            <div className="h-48 bg-surface-soft rounded-2xl w-full" />
-          </div>
-        ) : activeTab === 'withdraw' ? (
+        {activeTab === 'withdraw' ? (
           <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6 mt-6">
             <div className="relative flex items-center justify-center w-24 h-24">
               <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />

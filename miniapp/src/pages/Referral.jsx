@@ -62,21 +62,7 @@ export default function Referral({ user }) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="p-4 space-y-4 animate-pulse">
-        <div className="h-16 w-48 bg-surface-soft rounded"></div>
-        <div className="h-48 bg-surface-soft rounded-2xl w-full"></div>
-        <div className="h-10 bg-surface-soft rounded-pill w-full"></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-        </div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="p-4 space-y-4 pb-24 h-full flex flex-col">
