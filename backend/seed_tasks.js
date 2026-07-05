@@ -7,7 +7,7 @@ const pool = new Pool({
 
 const tasks = [
   {
-    title: 'Join Tasky Official Channel',
+    title: 'Join Official Account',
     subtitle: 'Get official updates, announcements, and news first',
     type: 'telegram',
     reward_tasky: 500,
@@ -29,13 +29,13 @@ const tasks = [
     icon: 'Telegram'
   },
   {
-    title: 'Watch: How Tasky Works',
-    subtitle: 'Watch our 60-second intro video',
+    title: 'Create 60s Video',
+    subtitle: 'Min 100 subs, 200 views. Bot link properly attached in description and comments',
     type: 'youtube',
     reward_tasky: 300,
-    action_url: 'https://youtube.com', // placeholder
+    action_url: '',
     is_featured: false,
-    verification_type: 'proof_screenshot',
+    verification_type: 'proof_url',
     icon: 'Youtube'
   },
   {
@@ -55,7 +55,8 @@ const tasks = [
     reward_tasky: 350,
     action_url: 'https://x.com/TaskyOfficial', // placeholder
     is_featured: false,
-    verification_type: 'proof_url',
+    verification_type: 'proof_username',
+    x_subtype: 'follow',
     icon: 'Twitter'
   },
   {
@@ -63,41 +64,23 @@ const tasks = [
     subtitle: 'Help spread the word, retweet our pinned post',
     type: 'twitter',
     reward_tasky: 400,
-    action_url: 'https://x.com/TaskyOfficial/status/123', // placeholder
+    action_url: 'https://x.com/TaskyAppOffical/status/2073639150277001626?s=20',
     is_featured: false,
-    verification_type: 'proof_url',
+    verification_type: 'proof_username',
+    x_subtype: 'repost',
     icon: 'Twitter'
-  },
-  {
-    title: 'Share Your Balance',
-    subtitle: 'Post a screenshot of your TASKY balance in your story or group chat',
-    type: 'general',
-    reward_tasky: 250,
-    action_url: '',
-    is_featured: false,
-    verification_type: 'proof_screenshot',
-    icon: 'Share'
-  },
-  {
-    title: 'Introduce Yourself in the Community',
-    subtitle: "Say hi and share where you're joining from in our community group",
-    type: 'telegram',
-    reward_tasky: 200,
-    action_url: 'https://t.me/TaskyOfficialCommunity',
-    is_featured: false,
-    verification_type: 'proof_screenshot',
-    icon: 'MessageCircle'
   }
 ];
+
 
 async function seed() {
   const client = await pool.connect();
   try {
     for (const task of tasks) {
       await client.query(`
-        INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_active, is_featured, verification_type, icon, telegram_chat_id)
-        VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $9)
-      `, [task.title, task.subtitle, task.type, task.reward_tasky, task.action_url, task.is_featured, task.verification_type, task.icon, task.telegram_chat_id || null]);
+        INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_active, is_featured, verification_type, icon, telegram_chat_id, x_subtype)
+        VALUES ($1, $2, $3, $4, $5, true, $6, $7, $8, $9, $10)
+      `, [task.title, task.subtitle, task.type, task.reward_tasky, task.action_url, task.is_featured, task.verification_type, task.icon, task.telegram_chat_id || null, task.x_subtype || null]);
       console.log(`Inserted: ${task.title}`);
     }
     console.log('Seed completed successfully!');
