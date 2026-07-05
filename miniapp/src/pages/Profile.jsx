@@ -33,7 +33,7 @@ const getRank = (totalEarned) => {
   return { label: 'Bronze', icon: Target, color: '#fb923c', next: 5000, progress: (t/5000)*100 };
 };
 
-export default function Profile({ user }) {
+function Profile({ user }) {
   const { lang, changeLanguage, t } = useTranslation();
   const { showToast } = useToast();
   const [showLangPicker, setShowLangPicker] = useState(false);
@@ -598,4 +598,35 @@ Tasky is not responsible for funds lost due to incorrect wallet addresses or wro
       </AnimatePresence>
     </motion.div>
   );
+}
+
+export default function ProfileWithErrorBoundary(props) {
+  return (
+    <ErrorBoundary>
+      <Profile {...props} />
+    </ErrorBoundary>
+  );
+}
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-8 h-full flex items-center justify-center text-center bg-black">
+          <div className="text-red-500 p-4 border border-red-500 bg-red-900/20 rounded-xl overflow-auto w-full">
+            <h2 className="font-bold mb-2">Profile Render Error:</h2>
+            <pre className="text-xs text-left text-red-300">{this.state.error?.toString()}</pre>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
