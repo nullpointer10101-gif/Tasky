@@ -156,9 +156,17 @@ const initDB = async () => {
       VALUES ('maintenance', '{"active": false}')
       ON CONFLICT (key) DO NOTHING;
 
+      CREATE TABLE IF NOT EXISTS wallet_bindings (
+        id SERIAL PRIMARY KEY,
+        wallet_address VARCHAR(100) UNIQUE NOT NULL,
+        telegram_id BIGINT UNIQUE NOT NULL,
+        bound_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       CREATE TABLE IF NOT EXISTS mining_sessions (
         id SERIAL PRIMARY KEY,
         telegram_id BIGINT,
+        wallet_address VARCHAR(100),
         started_at TIMESTAMPTZ DEFAULT NOW(),
         session_duration_hours INT DEFAULT 4,
         expected_claim_at TIMESTAMPTZ,
@@ -167,8 +175,13 @@ const initDB = async () => {
         efficiency_used NUMERIC,
         claimed BOOLEAN DEFAULT FALSE,
         claimed_at TIMESTAMPTZ,
-        tasky_earned NUMERIC DEFAULT 0
+        tasky_earned NUMERIC DEFAULT 0,
+        status VARCHAR(20) DEFAULT 'active'
       );
+
+      ALTER TABLE mining_sessions ADD COLUMN IF NOT EXISTS wallet_address VARCHAR(100);
+      ALTER TABLE mining_sessions ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'active';
+      UPDATE mining_sessions SET status = 'claimed' WHERE claimed = TRUE AND status = 'active';
 
       CREATE TABLE IF NOT EXISTS mining_levels (
         id SERIAL PRIMARY KEY,

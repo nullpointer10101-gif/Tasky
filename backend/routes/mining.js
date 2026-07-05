@@ -45,7 +45,7 @@ router.get('/status/:telegram_id', async (req, res) => {
     
     const { rows: sessions } = await pool.query(`
       SELECT * FROM mining_sessions 
-      WHERE telegram_id = $1 AND claimed = FALSE
+      WHERE telegram_id = $1 AND status = 'active'
       ORDER BY started_at DESC LIMIT 1
     `, [telegram_id]);
 
@@ -95,13 +95,19 @@ router.get('/status/:telegram_id', async (req, res) => {
 
 // POST /api/mining/start
 router.post('/start', async (req, res) => {
-  const { telegram_id } = req.body;
+  const { telegram_id, wallet_address } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+  if (!wallet_address) return res.status(400).json({ error: 'Connect your wallet to start mining' });
 
   try {
+    const { rows: binding } = await pool.query('SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1', [telegram_id]);
+    if (binding.length === 0 || binding[0].wallet_address !== wallet_address) {
+       return res.status(400).json({ error: 'Connect your bound wallet to start mining' });
+    }
+
     const { rows: sessions } = await pool.query(`
       SELECT id FROM mining_sessions 
-      WHERE telegram_id = $1 AND claimed = FALSE
+      WHERE telegram_id = $1 AND status = 'active'
     `, [telegram_id]);
 
     if (sessions.length > 0) {
@@ -139,10 +145,10 @@ router.post('/start', async (req, res) => {
 
     const { rows: newSession } = await pool.query(`
       INSERT INTO mining_sessions 
-      (telegram_id, expected_claim_at, rate_used, level_used, efficiency_used, session_duration_hours)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      (telegram_id, wallet_address, expected_claim_at, rate_used, level_used, efficiency_used, session_duration_hours, status)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
       RETURNING *
-    `, [telegram_id, expected_claim_at, rate_used, user.mining_level, user.efficiency_percent, session_duration_hours]);
+    `, [telegram_id, wallet_address, expected_claim_at, rate_used, user.mining_level, user.efficiency_percent, session_duration_hours]);
 
     res.json(newSession[0]);
   } catch (err) {
@@ -153,13 +159,19 @@ router.post('/start', async (req, res) => {
 
 // POST /api/mining/claim
 router.post('/claim', async (req, res) => {
-  const { telegram_id } = req.body;
+  const { telegram_id, wallet_address } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+  if (!wallet_address) return res.status(400).json({ error: 'Reconnect your wallet to claim your mining rewards' });
 
   try {
+    const { rows: binding } = await pool.query('SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1', [telegram_id]);
+    if (binding.length === 0 || binding[0].wallet_address !== wallet_address) {
+       return res.status(400).json({ error: 'Reconnect your bound wallet to claim your mining rewards' });
+    }
+
     const { rows: sessions } = await pool.query(`
       SELECT * FROM mining_sessions 
-      WHERE telegram_id = $1 AND claimed = FALSE
+      WHERE telegram_id = $1 AND status = 'active'
       ORDER BY started_at DESC LIMIT 1
     `, [telegram_id]);
 
@@ -183,7 +195,7 @@ router.post('/claim', async (req, res) => {
       
       await client.query(`
         UPDATE mining_sessions
-        SET claimed = TRUE, claimed_at = NOW(), tasky_earned = $1
+        SET claimed = TRUE, claimed_at = NOW(), tasky_earned = $1, status = 'claimed'
         WHERE id = $2
       `, [tasky_earned, session.id]);
 

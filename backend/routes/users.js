@@ -142,28 +142,90 @@ router.post('/checkin', async (req, res) => {
     }
 });
 
-router.post('/wallet', async (req, res) => {
-    const { telegram_id, wallet_address } = req.body;
+router.post('/wallet/bind', async (req, res) => {
+    const { telegram_id, wallet_address, force } = req.body;
     if (!telegram_id || !wallet_address) {
         return res.status(400).json({ error: 'telegram_id and wallet_address required' });
     }
     
+    const client = await pool.connect();
     try {
-        // Check if wallet is already connected to another account
-        const { rows: existingWallet } = await pool.query(`
-            SELECT telegram_id FROM users WHERE wallet_address = $1 AND telegram_id != $2
+        await client.query('BEGIN');
+        
+        // 1. Check if this exact wallet is already bound to ANOTHER telegram_id
+        const { rows: otherUserBindings } = await client.query(`
+            SELECT telegram_id FROM wallet_bindings WHERE wallet_address = $1 AND telegram_id != $2
         `, [wallet_address, telegram_id]);
         
-        if (existingWallet.length > 0) {
-            return res.status(400).json({ error: 'Wallet is already connected to another account' });
+        if (otherUserBindings.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'This wallet is already linked to another Tasky account and cannot be used here.' });
         }
 
-        const { rows } = await pool.query(`
-            UPDATE users SET wallet_address = $1 WHERE telegram_id = $2 RETURNING *
-        `, [wallet_address, telegram_id]);
-        
-        if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        // 2. Check if THIS telegram_id already has a DIFFERENT wallet bound
+        const { rows: currentUserBindings } = await client.query(`
+            SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1
+        `, [telegram_id]);
+
+        if (currentUserBindings.length > 0) {
+            const currentWallet = currentUserBindings[0].wallet_address;
+            if (currentWallet !== wallet_address) {
+                if (!force) {
+                    await client.query('ROLLBACK');
+                    return res.json({ needs_confirmation: true, old_wallet: currentWallet });
+                } else {
+                    // Force rebind: Reset progress, invalidate session
+                    await client.query(`
+                        UPDATE users SET mining_level = 0, efficiency_percent = 100, holding_stable_since = NOW(), wallet_address = $1
+                        WHERE telegram_id = $2
+                    `, [wallet_address, telegram_id]);
+                    
+                    await client.query(`
+                        UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id = $1 AND status = 'active'
+                    `, [telegram_id]);
+                    
+                    await client.query(`
+                        UPDATE wallet_bindings SET wallet_address = $1, bound_at = NOW() WHERE telegram_id = $2
+                    `, [wallet_address, telegram_id]);
+                    
+                    await client.query('COMMIT');
+                    return res.json({ success: true, wallet_address, reset: true });
+                }
+            }
+        } else {
+            // New binding
+            await client.query(`
+                INSERT INTO wallet_bindings (wallet_address, telegram_id) VALUES ($1, $2)
+            `, [wallet_address, telegram_id]);
+            
+            // Sync to users table for backwards compat
+            await client.query(`
+                UPDATE users SET wallet_address = $1 WHERE telegram_id = $2
+            `, [wallet_address, telegram_id]);
+        }
+
+        await client.query('COMMIT');
         res.json({ success: true, wallet_address });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        client.release();
+    }
+});
+
+router.post('/wallet/disconnect', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        await pool.query(`
+            UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id = $1 AND status = 'active'
+        `, [telegram_id]);
+        
+        // Note: we do NOT delete the wallet_bindings row to maintain the 1-to-1 enforcement while disconnected
+        res.json({ success: true });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });

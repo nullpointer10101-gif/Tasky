@@ -109,26 +109,8 @@ export default function Rig({ user, refreshUser }) {
     return () => { isMounted.current = false; };
   }, [user]);
 
-  // Sync wallet address to backend when connected
-  useEffect(() => {
-    let isMounted = true;
-    if (walletAddress && status && status.wallet_address !== walletAddress) {
-      try {
-        saveWalletAddress(user?.telegram_id || '123456', walletAddress).then(() => {
-          if (isMounted) fetchStatus(false, { current: true });
-        }).catch(err => {
-          if (!isMounted) return;
-          console.error('Rig saveWalletAddress catch:', err);
-          showToast(err.message || 'Error saving wallet address', 'error');
-        });
-      } catch (err) {
-        if (!isMounted) return;
-        console.error('Rig saveWalletAddress outer catch:', err);
-        showToast(err.message || 'Error saving wallet address', 'error');
-      }
-    }
-    return () => { isMounted = false; };
-  }, [walletAddress, status]);
+  // No need for saveWalletAddress here as WalletManager handles global sync
+
 
   // Dynamic Polling & Timer
   useEffect(() => {
@@ -181,7 +163,7 @@ export default function Rig({ user, refreshUser }) {
 
     try {
       setActionLoading(true);
-      const { data, error } = await startMiningSession(user?.telegram_id || '123456');
+      const { data, error } = await startMiningSession(user?.telegram_id || '123456', walletAddress);
       setActionLoading(false);
       if (data) {
         showToast('Mining session started!');
@@ -201,7 +183,7 @@ export default function Rig({ user, refreshUser }) {
 
     try {
       setActionLoading(true);
-      const { data, error } = await claimMiningSession(user?.telegram_id || '123456');
+      const { data, error } = await claimMiningSession(user?.telegram_id || '123456', walletAddress);
       setActionLoading(false);
       if (data) {
         showToast(`+${data.tasky_earned} TASKY claimed successfully!`);
@@ -360,16 +342,42 @@ export default function Rig({ user, refreshUser }) {
       </motion.div>
 
       {/* Mining Session Card */}
-      {/* Mining Session Card */}
-      <div className="relative">
-
-        {/* ── IDLE: One tap to activate ── */}
-        {!activeSession && (
+      {/* ---- MAIN MINING SESSION CARD ---- */}
+      <div className="relative mb-6">
+        
+        {/* ── DISCONNECTED WALLET STATE ── */}
+        {!walletAddress ? (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm"
+            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm text-center"
           >
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent" />
+            <div className="relative z-10 p-8 flex flex-col items-center">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4 text-indigo-400">
+                <Wallet className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl font-black text-ink tracking-tight mb-2">Connect to Mine</h3>
+              <p className="text-sm text-ink-soft font-medium max-w-[240px] mb-6">
+                Mining progress is safely linked to your wallet. {activeSession && !activeSession.is_ready_to_claim ? 'Mining stopped.' : ''} Connect your wallet to {activeSession ? 'resume' : 'start'}.
+              </p>
+              <button 
+                onClick={() => tonConnectUI.connectWallet()}
+                className="bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-transform"
+              >
+                Connect Wallet
+              </button>
+            </div>
+          </motion.div>
+        ) : (
+          <>
+            {/* ── IDLE: Ready to Start ── */}
+            {!activeSession && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm"
+              >
             {/* Background gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/60 via-slate-900/40 to-purple-950/60" />
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(99,102,241,0.15),transparent_70%)]" />
@@ -532,6 +540,8 @@ export default function Rig({ user, refreshUser }) {
               <p className="text-[10px] text-white/30 font-medium mt-3">Tap above to add to your balance</p>
             </div>
           </motion.div>
+        )}
+          </>
         )}
       </div>
 

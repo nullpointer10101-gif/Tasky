@@ -200,19 +200,23 @@ export const startMiningSession = withMock(() => {
     rate_used: mockData.getMiningStatus.effective_speed
   };
   return mockData.getMiningStatus.active_session;
-}, (telegram_id) => () => api.post('/api/mining/start', { telegram_id }))
+}, (telegram_id, wallet_address) => () => api.post('/api/mining/start', { telegram_id, wallet_address }))
 
 export const claimMiningSession = withMock(() => {
   const earned = mockData.getMiningStatus.active_session.rate_used * 4;
   mockData.getUser.balance = (Number(mockData.getUser.balance) + earned).toString();
   mockData.getMiningStatus.active_session = null;
   return { tasky_earned: earned, new_balance: mockData.getUser.balance };
-}, (telegram_id) => () => api.post('/api/mining/claim', { telegram_id }))
+}, (telegram_id, wallet_address) => () => api.post('/api/mining/claim', { telegram_id, wallet_address }))
 
-export const saveWalletAddress = withMock((telegram_id, wallet_address) => {
+export const saveWalletAddress = withMock((telegram_id, wallet_address, force = false) => {
   mockData.getMiningStatus.wallet_address = wallet_address;
   return { success: true, wallet_address };
-}, (telegram_id, wallet_address) => () => api.post('/api/users/wallet', { telegram_id, wallet_address }))
+}, (telegram_id, wallet_address, force = false) => () => api.post('/api/users/wallet/bind', { telegram_id, wallet_address, force }))
+
+export const disconnectWallet = withMock((telegram_id) => {
+  return { success: true };
+}, (telegram_id) => () => api.post('/api/users/wallet/disconnect', { telegram_id }))
 
 export const getMachines = withMock(() => mockData.getMachines, (telegram_id) => () => api.get(`/api/mining/machines/${telegram_id}`))
 export const markMachineSeen = withMock((telegram_id, machine_id) => {
