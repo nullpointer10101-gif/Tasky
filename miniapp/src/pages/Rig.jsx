@@ -382,7 +382,7 @@ export default function Rig({ user, refreshUser }) {
                 <div className="absolute inset-0 rounded-full border border-indigo-400/20 opacity-20 scale-[2.0]" />
                 {/* Press button */}
                 <motion.button
-                  className="relative w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-blue-700 flex flex-col items-center justify-center  z-10 select-none shadow-[0_0_40px_rgba(99,102,241,0.4)]"
+                  className="relative w-32 h-32 rounded-full flex flex-col items-center justify-center z-10 select-none"
                   animate={{ scale: [1, 1.04, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                   whileTap={{ scale: 0.9, transition: { duration: 0.12 } }}
@@ -390,14 +390,14 @@ export default function Rig({ user, refreshUser }) {
                   disabled={actionLoading}
                 >
                   <motion.div 
-                    className="w-[72px] h-[72px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-md bg-black/0"
+                    className="w-[100px] h-[100px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)] bg-black/0"
                     initial={{ scale: 1, rotate: 0 }}
                     animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
                   >
                     <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
                   </motion.div>
-                  <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">
+                  <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em] drop-shadow-md">
                     {actionLoading ? '...' : 'MINE'}
                   </span>
                 </motion.button>
