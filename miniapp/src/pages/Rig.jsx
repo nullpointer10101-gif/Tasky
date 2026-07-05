@@ -377,27 +377,24 @@ export default function Rig({ user, refreshUser }) {
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
               {/* Animated orb — the single tap target */}
               <div className="relative mb-6">
-                {/* Simplified static rings instead of heavy infinite pulse */}
-                <div className="absolute inset-0 rounded-full border border-indigo-400/20 opacity-40 scale-[1.5]" />
-                <div className="absolute inset-0 rounded-full border border-indigo-400/20 opacity-20 scale-[2.0]" />
                 {/* Press button */}
                 <motion.button
-                  className="relative w-32 h-32 rounded-full flex flex-col items-center justify-center z-10 select-none"
+                  className="relative w-40 h-40 flex flex-col items-center justify-center z-10 select-none"
                   animate={{ scale: [1, 1.04, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                  whileTap={{ scale: 0.9, transition: { duration: 0.12 } }}
+                  whileTap={{ scale: 0.95, transition: { duration: 0.12 } }}
                   onClick={handleStartMining}
                   disabled={actionLoading}
                 >
                   <motion.div 
-                    className="w-[100px] h-[100px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-[0_0_20px_rgba(99,102,241,0.5)] bg-black/0"
+                    className="w-[140px] h-[140px] rounded-full overflow-hidden flex items-center justify-center mb-2 drop-shadow-[0_0_30px_rgba(99,102,241,0.6)] bg-black/0"
                     initial={{ scale: 1, rotate: 0 }}
                     animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
                   >
                     <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
                   </motion.div>
-                  <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em] drop-shadow-md">
+                  <span className="text-white/90 text-[12px] font-black uppercase tracking-[0.2em] drop-shadow-md">
                     {actionLoading ? '...' : 'MINE'}
                   </span>
                 </motion.button>
@@ -443,30 +440,23 @@ export default function Rig({ user, refreshUser }) {
               </div>
 
               {/* Central earnings display */}
-              <div className="flex flex-col items-center mb-5 mt-2">
-                {/* Animated ring around earnings */}
-                <div className="relative w-44 h-44 flex items-center justify-center mb-1">
-                  {/* Dynamic rotating rings */}
-                  <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/20 border-t-indigo-400 animate-[spin_4s_linear_infinite]" />
-                  <div className="absolute inset-2 rounded-full border-[2px] border-purple-500/20 border-b-purple-400 animate-[spin_3s_linear_infinite_reverse]" />
+              <div className="flex flex-col items-center mb-6 mt-4">
+                <motion.div 
+                    className="w-[150px] h-[150px] rounded-full overflow-hidden flex items-center justify-center mb-4 drop-shadow-[0_0_25px_rgba(139,92,246,0.5)] bg-black/0"
+                    animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
+                    transition={{ duration: 0.5, ease: 'easeInOut' }}
+                >
+                    <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
+                </motion.div>
 
-                  {/* Earnings text inside ring */}
-                  <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center pt-2">
-                    <motion.div 
-                        className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-lg bg-black/0"
-                        animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
-                        transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    >
-                        <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
-                    </motion.div>
-                    <span className="text-2xl font-black text-white leading-tight font-mono tracking-tighter">
-                      {Number(liveEarnings).toFixed(4)}
-                    </span>
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide mt-0.5">TASKY</span>
-                  </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl font-black text-white leading-tight font-mono tracking-tighter">
+                    {Number(liveEarnings).toFixed(4)}
+                  </span>
+                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest mt-1">TASKY</span>
                 </div>
 
-                <p className="text-xs text-white/40 font-medium mt-1">
+                <p className="text-xs text-white/40 font-medium mt-4">
                   Mining at <span className="text-white/70 font-black">{displaySpeed} TASKY/hr</span>
                 </p>
               </div>
@@ -502,20 +492,18 @@ export default function Rig({ user, refreshUser }) {
 
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
               {/* Trophy orb */}
-              <div className="relative mb-5 mt-2">
-                <div className="relative w-32 h-32 flex flex-col items-center justify-center z-10 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
-                  <motion.div 
-                    className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center drop-shadow-xl bg-black/0"
-                    initial={{ scale: 0.8, rotate: -15 }}
-                    animate={actionLoading 
-                      ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
-                      : { scale: [0.8, 1.1, 1], rotate: [-15, 5, 0] }
-                    }
-                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
-                  >
-                    <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
-                  </motion.div>
-                </div>
+              <div className="relative mb-6 mt-4 flex justify-center w-full">
+                <motion.div 
+                  className="w-[160px] h-[160px] rounded-full overflow-hidden flex items-center justify-center drop-shadow-[0_0_35px_rgba(52,211,153,0.5)] bg-black/0"
+                  initial={{ scale: 0.8, rotate: -15 }}
+                  animate={actionLoading 
+                    ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
+                    : { scale: [0.8, 1.1, 1], rotate: [-15, 5, 0] }
+                  }
+                  transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
+                >
+                  <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
+                </motion.div>
               </div>
 
               <h3 className="text-2xl font-black text-white mb-1">
