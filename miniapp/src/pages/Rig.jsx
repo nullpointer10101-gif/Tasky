@@ -6,7 +6,7 @@ import Button from '../components/Button';
 import { useToast } from '../App';
 import { getMiningStatus, startMiningSession, claimMiningSession, getMiningLevels, saveWalletAddress, getMachines, markMachineSeen } from '../api';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
-import TaskyCoin from '../assets/tasky-coin.png';
+import TaskyCoin from '../assets/tasky-coin.jpg';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -177,13 +177,6 @@ export default function Rig({ user, refreshUser }) {
   const [wobble, setWobble] = useState(false);
 
   const handleStartMining = async () => {
-    if (!walletAddress) {
-      try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning'); } catch (e) {}
-      showToast('Connect your TON wallet first to start mining', 'error');
-      tonConnectUI.openModal();
-      return;
-    }
-
     try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch (e) {}
 
     try {
@@ -204,13 +197,6 @@ export default function Rig({ user, refreshUser }) {
   };
 
   const handleClaim = async () => {
-    if (!walletAddress) {
-      try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning'); } catch (e) {}
-      showToast('Connect your TON wallet first to claim rewards', 'error');
-      tonConnectUI.openModal();
-      return;
-    }
-
     try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch (e) {}
 
     try {
@@ -349,7 +335,7 @@ export default function Rig({ user, refreshUser }) {
           </div>
           
           <div className="bg-black/20 rounded-xl px-3.5 py-2.5  border border-white/10 flex items-center justify-between">
-            <span className="text-xs font-medium text-white/70">On-chain Holding</span>
+            <span className="text-xs font-medium text-white/70">TASKY Balance</span>
             <span className="text-sm font-bold">{displayHolding} TASKY</span>
           </div>
         </div>
@@ -406,7 +392,7 @@ export default function Rig({ user, refreshUser }) {
                   <motion.img 
                     src={TaskyCoin} 
                     alt="TASKY Coin" 
-                    className="w-[72px] h-[72px] object-contain mb-1 drop-shadow-md"
+                    className="w-[72px] h-[72px] object-contain mb-1 drop-shadow-md rounded-full overflow-hidden"
                     initial={{ scale: 1, rotate: 0 }}
                     animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
@@ -469,7 +455,7 @@ export default function Rig({ user, refreshUser }) {
                     <motion.img 
                         src={TaskyCoin} 
                         alt="TASKY Coin" 
-                        className="w-[84px] h-[84px] object-contain mb-1 drop-shadow-lg"
+                        className="w-[84px] h-[84px] object-contain mb-1 drop-shadow-lg rounded-full overflow-hidden"
                         animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
                         transition={{ duration: 0.5, ease: 'easeInOut' }}
                     />
@@ -515,16 +501,13 @@ export default function Rig({ user, refreshUser }) {
             <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(34,197,94,0.2),transparent_65%)]" />
 
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
-              {/* Trophy orb with triple burst rings */}
+              {/* Trophy orb */}
               <div className="relative mb-5 mt-2">
-                {/* Static burst rings */}
-                <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-60 scale-[1.5]" />
-                <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-30 scale-[2.0]" />
-                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center z-10 shadow-[0_0_30px_rgba(52,211,153,0.5)]">
+                <div className="relative w-32 h-32 flex flex-col items-center justify-center z-10 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
                   <motion.img 
                     src={TaskyCoin} 
                     alt="TASKY Coin" 
-                    className="w-20 h-20 object-contain drop-shadow-xl"
+                    className="w-24 h-24 object-contain drop-shadow-xl rounded-full overflow-hidden"
                     initial={{ scale: 0.8, rotate: -15 }}
                     animate={actionLoading 
                       ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
