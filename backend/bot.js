@@ -51,6 +51,26 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         });
         
         const webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
+        
+        // Remove old keyboard if it exists
+        await bot.sendMessage(chatId, 'Loading Tasky...', {
+            reply_markup: { remove_keyboard: true }
+        });
+        
+        // Set the permanent menu button to open the web app
+        try {
+            await bot.setChatMenuButton({
+                chat_id: chatId,
+                menu_button: {
+                    type: 'web_app',
+                    text: 'Play Tasky',
+                    web_app: { url: webAppUrl }
+                }
+            });
+        } catch (e) {
+            console.error('Failed to set chat menu button:', e.message);
+        }
+
         const opts = {
             reply_markup: {
                 inline_keyboard: [
