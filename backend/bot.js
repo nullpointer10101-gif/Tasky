@@ -50,7 +50,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             })
         });
         
-        const webAppUrl = process.env.WEBAPP_URL || 'https://google.com'; // User needs to set WEBAPP_URL in .env
+        const webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
         const opts = {
             reply_markup: {
                 inline_keyboard: [
