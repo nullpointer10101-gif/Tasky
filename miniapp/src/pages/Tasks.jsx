@@ -182,13 +182,7 @@ export default function Tasks({ user, refreshUser }) {
       </div>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
-        {loading ? (
-          <div className="space-y-4 animate-pulse">
-            <div className="h-24 bg-surface-soft rounded-2xl"></div>
-            <div className="h-24 bg-surface-soft rounded-2xl"></div>
-            <div className="h-24 bg-surface-soft rounded-2xl"></div>
-          </div>
-        ) : activeTab === 'available' ? (
+        {activeTab === 'available' ? (
           <div className="flex flex-col h-full">
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 mb-4 shrink-0">
               {['all', 'daily', 'weekly', 'bounty', 'social'].map(cat => (

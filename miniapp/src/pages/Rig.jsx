@@ -223,25 +223,11 @@ export default function Rig({ user, refreshUser }) {
     }
   };
 
-  if (loading || !status || !levelsData || !machinesData) {
-    return (
-      <div className="p-4 space-y-4 animate-pulse pb-24 h-full">
-        <div className="mb-6">
-          <div className="h-6 w-24 bg-surface-soft rounded mb-2"></div>
-          <div className="h-4 w-48 bg-surface-soft rounded"></div>
-        </div>
-        <div className="h-40 bg-surface-soft rounded-3xl w-full"></div>
-        <div className="h-16 bg-surface-soft rounded-2xl w-full"></div>
-        <div className="h-32 bg-surface-soft rounded-3xl w-full"></div>
-      </div>
-    );
-  }
-
-  const { levels, efficiency_tiers } = levelsData;
+  const { levels, efficiency_tiers } = levelsData || { levels: [], efficiency_tiers: [] };
   // Wallet is now only used for swap destination; mining/rig works for all users
   const isConnected = !!walletAddress; // still tracked for wallet UI display, not gating
 
-  const currentEff = status.efficiency_percent || 100;
+  const currentEff = status?.efficiency_percent || 100;
   let nextTier = null;
   for (const tier of efficiency_tiers) {
     if (tier.multiplier_percent > currentEff) {
@@ -252,13 +238,13 @@ export default function Rig({ user, refreshUser }) {
 
   let effProgress = 100;
   let effMessage = '';
-  const daysStable = status.days_stable || 0;
+  const daysStable = status?.days_stable || 0;
   
   if (nextTier) {
-    const currentTier = [...efficiency_tiers].reverse().find(t => t.min_days <= daysStable) || efficiency_tiers[0];
+    const currentTier = [...efficiency_tiers].reverse().find(t => t.min_days <= daysStable) || efficiency_tiers[0] || { min_days: 0 };
     const range = nextTier.min_days - currentTier.min_days;
     const currentProgress = daysStable - currentTier.min_days;
-    effProgress = Math.max(0, (currentProgress / range) * 100);
+    effProgress = Math.max(0, (currentProgress / (range || 1)) * 100);
     const daysLeft = nextTier.min_days - daysStable;
     effMessage = `${daysStable} days stable — ${daysLeft} day${daysLeft > 1 ? 's' : ''} until ${nextTier.multiplier_percent}% Efficiency`;
   } else {
@@ -267,20 +253,21 @@ export default function Rig({ user, refreshUser }) {
 
   const isReset = daysStable < 2;
 
-  const displayLevel = status.level_name || 'No Vault';
-  const displaySpeed = Number(status.effective_speed || 0).toFixed(2);
-  const displayHolding = Math.floor(Number(status.balance || 0)).toLocaleString();
-  const displayEff = status.efficiency_percent || 100;
+  const displayLevel = status?.level_name || 'No Vault';
+  const displaySpeed = Number(status?.effective_speed || 0).toFixed(2);
+  const displayHolding = Math.floor(Number(status?.balance || 0)).toLocaleString();
+  const displayEff = status?.efficiency_percent || 100;
   
-  const ownedCount = machinesData.machines.filter(m => m.status === 'owned').length;
-  const totalMachines = machinesData.machines.length;
+  const machines = machinesData?.machines || [];
+  const ownedCount = machines.filter(m => m.status === 'owned').length;
+  const totalMachines = machines.length;
   
   const activeRevealId = revealQueue.length > 0 ? revealQueue[0] : null;
-  const activeRevealMachine = activeRevealId ? machinesData.machines.find(m => m.id === activeRevealId) : null;
+  const activeRevealMachine = activeRevealId ? machines.find(m => m.id === activeRevealId) : null;
 
-  const currentLevelInfo = levels.find(l => l.level === status.mining_level) || levels[0];
+  const currentLevelInfo = levels.find(l => l.level === status?.mining_level) || levels[0];
   const baseSpeed = currentLevelInfo ? Number(currentLevelInfo.base_speed_per_hour) : 0;
-  const boostedSpeed = baseSpeed * (1 + (machinesData.total_bonus_percent || 0) / 100);
+  const boostedSpeed = baseSpeed * (1 + (machinesData?.total_bonus_percent || 0) / 100);
 
   // Pre-compute session progress safely outside JSX
   const sessionDurationMs = 4 * 60 * 60 * 1000;

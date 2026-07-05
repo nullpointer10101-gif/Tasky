@@ -47,27 +47,7 @@ export default function Home({ user, refreshUser }) {
     return () => { isMounted = false; };
   }, [user]);
 
-  if (!user || loading) {
-    return (
-      <div className="p-4 space-y-4 animate-pulse">
-        <div className="flex justify-between items-center mb-6">
-          <div className="space-y-2">
-            <div className="h-4 w-24 bg-surface-soft rounded"></div>
-            <div className="h-6 w-32 bg-surface-soft rounded"></div>
-          </div>
-          <div className="h-10 w-10 bg-surface-soft rounded-full"></div>
-        </div>
-        <div className="h-32 bg-surface-soft rounded-2xl w-full"></div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-          <div className="h-28 bg-surface-soft rounded-2xl"></div>
-        </div>
-        <div className="h-40 bg-surface-soft rounded-2xl w-full"></div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   const usdtRate = swapRates.find(r => r.token_name === 'USDT' && r.is_active);
   const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 500;
