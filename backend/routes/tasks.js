@@ -103,7 +103,13 @@ router.post('/complete', async (req, res) => {
                     if (!bot || !bot.getChatMember) {
                         throw new Error('Bot not initialized');
                     }
-                    const member = await bot.getChatMember(task.telegram_chat_id, telegram_id);
+                    
+                    let chatId = task.telegram_chat_id;
+                    if (typeof chatId === 'string' && !chatId.startsWith('@') && !chatId.startsWith('-')) {
+                        chatId = '@' + chatId;
+                    }
+
+                    const member = await bot.getChatMember(chatId, telegram_id);
                     if (!['member', 'administrator', 'creator'].includes(member.status)) {
                         await client.query('ROLLBACK');
                         return res.status(400).json({ error: 'Please join the channel first, then try again' });

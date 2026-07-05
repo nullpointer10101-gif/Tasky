@@ -93,7 +93,7 @@ export default function Tasks({ user, refreshUser }) {
 
   const handleSelectTask = (task) => {
     setSelectedTask(task);
-    setHasVisited(false);
+    setHasVisited(!task.action_url);
     setProofData('');
   };
 
@@ -326,7 +326,7 @@ export default function Tasks({ user, refreshUser }) {
               </div>
 
               <div className="space-y-4">
-                {selectedTask.type !== 'bounty' && (
+                {selectedTask.type !== 'bounty' && selectedTask.action_url && (
                   <Button variant="secondary" className="w-full justify-between" onClick={handleTaskAction}>
                     <span>{selectedTask.x_subtype === 'follow' ? 'Follow on X' : selectedTask.x_subtype === 'repost' ? 'View Post to Repost' : 'Go to Task'}</span>
                     <ExternalLink size={18} />
