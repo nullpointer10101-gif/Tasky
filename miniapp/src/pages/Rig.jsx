@@ -6,6 +6,7 @@ import Button from '../components/Button';
 import { useToast } from '../App';
 import { getMiningStatus, startMiningSession, claimMiningSession, getMiningLevels, saveWalletAddress, getMachines, markMachineSeen } from '../api';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
+import TaskyCoin from '../assets/tasky-coin.png';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -162,8 +163,18 @@ export default function Rig({ user, refreshUser }) {
     
     tick(); // Start recursive timeout
 
-    return () => clearTimeout(timeoutId);
+    const wobbleInterval = setInterval(() => {
+      setWobble(true);
+      setTimeout(() => setWobble(false), 500);
+    }, 45000);
+
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(wobbleInterval);
+    };
   }, [activeSession]);
+
+  const [wobble, setWobble] = useState(false);
 
   const handleStartMining = async () => {
     if (!walletAddress) {
@@ -172,6 +183,8 @@ export default function Rig({ user, refreshUser }) {
       tonConnectUI.openModal();
       return;
     }
+
+    try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch (e) {}
 
     try {
       setActionLoading(true);
@@ -197,6 +210,8 @@ export default function Rig({ user, refreshUser }) {
       tonConnectUI.openModal();
       return;
     }
+
+    try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch (e) {}
 
     try {
       setActionLoading(true);
@@ -388,7 +403,14 @@ export default function Rig({ user, refreshUser }) {
                   onClick={handleStartMining}
                   disabled={actionLoading}
                 >
-                  <Zap size={36} className="text-white mb-0.5" />
+                  <motion.img 
+                    src={TaskyCoin} 
+                    alt="TASKY Coin" 
+                    className="w-[72px] h-[72px] object-contain mb-1 drop-shadow-md"
+                    initial={{ scale: 1, rotate: 0 }}
+                    animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
+                  />
                   <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">
                     {actionLoading ? '...' : 'MINE'}
                   </span>
@@ -435,20 +457,26 @@ export default function Rig({ user, refreshUser }) {
               </div>
 
               {/* Central earnings display */}
-              <div className="flex flex-col items-center mb-5">
+              <div className="flex flex-col items-center mb-5 mt-2">
                 {/* Animated ring around earnings */}
-                <div className="relative w-36 h-36 flex items-center justify-center mb-1">
+                <div className="relative w-44 h-44 flex items-center justify-center mb-1">
                   {/* Dynamic rotating rings */}
                   <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/20 border-t-indigo-400 animate-[spin_4s_linear_infinite]" />
                   <div className="absolute inset-2 rounded-full border-[2px] border-purple-500/20 border-b-purple-400 animate-[spin_3s_linear_infinite_reverse]" />
 
                   {/* Earnings text inside ring */}
-                  <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center">
-                    <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest leading-tight">Earned</span>
+                  <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center pt-2">
+                    <motion.img 
+                        src={TaskyCoin} 
+                        alt="TASKY Coin" 
+                        className="w-[84px] h-[84px] object-contain mb-1 drop-shadow-lg"
+                        animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
+                        transition={{ duration: 0.5, ease: 'easeInOut' }}
+                    />
                     <span className="text-2xl font-black text-white leading-tight font-mono tracking-tighter">
                       {Number(liveEarnings).toFixed(4)}
                     </span>
-                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide">TASKY</span>
+                    <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-wide mt-0.5">TASKY</span>
                   </div>
                 </div>
 
@@ -488,12 +516,22 @@ export default function Rig({ user, refreshUser }) {
 
             <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
               {/* Trophy orb with triple burst rings */}
-              <div className="relative mb-5">
+              <div className="relative mb-5 mt-2">
                 {/* Static burst rings */}
                 <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-60 scale-[1.5]" />
                 <div className="absolute inset-0 rounded-full bg-emerald-400/20 opacity-30 scale-[2.0]" />
-                <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center z-10 shadow-[0_0_30px_rgba(52,211,153,0.5)]">
-                  <CheckCircle2 size={42} className="text-white" />
+                <div className="relative w-32 h-32 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex flex-col items-center justify-center z-10 shadow-[0_0_30px_rgba(52,211,153,0.5)]">
+                  <motion.img 
+                    src={TaskyCoin} 
+                    alt="TASKY Coin" 
+                    className="w-20 h-20 object-contain drop-shadow-xl"
+                    initial={{ scale: 0.8, rotate: -15 }}
+                    animate={actionLoading 
+                      ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
+                      : { scale: [0.8, 1.1, 1], rotate: [-15, 5, 0] }
+                    }
+                    transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
+                  />
                 </div>
               </div>
 
