@@ -389,14 +389,14 @@ export default function Rig({ user, refreshUser }) {
                   onClick={handleStartMining}
                   disabled={actionLoading}
                 >
-                  <motion.img 
-                    src={TaskyCoin} 
-                    alt="TASKY Coin" 
-                    className="w-[72px] h-[72px] object-contain mb-1 drop-shadow-md rounded-full overflow-hidden"
+                  <motion.div 
+                    className="w-[72px] h-[72px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-md bg-black/0"
                     initial={{ scale: 1, rotate: 0 }}
                     animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
-                  />
+                  >
+                    <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
+                  </motion.div>
                   <span className="text-white/90 text-[10px] font-black uppercase tracking-[0.15em]">
                     {actionLoading ? '...' : 'MINE'}
                   </span>
@@ -452,13 +452,13 @@ export default function Rig({ user, refreshUser }) {
 
                   {/* Earnings text inside ring */}
                   <div className="absolute inset-[3px] rounded-full flex flex-col items-center justify-center pt-2">
-                    <motion.img 
-                        src={TaskyCoin} 
-                        alt="TASKY Coin" 
-                        className="w-[84px] h-[84px] object-contain mb-1 drop-shadow-lg rounded-full overflow-hidden"
+                    <motion.div 
+                        className="w-[84px] h-[84px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-lg bg-black/0"
                         animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
                         transition={{ duration: 0.5, ease: 'easeInOut' }}
-                    />
+                    >
+                        <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
+                    </motion.div>
                     <span className="text-2xl font-black text-white leading-tight font-mono tracking-tighter">
                       {Number(liveEarnings).toFixed(4)}
                     </span>
@@ -504,17 +504,17 @@ export default function Rig({ user, refreshUser }) {
               {/* Trophy orb */}
               <div className="relative mb-5 mt-2">
                 <div className="relative w-32 h-32 flex flex-col items-center justify-center z-10 drop-shadow-[0_0_20px_rgba(52,211,153,0.4)]">
-                  <motion.img 
-                    src={TaskyCoin} 
-                    alt="TASKY Coin" 
-                    className="w-24 h-24 object-contain drop-shadow-xl rounded-full overflow-hidden"
+                  <motion.div 
+                    className="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center drop-shadow-xl bg-black/0"
                     initial={{ scale: 0.8, rotate: -15 }}
                     animate={actionLoading 
                       ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
                       : { scale: [0.8, 1.1, 1], rotate: [-15, 5, 0] }
                     }
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
-                  />
+                  >
+                    <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
+                  </motion.div>
                 </div>
               </div>
 
