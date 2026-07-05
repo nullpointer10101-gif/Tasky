@@ -50,18 +50,16 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             })
         });
         
+        const webAppUrl = process.env.WEBAPP_URL || 'https://google.com'; // User needs to set WEBAPP_URL in .env
         const opts = {
             reply_markup: {
-                keyboard: [
-                    [{text: 'Tasks 📋'}, {text: 'Check-in ✅'}],
-                    [{text: 'Referral 🔗'}, {text: 'Swap 💱'}],
-                    [{text: 'Help ❓'}]
-                ],
-                resize_keyboard: true
+                inline_keyboard: [
+                    [{ text: 'Play Now 🚀', web_app: { url: webAppUrl } }]
+                ]
             }
         };
         
-        bot.sendMessage(chatId, `Welcome to TASKY, ${msg.from.first_name}!\nComplete tasks, earn tokens, and swap them for real TON or USDT.`, opts);
+        bot.sendMessage(chatId, `Welcome to TASKY, ${msg.from.first_name}!\nClick below to open the app and start earning tokens.`, opts);
     } catch (e) {
          bot.sendMessage(chatId, 'Error connecting to the server. Please try again later.');
     }
