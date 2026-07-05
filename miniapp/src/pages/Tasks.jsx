@@ -132,6 +132,15 @@ export default function Tasks({ user, refreshUser }) {
       const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
+        // Optimistically update the UI to instantly move the task
+        const updatedTask = { 
+          ...selectedTask, 
+          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none') ? 'approved' : 'pending',
+          submitted_at: new Date().toISOString()
+        };
+        setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
+        setSubmissions(prev => [updatedTask, ...prev]);
+
         setSubmittedTask(selectedTask);
         setSelectedTask(null);
         reloadData();
@@ -333,7 +342,7 @@ export default function Tasks({ user, refreshUser }) {
                   </Button>
                 )}
 
-                {(!hasVisited && selectedTask.type !== 'bounty') ? (
+                {(!hasVisited && selectedTask.type !== 'bounty' && selectedTask.action_url) ? (
                   <div className="bg-surface-soft border border-warning/20 p-4 rounded-xl space-y-3">
                     <div className="flex items-start gap-2">
                       <AlertCircle size={16} className="text-warning shrink-0 mt-0.5" />
@@ -391,14 +400,14 @@ export default function Tasks({ user, refreshUser }) {
                     )}
 
                     <Button 
-                      className="w-full" 
-                      onClick={handleSubmitProof} 
-                      disabled={isSubmitting || (selectedTask.verification_type === 'proof_screenshot' && !proofData) || (selectedTask.verification_type === 'proof_url' && !proofData) || (selectedTask.verification_type === 'proof_username' && !proofData)}
+                      onClick={handleSubmitProof}
+                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData)}
+                      className={`w-full font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-500' : 'bg-gradient-primary hover:opacity-90'}`}
                     >
                       {isSubmitting 
                         ? 'Submitting...' 
                         : selectedTask.verification_type === 'auto_referral' 
-                          ? 'Claim Reward'
+                          ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
                           : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
                             ? 'Complete Task' 
                             : 'Submit Proof'}
