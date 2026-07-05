@@ -92,6 +92,43 @@ export default function App() {
     }
   }
 
+  useEffect(() => {
+    console.log('[App] Mounted. Adding visibility change listener.');
+    
+    const handleVisibilityChange = () => {
+      console.log(`[App] Visibility changed to: ${document.visibilityState}`);
+      if (document.visibilityState === 'visible') {
+        console.log('[App] App resumed from background. Triggering refreshUser()...');
+        refreshUser();
+      } else if (document.visibilityState === 'hidden') {
+        console.log('[App] App backgrounded.');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Also bind to Telegram's viewportChanged as a fallback for older clients
+    const handleViewportChanged = () => {
+      console.log('[App] Telegram viewportChanged event fired.');
+      if (window.Telegram?.WebApp?.isExpanded && document.visibilityState !== 'visible') {
+        console.log('[App] Telegram expanded while document not visible, forcing refresh...');
+        refreshUser();
+      }
+    };
+
+    if (window.Telegram?.WebApp?.onEvent) {
+      window.Telegram.WebApp.onEvent('viewportChanged', handleViewportChanged);
+    }
+
+    return () => {
+      console.log('[App] Unmounting. Removing visibility listeners.');
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (window.Telegram?.WebApp?.offEvent) {
+        window.Telegram.WebApp.offEvent('viewportChanged', handleViewportChanged);
+      }
+    };
+  }, []); // tgUser is stable from initial state
+
   const showToast = (message, type = 'success') => {
     setToast({ message, type })
   }

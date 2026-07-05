@@ -266,13 +266,22 @@ bot.on('message', async (msg) => {
             state.step = 'addtask_verification_type';
             bot.sendMessage(chatId, 'What verification? auto_telegram or proof_screenshot?');
         } else if (state.task.type === 'twitter') {
-            state.step = 'addtask_verification_type';
-            bot.sendMessage(chatId, 'What verification? proof_screenshot or proof_url?');
+            state.step = 'addtask_x_subtype';
+            bot.sendMessage(chatId, 'What X subtype? (follow or repost)?');
         } else {
             state.task.verification_type = 'proof_screenshot';
             state.step = 'addtask_reward';
             bot.sendMessage(chatId, 'Enter reward amount:\n\n*Ranges:*\nSimple: 15-30 TASKY\nProof-required: 40-80 TASKY\nFeatured: 100-200 TASKY', { parse_mode: 'Markdown' });
         }
+    } else if (state.step === 'addtask_x_subtype') {
+        state.task.x_subtype = text.toLowerCase();
+        if (state.task.x_subtype === 'follow') {
+            state.task.verification_type = 'proof_username';
+        } else {
+            state.task.verification_type = 'proof_url';
+        }
+        state.step = 'addtask_reward';
+        bot.sendMessage(chatId, 'Enter reward amount:\n\n*Ranges:*\nSimple: 15-30 TASKY\nProof-required: 40-80 TASKY\nFeatured: 100-200 TASKY', { parse_mode: 'Markdown' });
     } else if (state.step === 'addtask_verification_type') {
         state.task.verification_type = text;
         if (state.task.verification_type === 'auto_telegram') {

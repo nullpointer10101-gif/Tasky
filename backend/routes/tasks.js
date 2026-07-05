@@ -170,30 +170,35 @@ router.post('/complete', async (req, res) => {
             return res.json({ status: 'approved', new_balance: newBalance, tokens_earned: reward });
 
         } else if (task.verification_type === 'proof_url' || task.verification_type === 'proof_username') {
-            const proof_data = req.body.proof_url;
+            let proof_data = req.body.proof_url;
+            let adminMessage = '';
             
             if (task.verification_type === 'proof_url') {
                 if (!proof_data || !/^https?:\/\//i.test(proof_data)) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Valid URL is required as proof' });
                 }
+                adminMessage = `📋 New URL submission from @${user.username || user.first_name} for task: ${task.title}\nProof: ${proof_data}`;
             } else if (task.verification_type === 'proof_username') {
                 if (!proof_data || proof_data.trim().length < 2) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: 'Username is required as proof' });
                 }
+                proof_data = proof_data.trim();
+                proof_data = proof_data.startsWith('@') ? proof_data : '@' + proof_data;
+                adminMessage = `📋 New follow verification from @${user.username || user.first_name} for task: ${task.title}\nX Handle submitted: ${proof_data}`;
             }
 
             await client.query(`
                 INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
                 VALUES ($1, $2, 'pending', $3, NOW())
-            `, [telegram_id, task_id, proof_data.trim()]);
+            `, [telegram_id, task_id, proof_data]);
 
             await client.query('COMMIT');
 
             const adminId = process.env.ADMIN_TELEGRAM_ID;
             if (bot && bot.sendMessage && adminId) {
-                try { bot.sendMessage(adminId, `📋 New URL submission from @${user.username || user.first_name} for task: ${task.title}\nProof: ${proof_url}`); } catch (e) {}
+                try { bot.sendMessage(adminId, adminMessage); } catch (e) {}
             }
             return res.json({ status: 'pending', message: 'Submitted for review' });
 
@@ -233,7 +238,7 @@ router.get('/my-submissions/:telegram_id', async (req, res) => {
         const { rows } = await pool.query(`
             SELECT ut.id, ut.task_id, ut.status, ut.proof_screenshot_url,
                    ut.submitted_at, ut.reviewed_at, ut.rejection_reason,
-                   t.title, t.reward_tasky, t.type
+                   t.title, t.reward_tasky, t.type, t.x_subtype
             FROM user_tasks ut
             JOIN tasks t ON ut.task_id = t.id
             WHERE ut.telegram_id = $1
@@ -253,11 +258,11 @@ router.get('/admin/pending', isAdmin, async (req, res) => {
             SELECT ut.id, ut.telegram_id, ut.task_id, ut.proof_screenshot_url,
                    ut.submitted_at, ut.status,
                    u.username, u.first_name,
-                   t.title, t.reward_tasky, t.verification_type
+                   t.title, t.reward_tasky, t.verification_type, t.x_subtype
             FROM user_tasks ut
             JOIN users u ON ut.telegram_id = u.telegram_id
             JOIN tasks t ON ut.task_id = t.id
-            WHERE ut.status = 'pending' AND t.verification_type IN ('proof_screenshot', 'proof_url')
+            WHERE ut.status = 'pending' AND t.verification_type IN ('proof_screenshot', 'proof_url', 'proof_username')
             ORDER BY ut.submitted_at ASC
         `);
         // The frontend will label it as "Screenshot" or "Proof URL" based on t.verification_type
@@ -426,12 +431,12 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
 // ─── POST /api/tasks/admin/create ─────────────────────────────────────────
 router.post('/admin/create', isAdmin, async (req, res) => {
-    const { title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id } = req.body;
+    const { title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype } = req.body;
     try {
         const insertRes = await pool.query(`
-            INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *
-        `, [title, subtitle, type, reward_tasky, action_url, is_featured || false, verification_type || 'proof_screenshot', telegram_chat_id || null]);
+            INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
+        `, [title, subtitle, type, reward_tasky, action_url, is_featured || false, verification_type || 'proof_screenshot', telegram_chat_id || null, x_subtype || null]);
         res.json(insertRes.rows[0]);
     } catch (err) {
         console.error(err);

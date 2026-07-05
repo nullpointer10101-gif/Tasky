@@ -125,7 +125,7 @@ export default function Tasks({ user, refreshUser }) {
           setIsSubmitting(false);
           return;
         }
-      } else if (selectedTask.verification_type === 'proof_url') {
+      } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
       }
 
@@ -218,7 +218,11 @@ export default function Tasks({ user, refreshUser }) {
                             <IconRenderer name={task.icon} size={20} />
                           </div>
                           <div className="pr-16 flex-1">
-                            <h3 className="font-bold text-ink mb-1">{task.title}</h3>
+                            <h3 className="font-bold text-ink mb-1 flex items-center flex-wrap gap-2">
+                              {task.title}
+                              {task.x_subtype === 'follow' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Follow</span>}
+                              {task.x_subtype === 'repost' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Repost</span>}
+                            </h3>
                             <p className="text-sm text-ink-soft">{task.subtitle}</p>
                           </div>
                           <div className="absolute top-1/2 -translate-y-1/2 right-4 bg-surface-soft px-2 py-1 rounded-pill border border-border">
@@ -413,7 +417,11 @@ export default function Tasks({ user, refreshUser }) {
                             <IconRenderer name={task.icon} size={20} />
                           </div>
                           <div className="pr-16 flex-1">
-                            <h3 className="font-bold text-ink mb-1">{task.title}</h3>
+                            <h3 className="font-bold text-ink mb-1 flex items-center flex-wrap gap-2">
+                              {task.title}
+                              {task.x_subtype === 'follow' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Follow</span>}
+                              {task.x_subtype === 'repost' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Repost</span>}
+                            </h3>
                             <p className="text-sm text-ink-soft">{task.subtitle}</p>
                           </div>
                           <div className="absolute top-1/2 -translate-y-1/2 right-4 bg-surface-soft px-2 py-1 rounded-pill border border-border">
@@ -519,7 +527,7 @@ export default function Tasks({ user, refreshUser }) {
               <div className="space-y-4">
                 {selectedTask.type !== 'bounty' && (
                   <Button variant="secondary" className="w-full justify-between" onClick={handleTaskAction}>
-                    <span>Go to Task</span>
+                    <span>{selectedTask.x_subtype === 'follow' ? 'Follow on X' : selectedTask.x_subtype === 'repost' ? 'View Post to Repost' : 'Go to Task'}</span>
                     <ExternalLink size={18} />
                   </Button>
                 )}
