@@ -117,9 +117,15 @@ router.post('/complete', async (req, res) => {
                 } catch (err) {
                     console.error('getChatMember error:', err.message);
                     await client.query('ROLLBACK');
-                    if (err.message.includes('chat not found') || err.message.includes('bot is not a member') || err.message.includes('rights')) {
-                        return res.status(500).json({ error: 'Bot is not an admin in this channel. Please notify support.' });
+                    
+                    if (err.message.includes('Bot not initialized')) {
+                        return res.status(500).json({ error: 'System error: Bot token not configured. Please contact admin.' });
                     }
+                    
+                    if (err.message.includes('chat not found') || err.message.includes('bot is not a member') || err.message.includes('rights') || err.message.includes('user not found') || err.message.includes('Bad Request')) {
+                        return res.status(500).json({ error: 'System error: Bot is not an admin in this channel. Please notify support.' });
+                    }
+                    
                     return res.status(400).json({ error: 'Please join the channel first, then try again' });
                 }
             }
