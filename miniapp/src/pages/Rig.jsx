@@ -227,9 +227,12 @@ export default function Rig({ user, refreshUser }) {
   // Wallet is now only used for swap destination; mining/rig works for all users
   const isConnected = !!walletAddress; // still tracked for wallet UI display, not gating
 
+  const safeLevels = levels || [];
+  const safeTiers = efficiency_tiers || [];
+  
   const currentEff = status?.efficiency_percent || 100;
   let nextTier = null;
-  for (const tier of efficiency_tiers) {
+  for (const tier of safeTiers) {
     if (tier.multiplier_percent > currentEff) {
       nextTier = tier;
       break;
@@ -241,7 +244,7 @@ export default function Rig({ user, refreshUser }) {
   const daysStable = status?.days_stable || 0;
   
   if (nextTier) {
-    const currentTier = [...efficiency_tiers].reverse().find(t => t.min_days <= daysStable) || efficiency_tiers[0] || { min_days: 0 };
+    const currentTier = [...safeTiers].reverse().find(t => t.min_days <= daysStable) || safeTiers[0] || { min_days: 0 };
     const range = nextTier.min_days - currentTier.min_days;
     const currentProgress = daysStable - currentTier.min_days;
     effProgress = Math.max(0, (currentProgress / (range || 1)) * 100);
@@ -265,7 +268,7 @@ export default function Rig({ user, refreshUser }) {
   const activeRevealId = revealQueue.length > 0 ? revealQueue[0] : null;
   const activeRevealMachine = activeRevealId ? machines.find(m => m.id === activeRevealId) : null;
 
-  const currentLevelInfo = levels.find(l => l.level === status?.mining_level) || levels[0];
+  const currentLevelInfo = safeLevels.find(l => l.level === status?.mining_level) || safeLevels[0];
   const baseSpeed = currentLevelInfo ? Number(currentLevelInfo.base_speed_per_hour) : 0;
   const boostedSpeed = baseSpeed * (1 + (machinesData?.total_bonus_percent || 0) / 100);
 
@@ -565,8 +568,8 @@ export default function Rig({ user, refreshUser }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {levels.map((lvl) => {
-                        const isCurrent = status.mining_level === lvl.level;
+                      {safeLevels.map((lvl) => {
+                        const isCurrent = status?.mining_level === lvl.level;
                         return (
                           <tr key={lvl.level} className={isCurrent ? 'bg-brand/5' : ''}>
                             <td className="px-3 py-2.5 font-medium text-ink flex items-center gap-1.5">
@@ -591,14 +594,16 @@ export default function Rig({ user, refreshUser }) {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
-                      {efficiency_tiers.map((tier, idx) => {
-                        const next = efficiency_tiers[idx + 1];
+                      {safeTiers.map((tier, idx) => {
+                        const next = safeTiers[idx + 1];
                         const label = next ? `${tier.min_days}-${next.min_days - 1} days` : `${tier.min_days}+ days`;
                         let isCurrent = false;
-                        if (next) {
-                          isCurrent = daysStable >= tier.min_days && daysStable < next.min_days;
-                        } else {
-                          isCurrent = daysStable >= tier.min_days;
+                        if (status && status.days_stable !== undefined) {
+                           if (next) {
+                             isCurrent = status.days_stable >= tier.min_days && status.days_stable < next.min_days;
+                           } else {
+                             isCurrent = status.days_stable >= tier.min_days;
+                           }
                         }
 
                         return (
