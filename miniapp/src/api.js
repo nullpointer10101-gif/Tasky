@@ -22,6 +22,15 @@ api.get = async (url, config) => {
   return res;
 };
 
+// Clear cache on any mutation
+['post', 'put', 'patch', 'delete'].forEach(method => {
+  const originalMethod = api[method];
+  api[method] = async (...args) => {
+    getCache.clear();
+    return originalMethod.apply(api, args);
+  };
+});
+
 const wrap = async (fn) => {
   try {
     const res = await fn()
