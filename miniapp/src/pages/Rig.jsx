@@ -632,14 +632,14 @@ export default function Rig({ user, refreshUser }) {
             <h2 className="text-lg font-bold text-ink">Machines</h2>
             <p className="text-xs text-ink-soft">{ownedCount} of {totalMachines} unlocked</p>
           </div>
-          {machinesData.total_bonus_percent > 0 && (
+          {(machinesData?.total_bonus_percent || 0) > 0 && (
              <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-brand border border-brand/20 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 h-fit">
-               <Zap size={10} /> +{machinesData.total_bonus_percent}% Total Bonus
+               <Zap size={10} /> +{machinesData?.total_bonus_percent || 0}% Total Bonus
              </div>
           )}
         </div>
 
-        {machinesData.total_bonus_percent > 0 && (
+        {(machinesData?.total_bonus_percent || 0) > 0 && (
           <div className="mb-2 text-xs text-ink font-medium">
              Machines are boosting your speed: <span className="line-through text-ink-soft opacity-70">{baseSpeed}/hr</span> <span className="mx-1 text-ink-faint">→</span> <span className="text-brand font-bold">{boostedSpeed.toFixed(2)}/hr</span>
           </div>
@@ -650,7 +650,7 @@ export default function Rig({ user, refreshUser }) {
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-           {machinesData.machines.map((m, idx) => {
+           {machines.map((m, idx) => {
               const isOwned = m.status === 'owned';
               const isVisible = m.status === 'visible';
               const isHidden = m.status === 'hidden';
@@ -803,7 +803,7 @@ export default function Rig({ user, refreshUser }) {
                               <div className="pt-3 mt-2 border-t border-border/50">
                                  <p className="text-[11px] text-ink-soft text-left leading-relaxed">
                                    {isOwned 
-                                      ? `This machine is active. Along with your other machines, your total bonus is +${machinesData.total_bonus_percent}%, earning you ${boostedSpeed.toFixed(2)}/hr instead of the base ${baseSpeed}/hr.`
+                                      ? `This machine is active. Along with your other machines, your total bonus is +${machinesData?.total_bonus_percent || 0}%, earning you ${boostedSpeed.toFixed(2)}/hr instead of the base ${baseSpeed}/hr.`
                                       : `Unlock this machine by holding at least ${required.toLocaleString()} TASKY in your connected wallet. Once unlocked, it permanently boosts your mining speed.`}
                                  </p>
                               </div>
