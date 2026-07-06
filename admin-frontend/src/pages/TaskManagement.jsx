@@ -63,8 +63,8 @@ export default function TaskManagement() {
   };
 
   return (
-    <div className="p-8 max-w-4xl">
-      <div className="mb-8 flex justify-between items-center">
+    <div className="p-4 md:p-8 max-w-4xl">
+      <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-ink mb-2">Manage Tasks</h1>
           <p className="text-ink-soft">Create new tasks or manage existing live tasks.</p>

@@ -40,7 +40,7 @@ export default function DynamicSettings() {
   if (loading) return <div className="p-8 text-ink">Loading...</div>;
 
   return (
-    <div className="p-8 max-w-4xl">
+    <div className="p-4 md:p-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ink mb-2">Dynamic Settings</h1>
         <p className="text-ink-soft">Changes made here instantly apply to all users in the Mini App.</p>

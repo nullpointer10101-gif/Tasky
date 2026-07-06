@@ -90,8 +90,8 @@ export default function Machines() {
   if (loading) return <div className="p-8 text-ink">Loading...</div>;
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-black text-ink mb-1">Machines Management</h1>
           <p className="text-sm text-ink-soft">Configure Rig machines, rarities, and requirements.</p>
@@ -107,7 +107,7 @@ export default function Machines() {
       {(isAdding || editingMachine) && (
         <div className="bg-surface-soft p-6 rounded-2xl border border-border">
           <h2 className="text-lg font-bold text-ink mb-4">{isAdding ? 'New Machine' : 'Edit Machine'}</h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-bold text-ink-soft mb-1">Name</label>
               <input 
@@ -188,47 +188,49 @@ export default function Machines() {
       )}
 
       <div className="bg-surface-soft border border-border rounded-2xl overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-surface text-ink-soft text-xs uppercase font-bold border-b border-border">
-            <tr>
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3">Machine</th>
-              <th className="px-4 py-3">Rarity</th>
-              <th className="px-4 py-3">Req Holding</th>
-              <th className="px-4 py-3">Bonus</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border text-sm">
-            {machines.map(m => (
-              <tr key={m.id} className="hover:bg-white/5 transition-colors">
-                <td className="px-4 py-3 text-ink-soft">{m.sort_order}</td>
-                <td className="px-4 py-3 font-bold text-ink flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-ink-soft">
-                    <Cpu size={16} />
-                  </div>
-                  {m.name}
-                </td>
-                <td className="px-4 py-3 text-ink-soft uppercase text-xs">{m.rarity}</td>
-                <td className="px-4 py-3 text-ink">{Number(m.min_holding).toLocaleString()} TASKY</td>
-                <td className="px-4 py-3 text-success font-bold">+{m.speed_bonus_percent}%</td>
-                <td className="px-4 py-3 text-right space-x-2">
-                  <button onClick={() => handleEdit(m)} className="p-2 bg-surface hover:bg-brand/10 text-brand rounded-lg transition-colors inline-block">
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(m.id)} className="p-2 bg-surface hover:bg-red-500/10 text-red-400 rounded-lg transition-colors inline-block">
-                    <Trash2 size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {machines.length === 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[600px]">
+            <thead className="bg-surface text-ink-soft text-xs uppercase font-bold border-b border-border">
               <tr>
-                <td colSpan="6" className="text-center py-8 text-ink-soft">No machines found</td>
+                <th className="px-4 py-3">Order</th>
+                <th className="px-4 py-3">Machine</th>
+                <th className="px-4 py-3">Rarity</th>
+                <th className="px-4 py-3">Req Holding</th>
+                <th className="px-4 py-3">Bonus</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-border text-sm">
+              {machines.map(m => (
+                <tr key={m.id} className="hover:bg-white/5 transition-colors">
+                  <td className="px-4 py-3 text-ink-soft">{m.sort_order}</td>
+                  <td className="px-4 py-3 font-bold text-ink flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-surface flex items-center justify-center text-ink-soft min-w-[32px]">
+                      <Cpu size={16} />
+                    </div>
+                    {m.name}
+                  </td>
+                  <td className="px-4 py-3 text-ink-soft uppercase text-xs">{m.rarity}</td>
+                  <td className="px-4 py-3 text-ink">{Number(m.min_holding).toLocaleString()} TASKY</td>
+                  <td className="px-4 py-3 text-success font-bold">+{m.speed_bonus_percent}%</td>
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <button onClick={() => handleEdit(m)} className="p-2 bg-surface hover:bg-brand/10 text-brand rounded-lg transition-colors inline-block">
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(m.id)} className="p-2 bg-surface hover:bg-red-500/10 text-red-400 rounded-lg transition-colors inline-block">
+                      <Trash2 size={16} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {machines.length === 0 && (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 text-ink-soft">No machines found</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

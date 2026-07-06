@@ -164,17 +164,18 @@ export default function Rig({ user, refreshUser }) {
     try {
       setActionLoading(true);
       const { data, error } = await startMiningSession(user?.telegram_id || '123456', walletAddress);
-      setActionLoading(false);
+      
       if (data) {
         showToast('Mining session started!');
-        fetchStatus(false, { current: true });
+        await fetchStatus(false, { current: true });
       } else {
         showToast(error || 'Failed to start mining', 'error');
       }
     } catch (err) {
       console.error('handleStartMining error:', err);
-      setActionLoading(false);
       showToast(err.message || 'Error starting mining', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -184,18 +185,19 @@ export default function Rig({ user, refreshUser }) {
     try {
       setActionLoading(true);
       const { data, error } = await claimMiningSession(user?.telegram_id || '123456', walletAddress);
-      setActionLoading(false);
+      
       if (data) {
         showToast(`+${data.tasky_earned} TASKY claimed successfully!`);
-        refreshUser();
-        fetchStatus(false, { current: true });
+        await refreshUser();
+        await fetchStatus(false, { current: true });
       } else {
         showToast(error || 'Failed to claim', 'error');
       }
     } catch (err) {
       console.error('handleClaim error:', err);
-      setActionLoading(false);
       showToast(err.message || 'Error claiming rewards', 'error');
+    } finally {
+      setActionLoading(false);
     }
   };
 

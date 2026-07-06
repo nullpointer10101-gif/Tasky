@@ -30,7 +30,7 @@ export default function Broadcast() {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="p-4 md:p-8 max-w-3xl mx-auto md:mx-0">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-white mb-2">Global Broadcast</h1>
         <p className="text-ink-soft">Send a direct message via the Telegram Bot to all your active users instantly.</p>

@@ -83,15 +83,19 @@ export default function DailyCheckin({ user, refreshUser }) {
 
   const handleClaim = async () => {
     setClaiming(true);
-    const res = await checkin(user.telegram_id);
-    
-    if (res.data) {
+    try {
+      const res = await checkin(user.telegram_id);
+      
+      if (res.data) {
+        setReward(res.data);
+        await refreshUser();
+      } else {
+        showToast(res.error || 'Failed to claim', 'error');
+      }
+    } catch (e) {
+      showToast('Error claiming', 'error');
+    } finally {
       setClaiming(false);
-      setReward(res.data);
-      refreshUser();
-    } else {
-      setClaiming(false);
-      showToast(res.error || 'Failed to claim', 'error');
     }
   };
 

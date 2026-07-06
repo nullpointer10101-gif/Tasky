@@ -45,7 +45,7 @@ export default function TaskReviews() {
   if (loading) return <div className="p-8 text-ink">Loading pending tasks...</div>;
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ink mb-2">Task Reviews</h1>
         <p className="text-ink-soft">Review user submitted proofs and approve rewards.</p>

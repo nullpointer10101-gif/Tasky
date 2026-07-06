@@ -78,14 +78,14 @@ export default function Users() {
   if (loading) return <div className="text-white p-8">Loading users...</div>;
 
   return (
-    <div className="p-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-4 md:p-8">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
           <h1 className="text-3xl font-black text-ink mb-2">Users Directory</h1>
           <p className="text-ink-soft">Manage all registered Mini App users.</p>
         </div>
         
-        <div className="relative w-72">
+        <div className="relative w-full md:w-72">
           <input
             type="text"
             placeholder="Search username or ID..."

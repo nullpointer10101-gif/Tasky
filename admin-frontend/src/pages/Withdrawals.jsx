@@ -50,7 +50,7 @@ export default function Withdrawals() {
   if (loading) return <div className="p-8 text-ink">Loading pending withdrawals...</div>;
 
   return (
-    <div className="p-8 max-w-5xl">
+    <div className="p-4 md:p-8 max-w-5xl">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ink mb-2">Withdrawals</h1>
         <p className="text-ink-soft">Process user payouts. Send the USDT manually, then mark as Paid.</p>

@@ -28,7 +28,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <div className="mb-8">
         <h1 className="text-3xl font-black text-ink mb-2">Dashboard overview</h1>
         <p className="text-ink-soft">Real-time statistics for the Tasky platform.</p>
