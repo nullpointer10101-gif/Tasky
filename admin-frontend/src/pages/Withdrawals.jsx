@@ -88,7 +88,7 @@ export default function Withdrawals() {
                 </div>
                 <div>
                   <p className="text-[10px] text-ink-faint font-bold uppercase tracking-wider mb-1">To Send (Net)</p>
-                  <p className="text-xl font-black text-emerald-400">{Number(w.usdt_amount).toFixed(4)} <span className="text-xs">USDT</span></p>
+                  <p className="text-xl font-black text-emerald-400">{Number(w.usdt_amount).toFixed(4)} <span className="text-xs">{w.token || 'USDT'}</span></p>
                 </div>
               </div>
 

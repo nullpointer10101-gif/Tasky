@@ -149,18 +149,18 @@ router.post('/tasks/review', async (req, res) => {
 });
 
 // ==========================================
-// 4. WITHDRAWALS
+// 4. WITHDRAWALS (MAPPED TO SWAPS)
 // ==========================================
 router.get('/withdrawals/pending', async (req, res) => {
   try {
     const query = `
       SELECT 
-        w.id as withdrawal_id, w.tasky_amount, w.usdt_amount, w.fee_amount, w.wallet_address, w.requested_at,
+        s.id as withdrawal_id, s.tasky_amount, s.receive_amount as usdt_amount, s.receive_token as token, s.wallet_address, s.requested_at,
         u.telegram_id, u.username, u.first_name, u.balance as current_balance
-      FROM withdrawals w
-      JOIN users u ON w.telegram_id = u.telegram_id
-      WHERE w.status = 'pending'
-      ORDER BY w.requested_at ASC
+      FROM swaps s
+      JOIN users u ON s.telegram_id = u.telegram_id
+      WHERE s.status = 'pending'
+      ORDER BY s.requested_at ASC
     `;
     const { rows } = await pool.query(query);
     res.json(rows);
@@ -175,16 +175,15 @@ router.post('/withdrawals/review', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const wRes = await client.query('SELECT telegram_id, tasky_amount FROM withdrawals WHERE id = $1 AND status = \'pending\'', [withdrawal_id]);
-    if (wRes.rows.length === 0) throw new Error('Withdrawal not found or already processed');
+    const wRes = await client.query('SELECT telegram_id, tasky_amount FROM swaps WHERE id = $1 AND status = \'pending\'', [withdrawal_id]);
+    if (wRes.rows.length === 0) throw new Error('Swap not found or already processed');
 
     const { telegram_id, tasky_amount } = wRes.rows[0];
 
     if (action === 'approve') {
-      await client.query(`UPDATE withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
-      // Note: The balance was already deducted when the user requested the withdrawal.
+      await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
     } else if (action === 'reject') {
-      await client.query(`UPDATE withdrawals SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [withdrawal_id, rejection_reason]);
+      await client.query(`UPDATE swaps SET status = 'rejected', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
       // Refund the user's TASKY balance since it was rejected
       await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [tasky_amount, telegram_id]);
     } else {
@@ -192,7 +191,7 @@ router.post('/withdrawals/review', async (req, res) => {
     }
 
     await client.query('COMMIT');
-    res.json({ success: true, message: "Withdrawal " + action + "d successfully" });
+    res.json({ success: true, message: "Request " + action + "d successfully" });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });
