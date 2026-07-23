@@ -154,11 +154,15 @@ export default function Home({ user, refreshUser }) {
             <span className="text-success mt-0.5">•</span>
             <span>A referral becomes valid once they complete at least <strong className="text-ink">{referralData?.tasks_required_for_valid} tasks</strong>.</span>
           </li>
-          <li className="flex items-start gap-2">
-            <span className="text-success mt-0.5">•</span>
-            <span>Minimum swap threshold is <strong className="text-ink">{swapRates.find(r => r.token_name === 'USDT' && r.is_active)?.min_tasky || 1000} TASKY</strong>. Swap straight to your TON USDT wallet!</span>
-          </li>
         </ul>
+        <div className="bg-surface border border-border p-3.5 rounded-2xl flex gap-3 items-start relative z-10 shadow-sm mt-4">
+          <div className="p-2 bg-indigo-500/10 rounded-xl">
+            <Zap size={16} className="text-indigo-400" />
+          </div>
+          <p className="text-xs text-ink-soft leading-relaxed flex-1 pt-0.5">
+            <span>Minimum swap threshold is <strong className="text-ink">{swapRates.find(r => r.is_active)?.min_tasky || 2500} TASKY</strong>. Swap straight to your TON wallet!</span>
+          </p>
+        </div>
       </Card>
 
     </motion.div>
