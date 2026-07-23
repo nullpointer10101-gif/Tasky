@@ -122,12 +122,6 @@ router.post('/checkin', async (req, res) => {
         
         await client.query('COMMIT');
         
-        if (bot && bot.sendMessage) {
-            try {
-                bot.sendMessage(telegram_id, `✅ Daily Check-in complete! You earned ${reward} TASKY. Current streak: ${newStreak} days.`);
-            } catch (e) { }
-        }
-        
         // Recalculate tier instantly now that balance changed
         await recalculateTier(telegram_id);
         

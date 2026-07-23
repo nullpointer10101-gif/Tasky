@@ -92,11 +92,6 @@ const recalculateTier = async (telegram_id) => {
                     bot.sendMessage(telegram_id, `🎉 Your Rig leveled up to *${new_level_name}*! Mining speed increased.`, { parse_mode: 'Markdown' });
                 } catch (e) { /* non-critical */ }
             }
-            if (!balanceChanged && new_efficiency_percent > oldEff) {
-                try {
-                    bot.sendMessage(telegram_id, `🔥 Your Rig has been stable for ${daysStable} days! Efficiency now ${new_efficiency_percent}%.`);
-                } catch (e) { /* non-critical */ }
-            }
         }
 
         // Check & unlock newly qualifying machines
