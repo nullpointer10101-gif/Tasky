@@ -66,7 +66,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             console.error('Failed to set chat menu button:', e.message);
         }
 
-        const captionText = `Welcome to TASKY, ${msg.from.first_name}! 🐾\n\nYour journey to earn crypto starts right here. The rules are simple:\n*The more you do, the more you earn.*\n\n🛠 *COMPLETE TASKS* to stack rewards\n🤝 *INVITE FRIENDS* to multiply your earnings\n⛏ *MINE & GROW* your vault automatically\n✅ *DAILY CHECK-INS* for consistent bonuses\n\nBuilt for everyone. 100% Secure. Community Driven.\n_Let's build, let's grow, let's earn together._\n\nTap below to launch your mining rig!`;
+        const captionText = `🚀 *Welcome to TASKY, ${msg.from.first_name}!*\n\nStart earning crypto instantly with the ultimate Web3 bot.\n\n✅ *Complete Tasks*\n🤝 *Invite Friends*\n⛏ *Mine & Grow*\n🎁 *Daily Rewards*\n\nTap below to launch your rig and start earning! 👇`;
 
         const opts = {
             caption: captionText,
