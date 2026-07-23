@@ -84,7 +84,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         
         const path = require('path');
         const fs = require('fs');
-        const imagePath = path.join(__dirname, 'assets', 'welcome_promo.jpg');
+        const imagePath = path.join(__dirname, 'assets', 'welcome_promo.png');
         
         if (fs.existsSync(imagePath)) {
             bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
