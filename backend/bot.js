@@ -66,13 +66,18 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             console.error('Failed to set chat menu button:', e.message);
         }
 
+        const captionText = `Welcome to TASKY, ${msg.from.first_name}! 🐾\n\nYour journey to earn crypto starts right here. The rules are simple:\n*The more you do, the more you earn.*\n\n🛠 *COMPLETE TASKS* to stack rewards\n🤝 *INVITE FRIENDS* to multiply your earnings\n⛏ *MINE & GROW* your vault automatically\n✅ *DAILY CHECK-INS* for consistent bonuses\n\nBuilt for everyone. 100% Secure. Community Driven.\n_Let's build, let's grow, let's earn together._\n\nTap below to launch your mining rig!`;
+
         const opts = {
-            caption: `🚀 *Welcome to TASKY, ${msg.from.first_name}!* 🚀\n\n⚡️ The ultimate Web3 ecosystem is here. Complete tasks, refer friends, spin the wheel, and start earning *massive rewards* instantly!\n\n💎 *Start your journey now and join the revolution!*`,
+            caption: captionText,
             parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: 'Open App 🚀', web_app: { url: webAppUrl } }],
-                    [{ text: 'Join Channel 📢', url: 'https://t.me/Tasky_Official' }]
+                    [{ text: '🐾 Launch TASKY', web_app: { url: webAppUrl } }],
+                    [
+                        { text: '📢 Channel', url: 'https://t.me/Tasky_Official' },
+                        { text: '💬 Community', url: 'https://t.me/TaskyOfficialCommunity' }
+                    ]
                 ]
             }
         };
