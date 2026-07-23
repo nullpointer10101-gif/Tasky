@@ -74,7 +74,8 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const opts = {
             reply_markup: {
                 inline_keyboard: [
-                    [{ text: 'Play Now 🚀', web_app: { url: webAppUrl } }]
+                    [{ text: 'Open App 🚀', web_app: { url: webAppUrl } }],
+                    [{ text: 'Join Channel 📢', url: 'https://t.me/Tasky_Official' }]
                 ]
             }
         };
