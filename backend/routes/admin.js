@@ -250,11 +250,12 @@ router.delete('/tasks/:id', async (req, res) => {
 // ==========================================
 router.get('/users', async (req, res) => {
   try {
+    const sortBy = req.query.sortBy === 'newest' ? 'created_at DESC' : 'balance DESC';
     const query = `
       SELECT id, telegram_id, username, first_name, balance, total_referrals, streak_days, is_banned, created_at, spins_available
       FROM users
-      ORDER BY created_at DESC
-      LIMIT 100
+      ORDER BY ${sortBy}
+      LIMIT 1000
     `;
     const { rows } = await pool.query(query);
     res.json(rows);
