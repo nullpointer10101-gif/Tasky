@@ -77,8 +77,11 @@ const initDB = async () => {
         id SERIAL PRIMARY KEY,
         referrer_telegram_id BIGINT,
         referred_telegram_id BIGINT,
+        reward_paid BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      
+      ALTER TABLE referrals ADD COLUMN IF NOT EXISTS reward_paid BOOLEAN DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS swaps (
         id SERIAL PRIMARY KEY,

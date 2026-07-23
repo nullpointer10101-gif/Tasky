@@ -105,17 +105,22 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
+        // apply 30% fee
+        const feePercent = 30;
+        const feeAmount = amount * (feePercent / 100);
+        const netAmount = amount - feeAmount;
+
         // calculate receive amount
-        const receiveAmount = amount / parseFloat(rate.tasky_per_unit);
+        const receiveAmount = netAmount / parseFloat(rate.tasky_per_unit);
         
         // deduct balance
         await client.query('UPDATE users SET balance = balance - $1 WHERE telegram_id = $2', [amount, telegram_id]);
         
         // insert swap using DB wallet address
         const swapRes = await client.query(`
-            INSERT INTO swaps (telegram_id, tasky_amount, receive_token, receive_amount, wallet_address, status, chain)
-            VALUES ($1, $2, $3, $4, $5, 'pending', 'TON') RETURNING *
-        `, [telegram_id, amount, receive_token, receiveAmount, dbWalletAddress]);
+            INSERT INTO swaps (telegram_id, tasky_amount, receive_token, receive_amount, wallet_address, status, chain, fee_percent)
+            VALUES ($1, $2, $3, $4, $5, 'pending', 'TON', $6) RETURNING *
+        `, [telegram_id, amount, receive_token, receiveAmount, dbWalletAddress, feePercent]);
         const swap = swapRes.rows[0];
         
         await client.query('COMMIT');

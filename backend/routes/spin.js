@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
+const { recalculateTier } = require('../utils/recalculateMachineTier');
 
 // Play spin wheel
 router.post('/play', async (req, res) => {
@@ -76,6 +77,8 @@ router.post('/play', async (req, res) => {
         `, [reward, spinsUsedToday, telegram_id]);
         
         await client.query('COMMIT');
+        
+        await recalculateTier(telegram_id);
         
         if (bot && bot.sendMessage) {
             try {
