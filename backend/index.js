@@ -95,7 +95,7 @@ initDB()
   .then(() => {
     global.dbConnected = true;
     console.log('Database connected and initialized.');
-    startAutoApproveAI();
+    // startAutoApproveAI(); // Disabled so tasks show up in Admin Panel
     startMiningJob();
   })
   .catch((err) => {
