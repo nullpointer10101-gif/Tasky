@@ -149,47 +149,57 @@ export default function Users() {
                <div className="p-8 text-center text-ink-soft bg-surface-soft rounded-3xl border border-border">No users found.</div>
             ) : (
               filteredUsers.map(user => (
-                <div key={user.telegram_id} className="bg-surface-soft rounded-3xl border border-border p-4 flex flex-col gap-4 relative overflow-hidden">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0">
-                      <User size={24} />
-                    </div>
-                    <div>
-                      <p className="font-bold text-ink text-lg truncate">{user.first_name || 'No Name'}</p>
-                      <p className="text-sm text-ink-soft truncate">@{user.username || user.telegram_id}</p>
-                    </div>
-                  </div>
+                <div key={user.telegram_id} className="bg-surface-soft rounded-3xl border border-border p-4 flex flex-col gap-4 shadow-sm relative overflow-hidden">
                   
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="bg-surface p-2 rounded-xl border border-border">
-                      <p className="text-ink-soft text-xs mb-1">Balance</p>
-                      <p className="font-bold text-emerald-400 truncate">{Number(user.balance).toLocaleString()} TASKY</p>
+                  {/* Header row: Avatar + Info + Balance */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-3 overflow-hidden">
+                      <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20">
+                        <User size={20} />
+                      </div>
+                      <div className="truncate">
+                        <p className="font-bold text-ink text-base truncate">{user.first_name || 'No Name'}</p>
+                        <p className="text-xs text-ink-soft truncate">@{user.username || user.telegram_id}</p>
+                      </div>
                     </div>
-                    <div className="bg-surface p-2 rounded-xl border border-border">
-                      <p className="text-ink-soft text-xs mb-1">Joined</p>
-                      <p className="font-bold text-ink truncate">{formatDate(user.created_at)}</p>
-                    </div>
-                    <div className="bg-surface p-2 rounded-xl border border-border">
-                      <p className="text-ink-soft text-xs mb-1">Spins</p>
-                      <p className="font-bold text-ink">{user.spins_available || 0}</p>
-                    </div>
-                    <div className="bg-surface p-2 rounded-xl border border-border">
-                      <p className="text-ink-soft text-xs mb-1">Refs</p>
-                      <p className="font-bold text-ink">{user.total_referrals}</p>
+                    <div className="text-right shrink-0">
+                      <p className="text-[10px] uppercase tracking-wider text-ink-soft font-bold mb-1">Balance</p>
+                      <p className="font-black text-emerald-400 text-sm bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                        {Number(user.balance).toLocaleString()}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-2">
-                     <button onClick={() => handleAddSpins(user)} className="flex-1 flex justify-center items-center gap-1 py-2 bg-amber-500/10 text-amber-500 rounded-xl font-bold text-sm">
-                       <Zap size={14} /> Spins
-                     </button>
-                     <button onClick={() => handleEditBalance(user)} className="flex-1 flex justify-center items-center gap-1 py-2 bg-indigo-500/10 text-indigo-400 rounded-xl font-bold text-sm">
-                       <Edit2 size={14} /> Edit
-                     </button>
-                     <button onClick={() => handleToggleBan(user)} className={`flex-1 flex justify-center items-center gap-1 py-2 rounded-xl font-bold text-sm ${user.is_banned ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'}`}>
-                       {user.is_banned ? <CheckCircle size={14}/> : <Ban size={14}/>} 
-                       {user.is_banned ? 'Unban' : 'Ban'}
-                     </button>
+                  {/* Stats Row */}
+                  <div className="bg-surface rounded-2xl border border-border p-3 flex justify-between items-center text-xs">
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Joined</span>
+                      <span className="font-bold text-ink">{formatDate(user.created_at).split(',')[0]}</span>
+                    </div>
+                    <div className="w-px h-6 bg-border"></div>
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Spins</span>
+                      <span className="font-bold text-ink">{user.spins_available || 0}</span>
+                    </div>
+                    <div className="w-px h-6 bg-border"></div>
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Refs</span>
+                      <span className="font-bold text-ink">{user.total_referrals}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                      <button onClick={() => handleAddSpins(user)} className="flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
+                        <Zap size={14} /> Spins
+                      </button>
+                      <button onClick={() => handleEditBalance(user)} className="flex-1 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
+                        <Edit2 size={14} /> Balance
+                      </button>
+                      <button onClick={() => handleToggleBan(user)} className={`flex-1 py-2.5 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors ${user.is_banned ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400' : 'bg-red-500/10 hover:bg-red-500/20 text-red-500'}`}>
+                        {user.is_banned ? <CheckCircle size={14}/> : <Ban size={14}/>} 
+                        {user.is_banned ? 'Unban' : 'Ban'}
+                      </button>
                   </div>
                 </div>
               ))
