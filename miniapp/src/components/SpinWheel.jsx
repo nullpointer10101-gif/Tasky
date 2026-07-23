@@ -10,7 +10,7 @@ import { useToast } from '../App';
 const PRIZES = [
   { val: 50, label: '50', color: '#1e1b4b', text: '#a5b4fc', icon: Coins }, 
   { val: 100, label: '100', color: '#312e81', text: '#e0e7ff', icon: Coins }, 
-  { val: 250, label: '250', color: '#4338ca', text: '#e0e7ff', icon: Zap },
+  { val: 25, label: '25', color: '#4338ca', text: '#e0e7ff', icon: Zap },
   { val: 1000, label: '1000', color: '#eab308', text: '#ffffff', icon: Star },
   { val: 150, label: '150', color: '#312e81', text: '#e0e7ff', icon: Coins },
   { val: 2000, label: '2000', color: '#ef4444', text: '#ffffff', icon: Zap },

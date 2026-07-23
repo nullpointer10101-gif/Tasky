@@ -45,24 +45,24 @@ router.post('/play', async (req, res) => {
         let reward = 0;
         let tier = 'low';
 
-        if (rand < 1) {
+        if (rand < 90) {
+            reward = 25;
+            tier = 'low';
+        } else if (rand < 93) {
+            reward = 50;
+            tier = 'low_mid';
+        } else if (rand < 96) {
+            reward = 75;
+            tier = 'low_mid';
+        } else if (rand < 98) {
+            reward = 100;
+            tier = 'medium';
+        } else if (rand < 99.5) {
+            reward = 150;
+            tier = 'medium';
+        } else {
             reward = 500;
             tier = 'high';
-        } else if (rand < 10) {
-            reward = 250;
-            tier = 'medium';
-        } else if (rand < 30) {
-            reward = 150;
-            tier = 'low_mid';
-        } else if (rand < 60) {
-            reward = 100;
-            tier = 'low_mid';
-        } else if (rand < 80) {
-            reward = 75;
-            tier = 'low';
-        } else {
-            reward = 50;
-            tier = 'low';
         }
 
         // Update user
