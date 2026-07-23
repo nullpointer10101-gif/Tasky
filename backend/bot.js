@@ -52,11 +52,6 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         
         const webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
         
-        // Remove old keyboard if it exists
-        await bot.sendMessage(chatId, 'Loading Tasky...', {
-            reply_markup: { remove_keyboard: true }
-        });
-        
         // Set the permanent menu button to open the web app
         try {
             await bot.setChatMenuButton({
@@ -72,6 +67,8 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         }
 
         const opts = {
+            caption: `🚀 *Welcome to TASKY, ${msg.from.first_name}!* 🚀\n\n⚡️ The ultimate Web3 ecosystem is here. Complete tasks, refer friends, spin the wheel, and start earning *massive rewards* instantly!\n\n💎 *Start your journey now and join the revolution!*`,
+            parse_mode: 'Markdown',
             reply_markup: {
                 inline_keyboard: [
                     [{ text: 'Open App 🚀', web_app: { url: webAppUrl } }],
@@ -80,7 +77,15 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             }
         };
         
-        bot.sendMessage(chatId, `Welcome to TASKY, ${msg.from.first_name}!\nClick below to open the app and start earning tokens.`, opts);
+        const path = require('path');
+        const fs = require('fs');
+        const imagePath = path.join(__dirname, 'assets', 'welcome_promo.png');
+        
+        if (fs.existsSync(imagePath)) {
+            bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+        } else {
+            bot.sendMessage(chatId, opts.caption, opts);
+        }
     } catch (e) {
          bot.sendMessage(chatId, 'Error connecting to the server. Please try again later.');
     }
