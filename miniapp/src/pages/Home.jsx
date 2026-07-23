@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Wallet, Trophy, CheckCircle2, Users, Info } from 'lucide-react';
+import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap } from 'lucide-react';
 import Card from '../components/Card';
 import DailyCheckin from '../components/DailyCheckin';
 import SpinWheel from '../components/SpinWheel';
