@@ -9,17 +9,20 @@ export default function Withdrawals() {
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
-    fetchWithdrawals();
+    fetchWithdrawals(true);
+    const interval = setInterval(() => fetchWithdrawals(false), 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchWithdrawals = async () => {
+  const fetchWithdrawals = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const { data } = await api.get('/withdrawals/pending');
       setWithdrawals(data);
     } catch (e) {
-      toast.error('Failed to load pending withdrawals');
+      if (showLoading) toast.error('Failed to load pending withdrawals');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 

@@ -9,17 +9,20 @@ export default function TaskReviews() {
   const [processingId, setProcessingId] = useState(null);
 
   useEffect(() => {
-    fetchTasks();
+    fetchTasks(true);
+    const interval = setInterval(() => fetchTasks(false), 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const { data } = await api.get('/tasks/pending');
       setTasks(data);
     } catch (e) {
-      toast.error('Failed to load pending tasks');
+      if (showLoading) toast.error('Failed to load pending tasks');
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
