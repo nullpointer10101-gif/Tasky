@@ -263,7 +263,7 @@ const initDB = async () => {
 
       DELETE FROM swap_rates WHERE token_name NOT IN ('USDT', 'DOGS');
       UPDATE swap_rates SET is_active = CASE WHEN token_name = 'DOGS' THEN TRUE ELSE FALSE END;
-      UPDATE swap_rates SET tasky_per_unit = 0.5, min_tasky = 1000 WHERE token_name = 'DOGS';
+      UPDATE swap_rates SET tasky_per_unit = 0.7, min_tasky = 3000 WHERE token_name = 'DOGS';
 
       CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_telegram_id);
       CREATE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_telegram_id);
