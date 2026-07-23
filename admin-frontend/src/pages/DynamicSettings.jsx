@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
+import { Save, Settings, DollarSign, Users } from 'lucide-react';
 
 export default function DynamicSettings() {
   const [config, setConfig] = useState({
@@ -37,89 +38,120 @@ export default function DynamicSettings() {
     }
   };
 
-  if (loading) return <div className="p-8 text-ink">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="p-4 md:p-10 h-full flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 animate-pulse text-indigo-400">
+          <div className="w-12 h-12 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin"></div>
+          <p className="font-bold text-ink tracking-widest uppercase text-sm">Loading Config...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-black text-ink mb-2">Dynamic Settings</h1>
-        <p className="text-ink-soft">Changes made here instantly apply to all users in the Mini App.</p>
+    <div className="p-4 md:p-10 pb-20 max-w-5xl mx-auto">
+      <div className="mb-10">
+        <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">Dynamic Config</h1>
+        <p className="text-ink-soft text-sm md:text-base">Changes made here instantly apply to all users in the Mini App without redeploying.</p>
       </div>
 
-      <form onSubmit={handleSave} className="space-y-8">
+      <form onSubmit={handleSave} className="space-y-6">
         
         {/* Withdrawal Settings */}
-        <div className="bg-surface-soft p-6 rounded-3xl border border-border">
-          <h2 className="text-xl font-bold text-ink mb-6">Withdrawal Rules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">Min. TASKY to Withdraw</label>
+        <div className="bg-surface-soft p-6 md:p-8 rounded-3xl border border-border/80 shadow-xl shadow-black/20 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:bg-emerald-500/10"></div>
+          
+          <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+              <DollarSign size={24} />
+            </div>
+            <h2 className="text-2xl font-black text-ink tracking-tight">Withdrawal Engine</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Min. TASKY to Withdraw</label>
               <input
                 type="number"
                 value={config.withdrawal.min_withdrawal_tasky}
                 onChange={e => setConfig({ ...config, withdrawal: { ...config.withdrawal, min_withdrawal_tasky: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">Platform Fee (%)</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Platform Fee (%)</label>
               <input
                 type="number"
                 value={config.withdrawal.fee_percent}
                 onChange={e => setConfig({ ...config, withdrawal: { ...config.withdrawal, fee_percent: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-rose-400 font-bold focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">USDT Exchange Rate</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">USDT Exchange Rate</label>
               <input
                 type="number"
                 step="0.00001"
                 value={config.withdrawal.usdt_rate}
                 onChange={e => setConfig({ ...config, withdrawal: { ...config.withdrawal, usdt_rate: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-indigo-400 font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
               />
             </div>
           </div>
         </div>
 
         {/* Referral Settings */}
-        <div className="bg-surface-soft p-6 rounded-3xl border border-border">
-          <h2 className="text-xl font-bold text-ink mb-6">Referral Rules</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">Reward per Valid Invite (TASKY)</label>
+        <div className="bg-surface-soft p-6 md:p-8 rounded-3xl border border-border/80 shadow-xl shadow-black/20 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:bg-indigo-500/10"></div>
+          
+          <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+              <Users size={24} />
+            </div>
+            <h2 className="text-2xl font-black text-ink tracking-tight">Referral Matrix</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Reward per Valid Invite</label>
               <input
                 type="number"
                 value={config.referral.reward_per_referral}
                 onChange={e => setConfig({ ...config, referral: { ...config.referral, reward_per_referral: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">Tasks Required for Valid Invite</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Tasks Reqd. for Validity</label>
               <input
                 type="number"
                 value={config.referral.tasks_required_for_valid}
                 onChange={e => setConfig({ ...config, referral: { ...config.referral, tasks_required_for_valid: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-amber-400 font-bold focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
               />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-ink-soft mb-2">Spin Reward per Valid Invite</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Spin Reward per Invite</label>
               <input
                 type="number"
                 value={config.referral.spin_reward_per_referral}
                 onChange={e => setConfig({ ...config, referral: { ...config.referral, spin_reward_per_referral: Number(e.target.value) } })}
-                className="w-full bg-surface border border-border rounded-xl px-4 py-3 text-ink focus:border-indigo-500"
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-purple-400 font-bold focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all outline-none"
               />
             </div>
           </div>
         </div>
 
-        <button type="submit" className="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-8 rounded-xl transition-colors">
-          Save All Settings
-        </button>
+        <div className="flex justify-end pt-4">
+          <button 
+            type="submit" 
+            className="w-full md:w-auto bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white font-black py-4 px-10 rounded-2xl transition-all shadow-lg shadow-indigo-500/25 flex items-center justify-center gap-2 text-lg"
+          >
+            <Settings size={20} />
+            Commit Configuration
+          </button>
+        </div>
       </form>
     </div>
   );
