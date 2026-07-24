@@ -154,7 +154,7 @@ export default function Tasks({ user, refreshUser }) {
           return;
         }
         try {
-          const AdController = window.Adsgram.init({ blockId: "37116", debug: true });
+          const AdController = window.Adsgram.init({ blockId: "37118", debug: true });
           await AdController.show();
         } catch (e) {
           showToast('You must watch the entire ad to get the reward.', 'error');
