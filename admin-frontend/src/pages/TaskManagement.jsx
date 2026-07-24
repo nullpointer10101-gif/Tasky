@@ -159,7 +159,8 @@ export default function TaskManagement() {
                     { id: 'proof_screenshot', label: 'Manual (Screenshot)' },
                     { id: 'proof_url', label: 'Manual (URL/Link)' },
                     { id: 'proof_username', label: 'Manual (Username)' },
-                    { id: 'telegram_api', label: 'API (Telegram Channel)' }
+                    { id: 'telegram_api', label: 'API (Telegram Channel)' },
+                    { id: 'timer_10s', label: 'Timer (10s Countdown)' }
                   ].map(method => (
                     <div 
                       key={method.id} 

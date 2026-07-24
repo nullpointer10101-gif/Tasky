@@ -60,14 +60,17 @@ router.post('/complete', async (req, res) => {
             'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
             [telegram_id, task_id]
         );
+        let existingTask = null;
         if (checkRes.rows.length > 0) {
-            await client.query('ROLLBACK');
-            const existing = checkRes.rows[0];
-            return res.status(400).json({
-                error: existing.status === 'approved'
-                    ? 'Task already completed'
-                    : `Task already ${existing.status}`
-            });
+            existingTask = checkRes.rows[0];
+            if (existingTask.status !== 'rejected') {
+                await client.query('ROLLBACK');
+                return res.status(400).json({
+                    error: existingTask.status === 'approved'
+                        ? 'Task already completed'
+                        : `Task already ${existingTask.status}`
+                });
+            }
         }
 
         // Get task
@@ -92,7 +95,7 @@ router.post('/complete', async (req, res) => {
         }
         const user = userRes.rows[0];
 
-        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad') {
+        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'timer_10s') {
             if (task.verification_type === 'auto_telegram') {
                 if (!task.telegram_chat_id) {
                     await client.query('ROLLBACK');
@@ -204,12 +207,22 @@ router.post('/complete', async (req, res) => {
                 adminMessage = `📋 New follow verification from @${user.username || user.first_name} for task: ${task.title}\nX Handle submitted: ${proof_data}`;
             }
 
-            const result = await client.query(`
-                INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
-                VALUES ($1, $2, 'pending', $3, NOW())
-                RETURNING id
-            `, [telegram_id, task_id, proof_data]);
-            const userTaskId = result.rows[0].id;
+            let userTaskId;
+            if (existingTask) {
+                const result = await client.query(`
+                    UPDATE user_tasks SET status = 'pending', proof_screenshot_url = $3, submitted_at = NOW()
+                    WHERE telegram_id = $1 AND task_id = $2
+                    RETURNING id
+                `, [telegram_id, task_id, proof_data]);
+                userTaskId = result.rows[0].id;
+            } else {
+                const result = await client.query(`
+                    INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
+                    VALUES ($1, $2, 'pending', $3, NOW())
+                    RETURNING id
+                `, [telegram_id, task_id, proof_data]);
+                userTaskId = result.rows[0].id;
+            }
 
             await client.query('COMMIT');
 
@@ -236,12 +249,22 @@ router.post('/complete', async (req, res) => {
                 return res.status(400).json({ error: 'Screenshot proof required' });
             }
 
-            const result = await client.query(`
-                INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
-                VALUES ($1, $2, 'pending', $3, NOW())
-                RETURNING id
-            `, [telegram_id, task_id, proof_screenshot_url]);
-            const userTaskId = result.rows[0].id;
+            let userTaskId;
+            if (existingTask) {
+                const result = await client.query(`
+                    UPDATE user_tasks SET status = 'pending', proof_screenshot_url = $3, submitted_at = NOW()
+                    WHERE telegram_id = $1 AND task_id = $2
+                    RETURNING id
+                `, [telegram_id, task_id, proof_screenshot_url]);
+                userTaskId = result.rows[0].id;
+            } else {
+                const result = await client.query(`
+                    INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at)
+                    VALUES ($1, $2, 'pending', $3, NOW())
+                    RETURNING id
+                `, [telegram_id, task_id, proof_screenshot_url]);
+                userTaskId = result.rows[0].id;
+            }
 
             await client.query('COMMIT');
 

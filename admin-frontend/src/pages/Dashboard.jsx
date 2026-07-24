@@ -7,6 +7,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(() => fetchStats(), 10000); // Auto-refresh every 10 seconds
+    return () => clearInterval(interval);
   }, []);
 
   const fetchStats = async () => {

@@ -53,6 +53,8 @@ export default function Tasks({ user, refreshUser }) {
 
   const [hasVisited, setHasVisited] = useState(false);
   const [proofData, setProofData] = useState('');
+  const [countdown, setCountdown] = useState(0);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -97,12 +99,27 @@ export default function Tasks({ user, refreshUser }) {
     setSelectedTask(task);
     setHasVisited(!task.action_url);
     setProofData('');
+    setCountdown(0);
+    setTimerStarted(false);
   };
 
   const handleTaskAction = () => {
     if (selectedTask?.action_url) {
       window.open(selectedTask.action_url, '_blank');
       setHasVisited(true);
+      if (selectedTask.verification_type === 'timer_10s' && !timerStarted) {
+        setTimerStarted(true);
+        setCountdown(10);
+        const interval = setInterval(() => {
+          setCountdown(prev => {
+            if (prev <= 1) {
+              clearInterval(interval);
+              return 0;
+            }
+            return prev - 1;
+          });
+        }, 1000);
+      }
     }
   };
 
@@ -151,7 +168,7 @@ export default function Tasks({ user, refreshUser }) {
         // Optimistically update the UI to instantly move the task
         const updatedTask = { 
           ...selectedTask, 
-          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_ad') ? 'approved' : 'pending',
+          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_ad' || selectedTask.verification_type === 'timer_10s') ? 'approved' : 'pending',
           submitted_at: new Date().toISOString()
         };
         setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
@@ -411,7 +428,7 @@ export default function Tasks({ user, refreshUser }) {
 
                     <Button 
                       onClick={handleSubmitProof}
-                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData)}
+                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData) || (selectedTask.verification_type === 'timer_10s' && (!timerStarted || countdown > 0))}
                       className={`w-full font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-500' : 'bg-gradient-primary hover:opacity-90'}`}
                     >
                       {isSubmitting 
@@ -420,6 +437,8 @@ export default function Tasks({ user, refreshUser }) {
                           ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
                           : selectedTask.verification_type === 'auto_ad'
                             ? 'Watch Ad'
+                          : selectedTask.verification_type === 'timer_10s'
+                            ? (countdown > 0 ? `Wait ${countdown}s...` : (!timerStarted ? 'Click "Go to Task" first' : 'Claim Reward'))
                           : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
                             ? 'Complete Task' 
                             : 'Submit Proof'}
