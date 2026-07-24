@@ -30,11 +30,32 @@ router.get('/', async (req, res) => {
             const submissionMap = {};
             completedRes.rows.forEach(r => { submissionMap[r.task_id] = r.status; });
 
-            const result = tasks.map(t => ({
-                ...t,
-                completed: submissionMap[t.id] === 'approved',
-                submission_status: submissionMap[t.id] || null,
-            }));
+            // Get ad completion counts for today
+            const adCountsRes = await pool.query(
+                `SELECT task_id, COUNT(*) as count FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= CURRENT_DATE GROUP BY task_id`,
+                [telegram_id]
+            );
+            const adCountMap = {};
+            adCountsRes.rows.forEach(r => { adCountMap[r.task_id] = parseInt(r.count); });
+
+            const result = tasks.map(t => {
+                if (t.verification_type === 'auto_ad') {
+                    const timesCompleted = adCountMap[t.id] || 0;
+                    if (timesCompleted < 50) {
+                        return {
+                            ...t,
+                            completed: false,
+                            submission_status: null,
+                            subtitle: `${timesCompleted}/50 completed today. ${t.subtitle}`
+                        };
+                    }
+                }
+                return {
+                    ...t,
+                    completed: submissionMap[t.id] === 'approved',
+                    submission_status: submissionMap[t.id] || null,
+                };
+            });
             return res.json(result);
         }
 
@@ -55,25 +76,7 @@ router.post('/complete', async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Check if already submitted (any status)
-        const checkRes = await client.query(
-            'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
-            [telegram_id, task_id]
-        );
-        let existingTask = null;
-        if (checkRes.rows.length > 0) {
-            existingTask = checkRes.rows[0];
-            if (existingTask.status !== 'rejected') {
-                await client.query('ROLLBACK');
-                return res.status(400).json({
-                    error: existingTask.status === 'approved'
-                        ? 'Task already completed'
-                        : `Task already ${existingTask.status}`
-                });
-            }
-        }
-
-        // Get task
+        // Get task first so we know its type
         const taskRes = await client.query(
             'SELECT * FROM tasks WHERE id = $1 AND is_active = TRUE',
             [task_id]
@@ -83,6 +86,35 @@ router.post('/complete', async (req, res) => {
             return res.status(404).json({ error: 'Task not found or inactive' });
         }
         const task = taskRes.rows[0];
+
+        // Check if already submitted (unless it's an auto_ad which allows 50 per day)
+        if (task.verification_type === 'auto_ad') {
+            const adCountRes = await client.query(
+                "SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= CURRENT_DATE",
+                [telegram_id, task_id]
+            );
+            if (parseInt(adCountRes.rows[0].count) >= 50) {
+                await client.query('ROLLBACK');
+                return res.status(400).json({ error: 'Daily ad limit reached (50/50). Come back tomorrow!' });
+            }
+        } else {
+            const checkRes = await client.query(
+                'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
+                [telegram_id, task_id]
+            );
+            let existingTask = null;
+            if (checkRes.rows.length > 0) {
+                existingTask = checkRes.rows[0];
+                if (existingTask.status !== 'rejected') {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({
+                        error: existingTask.status === 'approved'
+                            ? 'Task already completed'
+                            : `Task already ${existingTask.status}`
+                    });
+                }
+            }
+        }
 
         // Get user
         const userRes = await client.query(

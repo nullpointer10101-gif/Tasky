@@ -172,7 +172,10 @@ export default function Tasks({ user, refreshUser }) {
           status: isAutoApproved ? 'approved' : 'pending',
           submitted_at: new Date().toISOString()
         };
-        setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
+        setTasks(prev => {
+          if (selectedTask.verification_type === 'auto_ad') return prev;
+          return prev.filter(t => t.id !== selectedTask.id);
+        });
         setSubmissions(prev => [updatedTask, ...prev]);
 
         setSelectedTask(null);
