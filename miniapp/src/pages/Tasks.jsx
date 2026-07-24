@@ -148,14 +148,13 @@ export default function Tasks({ user, refreshUser }) {
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
       } else if (selectedTask.verification_type === 'auto_ad') {
-        if (!window.Adsgram) {
+        if (typeof window.showGiga === 'undefined') {
           showToast('Ad network not loaded. Please try again later.', 'error');
           setIsSubmitting(false);
           return;
         }
         try {
-          const AdController = window.Adsgram.init({ blockId: "39622" });
-          await AdController.show();
+          await window.showGiga("main");
         } catch (e) {
           showToast('You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);
