@@ -9,7 +9,27 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://ad.gigapub.tech/script?id=7451"></script>
+    <script data-project-id="7451">
+      !function(){
+        var s=document.currentScript,p=s.getAttribute('data-project-id')||'default';
+        var d=['https://ad.gigapub.tech','https://ru-ad.gigapub.tech'],i=0,t,sc;
+        function l(){
+          sc=document.createElement('script');
+          sc.async=true;
+          sc.src=d[i]+'/script?id='+p;
+          clearTimeout(t);
+          t=setTimeout(function(){
+            sc.onload=sc.onerror=null;
+            sc.src='';
+            if(++i<d.length)l();
+          },15000);
+          sc.onload=function(){clearTimeout(t)};
+          sc.onerror=function(){clearTimeout(t);if(++i<d.length)l()};
+          document.head.appendChild(sc);
+        }
+        l();
+      }();
+    </script>
   </head>
   <body>
     <div id="root"></div>
