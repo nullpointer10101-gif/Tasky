@@ -54,7 +54,13 @@ router.get('/:telegram_id', async (req, res) => {
         );
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        const user = userRes.rows[0];
+        let user = userRes.rows[0];
+        if (!user.referral_code) {
+            const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000);
+            await pool.query('UPDATE users SET referral_code = $1 WHERE telegram_id = $2', [newRefCode, req.params.telegram_id]);
+            user.referral_code = newRefCode;
+        }
+        
         const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyAppbot'}?start=${user.referral_code}`;
 
         const referredRes = await pool.query(`
