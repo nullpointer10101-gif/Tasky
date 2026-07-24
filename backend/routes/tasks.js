@@ -92,7 +92,7 @@ router.post('/complete', async (req, res) => {
         }
         const user = userRes.rows[0];
 
-        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral') {
+        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad') {
             if (task.verification_type === 'auto_telegram') {
                 if (!task.telegram_chat_id) {
                     await client.query('ROLLBACK');

@@ -15,12 +15,7 @@ import { registerUser } from './api'
 export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
 
-const PAGE_VARIANTS = {
-  pageInitial:  { opacity: 0 },
-  pageAnimate:  { opacity: 1 },
-  pageExit:     { opacity: 0 },
-}
-const PAGE_TRANSITION = { duration: 0.15 }
+
 
 // Resolve Telegram user or fallback for localhost dev
 const getTelegramUser = () => {
@@ -202,25 +197,13 @@ export default function App() {
         <WalletManager user={user} refreshUser={refreshUser} />
         <Header />
 
-        <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activePage}
-              variants={PAGE_VARIANTS}
-              initial="pageInitial"
-              animate="pageAnimate"
-              exit="pageExit"
-              transition={PAGE_TRANSITION}
-              className="h-full"
-            >
-              <ActivePage
-                user={user}
-                tgUser={tgUser}
-                refreshUser={refreshUser}
-                navigate={setActivePage}
-              />
-            </motion.div>
-          </AnimatePresence>
+        <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll h-full">
+          <ActivePage
+            user={user}
+            tgUser={tgUser}
+            refreshUser={refreshUser}
+            navigate={setActivePage}
+          />
         </main>
 
         <BottomNav active={activePage} onChange={setActivePage} />

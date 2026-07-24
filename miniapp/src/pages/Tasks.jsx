@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot } from 'lucide-react';
+import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -23,6 +23,7 @@ const IconRenderer = ({ name, ...props }) => {
     case 'Globe': return <Globe {...props} />;
     case 'Youtube': return <Youtube {...props} />;
     case 'Repeat': return <Repeat {...props} />;
+    case 'Video': return <Video {...props} />;
     default: return <CheckSquare {...props} />;
   }
 };
@@ -34,6 +35,7 @@ const getIconBgColor = (name) => {
     case 'Youtube': return 'bg-[#FF0000]'; // YouTube red
     case 'Repeat': return 'bg-[#10b981]'; // Emerald green
     case 'Globe': return 'bg-[#3b82f6]'; // Blue
+    case 'Video': return 'bg-[#8b5cf6]'; // Purple
     default: return 'bg-gradient-primary';
   }
 };
@@ -127,6 +129,20 @@ export default function Tasks({ user, refreshUser }) {
         }
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
+      } else if (selectedTask.verification_type === 'auto_ad') {
+        if (!window.Adsgram) {
+          showToast('Ad network not loaded. Please try again later.', 'error');
+          setIsSubmitting(false);
+          return;
+        }
+        try {
+          const AdController = window.Adsgram.init({ blockId: "39601" });
+          await AdController.show();
+        } catch (e) {
+          showToast('You must watch the entire ad to get the reward.', 'error');
+          setIsSubmitting(false);
+          return;
+        }
       }
 
       const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
@@ -135,7 +151,7 @@ export default function Tasks({ user, refreshUser }) {
         // Optimistically update the UI to instantly move the task
         const updatedTask = { 
           ...selectedTask, 
-          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none') ? 'approved' : 'pending',
+          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_ad') ? 'approved' : 'pending',
           submitted_at: new Date().toISOString()
         };
         setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
@@ -402,6 +418,8 @@ export default function Tasks({ user, refreshUser }) {
                         ? 'Submitting...' 
                         : selectedTask.verification_type === 'auto_referral' 
                           ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
+                          : selectedTask.verification_type === 'auto_ad'
+                            ? 'Watch Ad'
                           : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
                             ? 'Complete Task' 
                             : 'Submit Proof'}
