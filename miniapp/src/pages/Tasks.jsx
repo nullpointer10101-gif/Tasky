@@ -110,15 +110,16 @@ export default function Tasks({ user, refreshUser }) {
       if (selectedTask.verification_type === 'timer_10s' && !timerStarted) {
         setTimerStarted(true);
         setCountdown(10);
+        const endTime = Date.now() + 10000;
         const interval = setInterval(() => {
-          setCountdown(prev => {
-            if (prev <= 1) {
-              clearInterval(interval);
-              return 0;
-            }
-            return prev - 1;
-          });
-        }, 1000);
+          const remaining = Math.ceil((endTime - Date.now()) / 1000);
+          if (remaining <= 0) {
+            clearInterval(interval);
+            setCountdown(0);
+          } else {
+            setCountdown(remaining);
+          }
+        }, 500);
       }
     }
   };
@@ -165,17 +166,23 @@ export default function Tasks({ user, refreshUser }) {
       const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
-        // Optimistically update the UI to instantly move the task
+        const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s'].includes(selectedTask.verification_type);
+        
         const updatedTask = { 
           ...selectedTask, 
-          status: (selectedTask.verification_type === 'auto_telegram' || selectedTask.verification_type === 'auto_referral' || selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_ad' || selectedTask.verification_type === 'timer_10s') ? 'approved' : 'pending',
+          status: isAutoApproved ? 'approved' : 'pending',
           submitted_at: new Date().toISOString()
         };
         setTasks(prev => prev.filter(t => t.id !== selectedTask.id));
         setSubmissions(prev => [updatedTask, ...prev]);
 
-        setSubmittedTask(selectedTask);
         setSelectedTask(null);
+        if (isAutoApproved) {
+          showToast(`Task Verified! +${selectedTask.reward_tasky} TASKY`, 'success');
+        } else {
+          setSubmittedTask(selectedTask);
+        }
+        
         reloadData();
         refreshUser();
       } else {
