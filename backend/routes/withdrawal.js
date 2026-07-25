@@ -72,6 +72,11 @@ router.post('/request', async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
+        
+        if ((user.withdrawal_ads_watched || 0) < 50) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `You must watch 50 ads before withdrawing. Completed: ${user.withdrawal_ads_watched || 0} / 50` });
+        }
 
         // Calculate fee and USDT
         const feePercent = parseFloat(settings.fee_percent);
@@ -80,9 +85,9 @@ router.post('/request', async (req, res) => {
         const net_tasky = amount - fee_amount;
         const usdt_amount = parseFloat((net_tasky * usdtRate).toFixed(6));
 
-        // Deduct balance
+        // Deduct balance and reset ads watched
         await client.query(
-            'UPDATE users SET balance = balance - $1 WHERE telegram_id = $2',
+            'UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2',
             [amount, telegram_id]
         );
 
@@ -260,6 +265,24 @@ router.post('/admin/settings', isAdmin, async (req, res) => {
             WHERE id = 1 RETURNING *
         `, [min_withdrawal_tasky || null, fee_percent || null, usdt_rate || null]);
         res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// ─── POST /api/withdrawal/watch_ad ────────────────────────────────────────
+router.post('/watch_ad', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'Missing telegram_id' });
+    
+    try {
+        const updateRes = await pool.query(
+            'UPDATE users SET withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $1 RETURNING withdrawal_ads_watched',
+            [telegram_id]
+        );
+        if (updateRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        res.json({ success: true, withdrawal_ads_watched: updateRes.rows[0].withdrawal_ads_watched });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });

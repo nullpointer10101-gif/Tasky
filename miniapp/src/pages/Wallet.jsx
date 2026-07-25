@@ -10,7 +10,7 @@ import {
 import Card from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock } from '../api';
+import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock, watchWithdrawalAd } from '../api';
 import { useToast } from '../App';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
@@ -64,6 +64,8 @@ export default function Wallet({ user, refreshUser }) {
   const [selectedDestination, setSelectedDestination] = useState('DOGS');
   const [isUsdtTeaserOpen, setIsUsdtTeaserOpen] = useState(false);
   const [isNotified, setIsNotified] = useState(false);
+  const [isWatchingAd, setIsWatchingAd] = useState(false);
+  const [showAdRequirement, setShowAdRequirement] = useState(false);
   const { showToast } = useToast();
   
   // Lock body scroll when modal is open
@@ -145,9 +147,18 @@ export default function Wallet({ user, refreshUser }) {
 
   const handleSwap = async () => {
     if (!isConnected) return showToast('Connect your wallet first', 'error');
-    if (!swapAmount) return showToast('Please enter an amount', 'error');
-    if (Number(swapAmount) < minSwap) return showToast(`Minimum swap is ${minSwap} TASKY`, 'error');
-    if (Number(swapAmount) > balance) return showToast('Insufficient balance', 'error');
+    if (!swapAmount || Number(swapAmount) < minSwap) {
+      return showToast(`Minimum swap is ${minSwap} TASKY`, 'error');
+    }
+    if (Number(swapAmount) > balance) {
+      return showToast('Insufficient balance', 'error');
+    }
+    
+    if ((user?.withdrawal_ads_watched || 0) < 50) {
+      setShowAdRequirement(true);
+      return;
+    }
+    
     if (hasPendingSwap) return showToast('You already have a pending swap request.', 'error');
 
     try {
@@ -172,6 +183,28 @@ export default function Wallet({ user, refreshUser }) {
       console.error('handleSwap catch:', err);
       setIsSwapping(false);
       showToast(err.message || 'An error occurred during swap', 'error');
+    }
+  };
+
+  const handleWatchAd = async () => {
+    if (typeof window.showGiga === 'undefined') {
+      return showToast('Ad network not loaded. Please try again later.', 'error');
+    }
+    try {
+      setIsWatchingAd(true);
+      await window.showGiga("main");
+      
+      const { data, error } = await watchWithdrawalAd(user?.telegram_id);
+      if (data && !error) {
+        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 50 completed`, 'success');
+        refreshUser();
+      } else {
+        showToast(error || 'Failed to update ad progress', 'error');
+      }
+    } catch (e) {
+      showToast('You must watch the entire ad to get credit.', 'error');
+    } finally {
+      setIsWatchingAd(false);
     }
   };
 
@@ -554,13 +587,33 @@ export default function Wallet({ user, refreshUser }) {
                     Pending swap in progress
                   </div>
                 ) : Number(swapAmount) >= minSwap && Number(swapAmount) <= balance ? (
-                  <Button
-                    onClick={handleSwap}
-                    disabled={isSwapping}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500  disabled:opacity-70"
-                  >
-                    {isSwapping ? 'Processing...' : 'Request Swap →'}
-                  </Button>
+                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 50 ? (
+                    <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center animate-fade-in">
+                      <span className="text-ink text-sm font-bold block mb-2">Watch Ads to Unlock Swap</span>
+                      <span className="text-ink-soft text-xs mb-3 text-center">You must complete 50 ads to request a swap.</span>
+                      
+                      <div className="w-full bg-ink-faint rounded-full h-2.5 mb-2 overflow-hidden">
+                        <div className="bg-gradient-primary h-2.5 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 50) * 100)}%` }}></div>
+                      </div>
+                      <span className="text-xs font-bold text-ink mb-3">{user?.withdrawal_ads_watched || 0} / 50 Completed</span>
+                      
+                      <Button
+                        onClick={handleWatchAd}
+                        disabled={isWatchingAd}
+                        className="w-full py-3 rounded-xl font-bold bg-indigo-500 text-white hover:bg-indigo-400 active:scale-95 transition-all"
+                      >
+                        {isWatchingAd ? 'Processing...' : 'Watch Ad'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={handleSwap}
+                      disabled={isSwapping}
+                      className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500  disabled:opacity-70"
+                    >
+                      {isSwapping ? 'Processing...' : 'Request Swap →'}
+                    </Button>
+                  )
                 ) : swapAmount && Number(swapAmount) > balance ? (
                   <div className="w-full py-3.5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-bold text-center">
                     Insufficient balance ({Math.floor(balance).toLocaleString()} TASKY available)

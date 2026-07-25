@@ -41,6 +41,8 @@ const wrap = async (fn) => {
   }
 }
 
+export const watchWithdrawalAd = withMock({ success: true }, (telegram_id) => () => api.post('/api/withdrawal/watch_ad', { telegram_id }))
+
 const isMock = typeof window !== 'undefined' && window.location.search.includes('mock=true');
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
 

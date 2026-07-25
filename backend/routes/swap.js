@@ -105,6 +105,11 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
+        if ((user.withdrawal_ads_watched || 0) < 50) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `You must watch 50 ads before swapping. Completed: ${user.withdrawal_ads_watched || 0} / 50` });
+        }
+        
         // apply 30% fee
         const feePercent = 30;
         const feeAmount = amount * (feePercent / 100);
@@ -114,7 +119,7 @@ router.post('/request', async (req, res) => {
         const receiveAmount = netAmount / parseFloat(rate.tasky_per_unit);
         
         // deduct balance
-        await client.query('UPDATE users SET balance = balance - $1 WHERE telegram_id = $2', [amount, telegram_id]);
+        await client.query('UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2', [amount, telegram_id]);
         
         // insert swap using DB wallet address
         const swapRes = await client.query(`
