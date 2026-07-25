@@ -14,6 +14,33 @@ const isAdmin = (req, res, next) => {
     next();
 };
 
+// ─── GET /api/tasks/latest-post ──────────────────────────────────────────
+router.get('/latest-post', async (req, res) => {
+    try {
+        const { channel } = req.query;
+        if (!channel) return res.status(400).json({ error: 'Channel is required' });
+        
+        const response = await fetch(`https://t.me/s/${channel}`);
+        const html = await response.text();
+        
+        // Find all data-post="channel/id"
+        const regex = new RegExp(`data-post="${channel}\\/(\\d+)"`, 'gi');
+        const matches = [...html.matchAll(regex)];
+        
+        if (matches.length > 0) {
+            // Get the last match which is usually the latest post on the page
+            const latestId = matches[matches.length - 1][1];
+            return res.json({ latestUrl: `https://t.me/${channel}/${latestId}` });
+        }
+        
+        // Fallback to just the channel if no posts found
+        return res.json({ latestUrl: `https://t.me/${channel}` });
+    } catch (e) {
+        console.error('Error fetching latest post:', e);
+        return res.status(500).json({ error: 'Failed to fetch latest post' });
+    }
+});
+
 // ─── GET /api/tasks ────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
     const { telegram_id } = req.query;

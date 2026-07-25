@@ -103,9 +103,26 @@ export default function Tasks({ user, refreshUser }) {
     setTimerStarted(false);
   };
 
-  const handleTaskAction = () => {
+  const handleTaskAction = async () => {
     if (selectedTask?.action_url) {
-      window.open(selectedTask.action_url, '_blank');
+      let finalUrl = selectedTask.action_url;
+      
+      if (finalUrl.includes('/latest')) {
+        try {
+          const channelParts = finalUrl.split('t.me/');
+          if (channelParts.length > 1) {
+            const channelName = channelParts[1].split('/')[0];
+            const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
+            const res = await fetch(`${API_URL}/api/tasks/latest-post?channel=${channelName}`);
+            const data = await res.json();
+            if (data.latestUrl) {
+              finalUrl = data.latestUrl;
+            }
+          }
+        } catch (e) { console.error('Failed to resolve latest post', e); }
+      }
+
+      window.open(finalUrl, '_blank');
       setHasVisited(true);
       if (selectedTask.verification_type === 'timer_10s' && !timerStarted) {
         setTimerStarted(true);
