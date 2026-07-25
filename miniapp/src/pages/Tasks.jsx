@@ -154,13 +154,10 @@ export default function Tasks({ user, refreshUser }) {
           return;
         }
         try {
-          const adStartTime = Date.now();
           await window.show_11395836('pop');
-          if (Date.now() - adStartTime < 12000) {
-            showToast('You must watch the ad for at least 15 seconds.', 'error');
-            setIsSubmitting(false);
-            return;
-          }
+          toast.success('Ad started. Please wait 15 seconds...', { duration: 4000 });
+          // Force a 15-second wait before hitting the backend so users can't instant-claim
+          await new Promise(resolve => setTimeout(resolve, 15000));
         } catch (e) {
           showToast('You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);

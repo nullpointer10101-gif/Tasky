@@ -192,13 +192,10 @@ export default function Wallet({ user, refreshUser }) {
     }
     try {
       setIsWatchingAd(true);
-      const adStartTime = Date.now();
       await window.show_11395836('pop');
-      if (Date.now() - adStartTime < 12000) {
-        showToast('You must watch the ad for at least 15 seconds.', 'error');
-        setIsWatchingAd(false);
-        return;
-      }
+      toast.success('Ad started. Please wait 15 seconds...', { duration: 4000 });
+      // Force a 15-second wait before hitting the backend so users can't instant-claim
+      await new Promise(resolve => setTimeout(resolve, 15000));
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
