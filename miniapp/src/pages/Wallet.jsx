@@ -560,29 +560,7 @@ export default function Wallet({ user, refreshUser }) {
                   <span className="text-ink-soft text-xs font-bold block mb-1">You'll receive (after 30% fee)</span>
                   <span className="font-black text-success text-2xl">≈ {receiveAmount} {selectedDestination}</span>
                 </div>
-                
-                {Number(swapAmount) > 0 && (
-                  <div className="bg-ink-faint rounded-xl p-3 mb-4 text-xs font-medium text-ink-soft space-y-1.5">
-                    <div className="flex justify-between">
-                      <span>Requested Amount:</span>
-                      <span className="text-ink">{Number(swapAmount).toLocaleString()} TASKY</span>
-                    </div>
-                    <div className="flex justify-between text-red-500">
-                      <span>30% Processing Fee:</span>
-                      <span>-{ (Number(swapAmount) * 0.3).toLocaleString() } TASKY</span>
-                    </div>
-                    <div className="flex justify-between border-t border-border pt-1.5 mt-1.5">
-                      <span>Net Swapped Amount:</span>
-                      <span className="text-ink">{ (Number(swapAmount) * 0.7).toLocaleString() } TASKY</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Exchange Rate:</span>
-                      <span className="text-ink">1 {selectedDestination} = {taskyPerUnit} TASKY</span>
-                    </div>
-                  </div>
-                )}
-
-                <p className="text-center text-[10px] text-ink-soft font-medium mt-2 mb-4">
+                <p className="text-center text-[10px] text-ink-soft font-medium mt-2">
                   A 30% processing fee is applied. Requests are processed in under 3 minutes.
                 </p>
 
