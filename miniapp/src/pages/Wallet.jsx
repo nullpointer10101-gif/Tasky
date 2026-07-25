@@ -187,13 +187,13 @@ export default function Wallet({ user, refreshUser }) {
   };
 
   const handleWatchAd = async () => {
-    if (typeof window.showGiga === 'undefined') {
+    if (typeof window.show_11395836 === 'undefined') {
       return showToast('Ad network not loaded. Please try again later.', 'error');
     }
     try {
       setIsWatchingAd(true);
       const adStartTime = Date.now();
-      await window.showGiga("main");
+      await window.show_11395836('pop');
       if (Date.now() - adStartTime < 12000) {
         showToast('You must watch the ad for at least 15 seconds.', 'error');
         setIsWatchingAd(false);

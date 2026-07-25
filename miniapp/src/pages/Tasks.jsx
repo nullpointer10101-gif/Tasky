@@ -148,14 +148,14 @@ export default function Tasks({ user, refreshUser }) {
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
       } else if (selectedTask.verification_type === 'auto_ad') {
-        if (typeof window.showGiga === 'undefined') {
+        if (typeof window.show_11395836 === 'undefined') {
           showToast('Ad network not loaded. Please try again later.', 'error');
           setIsSubmitting(false);
           return;
         }
         try {
           const adStartTime = Date.now();
-          await window.showGiga("main");
+          await window.show_11395836('pop');
           if (Date.now() - adStartTime < 12000) {
             showToast('You must watch the ad for at least 15 seconds.', 'error');
             setIsSubmitting(false);
