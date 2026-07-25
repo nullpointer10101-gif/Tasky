@@ -35,6 +35,7 @@ const userStates = {};
 // =======================
 
 bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     const refCode = match[1];
     
@@ -97,6 +98,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
 });
 
 bot.onText(/Tasks 📋|\/tasks/, async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     try {
         const res = await fetch(`${API_BASE}/tasks?telegram_id=${msg.from.id}`);
@@ -131,6 +133,9 @@ bot.on('callback_query', async (query) => {
     const data = query.data;
     
     if (data.startsWith('verify_')) {
+        if (query.message.chat.type !== 'private') {
+            return bot.answerCallbackQuery(query.id, { text: 'Please use this command in the private bot chat.' });
+        }
         const taskId = data.split('_')[1];
         try {
             const res = await fetch(`${API_BASE}/tasks/complete`, {
@@ -177,6 +182,18 @@ bot.on('callback_query', async (query) => {
                     chat_id: chatId,
                     message_id: query.message.message_id
                 });
+                
+                // Send hype notification to community group
+                try {
+                    const userRes = await pool.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [ut.telegram_id]);
+                    if (userRes.rows.length > 0) {
+                        const u = userRes.rows[0];
+                        const name = u.username ? `@${u.username}` : u.first_name;
+                        bot.sendMessage('@TaskyOfficialCommunity', `🔥 *${name}* just received *${reward} TASKY* for completing a task! 🚀\n\n💰 Complete tasks and earn now!`, { parse_mode: 'Markdown' });
+                    }
+                } catch(e) {
+                    console.error('Error sending hype notification:', e.message);
+                }
             } else {
                 await pool.query('UPDATE user_tasks SET status = $1, reviewed_at = NOW(), rejection_reason = $3 WHERE id = $2', [action, userTaskId, 'Invalid proof']);
                 
@@ -195,6 +212,7 @@ bot.on('callback_query', async (query) => {
 });
 
 bot.onText(/Check-in ✅|\/checkin/, async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     try {
         const res = await fetch(`${API_BASE}/users/checkin`, {
@@ -214,6 +232,7 @@ bot.onText(/Check-in ✅|\/checkin/, async (msg) => {
 });
 
 bot.onText(/\/balance/, async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     try {
         const res = await fetch(`${API_BASE}/users/${msg.from.id}`);
@@ -227,6 +246,7 @@ bot.onText(/\/balance/, async (msg) => {
 });
 
 bot.onText(/Referral 🔗|\/referral/, async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     try {
         const res = await fetch(`${API_BASE}/referral/${msg.from.id}`);
@@ -247,10 +267,12 @@ bot.onText(/Referral 🔗|\/referral/, async (msg) => {
 });
 
 bot.onText(/Help ❓|\/help/, (msg) => {
+    if (msg.chat.type !== 'private') return;
     bot.sendMessage(msg.chat.id, "Complete tasks, earn TASKY, swap for real TON or USDT");
 });
 
 bot.onText(/Swap 💱|\/swap/, async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     try {
         const res = await fetch(`${API_BASE}/swap/rates`);
@@ -275,6 +297,7 @@ bot.onText(/\/cancel/, (msg) => {
 
 // Interactive step handler
 bot.on('message', async (msg) => {
+    if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
     const text = msg.text;
     if (!text || text.startsWith('/')) return;

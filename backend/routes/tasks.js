@@ -492,7 +492,13 @@ router.post('/admin/review', isAdmin, async (req, res) => {
             if (bot && bot.sendMessage) {
                 try {
                     bot.sendMessage(ut.telegram_id, `✅ Task approved! "${ut.title}" — +${ut.reward_tasky} TASKY added to your balance.`);
-                } catch (e) {}
+                    
+                    // Send hype notification to community group
+                    const name = ut.username ? `@${ut.username}` : ut.first_name;
+                    bot.sendMessage('@TaskyOfficialCommunity', `🔥 *${name}* just received *${ut.reward_tasky} TASKY* for completing a task! 🚀\n\n💰 Complete tasks and earn now!`, { parse_mode: 'Markdown' });
+                } catch (e) {
+                    console.error('Error sending hype message:', e);
+                }
             }
 
             // Recalculate tier instantly after balance payout
