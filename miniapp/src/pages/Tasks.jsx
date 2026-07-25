@@ -174,11 +174,7 @@ export default function Tasks({ user, refreshUser }) {
           const adStartTime = Date.now();
           await window.showGiga("main");
           if (Date.now() - adStartTime < 12000) {
-            if (window.Telegram?.WebApp?.showAlert) {
-              window.Telegram.WebApp.showAlert('❌ You must watch the ad for at least 15 seconds to get the reward!');
-            } else {
-              window.alert('❌ You must watch the ad for at least 15 seconds to get the reward!');
-            }
+            showToast('You must watch the ad for at least 15 seconds.', 'error');
             setIsSubmitting(false);
             return;
           }
