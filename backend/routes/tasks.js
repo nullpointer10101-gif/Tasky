@@ -115,6 +115,7 @@ router.post('/complete', async (req, res) => {
         const task = taskRes.rows[0];
 
         // Check if already submitted (unless it's an auto_ad which allows 50 per 24 hours)
+        let existingTask = null;
         if (task.verification_type === 'auto_ad') {
             const adCountRes = await client.query(
                 "SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours'",
@@ -129,7 +130,6 @@ router.post('/complete', async (req, res) => {
                 'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
                 [telegram_id, task_id]
             );
-            let existingTask = null;
             if (checkRes.rows.length > 0) {
                 existingTask = checkRes.rows[0];
                 if (existingTask.status !== 'rejected') {
