@@ -41,7 +41,6 @@ const wrap = async (fn) => {
   }
 }
 
-export const watchWithdrawalAd = withMock({ success: true }, (telegram_id) => () => api.post('/api/withdrawal/watch_ad', { telegram_id }))
 
 const isMock = typeof window !== 'undefined' && window.location.search.includes('mock=true');
 const delay = (ms) => new Promise(r => setTimeout(r, ms));
@@ -131,6 +130,7 @@ export const getReferralLeaderboard = withMock(mockData.getReferralLeaderboard, 
 export const getSwapRates = withMock(() => mockData.getSwapRates, () => () => api.get('/api/swap/rates'))
 export const requestSwap = withMock({ id: 999, status: 'pending' }, (body) => () => api.post('/api/swap/request', body))
 export const getSwapHistory = withMock(() => mockData.getSwapHistory, (telegram_id) => () => api.get(`/api/swap/history/${telegram_id}`))
+export const watchWithdrawalAd = withMock({ success: true }, (telegram_id) => () => api.post('/api/withdrawal/watch_ad', { telegram_id }))
 
 export const getMySubmissions = withMock(mockData.getMySubmissions, (id) => () => api.get(`/api/tasks/my-submissions/${id}`))
 export const getWithdrawalSettings = withMock(mockData.getWithdrawalSettings, () => () => api.get('/api/withdrawal/settings'))
