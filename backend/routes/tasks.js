@@ -155,43 +155,6 @@ router.post('/complete', async (req, res) => {
         const user = userRes.rows[0];
 
         if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'timer_10s') {
-            if (task.verification_type === 'auto_telegram') {
-                if (!task.telegram_chat_id) {
-                    await client.query('ROLLBACK');
-                    return res.status(500).json({ error: 'Task misconfigured: no telegram_chat_id' });
-                }
-
-                try {
-                    if (!bot || !bot.getChatMember) {
-                        throw new Error('Bot not initialized');
-                    }
-                    
-                    let chatId = task.telegram_chat_id;
-                    if (typeof chatId === 'string' && !chatId.startsWith('@') && !chatId.startsWith('-')) {
-                        chatId = '@' + chatId;
-                    }
-
-                    const member = await bot.getChatMember(chatId, telegram_id);
-                    if (!['member', 'administrator', 'creator'].includes(member.status)) {
-                        await client.query('ROLLBACK');
-                        return res.status(400).json({ error: 'Please join the channel first, then try again' });
-                    }
-                } catch (err) {
-                    console.error('getChatMember error:', err.message);
-                    await client.query('ROLLBACK');
-                    
-                    if (err.message.includes('Bot not initialized')) {
-                        return res.status(500).json({ error: 'System error: Bot token not configured. Please contact admin.' });
-                    }
-                    
-                    if (err.message.includes('chat not found') || err.message.includes('bot is not a member') || err.message.includes('rights')) {
-                        return res.status(500).json({ error: 'System error: Bot is not an admin in this channel. Please notify support.' });
-                    }
-                    
-                    return res.status(400).json({ error: 'Please join the channel first, then try again' });
-                }
-            }
-
             if (task.verification_type === 'auto_referral') {
                 if (user.valid_referrals < 5) {
                     await client.query('ROLLBACK');

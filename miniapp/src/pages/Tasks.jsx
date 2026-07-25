@@ -124,7 +124,7 @@ export default function Tasks({ user, refreshUser }) {
 
       window.open(finalUrl, '_blank');
       setHasVisited(true);
-      if (selectedTask.verification_type === 'timer_10s' && !timerStarted) {
+      if ((selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram') && !timerStarted) {
         setTimerStarted(true);
         setCountdown(10);
         const endTime = Date.now() + 10000;
@@ -479,7 +479,7 @@ export default function Tasks({ user, refreshUser }) {
 
                     <Button 
                       onClick={handleSubmitProof}
-                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData) || (selectedTask.verification_type === 'timer_10s' && (!timerStarted || countdown > 0))}
+                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData) || ((selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram') && (!timerStarted || countdown > 0))}
                       className={`w-full font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-500' : 'bg-gradient-primary hover:opacity-90'}`}
                     >
                       {isSubmitting 
@@ -488,9 +488,9 @@ export default function Tasks({ user, refreshUser }) {
                           ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
                           : selectedTask.verification_type === 'auto_ad'
                             ? 'Watch Ad'
-                          : selectedTask.verification_type === 'timer_10s'
+                          : (selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram')
                             ? (countdown > 0 ? `Wait ${countdown}s...` : (!timerStarted ? 'Click "Go to Task" first' : 'Claim Reward'))
-                          : (selectedTask.verification_type === 'none' || selectedTask.verification_type === 'auto_telegram')
+                          : selectedTask.verification_type === 'none'
                             ? 'Complete Task' 
                             : 'Submit Proof'}
                     </Button>
