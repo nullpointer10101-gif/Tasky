@@ -368,6 +368,25 @@ export default function Tasks({ user, refreshUser }) {
                 ) : (
                   <p className="text-ink-soft">{selectedTask.subtitle}</p>
                 )}
+                
+                {selectedTask.verification_type === 'auto_ad' && (
+                  <div className="bg-surface-soft border border-border rounded-xl p-4 mt-3">
+                    <p className="text-sm font-bold text-ink mb-2 flex items-center gap-1.5">
+                      <CheckCircle2 size={14} className="text-indigo-500" />
+                      Required Rules
+                    </p>
+                    <ul className="space-y-2">
+                      <li className="flex items-start gap-2 text-sm text-ink-soft">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                        <span className="leading-tight">You must watch the entire ad to get the reward.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-ink-soft">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                        <span className="leading-tight">Skipping or closing the ad early will cancel the reward.</span>
+                      </li>
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-4">
