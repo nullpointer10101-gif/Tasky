@@ -154,7 +154,13 @@ export default function Tasks({ user, refreshUser }) {
           return;
         }
         try {
+          const adStartTime = Date.now();
           await window.showGiga("main");
+          if (Date.now() - adStartTime < 12000) {
+            showToast('You must watch the ad for at least 15 seconds.', 'error');
+            setIsSubmitting(false);
+            return;
+          }
         } catch (e) {
           showToast('You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);
