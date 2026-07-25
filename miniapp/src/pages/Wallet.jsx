@@ -192,7 +192,13 @@ export default function Wallet({ user, refreshUser }) {
     }
     try {
       setIsWatchingAd(true);
+      const adStartTime = Date.now();
       await window.show_11395836();
+      if (Date.now() - adStartTime < 12000) {
+        showToast('You must watch the ad for at least 15 seconds.', 'error');
+        setIsWatchingAd(false);
+        return;
+      }
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
