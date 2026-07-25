@@ -195,7 +195,11 @@ export default function Wallet({ user, refreshUser }) {
       const adStartTime = Date.now();
       await window.show_11395836();
       if (Date.now() - adStartTime < 12000) {
-        showToast('You must watch the ad for at least 15 seconds.', 'error');
+        if (window.Telegram?.WebApp?.showAlert) {
+          window.Telegram.WebApp.showAlert('❌ You must watch the ad for at least 15 seconds to get the reward!');
+        } else {
+          window.alert('❌ You must watch the ad for at least 15 seconds to get the reward!');
+        }
         setIsWatchingAd(false);
         return;
       }
