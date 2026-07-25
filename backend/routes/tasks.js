@@ -30,9 +30,9 @@ router.get('/', async (req, res) => {
             const submissionMap = {};
             completedRes.rows.forEach(r => { submissionMap[r.task_id] = r.status; });
 
-            // Get ad completion counts for today
+            // Get ad completion counts for the last 24 hours
             const adCountsRes = await pool.query(
-                `SELECT task_id, COUNT(*) as count FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= CURRENT_DATE GROUP BY task_id`,
+                `SELECT task_id, COUNT(*) as count FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours' GROUP BY task_id`,
                 [telegram_id]
             );
             const adCountMap = {};
@@ -46,7 +46,7 @@ router.get('/', async (req, res) => {
                             ...t,
                             completed: false,
                             submission_status: null,
-                            subtitle: `${timesCompleted}/50 completed today. ${t.subtitle}`
+                            subtitle: `${timesCompleted}/50 completed in last 24h. ${t.subtitle}`
                         };
                     }
                 }
@@ -87,15 +87,15 @@ router.post('/complete', async (req, res) => {
         }
         const task = taskRes.rows[0];
 
-        // Check if already submitted (unless it's an auto_ad which allows 50 per day)
+        // Check if already submitted (unless it's an auto_ad which allows 50 per 24 hours)
         if (task.verification_type === 'auto_ad') {
             const adCountRes = await client.query(
-                "SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= CURRENT_DATE",
+                "SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours'",
                 [telegram_id, task_id]
             );
             if (parseInt(adCountRes.rows[0].count) >= 50) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'Daily ad limit reached (50/50). Come back tomorrow!' });
+                return res.status(400).json({ error: 'Ad limit reached (50 ads per 24 hours). Please wait.' });
             }
         } else {
             const checkRes = await client.query(
