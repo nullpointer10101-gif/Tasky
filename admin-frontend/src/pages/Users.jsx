@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Search, Ban, CheckCircle, User, Edit2, Zap, Users as UsersIcon, Coins } from 'lucide-react';
+import { Search, Ban, CheckCircle, User, Edit2, Zap, Users as UsersIcon, Coins, History, X } from 'lucide-react';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('balance'); // 'balance' or 'newest'
+  const [selectedUserForHistory, setSelectedUserForHistory] = useState(null);
+  const [userHistory, setUserHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -71,6 +74,21 @@ export default function Users() {
       toast.error('Failed to add spins');
     }
   };
+
+  const handleViewHistory = async (user) => {
+    setSelectedUserForHistory(user);
+    setLoadingHistory(true);
+    setUserHistory([]);
+    try {
+      const res = await api.get(`/users/${user.telegram_id}/history`);
+      setUserHistory(res.data);
+    } catch (error) {
+      toast.error('Failed to load history');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
 
   const filteredUsers = users.filter(u => 
     (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -153,7 +171,7 @@ export default function Users() {
                   
                   {/* Header row: Avatar + Info + Balance */}
                   <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-3 overflow-hidden">
+                    <div className="flex items-center gap-3 overflow-hidden cursor-pointer hover:opacity-80" onClick={() => handleViewHistory(user)}>
                       <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20">
                         <User size={20} />
                       </div>
@@ -189,7 +207,10 @@ export default function Users() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
+                      <button onClick={() => handleViewHistory(user)} className="flex-1 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
+                        <History size={14} /> History
+                      </button>
                       <button onClick={() => handleAddSpins(user)} className="flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
                         <Zap size={14} /> Spins
                       </button>
@@ -229,7 +250,7 @@ export default function Users() {
                   ) : (
                     filteredUsers.map(user => (
                       <tr key={user.telegram_id} className="border-b border-border hover:bg-surface/50 transition-colors">
-                        <td className="p-4">
+                        <td className="p-4 cursor-pointer hover:bg-surface-soft transition-colors" onClick={() => handleViewHistory(user)}>
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400">
                               <User size={20} />
@@ -255,6 +276,9 @@ export default function Users() {
                         </td>
                         <td className="p-4">
                           <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => handleViewHistory(user)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-xl text-xs font-bold transition-colors">
+                              <History size={14} /> History
+                            </button>
                             <button onClick={() => handleAddSpins(user)} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl text-xs font-bold transition-colors">
                               <Zap size={14} /> Add Spins
                             </button>
@@ -275,6 +299,53 @@ export default function Users() {
             </div>
           </div>
         </>
+      )}
+
+      {/* History Modal */}
+      {selectedUserForHistory && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-surface border border-border rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[80vh]">
+            <div className="p-5 border-b border-border flex justify-between items-center bg-surface-soft">
+              <div>
+                <h3 className="font-black text-ink text-lg">Reward History</h3>
+                <p className="text-ink-soft text-sm">@{selectedUserForHistory.username || selectedUserForHistory.telegram_id}</p>
+              </div>
+              <button 
+                onClick={() => setSelectedUserForHistory(null)}
+                className="w-8 h-8 flex items-center justify-center bg-surface hover:bg-border rounded-full text-ink transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1">
+              {loadingHistory ? (
+                <div className="flex justify-center p-8">
+                  <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : userHistory.length === 0 ? (
+                <div className="text-center p-8 text-ink-soft">
+                  <History size={48} className="mx-auto mb-4 opacity-20" />
+                  <p>No rewards found for this user.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userHistory.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center p-3 rounded-2xl bg-surface-soft border border-border hover:border-indigo-500/30 transition-colors">
+                      <div>
+                        <p className="font-bold text-ink text-sm">{item.title}</p>
+                        <p className="text-xs text-ink-soft mt-0.5">{formatDate(item.completed_at)}</p>
+                      </div>
+                      <div className="font-black text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-xl border border-emerald-500/20">
+                        +{Number(item.reward).toLocaleString()} TASKY
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

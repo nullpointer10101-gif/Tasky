@@ -264,6 +264,24 @@ router.get('/users', async (req, res) => {
   }
 });
 
+router.get('/users/:id/history', async (req, res) => {
+  const telegramId = req.params.id;
+  try {
+    const query = `
+      SELECT t.title, t.reward_tasky as reward, ut.completed_at 
+      FROM user_tasks ut
+      JOIN tasks t ON ut.task_id = t.id
+      WHERE ut.telegram_id = $1
+      ORDER BY ut.completed_at DESC
+      LIMIT 200
+    `;
+    const { rows } = await pool.query(query, [telegramId]);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/users/:id/ban', async (req, res) => {
   const telegramId = req.params.id;
   const { is_banned } = req.body;
