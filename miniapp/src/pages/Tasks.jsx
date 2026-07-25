@@ -165,14 +165,14 @@ export default function Tasks({ user, refreshUser }) {
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
       } else if (selectedTask.verification_type === 'auto_ad') {
-        if (typeof window.show_11395836 === 'undefined') {
+        if (typeof window.showGiga === 'undefined') {
           showToast('Ad network not loaded. Please try again later.', 'error');
           setIsSubmitting(false);
           return;
         }
         try {
           const adStartTime = Date.now();
-          await window.show_11395836();
+          await window.showGiga("main");
           if (Date.now() - adStartTime < 12000) {
             if (window.Telegram?.WebApp?.showAlert) {
               window.Telegram.WebApp.showAlert('❌ You must watch the ad for at least 15 seconds to get the reward!');

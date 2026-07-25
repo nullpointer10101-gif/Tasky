@@ -187,13 +187,13 @@ export default function Wallet({ user, refreshUser }) {
   };
 
   const handleWatchAd = async () => {
-    if (typeof window.show_11395836 === 'undefined') {
+    if (typeof window.showGiga === 'undefined') {
       return showToast('Ad network not loaded. Please try again later.', 'error');
     }
     try {
       setIsWatchingAd(true);
       const adStartTime = Date.now();
-      await window.show_11395836();
+      await window.showGiga("main");
       if (Date.now() - adStartTime < 12000) {
         if (window.Telegram?.WebApp?.showAlert) {
           window.Telegram.WebApp.showAlert('❌ You must watch the ad for at least 15 seconds to get the reward!');
