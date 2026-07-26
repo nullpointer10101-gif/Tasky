@@ -96,6 +96,11 @@ export default function Users() {
                           (u.telegram_id && u.telegram_id.toString().includes(searchTerm));
     const matchesEligible = showEligible ? Number(u.balance || 0) >= 3000 : true;
     return matchesSearch && matchesEligible;
+  }).sort((a, b) => {
+    if (sortBy === 'balance') return Number(b.balance || 0) - Number(a.balance || 0);
+    if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
+    if (sortBy === 'ads') return Number(b.withdrawal_ads_watched || 0) - Number(a.withdrawal_ads_watched || 0);
+    return 0;
   });
 
   const totalBalance = users.reduce((acc, u) => acc + Number(u.balance || 0), 0);
@@ -167,6 +172,7 @@ export default function Users() {
             className="bg-surface border border-border rounded-full px-4 py-3 text-sm text-ink focus:border-indigo-500 outline-none"
           >
             <option value="balance">Sort by: Highest Balance</option>
+            <option value="ads">Sort by: Highest Ads Watched</option>
             <option value="newest">Sort by: Newest Joined</option>
           </select>
         </div>
