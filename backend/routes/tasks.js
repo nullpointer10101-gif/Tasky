@@ -132,8 +132,9 @@ router.post('/complete', async (req, res) => {
             if (lastAdTime) {
                 const secondsSinceLastAd = (new Date() - new Date(lastAdTime)) / 1000;
                 if (secondsSinceLastAd < 30) {
+                    const timeLeft = Math.ceil(30 - secondsSinceLastAd);
                     await client.query('ROLLBACK');
-                    return res.status(429).json({ error: 'Please wait a moment before watching another ad. This helps keep the platform healthy!' });
+                    return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
                 }
             }
         } else {

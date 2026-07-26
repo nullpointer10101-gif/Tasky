@@ -175,7 +175,8 @@ export default function Tasks({ user, refreshUser }) {
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
           if (secondsSinceLastAd < 30) {
-            showToast('Please wait a moment before watching another ad. This helps keep the platform healthy!', 'error');
+            const timeLeft = Math.ceil(30 - secondsSinceLastAd);
+            showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
             setIsSubmitting(false);
             return;
           }
