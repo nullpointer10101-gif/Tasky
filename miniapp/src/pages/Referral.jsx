@@ -55,8 +55,8 @@ export default function Referral({ user }) {
 
   const handleShare = () => {
     if (refData?.referral_link && window.Telegram?.WebApp) {
-      const text = `Join Tasky and earn crypto rewards! Use my link: ${refData.referral_link}`;
-      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refData.referral_link)}&text=${encodeURIComponent('Join me on Tasky!')}`);
+      const text = `🚨 Claim your free USDT and crypto rewards on Tasky! Tap here to start earning instantly! 💸 Use my link: ${refData.referral_link}`;
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refData.referral_link)}&text=${encodeURIComponent('🚨 Claim your free USDT and crypto rewards on Tasky! Tap here to start earning instantly! 💸')}`);
     } else {
       handleCopy();
     }
