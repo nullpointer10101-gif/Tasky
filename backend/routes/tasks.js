@@ -125,6 +125,15 @@ router.post('/complete', async (req, res) => {
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: 'Ad limit reached (50 ads per 24 hours). Please wait.' });
             }
+
+            const lastAdTime = adCountRes.rows[0].last_ad_time;
+            if (lastAdTime) {
+                const secondsSinceLastAd = (new Date() - new Date(lastAdTime)) / 1000;
+                if (secondsSinceLastAd < 30) {
+                    await client.query('ROLLBACK');
+                    return res.status(429).json({ error: 'Please wait a moment before watching another ad. This helps keep the platform healthy!' });
+                }
+            }
         } else {
             const checkRes = await client.query(
                 'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
