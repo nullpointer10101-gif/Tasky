@@ -5,6 +5,8 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import TaskReviews from './pages/TaskReviews';
 import Withdrawals from './pages/Withdrawals';
+import Ads from './pages/Ads';
+import ProtectedRoute from './components/ProtectedRoute';
 import DynamicSettings from './pages/DynamicSettings';
 import TaskManagement from './pages/TaskManagement';
 import Users from './pages/Users';
@@ -52,6 +54,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="reviews" element={<TaskReviews />} />
             <Route path="withdrawals" element={<Withdrawals />} />
+            <Route path="ads" element={<Ads />} />
             <Route path="settings" element={<DynamicSettings />} />
             <Route path="tasks" element={<TaskManagement />} />
             <Route path="users" element={<Users />} />

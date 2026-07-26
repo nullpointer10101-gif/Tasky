@@ -267,7 +267,42 @@ router.delete('/tasks/:id', async (req, res) => {
 });
 
 // ==========================================
-// 6. USER MANAGEMENT
+// 6. AD STATISTICS
+// ==========================================
+router.get('/ads/stats', async (req, res) => {
+  try {
+    const query = `
+      SELECT
+        COUNT(*) as total_ads,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as ads_today,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday
+      FROM ad_views
+    `;
+    const { rows } = await pool.query(query);
+    
+    // Get last 7 days for chart
+    const chartQuery = `
+      SELECT 
+        DATE(created_at) as date,
+        COUNT(*) as count
+      FROM ad_views
+      WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `;
+    const chartRes = await pool.query(chartQuery);
+
+    res.json({
+      stats: rows[0],
+      chart: chartRes.rows
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// 7. USER MANAGEMENT
 // ==========================================
 router.get('/users', async (req, res) => {
   try {

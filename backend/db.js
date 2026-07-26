@@ -44,6 +44,15 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS has_unseen_approved_withdrawal BOOLEAN DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS withdrawal_popup_views INT DEFAULT 0;
 
+      CREATE TABLE IF NOT EXISTS ad_views (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT,
+        ad_type VARCHAR(50),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_ad_views_telegram_id ON ad_views(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_ad_views_created_at ON ad_views(created_at);
+
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
         title VARCHAR(200),

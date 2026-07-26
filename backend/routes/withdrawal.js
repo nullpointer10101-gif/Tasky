@@ -281,6 +281,12 @@ router.post('/watch_ad', async (req, res) => {
             'UPDATE users SET withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $1 RETURNING withdrawal_ads_watched',
             [telegram_id]
         );
+        if (updateRes.rows.length > 0) {
+            await pool.query(
+                'INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)',
+                [telegram_id, 'wallet_ad']
+            );
+        }
         if (updateRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         res.json({ success: true, withdrawal_ads_watched: updateRes.rows[0].withdrawal_ads_watched });
     } catch (err) {
