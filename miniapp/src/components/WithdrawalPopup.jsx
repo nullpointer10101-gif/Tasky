@@ -9,6 +9,27 @@ export default function WithdrawalPopup({ user, refreshUser }) {
 
   if (!user?.has_unseen_approved_withdrawal || isDismissing) return null;
 
+  const handleSkip = async () => {
+    setIsDismissing(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
+      const res = await fetch(`${API_URL}/api/users/skip-withdrawal-popup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telegram_id: user.telegram_id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        refreshUser();
+      } else {
+        setIsDismissing(false);
+      }
+    } catch (err) {
+      console.error(err);
+      setIsDismissing(false);
+    }
+  };
+
   const handleShare = async () => {
     setIsDismissing(true);
     try {
@@ -58,13 +79,21 @@ export default function WithdrawalPopup({ user, refreshUser }) {
             Congratulations! You MUST share your withdrawal proof in the Tasky community group right now to receive a surprise reward from the Admin!
           </p>
 
-          <button
-            onClick={handleShare}
-            className="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl transition-all active:scale-95"
-          >
-            <Share2 className="w-5 h-5" />
-            Share Proof Now
-          </button>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={handleShare}
+              className="w-full flex items-center justify-center gap-2 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl transition-all active:scale-95"
+            >
+              <Share2 className="w-5 h-5" />
+              Share Proof Now
+            </button>
+            <button
+              onClick={handleSkip}
+              className="w-full flex items-center justify-center text-ink-soft hover:text-ink font-semibold py-2 transition-all active:scale-95 text-sm"
+            >
+              Maybe Later ({5 - (user.withdrawal_popup_views || 0)} skips left)
+            </button>
+          </div>
         </motion.div>
       </div>
     </AnimatePresence>

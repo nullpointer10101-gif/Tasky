@@ -42,6 +42,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS last_known_balance NUMERIC DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS withdrawal_ads_watched INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS has_unseen_approved_withdrawal BOOLEAN DEFAULT FALSE;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS withdrawal_popup_views INT DEFAULT 0;
 
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
