@@ -238,10 +238,14 @@ export default function Users() {
                     </div>
                     <div className="w-px h-6 bg-border"></div>
                     <div className="flex flex-col items-center flex-1">
-                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads</span>
-                      <span className={`font-bold ${user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
-                        {user.withdrawal_ads_watched || 0}/50
-                      </span>
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads (W/T)</span>
+                      <div className="flex items-center gap-1">
+                        <span className={`font-bold ${user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {user.withdrawal_ads_watched || 0}
+                        </span>
+                        <span className="text-ink-soft">/</span>
+                        <span className="text-ink-soft">{user.task_ads_watched || 0}</span>
+                      </div>
                     </div>
                   </div>
 
@@ -277,7 +281,7 @@ export default function Users() {
                     <th className="p-4 text-sm font-bold text-ink-soft">Balance</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Spins</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Referrals</th>
-                    <th className="p-4 text-sm font-bold text-ink-soft">Ads Watched</th>
+                    <th className="p-4 text-sm font-bold text-ink-soft">Ads (Wallet / Tasks)</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Joined</th>
                     <th className="p-4 text-sm font-bold text-ink-soft text-right">Actions</th>
                   </tr>
@@ -314,9 +318,14 @@ export default function Users() {
                           {user.valid_referrals || 0} / {user.total_referrals}
                         </td>
                         <td className="p-4 text-sm font-bold">
-                          <span className={user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}>
-                            {user.withdrawal_ads_watched || 0} / 50
-                          </span>
+                          <div className="flex flex-col">
+                            <span className={user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}>
+                              {user.withdrawal_ads_watched || 0} / 50 (Progress)
+                            </span>
+                            <span className="text-xs text-ink-soft mt-1">
+                              {user.task_ads_watched || 0} (Lifetime Tasks)
+                            </span>
+                          </div>
                         </td>
                         <td className="p-4 text-sm text-ink-soft">
                           {formatDate(user.created_at)}

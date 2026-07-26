@@ -273,9 +273,11 @@ router.get('/users', async (req, res) => {
   try {
     const sortBy = req.query.sortBy === 'newest' ? 'created_at DESC' : 'balance DESC';
     const query = `
-      SELECT id, telegram_id, username, first_name, balance, total_referrals, valid_referrals, streak_days, is_banned, created_at, spins_available, withdrawal_ads_watched
-      FROM users
-      ORDER BY ${sortBy}
+      SELECT 
+        u.id, u.telegram_id, u.username, u.first_name, u.balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched,
+        (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched
+      FROM users u
+      ORDER BY u.${sortBy}
       LIMIT 1000
     `;
     const { rows } = await pool.query(query);
