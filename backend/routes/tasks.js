@@ -170,8 +170,13 @@ router.post('/complete', async (req, res) => {
                 VALUES ($1, $2, 'approved', NOW(), NOW(), 'auto_verified_by_bot')
             `, [telegram_id, task_id]);
 
+            let updateUserQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
+            if (task.verification_type === 'auto_ad') {
+                updateUserQuery = 'UPDATE users SET balance = balance + $1, withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance';
+            }
+
             const updatedUser = await client.query(
-                'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance',
+                updateUserQuery,
                 [reward, telegram_id]
             );
 
