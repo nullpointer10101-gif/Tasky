@@ -83,7 +83,7 @@ const mockData = {
     target_users_milestone: 500000
   },
   getSwapRates: [
-    { token_name: 'DOGS', tasky_per_unit: 0.7, min_tasky: 3000, is_active: true },
+    { token_name: 'DOGS', tasky_per_unit: 1, min_tasky: 3000, is_active: true },
     { token_name: 'USDT', tasky_per_unit: 1000, min_tasky: 3000, is_active: false }
   ],
   getSwapHistory: [
