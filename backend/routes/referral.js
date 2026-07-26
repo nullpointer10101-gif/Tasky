@@ -61,7 +61,7 @@ router.get('/:telegram_id', async (req, res) => {
             user.referral_code = newRefCode;
         }
         
-        const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyAppbot'}?start=${user.referral_code}`;
+        const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyAppbot'}?startapp=${user.referral_code}`;
 
         const referredRes = await pool.query(`
             SELECT u.telegram_id, u.username, u.first_name, u.created_at, u.valid_referrals

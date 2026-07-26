@@ -1,0 +1,5 @@
+2026-07-25T10:12:45.809Z\nReferenceError: existingTask is not defined
+    at D:\antigravity\Tasky\backend\routes\tasks.js:270:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n\n2026-07-25T10:13:24.108Z\nReferenceError: existingTask is not defined
+    at D:\antigravity\Tasky\backend\routes\tasks.js:270:13
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n\n

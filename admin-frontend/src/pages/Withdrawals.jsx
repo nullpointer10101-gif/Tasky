@@ -173,12 +173,12 @@ export default function Withdrawals() {
         ) : (
           <div className="space-y-4">
             {history.map((w) => (
-              <div key={w.withdrawal_id} className={`bg-surface-soft border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-lg shadow-black/20 transition-colors ${w.status === 'approved' ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
+              <div key={w.withdrawal_id} className={`bg-surface-soft border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-lg shadow-black/20 transition-colors ${w.status === 'done' ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      {w.status === 'approved' ? (
+                      {w.status === 'done' ? (
                         <CheckCircle2 size={18} className="text-emerald-400" />
                       ) : (
                         <XCircle size={18} className="text-rose-400" />
@@ -201,7 +201,7 @@ export default function Withdrawals() {
                 </div>
 
                 <div className="flex flex-col items-end justify-center w-full md:w-48 border-t md:border-t-0 md:border-l border-border/50 pt-5 md:pt-0 md:pl-6">
-                  {w.status === 'approved' ? (
+                  {w.status === 'done' ? (
                     <span className="bg-emerald-500/10 text-emerald-400 font-bold px-4 py-2 rounded-lg text-sm w-full text-center">PAID</span>
                   ) : (
                     <div className="w-full text-center">

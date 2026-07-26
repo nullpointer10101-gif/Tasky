@@ -99,6 +99,7 @@ const initDB = async () => {
 
       ALTER TABLE swaps ADD COLUMN IF NOT EXISTS fee_percent NUMERIC DEFAULT 2;
       ALTER TABLE swaps ADD COLUMN IF NOT EXISTS chain VARCHAR(20) DEFAULT 'TON';
+      ALTER TABLE swaps ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
       DROP TABLE IF EXISTS swap_rates CASCADE;
       CREATE TABLE IF NOT EXISTS swap_rates (

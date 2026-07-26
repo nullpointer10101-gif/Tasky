@@ -1,17 +1,13 @@
-const { pool } = require('./db');
+const { Pool } = require('pg');
+require('dotenv').config();
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 async function run() {
   try {
-    const title = "YouTube Video Review";
-    const subtitle = "Create a video review! Rules: 100+ subs, 20+ views, must use your referral link in description, and get 20+ valid referrals.";
-    
-    await pool.query(
-      `UPDATE tasks SET title = $1, subtitle = $2 WHERE type = 'bounty' AND icon = 'Youtube'`,
-      [title, subtitle]
-    );
-    console.log('Task updated!');
-  } catch (err) {
-    console.error(err);
+    await pool.query("UPDATE tasks SET action_url = 'https://t.me/Tasky_Official' WHERE id = 17");
+    console.log('Task link updated successfully!');
+  } catch(e) {
+    console.error(e);
   } finally {
     process.exit(0);
   }

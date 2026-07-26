@@ -177,7 +177,7 @@ router.get('/withdrawals/history', async (req, res) => {
         u.telegram_id, u.username, u.first_name
       FROM swaps s
       JOIN users u ON s.telegram_id = u.telegram_id
-      WHERE s.status IN ('approved', 'rejected')
+      WHERE s.status IN ('done', 'rejected')
       ORDER BY s.requested_at DESC
       LIMIT 500
     `;
@@ -202,7 +202,7 @@ router.post('/withdrawals/review', async (req, res) => {
     if (action === 'approve') {
       await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
     } else if (action === 'reject') {
-      await client.query(`UPDATE swaps SET status = 'rejected', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
+      await client.query(`UPDATE swaps SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [withdrawal_id, rejection_reason]);
       // Refund the user's TASKY balance since it was rejected
       await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [tasky_amount, telegram_id]);
     } else {

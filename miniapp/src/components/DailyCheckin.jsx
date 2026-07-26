@@ -82,7 +82,27 @@ export default function DailyCheckin({ user, refreshUser }) {
   }
 
   const handleClaim = async () => {
+    if (typeof window.showGiga === 'undefined') {
+      showToast('Ad network not loaded. Please try again later.', 'error');
+      return;
+    }
+
     setClaiming(true);
+    
+    try {
+      const adStartTime = Date.now();
+      await window.showGiga("main");
+      if (Date.now() - adStartTime < 12000) {
+        showToast('You must watch the ad for at least 15 seconds.', 'error');
+        setClaiming(false);
+        return;
+      }
+    } catch (e) {
+      showToast('You must watch the entire ad to claim your reward.', 'error');
+      setClaiming(false);
+      return;
+    }
+
     try {
       const res = await checkin(user.telegram_id);
       
