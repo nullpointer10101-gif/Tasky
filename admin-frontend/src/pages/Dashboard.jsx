@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CheckSquare, ArrowDownToLine, Coins } from 'lucide-react';
+import { Users, CheckSquare, ArrowDownToLine, Coins, Activity } from 'lucide-react';
 import api from '../api';
 
 export default function Dashboard() {
@@ -33,6 +33,7 @@ export default function Dashboard() {
 
   const statCards = [
     { title: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/5' },
+    { title: 'Active Users (5m)', value: stats.onlineUsers || 0, icon: Activity, color: 'text-indigo-400', bg: 'bg-indigo-500/10', shadow: 'shadow-indigo-500/5' },
     { title: 'Pending Tasks', value: stats.pendingTasks, icon: CheckSquare, color: 'text-orange-400', bg: 'bg-orange-500/10', shadow: 'shadow-orange-500/5' },
     { title: 'Pending Withdrawals', value: stats.pendingWithdrawals, icon: ArrowDownToLine, color: 'text-rose-400', bg: 'bg-rose-500/10', shadow: 'shadow-rose-500/5' },
     { title: 'Circulating TASKY', value: stats.totalCirculatingTasky.toLocaleString(), icon: Coins, color: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/5' },

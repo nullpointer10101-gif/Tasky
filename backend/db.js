@@ -22,7 +22,7 @@ const initDB = async () => {
         total_referrals INT DEFAULT 0,
         balance NUMERIC DEFAULT 0,
         streak_days INT DEFAULT 0,
-        last_checkin DATE,
+        last_checkin TIMESTAMPTZ,
         genesis_member BOOLEAN DEFAULT FALSE,
         is_banned BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMPTZ DEFAULT NOW()

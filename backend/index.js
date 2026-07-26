@@ -15,6 +15,26 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// In-memory tracker for active users (last 5 minutes)
+global.onlineUsers = new Map();
+app.use((req, res, next) => {
+  const telegramId = req.body?.telegram_id || req.query?.telegram_id;
+  if (telegramId) {
+    global.onlineUsers.set(telegramId.toString(), Date.now());
+  }
+  next();
+});
+
+// Cleanup old online users every minute
+setInterval(() => {
+  const now = Date.now();
+  for (const [id, time] of global.onlineUsers.entries()) {
+    if (now - time > 5 * 60 * 1000) { // 5 minutes
+      global.onlineUsers.delete(id);
+    }
+  }
+}, 60000);
+
 const PORT = process.env.PORT || 3000;
 
 // Health check

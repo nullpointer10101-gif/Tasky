@@ -31,6 +31,7 @@ router.get('/stats', async (req, res) => {
 
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count),
+      onlineUsers: global.onlineUsers ? global.onlineUsers.size : 0,
       pendingTasks: parseInt(tasksRes.rows[0].count),
       pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count),
       totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0)
