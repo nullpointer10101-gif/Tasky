@@ -77,6 +77,43 @@ router.get('/:telegram_id', async (req, res) => {
     }
 });
 
+router.post('/dismiss-withdrawal-popup', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+        if (userRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const user = userRes.rows[0];
+        if (!user.has_unseen_approved_withdrawal) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'No unseen withdrawal to dismiss' });
+        }
+
+        // Grant the surprise reward (e.g. 500 TASKY)
+        const reward = 500;
+        await client.query(
+            'UPDATE users SET has_unseen_approved_withdrawal = FALSE, balance = balance + $1 WHERE telegram_id = $2',
+            [reward, telegram_id]
+        );
+
+        await client.query('COMMIT');
+        res.json({ success: true, reward, message: 'Popup dismissed and reward granted' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        client.release();
+    }
+});
+
 router.post('/checkin', async (req, res) => {
     const { telegram_id } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });

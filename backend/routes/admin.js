@@ -202,6 +202,7 @@ router.post('/withdrawals/review', async (req, res) => {
 
     if (action === 'approve') {
       await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
+      await client.query(`UPDATE users SET has_unseen_approved_withdrawal = TRUE WHERE telegram_id = $1`, [telegram_id]);
     } else if (action === 'reject') {
       await client.query(`UPDATE swaps SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [withdrawal_id, rejection_reason]);
       // Refund the user's TASKY balance since it was rejected

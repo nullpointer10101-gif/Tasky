@@ -10,6 +10,7 @@ import Profile from './pages/Profile'
 import Rig from './pages/Rig'
 import Toast from './components/Toast'
 import WalletManager from './components/WalletManager'
+import WithdrawalPopup from './components/WithdrawalPopup'
 import { registerUser } from './api'
 
 export const ToastContext = createContext(null);
@@ -194,6 +195,7 @@ export default function App() {
     <ToastContext.Provider value={{ showToast }}>
       <div className="flex flex-col h-full bg-bg">
         {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+        <WithdrawalPopup user={user} refreshUser={refreshUser} />
         <WalletManager user={user} refreshUser={refreshUser} />
         <Header />
 
