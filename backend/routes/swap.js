@@ -110,8 +110,8 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: `You must watch 50 ads before swapping. Completed: ${user.withdrawal_ads_watched || 0} / 50` });
         }
         
-        // apply 30% fee
-        const feePercent = 30;
+        // apply 10% fee
+        const feePercent = 10;
         const feeAmount = amount * (feePercent / 100);
         const netAmount = amount - feeAmount;
 
