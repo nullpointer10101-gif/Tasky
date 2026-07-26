@@ -257,7 +257,7 @@ bot.onText(/Referral 🔗|\/referral/, async (msg) => {
         const opts = {
             parse_mode: 'Markdown',
             reply_markup: {
-                inline_keyboard: [[{ text: 'Share Link', url: `https://t.me/share/url?url=${encodeURIComponent(result.referral_link)}&text=%F0%9F%9A%A8%20Claim%20your%20free%20USDT%20and%20crypto%20rewards%20on%20Tasky!%20Tap%20here%20to%20start%20earning%20instantly!%20%F0%9F%92%B8` }]]
+                inline_keyboard: [[{ text: 'Share Link', url: `https://t.me/share/url?url=${encodeURIComponent(result.referral_link)}&text=%F0%9F%9A%A8%20*Claim%20your%20free%20USDT%20and%20crypto%20rewards%20on%20Tasky!*%20%F0%9F%92%B8%0A%0A%E2%9A%A1%EF%B8%8F%20Tap%20the%20link%20below%20to%20start%20earning%20instantly%20and%20build%20your%20passive%20income!%20%F0%9F%91%87%0A%0A` }]]
             }
         };
         bot.sendMessage(chatId, text, opts);
