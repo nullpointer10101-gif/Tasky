@@ -121,7 +121,7 @@ export default function Users() {
       </div>
 
       {/* Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
             <UsersIcon size={24} />
@@ -138,6 +138,17 @@ export default function Users() {
           <div>
             <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Total Balance</p>
             <p className="text-2xl font-black text-ink">{totalBalance.toLocaleString()} TASKY</p>
+          </div>
+        </div>
+        <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center">
+            <span className="font-bold text-lg">TV</span>
+          </div>
+          <div>
+            <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Ads Watched</p>
+            <p className="text-2xl font-black text-ink">
+              {users.reduce((acc, u) => acc + Number(u.withdrawal_ads_watched || 0), 0).toLocaleString()}
+            </p>
           </div>
         </div>
       </div>
