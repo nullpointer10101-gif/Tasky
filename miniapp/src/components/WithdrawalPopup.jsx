@@ -9,25 +9,8 @@ export default function WithdrawalPopup({ user, refreshUser }) {
 
   if (!user?.has_unseen_approved_withdrawal || isDismissing) return null;
 
-  const handleSkip = async () => {
+  const handleSkip = () => {
     setIsDismissing(true);
-    try {
-      const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
-      const res = await fetch(`${API_URL}/api/users/skip-withdrawal-popup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telegram_id: user.telegram_id })
-      });
-      const data = await res.json();
-      if (data.success) {
-        refreshUser();
-      } else {
-        setIsDismissing(false);
-      }
-    } catch (err) {
-      console.error(err);
-      setIsDismissing(false);
-    }
   };
 
   const handleShare = async () => {
