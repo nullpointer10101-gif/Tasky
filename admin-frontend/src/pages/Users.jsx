@@ -7,7 +7,8 @@ export default function Users() {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('balance'); // 'balance' or 'newest'
+  const [sortBy, setSortBy] = useState('balance');
+  const [showEligible, setShowEligible] = useState(false); // 'balance' or 'newest'
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null);
   const [userHistory, setUserHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -90,10 +91,12 @@ export default function Users() {
   };
 
 
-  const filteredUsers = users.filter(u => 
-    (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (u.telegram_id && u.telegram_id.toString().includes(searchTerm))
-  );
+  const filteredUsers = users.filter(u => {
+    const matchesSearch = (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (u.telegram_id && u.telegram_id.toString().includes(searchTerm));
+    const matchesEligible = showEligible ? Number(u.balance || 0) >= 3000 : true;
+    return matchesSearch && matchesEligible;
+  });
 
   const totalBalance = users.reduce((acc, u) => acc + Number(u.balance || 0), 0);
 
@@ -147,14 +150,26 @@ export default function Users() {
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-soft" />
         </div>
         
-        <select 
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-          className="bg-surface border border-border rounded-full px-4 py-3 text-sm text-ink focus:border-indigo-500 outline-none"
-        >
-          <option value="balance">Sort by: Highest Balance</option>
-          <option value="newest">Sort by: Newest Joined</option>
-        </select>
+        
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-ink-soft hover:text-ink transition-colors">
+            <input 
+              type="checkbox" 
+              checked={showEligible}
+              onChange={(e) => setShowEligible(e.target.checked)}
+              className="w-4 h-4 rounded border-border bg-surface-soft text-indigo-500 focus:ring-indigo-500"
+            />
+            Eligible for Withdrawal (≥ 3000 TASKY)
+          </label>
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-surface border border-border rounded-full px-4 py-3 text-sm text-ink focus:border-indigo-500 outline-none"
+          >
+            <option value="balance">Sort by: Highest Balance</option>
+            <option value="newest">Sort by: Newest Joined</option>
+          </select>
+        </div>
       </div>
 
       {loading ? (
@@ -203,6 +218,13 @@ export default function Users() {
                     <div className="flex flex-col items-center flex-1">
                       <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Refs</span>
                       <span className="font-bold text-ink">{user.total_referrals}</span>
+                    </div>
+                    <div className="w-px h-6 bg-border"></div>
+                    <div className="flex flex-col items-center flex-1">
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads</span>
+                      <span className={`font-bold ${user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {user.withdrawal_ads_watched || 0}/50
+                      </span>
                     </div>
                   </div>
 
@@ -274,8 +296,10 @@ export default function Users() {
                         <td className="p-4 text-sm text-ink-soft font-bold">
                           {user.valid_referrals || 0} / {user.total_referrals}
                         </td>
-                        <td className="p-4 text-sm text-ink-soft font-bold">
-                          {user.withdrawal_ads_watched || 0}
+                        <td className="p-4 text-sm font-bold">
+                          <span className={user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}>
+                            {user.withdrawal_ads_watched || 0} / 50
+                          </span>
                         </td>
                         <td className="p-4 text-sm text-ink-soft">
                           {formatDate(user.created_at)}
