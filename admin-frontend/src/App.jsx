@@ -6,7 +6,6 @@ import Dashboard from './pages/Dashboard';
 import TaskReviews from './pages/TaskReviews';
 import Withdrawals from './pages/Withdrawals';
 import Ads from './pages/Ads';
-import ProtectedRoute from './components/ProtectedRoute';
 import DynamicSettings from './pages/DynamicSettings';
 import TaskManagement from './pages/TaskManagement';
 import Users from './pages/Users';

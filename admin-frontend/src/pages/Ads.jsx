@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PlaySquare, TrendingUp, Calendar, Clock } from 'lucide-react';
-import Card from '../components/Card';
 import api from '../api';
 import { format, parseISO } from 'date-fns';
 
@@ -57,7 +56,7 @@ const Ads = () => {
           {/* Top Stats Row */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <motion.div variants={itemVariants}>
-              <Card className="h-full border border-border shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-surface p-6 rounded-3xl h-full border border-border shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-indigo-500/10 text-indigo-500 rounded-2xl">
                     <PlaySquare size={24} />
@@ -69,11 +68,11 @@ const Ads = () => {
                     </h3>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Card className="h-full border border-border shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-surface p-6 rounded-3xl h-full border border-border shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-emerald-500/10 text-emerald-500 rounded-2xl">
                     <TrendingUp size={24} />
@@ -85,11 +84,11 @@ const Ads = () => {
                     </h3>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-              <Card className="h-full border border-border shadow-sm hover:shadow-md transition-shadow">
+              <div className="bg-surface p-6 rounded-3xl h-full border border-border shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
                   <div className="p-4 bg-amber-500/10 text-amber-500 rounded-2xl">
                     <Calendar size={24} />
@@ -101,13 +100,13 @@ const Ads = () => {
                     </h3>
                   </div>
                 </div>
-              </Card>
+              </div>
             </motion.div>
           </div>
 
           {/* Chart Section */}
           <motion.div variants={itemVariants}>
-            <Card className="border border-border">
+            <div className="bg-surface p-6 rounded-3xl border border-border">
               <div className="flex items-center gap-2 mb-6">
                 <Clock className="text-indigo-500" size={20} />
                 <h3 className="text-lg font-bold text-ink">Last 7 Days</h3>
@@ -127,7 +126,7 @@ const Ads = () => {
                         </div>
                         <div 
                           className="w-full bg-indigo-500/20 group-hover:bg-indigo-500 transition-colors rounded-t-lg"
-                          style={{ height: \`\${Math.max(5, heightPercent)}%\` }}
+                          style={{ height: `${Math.max(5, heightPercent)}%` }}
                         ></div>
                         <span className="text-xs font-bold text-ink-soft truncate w-full text-center">
                           {format(parseISO(day.date), 'MMM d')}
@@ -141,7 +140,7 @@ const Ads = () => {
                   </div>
                 )}
               </div>
-            </Card>
+            </div>
           </motion.div>
         </motion.div>
       )}
