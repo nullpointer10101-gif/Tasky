@@ -11,7 +11,7 @@ const Ads = () => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await api.get('/api/admin/ads/stats');
+        const response = await api.get('/ads/stats');
         setData(response.data);
       } catch (error) {
         console.error('Failed to fetch ad stats:', error);
