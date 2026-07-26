@@ -41,7 +41,7 @@ export default function WithdrawalPopup({ user, refreshUser }) {
       });
       const data = await res.json();
       if (data.success) {
-        showToast(`🎉 You got a surprise ${data.reward} TASKY reward!`, 'success');
+        showToast(`🎉 Thanks for sharing!`, 'success');
         refreshUser();
         // Redirect to community chat
         window.open('https://t.me/TaskyOfficialCommunity', '_blank');
@@ -76,7 +76,7 @@ export default function WithdrawalPopup({ user, refreshUser }) {
           
           <h2 className="text-xl font-bold text-center text-ink mb-2">🎉 Withdrawal Approved!</h2>
           <p className="text-center text-ink-soft text-sm mb-6">
-            Congratulations! You MUST share your withdrawal proof in the Tasky community group right now to receive a surprise reward from the Admin!
+            Congratulations! You MUST share your withdrawal proof in the Tasky community group right now!
           </p>
 
           <div className="flex flex-col gap-3">

@@ -96,15 +96,13 @@ router.post('/dismiss-withdrawal-popup', async (req, res) => {
             return res.status(400).json({ error: 'No unseen withdrawal to dismiss' });
         }
 
-        // Grant the surprise reward (e.g. 500 TASKY)
-        const reward = 500;
         await client.query(
-            'UPDATE users SET has_unseen_approved_withdrawal = FALSE, balance = balance + $1 WHERE telegram_id = $2',
-            [reward, telegram_id]
+            'UPDATE users SET has_unseen_approved_withdrawal = FALSE WHERE telegram_id = $1',
+            [telegram_id]
         );
 
         await client.query('COMMIT');
-        res.json({ success: true, reward, message: 'Popup dismissed and reward granted' });
+        res.json({ success: true, message: 'Popup dismissed' });
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(err);
