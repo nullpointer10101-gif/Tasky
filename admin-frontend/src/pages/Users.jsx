@@ -238,6 +238,7 @@ export default function Users() {
                     <th className="p-4 text-sm font-bold text-ink-soft">Balance</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Spins</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Referrals</th>
+                    <th className="p-4 text-sm font-bold text-ink-soft">Ads Watched</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Joined</th>
                     <th className="p-4 text-sm font-bold text-ink-soft text-right">Actions</th>
                   </tr>
@@ -245,7 +246,7 @@ export default function Users() {
                 <tbody>
                   {filteredUsers.length === 0 ? (
                     <tr>
-                      <td colSpan="7" className="p-8 text-center text-ink-soft">No users found.</td>
+                      <td colSpan="8" className="p-8 text-center text-ink-soft">No users found.</td>
                     </tr>
                   ) : (
                     filteredUsers.map(user => (
@@ -270,7 +271,12 @@ export default function Users() {
                         <td className="p-4 text-sm text-ink-soft font-bold">
                           {user.spins_available || 0}
                         </td>
-                        <td className="p-4 text-sm text-ink-soft">{user.total_referrals}</td>
+                        <td className="p-4 text-sm text-ink-soft font-bold">
+                          {user.valid_referrals || 0} / {user.total_referrals}
+                        </td>
+                        <td className="p-4 text-sm text-ink-soft font-bold">
+                          {user.withdrawal_ads_watched || 0}
+                        </td>
                         <td className="p-4 text-sm text-ink-soft">
                           {formatDate(user.created_at)}
                         </td>

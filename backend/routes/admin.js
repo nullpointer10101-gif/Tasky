@@ -169,6 +169,25 @@ router.get('/withdrawals/pending', async (req, res) => {
   }
 });
 
+router.get('/withdrawals/history', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        s.id as withdrawal_id, s.tasky_amount, s.receive_amount as usdt_amount, s.receive_token as token, s.wallet_address, s.requested_at, s.status, s.rejection_reason,
+        u.telegram_id, u.username, u.first_name
+      FROM swaps s
+      JOIN users u ON s.telegram_id = u.telegram_id
+      WHERE s.status IN ('approved', 'rejected')
+      ORDER BY s.requested_at DESC
+      LIMIT 500
+    `;
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.post('/withdrawals/review', async (req, res) => {
   const { withdrawal_id, action, rejection_reason } = req.body;
   const client = await pool.connect();
@@ -252,7 +271,7 @@ router.get('/users', async (req, res) => {
   try {
     const sortBy = req.query.sortBy === 'newest' ? 'created_at DESC' : 'balance DESC';
     const query = `
-      SELECT id, telegram_id, username, first_name, balance, total_referrals, streak_days, is_banned, created_at, spins_available
+      SELECT id, telegram_id, username, first_name, balance, total_referrals, valid_referrals, streak_days, is_banned, created_at, spins_available, withdrawal_ads_watched
       FROM users
       ORDER BY ${sortBy}
       LIMIT 1000
