@@ -59,20 +59,22 @@ router.get('/', async (req, res) => {
 
             // Get ad completion counts for the last 24 hours
             const adCountsRes = await pool.query(
-                `SELECT task_id, COUNT(*) as count FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours' GROUP BY task_id`,
+                `SELECT task_id, COUNT(*) as count, MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours' GROUP BY task_id`,
                 [telegram_id]
             );
             const adCountMap = {};
-            adCountsRes.rows.forEach(r => { adCountMap[r.task_id] = parseInt(r.count); });
+            adCountsRes.rows.forEach(r => { adCountMap[r.task_id] = { count: parseInt(r.count), last_ad_time: r.last_ad_time }; });
 
             const result = tasks.map(t => {
                 if (t.verification_type === 'auto_ad') {
-                    const timesCompleted = adCountMap[t.id] || 0;
+                    const timesCompleted = adCountMap[t.id]?.count || 0;
+                    const lastAdTime = adCountMap[t.id]?.last_ad_time || null;
                     if (timesCompleted < 50) {
                         return {
                             ...t,
                             completed: false,
                             submission_status: null,
+                            last_ad_time: lastAdTime,
                             subtitle: `${timesCompleted}/50 completed in last 24h. ${t.subtitle}`
                         };
                     }

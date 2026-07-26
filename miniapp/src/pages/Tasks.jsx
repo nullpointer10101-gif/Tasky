@@ -172,6 +172,15 @@ export default function Tasks({ user, refreshUser }) {
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
       } else if (selectedTask.verification_type === 'auto_ad') {
+        if (selectedTask.last_ad_time) {
+          const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
+          if (secondsSinceLastAd < 30) {
+            showToast('Please wait a moment before watching another ad. This helps keep the platform healthy!', 'error');
+            setIsSubmitting(false);
+            return;
+          }
+        }
+        
         if (typeof window.showGiga === 'undefined') {
           showToast('Ad network not loaded. Please try again later.', 'error');
           setIsSubmitting(false);
