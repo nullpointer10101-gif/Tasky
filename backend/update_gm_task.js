@@ -7,10 +7,10 @@ const pool = new Pool({
 
 async function run() {
   try {
-    const res = await pool.query(
-      `UPDATE tasks SET verification_type = 'timer_10s' WHERE title = 'Say GM in Community' RETURNING *`
+    await pool.query(
+      `UPDATE tasks SET action_url = 'https://t.me/TaskyOfficialCommunity' WHERE title = 'Say GM in Community'`
     );
-    console.log('Task updated:', res.rows[0]);
+    console.log('Task updated');
   } catch (err) {
     console.error(err);
   } finally {

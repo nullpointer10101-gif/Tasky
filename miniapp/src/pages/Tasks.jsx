@@ -122,6 +122,13 @@ export default function Tasks({ user, refreshUser }) {
         } catch (e) { console.error('Failed to resolve latest post', e); }
       }
 
+      if (selectedTask.title === 'Say GM in Community') {
+        try {
+          navigator.clipboard.writeText('GM');
+          showToast('Copied "GM" to clipboard! Paste it in the chat.', 'success');
+        } catch (e) {}
+      }
+      
       window.open(finalUrl, '_blank');
       setHasVisited(true);
       if ((selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram') && !timerStarted) {
