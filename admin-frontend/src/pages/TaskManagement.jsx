@@ -16,6 +16,7 @@ export default function TaskManagement() {
     action_url: '',
     verification_type: 'proof_screenshot',
     icon: 'Default',
+    category: 'internal',
     telegram_chat_id: ''
   });
   const [loading, setLoading] = useState(false);
@@ -44,7 +45,7 @@ export default function TaskManagement() {
     try {
       await api.post('/tasks/create', formData);
       toast.success('Task created successfully!');
-      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '' });
+      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal' });
     } catch (e) {
       toast.error('Failed to create task');
     } finally {
@@ -126,6 +127,18 @@ export default function TaskManagement() {
                   <option value="youtube">YouTube</option>
                   <option value="partner">Partner / App</option>
                   <option value="telegram_join">Telegram Join</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Placement Category</label>
+                <select
+                  value={formData.category}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none appearance-none"
+                >
+                  <option value="internal">Tasky Missions (Internal)</option>
+                  <option value="partner">Partner Promos (External)</option>
                 </select>
               </div>
               
