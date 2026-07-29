@@ -154,8 +154,8 @@ export default function Wallet({ user, refreshUser }) {
       return showToast('Insufficient balance', 'error');
     }
     
-    const hasEnoughAds = (user?.withdrawal_ads_watched || 0) >= 500;
-    const hasEnoughRefs = (user?.valid_referrals || 0) >= 20;
+    const hasEnoughAds = (user?.withdrawal_ads_watched || 0) >= 200;
+    const hasEnoughRefs = (user?.valid_referrals || 0) >= 5;
     
     if (!hasEnoughAds && !hasEnoughRefs) {
       setShowAdRequirement(true);
@@ -205,7 +205,7 @@ export default function Wallet({ user, refreshUser }) {
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
-        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 500 completed`, 'success');
+        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 200 completed`, 'success');
         refreshUser();
       } else {
         showToast(error || 'Failed to update ad progress', 'error');
@@ -595,19 +595,19 @@ export default function Wallet({ user, refreshUser }) {
                     Pending swap in progress
                   </div>
                 ) : Number(swapAmount) >= minSwap && Number(swapAmount) <= balance ? (
-                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 500 && (user?.valid_referrals || 0) < 20 ? (
+                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 200 && (user?.valid_referrals || 0) < 5 ? (
                     <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center animate-fade-in">
                       <span className="text-ink text-sm font-black block mb-1">Unlock Swap (Choose One)</span>
-                      <span className="text-ink-soft text-xs mb-4 text-center">To withdraw, you must either watch 500 ads OR refer 20 valid users.</span>
+                      <span className="text-ink-soft text-xs mb-4 text-center">To withdraw, you must either watch 200 ads OR refer 5 valid users.</span>
                       
                       {/* Ads Progress */}
                       <div className="w-full mb-5">
                         <div className="flex justify-between text-xs font-bold text-ink mb-1.5">
                           <span>Watch Ads</span>
-                          <span className="text-indigo-500">{user?.withdrawal_ads_watched || 0} / 500</span>
+                          <span className="text-indigo-500">{user?.withdrawal_ads_watched || 0} / 200</span>
                         </div>
                         <div className="w-full bg-ink-faint rounded-full h-2 mb-3 overflow-hidden shadow-inner">
-                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 500) * 100)}%` }}></div>
+                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 200) * 100)}%` }}></div>
                         </div>
                         <Button
                           onClick={handleWatchAd}
@@ -629,10 +629,10 @@ export default function Wallet({ user, refreshUser }) {
                       <div className="w-full mb-1">
                         <div className="flex justify-between text-xs font-bold text-ink mb-1.5">
                           <span>Refer Users</span>
-                          <span className="text-amber-500">{user?.valid_referrals || 0} / 20</span>
+                          <span className="text-amber-500">{user?.valid_referrals || 0} / 5</span>
                         </div>
                         <div className="w-full bg-ink-faint rounded-full h-2 overflow-hidden shadow-inner">
-                          <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: `${Math.min(100, ((user?.valid_referrals || 0) / 20) * 100)}%` }}></div>
+                          <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: `${Math.min(100, ((user?.valid_referrals || 0) / 5) * 100)}%` }}></div>
                         </div>
                       </div>
                     </div>
