@@ -16,8 +16,6 @@ export default function Layout({ setAuth }) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/users', label: 'Users', icon: Users },
-    { path: '/reviews', label: 'Task Reviews', icon: CheckSquare },
-    { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { path: '/ads', label: 'Ads Dashboard', icon: PlaySquare },
     { path: '/tasks', label: 'Manage Tasks', icon: PlusSquare },
     { path: '/settings', label: 'Dynamic Settings', icon: Settings },
