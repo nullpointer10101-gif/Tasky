@@ -73,7 +73,7 @@ router.get('/:telegram_id', async (req, res) => {
 
         // Get referral rules
         const rulesRes = await pool.query('SELECT * FROM referral_rules LIMIT 1');
-        const rules = rulesRes.rows[0] || { reward_per_referral: 200, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
+        const rules = rulesRes.rows[0] || { reward_per_referral: 300, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
 
         const total = user.total_referrals;
         const valid = user.valid_referrals;
