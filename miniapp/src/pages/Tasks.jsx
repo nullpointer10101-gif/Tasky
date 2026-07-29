@@ -329,7 +329,9 @@ export default function Tasks({ user, refreshUser }) {
                 })()}
               </motion.div>
 
-              {user?.username?.toLowerCase() === 'taskycs' && placementCategory === 'partner' && (
+            )}
+
+            {user?.username?.toLowerCase() === 'taskycs' && placementCategory === 'partner' && (
                 <div className="mt-2 mb-6">
                   <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.1)] relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all duration-500 pointer-events-none" />
@@ -346,7 +348,6 @@ export default function Tasks({ user, refreshUser }) {
                   </Card>
                 </div>
               )}
-            )}
           </div>
         ) : (
           submissions.length === 0 ? (
