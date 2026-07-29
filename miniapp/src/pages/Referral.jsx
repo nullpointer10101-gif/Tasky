@@ -218,19 +218,26 @@ export default function Referral({ user }) {
         ) : (
           ['taskycs', 'takycs', 'aleem_crypto', 'testuser'].includes(user?.username?.toLowerCase()?.replace('@', '')) || ['123456', '8823265955'].includes(String(user?.telegram_id)) ? (
             <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
-            <div className="p-3 bg-indigo-500/10 text-indigo-100 rounded-xl font-medium border border-indigo-500/20 flex flex-col gap-2 mb-4 relative overflow-hidden">
-              <div className="flex items-center justify-between relative z-10">
-                <div className="flex items-center gap-2 text-indigo-400">
-                  <Trophy size={16} />
-                  <span className="font-bold">Weekly Leaderboard W1</span>
+            <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
+              <div className="absolute top-0 left-0 w-40 h-40 bg-fuchsia-500/40 rounded-full blur-[40px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-blue-500/40 rounded-full blur-[40px] translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+              
+              <div className="relative z-10 flex flex-col items-center gap-2 w-full">
+                <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner backdrop-blur-md">
+                  <Trophy size={14} className="text-fuchsia-300 drop-shadow-md" />
+                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest drop-shadow-sm">Weekly Leaderboard W1</span>
                 </div>
-                <div className="bg-indigo-500/20 text-indigo-300 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold flex items-center gap-1 border border-indigo-500/20">
-                  <Clock size={12} />
-                  Ends in {timeLeft}
-                </div>
-              </div>
-              <div className="text-xs text-indigo-400/80 relative z-10 leading-snug">
-                Rewards are distributed every Wednesday to the Top 10 users!
+                
+                <h2 className="text-[28px] font-black text-white drop-shadow-lg tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
+                  <Clock className="text-fuchsia-400 animate-pulse drop-shadow-md shrink-0" size={26} />
+                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-fuchsia-100 to-fuchsia-300 tabular-nums">
+                    {timeLeft}
+                  </span>
+                </h2>
+                
+                <p className="text-[13px] font-medium text-fuchsia-200/90 leading-tight">
+                  Top 10 players win <strong className="text-fuchsia-300 font-bold drop-shadow-sm">USDT & TASKY</strong> every Wednesday!
+                </p>
               </div>
             </div>
             
