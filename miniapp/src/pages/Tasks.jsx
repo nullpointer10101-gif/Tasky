@@ -290,64 +290,43 @@ export default function Tasks({ user, refreshUser }) {
               </div>
             )}
 
-            <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 mb-4 shrink-0">
-              {['all', 'daily', 'weekly', 'bounty', 'social'].map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={`shrink-0 px-4 py-1.5 rounded-pill text-sm font-bold border transition-colors ${activeCategory === cat ? 'bg-ink text-surface border-ink' : 'bg-surface border-border text-ink-soft hover:border-ink-faint'}`}
-                >
-                  {cat === 'all' ? 'All' : cat === 'daily' ? 'Daily' : cat === 'weekly' ? 'Weekly' : cat === 'bounty' ? 'Bounties' : 'One-Time'}
-                </button>
-              ))}
-            </div>
+
             
             {tasks.length === 0 ? (
               <EmptyState title="No tasks available" message="You've completed all tasks for now!" />
             ) : (
-              <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-6 pb-6">
-                {['daily', 'weekly', 'social', 'bounty']
-                  .filter(type => activeCategory === 'all' || activeCategory === type)
-                  .map(type => {
-                  const typeTasks = tasks.filter(t => {
-                    const typeMatch = (type === 'social' ? (t.type !== 'daily' && t.type !== 'weekly' && t.type !== 'bounty') : t.type === type);
+              <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-6">
+                {(() => {
+                  const filteredTasks = tasks.filter(t => {
                     const isTaskycs = user?.username?.toLowerCase() === 'taskycs';
-                    const categoryMatch = isTaskycs ? (t.category || 'internal') === placementCategory : true;
-                    return typeMatch && categoryMatch;
+                    return isTaskycs ? (t.category || 'internal') === placementCategory : true;
                   });
-                
-                return (
-                  <div key={type} className="space-y-3">
-                    <h2 className="text-sm font-black text-ink-soft uppercase tracking-wider pl-2">
-                      {type === 'daily' ? 'Daily Tasks' : type === 'weekly' ? 'Weekly Tasks' : type === 'bounty' ? 'Creator Bounties' : 'One-Time Tasks'}
-                    </h2>
-                    {typeTasks.length === 0 ? (
-                      <div className="pl-2">
-                         <p className="text-xs text-ink-faint italic">No tasks available in this category.</p>
-                      </div>
-                    ) : (
-                      typeTasks.map(task => (
-                        <Card key={task.id} className={`relative cursor-pointer transition-colors flex items-center gap-4 ${task.category === 'partner' ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:border-amber-400' : 'hover:border-ink-faint'}`} onClick={() => handleSelectTask(task)}>
-                          <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-soft shrink-0 ${getIconBgColor(task.icon)}`}>
-                            <IconRenderer name={task.icon} size={20} />
-                          </div>
-                          <div className="pr-16 flex-1">
-                            <h3 className="font-bold text-ink mb-1 flex items-center flex-wrap gap-2">
-                              {task.title}
-                              {task.x_subtype === 'follow' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Follow</span>}
-                              {task.x_subtype === 'repost' && <span className="text-[10px] bg-surface-soft text-ink-soft px-1.5 py-0.5 rounded-pill border border-border font-medium">Repost</span>}
-                            </h3>
-                            <p className="text-sm text-ink-soft">{task.subtitle}</p>
-                          </div>
-                          <div className="absolute top-1/2 -translate-y-1/2 right-4 bg-surface-soft px-2 py-1 rounded-pill border border-border">
-                            <span className="text-xs font-bold text-ink">+{task.reward_tasky}</span>
-                          </div>
-                        </Card>
-                      ))
-                    )}
-                  </div>
-                );
-              })}
+                  
+                  return filteredTasks.length === 0 ? (
+                    <div className="pl-2">
+                       <p className="text-xs text-ink-faint italic">No tasks available right now.</p>
+                    </div>
+                  ) : (
+                    filteredTasks.map(task => (
+                      <Card key={task.id} className={`relative cursor-pointer transition-all duration-300 flex items-center gap-4 py-3 px-4 ${task.category === 'partner' ? 'border-amber-500/50 bg-gradient-to-r from-amber-500/5 to-transparent hover:border-amber-400' : 'hover:border-indigo-500/30 bg-surface-soft'}`} onClick={() => handleSelectTask(task)}>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 ${getIconBgColor(task.icon)}`}>
+                          <IconRenderer name={task.icon} size={20} />
+                        </div>
+                        <div className="flex-1 min-w-0 pr-16">
+                          <h3 className="font-bold text-ink text-[15px] leading-tight mb-1 truncate flex items-center gap-1.5">
+                            {task.title}
+                            {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
+                            {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
+                          </h3>
+                          <p className="text-xs text-ink-soft truncate">{task.subtitle}</p>
+                        </div>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-surface border border-border px-3 py-1.5 rounded-full shadow-sm">
+                          <span className="text-sm font-black text-ink">+{task.reward_tasky}</span>
+                        </div>
+                      </Card>
+                    ))
+                  );
+                })()}
               </motion.div>
             )}
           </div>
