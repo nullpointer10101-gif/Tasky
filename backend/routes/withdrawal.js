@@ -301,7 +301,7 @@ router.post('/watch_ad', async (req, res) => {
         }
 
         const updateRes = await pool.query(
-            'UPDATE users SET withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $1 RETURNING withdrawal_ads_watched',
+            'UPDATE users SET withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1, total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $1 RETURNING withdrawal_ads_watched',
             [telegram_id]
         );
         if (updateRes.rows.length > 0) {

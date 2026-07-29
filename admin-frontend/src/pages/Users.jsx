@@ -147,7 +147,7 @@ export default function Users() {
           <div>
             <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Ads Watched</p>
             <p className="text-2xl font-black text-ink">
-              {users.reduce((acc, u) => acc + Number(u.withdrawal_ads_watched || 0), 0).toLocaleString()}
+              {users.reduce((acc, u) => acc + Number(u.total_ads_watched || 0), 0).toLocaleString()}
             </p>
           </div>
         </div>
@@ -238,13 +238,15 @@ export default function Users() {
                     </div>
                     <div className="w-px h-6 bg-border"></div>
                     <div className="flex flex-col items-center flex-1">
-                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads (W/T)</span>
+                      <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads (Total/Prog)</span>
                       <div className="flex items-center gap-1">
-                        <span className={`font-bold ${user.withdrawal_ads_watched >= 500 ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {user.withdrawal_ads_watched || 0}
+                        <span className="font-bold text-ink">
+                          {user.total_ads_watched || 0}
                         </span>
                         <span className="text-ink-soft">/</span>
-                        <span className="text-ink-soft">{user.task_ads_watched || 0}</span>
+                        <span className={`font-bold ${user.withdrawal_ads_watched >= 200 ? 'text-emerald-400' : 'text-red-400'}`}>
+                          {user.withdrawal_ads_watched || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -281,7 +283,7 @@ export default function Users() {
                     <th className="p-4 text-sm font-bold text-ink-soft">Balance</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Spins</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Referrals</th>
-                    <th className="p-4 text-sm font-bold text-ink-soft">Ads (Wallet / Tasks)</th>
+                    <th className="p-4 text-sm font-bold text-ink-soft">Ads (Lifetime / Progress)</th>
                     <th className="p-4 text-sm font-bold text-ink-soft">Joined</th>
                     <th className="p-4 text-sm font-bold text-ink-soft text-right">Actions</th>
                   </tr>
@@ -319,11 +321,11 @@ export default function Users() {
                         </td>
                         <td className="p-4 text-sm font-bold">
                           <div className="flex flex-col">
-                            <span className={user.withdrawal_ads_watched >= 200 ? 'text-emerald-400' : 'text-red-400'}>
-                              {user.withdrawal_ads_watched || 0} / 200 (Progress)
+                            <span className="text-ink">
+                              {user.total_ads_watched || 0} (Lifetime Total)
                             </span>
-                            <span className="text-xs text-ink-soft mt-1">
-                              {user.task_ads_watched || 0} (Lifetime Tasks)
+                            <span className={`text-xs mt-1 ${user.withdrawal_ads_watched >= 200 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {user.withdrawal_ads_watched || 0} / 200 (Current Progress)
                             </span>
                           </div>
                         </td>

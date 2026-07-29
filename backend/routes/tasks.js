@@ -214,7 +214,7 @@ router.post('/complete', async (req, res) => {
 
             let updateUserQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
             if (task.verification_type === 'auto_ad') {
-                updateUserQuery = 'UPDATE users SET balance = balance + $1, withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance';
+                updateUserQuery = 'UPDATE users SET balance = balance + $1, total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance';
                 await client.query(
                     'INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)',
                     [telegram_id, 'task_ad']
