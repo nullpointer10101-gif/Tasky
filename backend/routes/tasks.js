@@ -572,12 +572,12 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
 // ─── POST /api/tasks/admin/create ─────────────────────────────────────────
 router.post('/admin/create', isAdmin, async (req, res) => {
-    const { title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype } = req.body;
+    const { title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype, category } = req.body;
     try {
         const insertRes = await pool.query(`
-            INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *
-        `, [title, subtitle, type, reward_tasky, action_url, is_featured || false, verification_type || 'proof_screenshot', telegram_chat_id || null, x_subtype || null]);
+            INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype, category)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
+        `, [title, subtitle, type, reward_tasky, action_url, is_featured || false, verification_type || 'proof_screenshot', telegram_chat_id || null, x_subtype || null, category || 'internal']);
         res.json(insertRes.rows[0]);
     } catch (err) {
         console.error(err);

@@ -240,14 +240,14 @@ router.get('/tasks/live', async (req, res) => {
 });
 
 router.post('/tasks/create', async (req, res) => {
-  const { title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id } = req.body;
+  const { title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category } = req.body;
   try {
     const query = `
-      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [title, subtitle, type, reward_tasky, action_url, verification_type, icon || 'Default', telegram_chat_id || null]);
+    const { rows } = await pool.query(query, [title, subtitle, type, reward_tasky, action_url, verification_type, icon || 'Default', telegram_chat_id || null, category || 'internal']);
     res.json(rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
