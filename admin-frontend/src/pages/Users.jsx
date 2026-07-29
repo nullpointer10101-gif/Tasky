@@ -240,7 +240,7 @@ export default function Users() {
                     <div className="flex flex-col items-center flex-1">
                       <span className="text-ink-soft mb-1 text-[10px] uppercase font-bold tracking-wider">Ads (W/T)</span>
                       <div className="flex items-center gap-1">
-                        <span className={`font-bold ${user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}`}>
+                        <span className={`font-bold ${user.withdrawal_ads_watched >= 500 ? 'text-emerald-400' : 'text-red-400'}`}>
                           {user.withdrawal_ads_watched || 0}
                         </span>
                         <span className="text-ink-soft">/</span>
@@ -319,8 +319,8 @@ export default function Users() {
                         </td>
                         <td className="p-4 text-sm font-bold">
                           <div className="flex flex-col">
-                            <span className={user.withdrawal_ads_watched >= 50 ? 'text-emerald-400' : 'text-red-400'}>
-                              {user.withdrawal_ads_watched || 0} / 50 (Progress)
+                            <span className={user.withdrawal_ads_watched >= 500 ? 'text-emerald-400' : 'text-red-400'}>
+                              {user.withdrawal_ads_watched || 0} / 500 (Progress)
                             </span>
                             <span className="text-xs text-ink-soft mt-1">
                               {user.task_ads_watched || 0} (Lifetime Tasks)
