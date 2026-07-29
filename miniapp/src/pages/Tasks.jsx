@@ -189,19 +189,7 @@ export default function Tasks({ user, refreshUser }) {
           return;
         }
         try {
-          const adStartTime = Date.now();
           await window.showGiga("main");
-          const elapsed = Date.now() - adStartTime;
-          
-          if (elapsed < 2000) {
-            showToast('No ads available right now. Please try again later.', 'error');
-            setIsSubmitting(false);
-            return;
-          } else if (elapsed < 12000) {
-            showToast('You must watch the ad for at least 15 seconds.', 'error');
-            setIsSubmitting(false);
-            return;
-          }
         } catch (e) {
           showToast('You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);

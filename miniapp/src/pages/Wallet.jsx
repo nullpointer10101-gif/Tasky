@@ -202,13 +202,7 @@ export default function Wallet({ user, refreshUser }) {
     }
     try {
       setIsWatchingAd(true);
-      const adStartTime = Date.now();
       await window.showGiga("main");
-      if (Date.now() - adStartTime < 12000) {
-        showToast('You must watch the ad for at least 15 seconds.', 'error');
-        setIsWatchingAd(false);
-        return;
-      }
       
       // Optimistically update UI instantly for a snappy feel
       setLocalAdsWatched(prev => prev + 1);
