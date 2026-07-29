@@ -66,7 +66,14 @@ export default function Wallet({ user, refreshUser }) {
   const [isNotified, setIsNotified] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [showAdRequirement, setShowAdRequirement] = useState(false);
+  const [localAdsWatched, setLocalAdsWatched] = useState(user?.withdrawal_ads_watched || 0);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    if (user) {
+      setLocalAdsWatched(user.withdrawal_ads_watched || 0);
+    }
+  }, [user?.withdrawal_ads_watched]);
   
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -154,7 +161,7 @@ export default function Wallet({ user, refreshUser }) {
       return showToast('Insufficient balance', 'error');
     }
     
-    const hasEnoughAds = (user?.withdrawal_ads_watched || 0) >= 200;
+    const hasEnoughAds = localAdsWatched >= 200;
     const hasEnoughRefs = (user?.valid_referrals || 0) >= 5;
     
     if (!hasEnoughAds && !hasEnoughRefs) {
@@ -202,6 +209,9 @@ export default function Wallet({ user, refreshUser }) {
         setIsWatchingAd(false);
         return;
       }
+      
+      // Optimistically update UI instantly for a snappy feel
+      setLocalAdsWatched(prev => prev + 1);
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
@@ -595,7 +605,7 @@ export default function Wallet({ user, refreshUser }) {
                     Pending swap in progress
                   </div>
                 ) : Number(swapAmount) >= minSwap && Number(swapAmount) <= balance ? (
-                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 200 && (user?.valid_referrals || 0) < 5 ? (
+                  showAdRequirement && localAdsWatched < 200 && (user?.valid_referrals || 0) < 5 ? (
                     <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center animate-fade-in">
                       <span className="text-ink text-sm font-black block mb-1">Unlock Swap (Choose One)</span>
                       <span className="text-ink-soft text-xs mb-4 text-center">To withdraw, you must either watch 200 ads OR refer 5 valid users.</span>
@@ -604,17 +614,22 @@ export default function Wallet({ user, refreshUser }) {
                       <div className="w-full mb-5">
                         <div className="flex justify-between text-xs font-bold text-ink mb-1.5">
                           <span>Watch Ads</span>
-                          <span className="text-indigo-500">{user?.withdrawal_ads_watched || 0} / 200</span>
+                          <span className="text-indigo-500">{localAdsWatched} / 200</span>
                         </div>
                         <div className="w-full bg-ink-faint rounded-full h-2 mb-3 overflow-hidden shadow-inner">
-                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 200) * 100)}%` }}></div>
+                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, (localAdsWatched / 200) * 100)}%` }}></div>
                         </div>
                         <Button
                           onClick={handleWatchAd}
                           disabled={isWatchingAd}
-                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-indigo-500 text-white hover:bg-indigo-400 active:scale-95 transition-all shadow-md"
+                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-indigo-500 text-white hover:bg-indigo-400 active:scale-95 transition-all shadow-md relative overflow-hidden"
                         >
-                          {isWatchingAd ? 'Processing...' : 'Watch Ad'}
+                          {isWatchingAd ? (
+                            <span className="flex items-center justify-center gap-2">
+                              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                              Loading Ad...
+                            </span>
+                          ) : 'Watch Ad'}
                         </Button>
                       </div>
 
