@@ -23,6 +23,38 @@ export default function Referral({ user }) {
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const now = new Date();
+      const day = now.getUTCDay();
+      let daysUntilNextWednesday = 3 - day;
+      if (daysUntilNextWednesday <= 0) {
+        daysUntilNextWednesday += 7;
+      }
+      
+      const target = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilNextWednesday, 0, 0, 0));
+      const diff = target.getTime() - now.getTime();
+      
+      if (diff <= 0) return '0d 0h 0m 0s';
+      
+      const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const m = Math.floor((diff / 1000 / 60) % 60);
+      const s = Math.floor((diff / 1000) % 60);
+
+      return `${d}d ${h}h ${m}m ${s}s`;
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
@@ -186,12 +218,21 @@ export default function Referral({ user }) {
         ) : (
           ['taskycs', 'takycs', 'aleem_crypto', 'testuser'].includes(user?.username?.toLowerCase()?.replace('@', '')) || ['123456', '8823265955'].includes(String(user?.telegram_id)) ? (
             <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
-            {isDemo && (
-              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl text-xs font-medium border border-amber-500/20 flex items-center justify-center gap-2 mb-2">
-                <Sparkles size={14} />
-                <span>Showing demo leaderboard until more players join!</span>
+            <div className="p-3 bg-indigo-500/10 text-indigo-100 rounded-xl font-medium border border-indigo-500/20 flex flex-col gap-2 mb-4 relative overflow-hidden">
+              <div className="flex items-center justify-between relative z-10">
+                <div className="flex items-center gap-2 text-indigo-400">
+                  <Trophy size={16} />
+                  <span className="font-bold">Weekly Leaderboard W1</span>
+                </div>
+                <div className="bg-indigo-500/20 text-indigo-300 text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold flex items-center gap-1 border border-indigo-500/20">
+                  <Clock size={12} />
+                  Ends in {timeLeft}
+                </div>
               </div>
-            )}
+              <div className="text-xs text-indigo-400/80 relative z-10 leading-snug">
+                Rewards are distributed every Wednesday to the Top 10 users!
+              </div>
+            </div>
             
             {leaderboard.length === 0 && !loading && (
               <EmptyState icon={<Medal />} title="No data" description="The leaderboard is empty." />
