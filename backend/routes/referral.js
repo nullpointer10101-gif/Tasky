@@ -20,7 +20,7 @@ const DEMO_LEADERBOARD = [
 router.get('/leaderboard', async (req, res) => {
     try {
         const { rows } = await pool.query(`
-            SELECT telegram_id, username, first_name, total_referrals
+            SELECT telegram_id, username, first_name, total_referrals, valid_referrals
             FROM users
             WHERE total_referrals > 0
             ORDER BY total_referrals DESC
