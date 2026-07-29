@@ -273,7 +273,6 @@ export default function Tasks({ user, refreshUser }) {
       <div className="flex-1 overflow-y-auto hide-scrollbar">
         {activeTab === 'available' ? (
           <div className="flex flex-col h-full">
-            {user?.username?.toLowerCase() === 'taskycs' && (
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => setPlacementCategory('internal')}
@@ -288,7 +287,6 @@ export default function Tasks({ user, refreshUser }) {
                   Partner Promos
                 </button>
               </div>
-            )}
 
 
             
@@ -298,8 +296,7 @@ export default function Tasks({ user, refreshUser }) {
               <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-6">
                 {(() => {
                   const filteredTasks = tasks.filter(t => {
-                    const isTaskycs = user?.username?.toLowerCase() === 'taskycs';
-                    return isTaskycs ? (t.category || 'internal') === placementCategory : true;
+                    return (t.category || 'internal') === placementCategory;
                   });
                   
                   return filteredTasks.length === 0 ? (
@@ -331,7 +328,7 @@ export default function Tasks({ user, refreshUser }) {
 
             )}
 
-            {user?.username?.toLowerCase() === 'taskycs' && placementCategory === 'partner' && (
+            {placementCategory === 'partner' && (
                 <div className="mt-2 mb-6">
                   <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.1)] relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl group-hover:bg-indigo-500/30 transition-all duration-500 pointer-events-none" />
