@@ -49,13 +49,23 @@ router.get('/', async (req, res) => {
         const tasks = tasksRes.rows;
 
         if (telegram_id) {
-            // Return task_id + status so frontend knows pending/approved too
+            // Return task_id + status + submitted_at so frontend knows pending/approved too
             const completedRes = await pool.query(
-                `SELECT task_id, status FROM user_tasks WHERE telegram_id = $1`,
+                `SELECT ut.task_id, ut.status, ut.submitted_at, t.is_daily 
+                 FROM user_tasks ut 
+                 JOIN tasks t ON ut.task_id = t.id 
+                 WHERE ut.telegram_id = $1 
+                 ORDER BY ut.submitted_at DESC`,
                 [telegram_id]
             );
             const submissionMap = {};
-            completedRes.rows.forEach(r => { submissionMap[r.task_id] = r.status; });
+            const lastSubmissionTimeMap = {};
+            completedRes.rows.forEach(r => { 
+                if (!submissionMap[r.task_id]) {
+                    submissionMap[r.task_id] = r.status; 
+                    lastSubmissionTimeMap[r.task_id] = r.submitted_at;
+                }
+            });
 
             // Get ad completion counts for the last 24 hours
             const adCountsRes = await pool.query(
@@ -79,10 +89,22 @@ router.get('/', async (req, res) => {
                         };
                     }
                 }
+                let completed = submissionMap[t.id] === 'approved';
+                let submission_status = submissionMap[t.id] || null;
+
+                if (t.is_daily && submission_status) {
+                    const lastSubTime = new Date(lastSubmissionTimeMap[t.id]);
+                    const hoursSinceSub = (new Date() - lastSubTime) / (1000 * 60 * 60);
+                    if (hoursSinceSub >= 24) {
+                        completed = false;
+                        submission_status = null;
+                    }
+                }
+
                 return {
                     ...t,
-                    completed: submissionMap[t.id] === 'approved',
-                    submission_status: submissionMap[t.id] || null,
+                    completed,
+                    submission_status,
                 };
             });
             return res.json(result);
@@ -139,18 +161,26 @@ router.post('/complete', async (req, res) => {
             }
         } else {
             const checkRes = await client.query(
-                'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2',
+                'SELECT * FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 ORDER BY submitted_at DESC LIMIT 1',
                 [telegram_id, task_id]
             );
             if (checkRes.rows.length > 0) {
                 existingTask = checkRes.rows[0];
                 if (existingTask.status !== 'rejected') {
-                    await client.query('ROLLBACK');
-                    return res.status(400).json({
-                        error: existingTask.status === 'approved'
-                            ? 'Task already completed'
-                            : `Task already ${existingTask.status}`
-                    });
+                    if (task.is_daily) {
+                        const hoursSinceSub = (new Date() - new Date(existingTask.submitted_at)) / (1000 * 60 * 60);
+                        if (hoursSinceSub < 24) {
+                            await client.query('ROLLBACK');
+                            return res.status(400).json({ error: 'You can only complete this task once every 24 hours.' });
+                        }
+                    } else {
+                        await client.query('ROLLBACK');
+                        return res.status(400).json({
+                            error: existingTask.status === 'approved' 
+                                ? 'Task already completed' 
+                                : 'Task completion is pending review'
+                        });
+                    }
                 }
             }
         }

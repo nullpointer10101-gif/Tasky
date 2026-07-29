@@ -3,16 +3,16 @@ const router = express.Router();
 const { pool } = require('../db');
 
 const DEMO_LEADERBOARD = [
-    { username: 'CryptoAhmad',   first_name: 'Ahmad',   total_referrals: 47, is_demo: true },
-    { username: 'SaraEarns',     first_name: 'Sara',    total_referrals: 38, is_demo: true },
-    { username: 'BlockchainBen', first_name: 'Ben',     total_referrals: 31, is_demo: true },
-    { username: 'CoinHunterX',   first_name: 'Alex',    total_referrals: 27, is_demo: true },
-    { username: 'TONmaster99',   first_name: 'Reza',    total_referrals: 24, is_demo: true },
-    { username: 'TaskKing',      first_name: 'Karim',   total_referrals: 19, is_demo: true },
-    { username: 'Web3Fatima',    first_name: 'Fatima',  total_referrals: 15, is_demo: true },
-    { username: 'EarnDaily',     first_name: 'Omar',    total_referrals: 12, is_demo: true },
-    { username: 'GemHunter',     first_name: 'Lena',    total_referrals: 9,  is_demo: true },
-    { username: 'CryptoRookie',  first_name: 'Sam',     total_referrals: 6,  is_demo: true },
+    { username: 'CryptoKing',    first_name: 'CryptoKing', valid_referrals: 233, total_referrals: 412, is_demo: true },
+    { username: 'Satoshi',       first_name: 'Satoshi',    valid_referrals: 188, total_referrals: 340, is_demo: true },
+    { username: 'Vitalik',       first_name: 'Vitalik',    valid_referrals: 122, total_referrals: 215, is_demo: true },
+    { username: 'BlockchainBen', first_name: 'Ben',        valid_referrals: 94,  total_referrals: 180, is_demo: true },
+    { username: 'TONmaster99',   first_name: 'Reza',       valid_referrals: 86,  total_referrals: 140, is_demo: true },
+    { username: 'TaskKing',      first_name: 'Karim',      valid_referrals: 77,  total_referrals: 105, is_demo: true },
+    { username: 'Web3Fatima',    first_name: 'Fatima',     valid_referrals: 68,  total_referrals: 90,  is_demo: true },
+    { username: 'EarnDaily',     first_name: 'Omar',       valid_referrals: 62,  total_referrals: 75,  is_demo: true },
+    { username: 'GemHunter',     first_name: 'Lena',       valid_referrals: 55,  total_referrals: 60,  is_demo: true },
+    { username: 'CryptoRookie',  first_name: 'Sam',        valid_referrals: 51,  total_referrals: 55,  is_demo: true },
 ];
 
 // GET /api/referral/leaderboard
@@ -22,8 +22,8 @@ router.get('/leaderboard', async (req, res) => {
         const { rows } = await pool.query(`
             SELECT telegram_id, username, first_name, total_referrals, valid_referrals
             FROM users
-            WHERE total_referrals > 0
-            ORDER BY total_referrals DESC
+            WHERE valid_referrals >= 50
+            ORDER BY valid_referrals DESC
             LIMIT 10
         `);
 
@@ -31,11 +31,11 @@ router.get('/leaderboard', async (req, res) => {
         let combined = real;
         let is_demo_data = false;
 
-        if (real.length < 5) {
+        if (real.length < 10) {
             is_demo_data = true;
             const needed = 10 - real.length;
             const demos = DEMO_LEADERBOARD.slice(0, needed);
-            combined = [...real, ...demos];
+            combined = [...real, ...demos].sort((a, b) => b.valid_referrals - a.valid_referrals);
         }
 
         res.json({ leaderboard: combined, is_demo_data });
