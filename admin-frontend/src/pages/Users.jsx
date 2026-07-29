@@ -319,8 +319,8 @@ export default function Users() {
                         </td>
                         <td className="p-4 text-sm font-bold">
                           <div className="flex flex-col">
-                            <span className={user.withdrawal_ads_watched >= 500 ? 'text-emerald-400' : 'text-red-400'}>
-                              {user.withdrawal_ads_watched || 0} / 500 (Progress)
+                            <span className={user.withdrawal_ads_watched >= 200 ? 'text-emerald-400' : 'text-red-400'}>
+                              {user.withdrawal_ads_watched || 0} / 200 (Progress)
                             </span>
                             <span className="text-xs text-ink-soft mt-1">
                               {user.task_ads_watched || 0} (Lifetime Tasks)
