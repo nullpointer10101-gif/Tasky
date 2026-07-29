@@ -225,7 +225,7 @@ export default function Referral({ user }) {
                 </li>
                 <li className="flex gap-2">
                   <span className="text-success mt-0.5">•</span>
-                  <span>You will instantly earn <strong className="text-ink">{refData?.reward_per_referral || 200} TASKY + {refData?.spin_reward_per_referral || 1} Spin</strong> for every valid referral!</span>
+                  <span>You will instantly earn <strong className="text-ink">{refData?.reward_per_referral || 300} TASKY + {refData?.spin_reward_per_referral || 1} Spin</strong> for every valid referral!</span>
                 </li>
               </ul>
               <div className="mt-4 p-3 bg-warning-soft text-warning rounded-xl text-xs font-medium border border-warning/20 leading-snug">
