@@ -154,7 +154,10 @@ export default function Wallet({ user, refreshUser }) {
       return showToast('Insufficient balance', 'error');
     }
     
-    if ((user?.withdrawal_ads_watched || 0) < 50) {
+    const hasEnoughAds = (user?.withdrawal_ads_watched || 0) >= 500;
+    const hasEnoughRefs = (user?.valid_referrals || 0) >= 20;
+    
+    if (!hasEnoughAds && !hasEnoughRefs) {
       setShowAdRequirement(true);
       return;
     }
@@ -202,7 +205,7 @@ export default function Wallet({ user, refreshUser }) {
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
-        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 50 completed`, 'success');
+        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 500 completed`, 'success');
         refreshUser();
       } else {
         showToast(error || 'Failed to update ad progress', 'error');
@@ -592,23 +595,46 @@ export default function Wallet({ user, refreshUser }) {
                     Pending swap in progress
                   </div>
                 ) : Number(swapAmount) >= minSwap && Number(swapAmount) <= balance ? (
-                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 50 ? (
+                  showAdRequirement && (user?.withdrawal_ads_watched || 0) < 500 && (user?.valid_referrals || 0) < 20 ? (
                     <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center animate-fade-in">
-                      <span className="text-ink text-sm font-bold block mb-2">Watch Ads to Unlock Swap</span>
-                      <span className="text-ink-soft text-xs mb-3 text-center">You must complete 50 ads to request a swap.</span>
+                      <span className="text-ink text-sm font-black block mb-1">Unlock Swap (Choose One)</span>
+                      <span className="text-ink-soft text-xs mb-4 text-center">To withdraw, you must either watch 500 ads OR refer 20 valid users.</span>
                       
-                      <div className="w-full bg-ink-faint rounded-full h-2.5 mb-2 overflow-hidden">
-                        <div className="bg-gradient-primary h-2.5 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 50) * 100)}%` }}></div>
+                      {/* Ads Progress */}
+                      <div className="w-full mb-5">
+                        <div className="flex justify-between text-xs font-bold text-ink mb-1.5">
+                          <span>Watch Ads</span>
+                          <span className="text-indigo-500">{user?.withdrawal_ads_watched || 0} / 500</span>
+                        </div>
+                        <div className="w-full bg-ink-faint rounded-full h-2 mb-3 overflow-hidden shadow-inner">
+                          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300" style={{ width: `${Math.min(100, ((user?.withdrawal_ads_watched || 0) / 500) * 100)}%` }}></div>
+                        </div>
+                        <Button
+                          onClick={handleWatchAd}
+                          disabled={isWatchingAd}
+                          className="w-full py-2.5 rounded-xl text-xs font-bold bg-indigo-500 text-white hover:bg-indigo-400 active:scale-95 transition-all shadow-md"
+                        >
+                          {isWatchingAd ? 'Processing...' : 'Watch Ad'}
+                        </Button>
                       </div>
-                      <span className="text-xs font-bold text-ink mb-3">{user?.withdrawal_ads_watched || 0} / 50 Completed</span>
-                      
-                      <Button
-                        onClick={handleWatchAd}
-                        disabled={isWatchingAd}
-                        className="w-full py-3 rounded-xl font-bold bg-indigo-500 text-white hover:bg-indigo-400 active:scale-95 transition-all"
-                      >
-                        {isWatchingAd ? 'Processing...' : 'Watch Ad'}
-                      </Button>
+
+                      {/* Or divider */}
+                      <div className="w-full flex items-center gap-3 mb-5">
+                        <div className="flex-1 h-px bg-border"></div>
+                        <span className="text-[10px] font-black text-ink-faint uppercase tracking-widest">OR</span>
+                        <div className="flex-1 h-px bg-border"></div>
+                      </div>
+
+                      {/* Refs Progress */}
+                      <div className="w-full mb-1">
+                        <div className="flex justify-between text-xs font-bold text-ink mb-1.5">
+                          <span>Refer Users</span>
+                          <span className="text-amber-500">{user?.valid_referrals || 0} / 20</span>
+                        </div>
+                        <div className="w-full bg-ink-faint rounded-full h-2 overflow-hidden shadow-inner">
+                          <div className="bg-gradient-to-r from-amber-400 to-orange-500 h-2 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(245,158,11,0.5)]" style={{ width: `${Math.min(100, ((user?.valid_referrals || 0) / 20) * 100)}%` }}></div>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <Button
