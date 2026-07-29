@@ -202,26 +202,31 @@ export default function Referral({ user }) {
               let bgClass = "bg-surface-soft border border-border";
               let rankTextClass = "text-ink-faint font-bold";
               let icon = null;
-              let prizeText = "50k TASKY";
+              let prizeText = "10k TASKY";
+              if (rank === 4) prizeText = "50k TASKY";
+              else if (rank === 5) prizeText = "40k TASKY";
+              else if (rank === 6) prizeText = "30k TASKY";
+              else if (rank === 7) prizeText = "20k TASKY";
+
               let prizeClass = "bg-primary-soft text-primary border border-primary/20";
 
               if (rank === 1) {
                 bgClass = "bg-gradient-to-br from-amber-200 to-amber-500 border border-amber-300 text-amber-950 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse-slow";
                 rankTextClass = "text-amber-900 font-black";
                 icon = <Trophy size={18} className="text-amber-900 drop-shadow-md" />;
-                prizeText = "50 USDT";
+                prizeText = "100 USDT";
                 prizeClass = "bg-amber-900/10 text-amber-950 font-black border border-amber-900/20";
               } else if (rank === 2) {
                 bgClass = "bg-gradient-to-br from-slate-200 to-slate-400 border border-slate-300 text-slate-900 shadow-[0_0_15px_rgba(148,163,184,0.3)]";
                 rankTextClass = "text-slate-800 font-black";
                 icon = <Medal size={18} className="text-slate-800 drop-shadow-sm" />;
-                prizeText = "30 USDT";
+                prizeText = "50 USDT";
                 prizeClass = "bg-slate-900/10 text-slate-900 font-black border border-slate-900/20";
               } else if (rank === 3) {
                 bgClass = "bg-gradient-to-br from-orange-200 to-orange-400 border border-orange-300 text-orange-950 shadow-[0_0_15px_rgba(249,115,22,0.3)]";
                 rankTextClass = "text-orange-900 font-black";
                 icon = <Medal size={18} className="text-orange-900 drop-shadow-sm" />;
-                prizeText = "10 USDT";
+                prizeText = "20 USDT";
                 prizeClass = "bg-orange-900/10 text-orange-950 font-black border border-orange-900/20";
               }
 
