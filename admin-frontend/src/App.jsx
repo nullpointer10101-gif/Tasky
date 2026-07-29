@@ -7,6 +7,7 @@ import Ads from './pages/Ads';
 import DynamicSettings from './pages/DynamicSettings';
 import TaskManagement from './pages/TaskManagement';
 import TaskReviews from './pages/TaskReviews';
+import Withdrawals from './pages/Withdrawals';
 import Users from './pages/Users';
 import Broadcast from './pages/Broadcast';
 import Settings from './pages/Settings';
@@ -54,6 +55,7 @@ function App() {
             <Route path="settings" element={<DynamicSettings />} />
             <Route path="tasks" element={<TaskManagement />} />
             <Route path="reviews" element={<TaskReviews />} />
+            <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="users" element={<Users />} />
             <Route path="broadcast" element={<Broadcast />} />
             <Route path="machines" element={<Machines />} />

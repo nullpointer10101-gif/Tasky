@@ -19,6 +19,7 @@ export default function Layout({ setAuth }) {
     { path: '/ads', label: 'Ads Dashboard', icon: PlaySquare },
     { path: '/tasks', label: 'Manage Tasks', icon: PlusSquare },
     { path: '/reviews', label: 'Task Reviews', icon: CheckSquare },
+    { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { path: '/settings', label: 'Dynamic Settings', icon: Settings },
     { path: '/broadcast', label: 'Broadcast', icon: Send },
     { path: '/machines', label: 'Machines', icon: Server },
