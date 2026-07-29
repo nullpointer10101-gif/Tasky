@@ -277,6 +277,19 @@ router.post('/watch_ad', async (req, res) => {
     if (!telegram_id) return res.status(400).json({ error: 'Missing telegram_id' });
     
     try {
+        // Anti-abuse: 15 second cooldown
+        const lastAdRes = await pool.query(
+            "SELECT MAX(created_at) as last_ad_time FROM ad_views WHERE telegram_id = $1 AND ad_type = 'wallet_ad'",
+            [telegram_id]
+        );
+        if (lastAdRes.rows.length > 0 && lastAdRes.rows[0].last_ad_time) {
+            const lastAdTime = new Date(lastAdRes.rows[0].last_ad_time);
+            const secondsSinceLastAd = (new Date() - lastAdTime) / 1000;
+            if (secondsSinceLastAd < 15) {
+                return res.status(429).json({ error: `Please wait ${Math.ceil(15 - secondsSinceLastAd)} seconds before watching another ad.` });
+            }
+        }
+
         const updateRes = await pool.query(
             'UPDATE users SET withdrawal_ads_watched = COALESCE(withdrawal_ads_watched, 0) + 1 WHERE telegram_id = $1 RETURNING withdrawal_ads_watched',
             [telegram_id]

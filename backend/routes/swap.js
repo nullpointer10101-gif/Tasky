@@ -105,9 +105,12 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
-        if ((user.withdrawal_ads_watched || 0) < 50) {
+        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 200;
+        const hasEnoughRefs = (user.valid_referrals || 0) >= 5;
+        
+        if (!hasEnoughAds && !hasEnoughRefs) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch 50 ads before swapping. Completed: ${user.withdrawal_ads_watched || 0} / 50` });
+            return res.status(400).json({ error: `You must watch 200 ads OR refer 5 valid users to withdraw. Ads: ${user.withdrawal_ads_watched || 0}/200, Refs: ${user.valid_referrals || 0}/5` });
         }
         
         // apply 10% fee
@@ -119,7 +122,11 @@ router.post('/request', async (req, res) => {
         const receiveAmount = netAmount / parseFloat(rate.tasky_per_unit);
         
         // deduct balance
-        await client.query('UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2', [amount, telegram_id]);
+        if (hasEnoughAds && !hasEnoughRefs) {
+            await client.query('UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2', [amount, telegram_id]);
+        } else {
+            await client.query('UPDATE users SET balance = balance - $1 WHERE telegram_id = $2', [amount, telegram_id]);
+        }
         
         // insert swap using DB wallet address
         const swapRes = await client.query(`
