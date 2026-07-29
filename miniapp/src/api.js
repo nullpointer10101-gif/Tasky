@@ -73,11 +73,16 @@ const mockData = {
   getReferralLeaderboard: {
     is_demo_data: true,
     leaderboard: [
-      { id: 1, first_name: 'CryptoKing', valid_referrals: 450, total_referrals: 1200 },
-      { id: 2, first_name: 'Satoshi', valid_referrals: 380, total_referrals: 890 },
-      { id: 3, first_name: 'Vitalik', valid_referrals: 310, total_referrals: 750 },
-      { id: 4, first_name: 'DogeFather', valid_referrals: 250, total_referrals: 600 },
-      { id: 5, first_name: 'DiamondHands', valid_referrals: 150, total_referrals: 300 }
+      { username: 'CryptoKing',    first_name: 'CryptoKing', valid_referrals: 233, total_referrals: 412 },
+      { username: 'Satoshi',       first_name: 'Satoshi',    valid_referrals: 188, total_referrals: 340 },
+      { username: 'Vitalik',       first_name: 'Vitalik',    valid_referrals: 122, total_referrals: 215 },
+      { username: 'BlockchainBen', first_name: 'Ben',        valid_referrals: 94,  total_referrals: 180 },
+      { username: 'TONmaster99',   first_name: 'Reza',       valid_referrals: 86,  total_referrals: 140 },
+      { username: 'TaskKing',      first_name: 'Karim',      valid_referrals: 77,  total_referrals: 105 },
+      { username: 'Web3Fatima',    first_name: 'Fatima',     valid_referrals: 68,  total_referrals: 90 },
+      { username: 'EarnDaily',     first_name: 'Omar',       valid_referrals: 62,  total_referrals: 75 },
+      { username: 'GemHunter',     first_name: 'Lena',       valid_referrals: 55,  total_referrals: 60 },
+      { username: 'CryptoRookie',  first_name: 'Sam',        valid_referrals: 51,  total_referrals: 55 },
     ]
   },
   getWithdrawalSettings: { 
@@ -130,7 +135,7 @@ export const playSpin       = withMock(() => {
 export const getTasks       = withMock(mockData.getTasks, (telegram_id) => () => api.get('/api/tasks', { params: { telegram_id } }))
 export const completeTask   = withMock({ success: true }, (telegram_id, task_id, proof_screenshot_url, proof_url) => () => api.post('/api/tasks/complete', { telegram_id, task_id, proof_screenshot_url, proof_url }))
 export const getReferral    = withMock(mockData.getReferral, (id) => () => api.get(`/api/referral/${id}`))
-export const getReferralLeaderboard = withMock(mockData.getReferralLeaderboard, () => () => api.get('/api/referral/leaderboard'))
+export const getReferralLeaderboard = async () => ({ data: mockData.getReferralLeaderboard, error: null })
 
 // --- SWAP ---
 export const getSwapRates = withMock(() => mockData.getSwapRates, () => () => api.get('/api/swap/rates'))

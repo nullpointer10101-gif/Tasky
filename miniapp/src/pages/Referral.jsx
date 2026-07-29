@@ -192,10 +192,6 @@ export default function Referral({ user }) {
                 <span>Showing demo leaderboard until more players join!</span>
               </div>
             )}
-
-            <div className="p-3 bg-primary-soft text-primary rounded-xl text-sm font-medium border border-primary/20 text-center mb-4">
-              🔥 <strong>Requirement:</strong> You must have at least <strong>50 valid referrals</strong> to qualify for the Top 10 and claim these prizes!
-            </div>
             
             {leaderboard.length === 0 && !loading && (
               <EmptyState icon={<Medal />} title="No data" description="The leaderboard is empty." />
