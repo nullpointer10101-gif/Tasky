@@ -234,7 +234,6 @@ export default function Referral({ user }) {
             </Card>
           </motion.div>
         ) : (
-          ['taskycs', 'takycs', 'aleem_crypto', 'testuser'].includes(user?.username?.toLowerCase()?.replace('@', '')) || ['123456', '8823265955'].includes(String(user?.telegram_id)) ? (
             <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
             <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
               <div className="absolute top-0 left-0 w-40 h-40 bg-fuchsia-500/40 rounded-full blur-[40px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
@@ -349,38 +348,6 @@ export default function Referral({ user }) {
               );
             })}
           </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ type: "spring", stiffness: 300, damping: 25 }}
-              className="flex flex-col items-center justify-center h-full pt-12 pb-24 px-4 text-center"
-            >
-              <div className="relative mb-8">
-                <div className="absolute inset-0 w-32 h-32 rounded-full border border-dashed border-indigo-500/30 -mx-8 -my-8" />
-                <div className="absolute inset-0 w-24 h-24 rounded-full border border-purple-500/20 -mx-4 -my-4" />
-                <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-sm" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
-                  <Lock size={32} />
-                </div>
-                <div className="absolute -top-4 -right-4 text-amber-400 animate-pulse">
-                  <Sparkles size={20} />
-                </div>
-              </div>
-              <h2 className="text-2xl font-black text-ink tracking-tight mb-2">
-                Global Leaderboard
-              </h2>
-              <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-4">
-                <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Unlocking Soon • Q3 2025</span>
-              </div>
-              <p className="text-sm text-ink-soft max-w-[240px] leading-relaxed mx-auto font-medium">
-                Only the elite will rank. The top 100 players will share massive <strong className="text-emerald-500">USDT Prize Pools</strong> and exclusive NFTs.
-              </p>
-              <div className="mt-8 p-4 bg-surface-soft rounded-2xl border border-border w-full">
-                <p className="text-xs text-ink-faint font-medium mb-1">Your current mission:</p>
-                <p className="text-sm font-bold text-ink">Keep inviting friends to secure an early rank advantage.</p>
-              </div>
-            </motion.div>
-          )
         )}
       </div>
     </div>
