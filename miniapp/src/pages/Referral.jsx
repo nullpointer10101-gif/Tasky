@@ -240,8 +240,8 @@ export default function Referral({ user }) {
 
             {leaderboard.map((user, index) => {
               const rank = index + 1;
-              let bgClass = "bg-surface-soft border border-border";
-              let rankTextClass = "text-ink-faint font-bold";
+              let bgClass = "bg-surface border border-border/50 hover:bg-surface-soft hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--color-primary),0.15)] transition-all duration-300";
+              let rankTextClass = "text-ink-faint font-black text-lg";
               let icon = null;
               let prizeText = "10k TASKY";
               if (rank === 4) prizeText = "50k TASKY";
@@ -249,61 +249,74 @@ export default function Referral({ user }) {
               else if (rank === 6) prizeText = "30k TASKY";
               else if (rank === 7) prizeText = "20k TASKY";
 
-              let prizeClass = "bg-primary-soft text-primary border border-primary/20";
+              let prizeClass = "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(var(--color-primary),0.1)] font-bold text-[10px] px-2 py-1";
+              let nameClass = "text-ink font-bold text-[15px]";
+              let statClass = "text-ink-soft";
 
               if (rank === 1) {
-                bgClass = "bg-gradient-to-br from-amber-200 to-amber-500 border border-amber-300 text-amber-950 shadow-[0_0_20px_rgba(245,158,11,0.4)] animate-pulse-slow";
-                rankTextClass = "text-amber-900 font-black";
-                icon = <Trophy size={18} className="text-amber-900 drop-shadow-md" />;
+                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100] shadow-[0_10px_30px_rgba(255,143,0,0.5)] border border-[#FFE082] animate-pulse-slow scale-[1.02] transform z-20 relative";
+                rankTextClass = "text-[#FFF8E1] font-black text-xl drop-shadow-md";
+                icon = <Trophy size={24} className="text-[#FFF8E1] drop-shadow-lg" />;
                 prizeText = "100 USDT";
-                prizeClass = "bg-amber-900/10 text-amber-950 font-black border border-amber-900/20";
+                prizeClass = "bg-white text-[#E65100] font-black border-0 shadow-lg px-3 py-1 text-xs scale-105";
+                nameClass = "text-white font-black text-lg drop-shadow-sm";
+                statClass = "text-[#FFE082] font-semibold";
               } else if (rank === 2) {
-                bgClass = "bg-gradient-to-br from-slate-200 to-slate-400 border border-slate-300 text-slate-900 shadow-[0_0_15px_rgba(148,163,184,0.3)]";
-                rankTextClass = "text-slate-800 font-black";
-                icon = <Medal size={18} className="text-slate-800 drop-shadow-sm" />;
+                bgClass = "bg-gradient-to-r from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8] shadow-[0_8px_25px_rgba(148,163,184,0.4)] border border-white z-10 relative";
+                rankTextClass = "text-[#334155] font-black text-lg drop-shadow-sm";
+                icon = <Medal size={22} className="text-[#334155] drop-shadow-md" />;
                 prizeText = "50 USDT";
-                prizeClass = "bg-slate-900/10 text-slate-900 font-black border border-slate-900/20";
+                prizeClass = "bg-white text-[#475569] font-black border-0 shadow-md px-3 py-1 text-xs";
+                nameClass = "text-[#0F172A] font-extrabold text-[16px] drop-shadow-sm";
+                statClass = "text-[#475569] font-semibold";
               } else if (rank === 3) {
-                bgClass = "bg-gradient-to-br from-orange-200 to-orange-400 border border-orange-300 text-orange-950 shadow-[0_0_15px_rgba(249,115,22,0.3)]";
-                rankTextClass = "text-orange-900 font-black";
-                icon = <Medal size={18} className="text-orange-900 drop-shadow-sm" />;
+                bgClass = "bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C] shadow-[0_8px_25px_rgba(234,88,12,0.4)] border border-[#FDBA74] z-10 relative";
+                rankTextClass = "text-[#FFEDD5] font-black text-lg drop-shadow-sm";
+                icon = <Medal size={22} className="text-[#FFEDD5] drop-shadow-md" />;
                 prizeText = "20 USDT";
-                prizeClass = "bg-orange-900/10 text-orange-950 font-black border border-orange-900/20";
+                prizeClass = "bg-white text-[#C2410C] font-black border-0 shadow-md px-3 py-1 text-xs";
+                nameClass = "text-white font-extrabold text-[16px] drop-shadow-sm";
+                statClass = "text-[#FFEDD5] font-semibold";
               }
 
               return (
                 <motion.div
                   key={user.id || user.telegram_id || index}
-                  variants={{ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }}
-                  className={`rounded-2xl p-4 flex items-center gap-3 relative overflow-hidden ${bgClass}`}
+                  variants={{ initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 } }}
+                  whileHover={{ scale: rank > 1 ? 1.02 : 1.04 }}
+                  className={`rounded-2xl p-4 flex items-center gap-3 overflow-hidden ${bgClass}`}
                 >
+                  {rank <= 3 && (
+                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl pointer-events-none" />
+                  )}
                   {rank === 1 && (
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
                   )}
                   
-                  <div className={`w-8 flex justify-center z-10 ${rankTextClass}`}>
+                  <div className={`w-8 flex justify-center shrink-0 ${rankTextClass}`}>
                     {icon || `#${rank}`}
                   </div>
                   
-                  <div className="h-10 w-10 rounded-full bg-black/10 flex items-center justify-center font-bold overflow-hidden shrink-0 z-10">
+                  <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 shadow-inner ${rank <= 3 ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-surface-soft text-ink border border-border/50'}`}>
                     {user.username ? (
-                      <span className="opacity-80 text-sm">{user.username.substring(0, 2).toUpperCase()}</span>
+                      <span className="text-sm tracking-wider">{user.username.substring(0, 2).toUpperCase()}</span>
                     ) : (
-                      <Users size={18} className="opacity-70" />
+                      <Users size={20} className="opacity-80" />
                     )}
                   </div>
                   
                   <div className="flex-1 min-w-0 z-10">
-                    <h3 className={`font-bold truncate ${rank <= 3 ? '' : 'text-ink'}`}>
+                    <h3 className={`truncate ${nameClass}`}>
                       {user.first_name || user.username || 'Anonymous'}
                     </h3>
-                    <p className={`text-xs ${rank <= 3 ? 'opacity-80' : 'text-ink-soft'} truncate mt-0.5`}>
-                      {user.valid_referrals || 0} valid / {user.total_referrals} total
+                    <p className={`text-[11px] uppercase tracking-wider truncate mt-0.5 ${statClass}`}>
+                      <strong className="font-black text-sm mr-1">{user.valid_referrals || 0}</strong> valid 
+                      <span className="opacity-50 mx-1">|</span> {user.total_referrals} total
                     </p>
                   </div>
                   
                   <div className="text-right shrink-0 flex flex-col items-end gap-1 z-10">
-                    <div className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full ${prizeClass}`}>
+                    <div className={`uppercase tracking-widest rounded-full flex items-center justify-center ${prizeClass}`}>
                       {prizeText}
                     </div>
                   </div>
