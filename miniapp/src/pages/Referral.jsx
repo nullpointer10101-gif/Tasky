@@ -138,14 +138,32 @@ export default function Referral({ user }) {
         
       </Card>
 
-      <div className="flex bg-surface-soft p-1 rounded-pill relative mb-2">
+      <div className="flex bg-surface-soft p-1.5 rounded-pill relative mb-4 shadow-inner border border-black/5">
         {['stats', 'leaderboard'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 text-sm font-medium z-10 transition-colors ${activeTab === tab ? 'text-ink' : 'text-ink-soft hover:text-ink'}`}
+            className={`flex-1 py-2 text-[15px] font-bold z-10 transition-all flex items-center justify-center gap-2 relative ${
+              activeTab === tab ? 'text-ink' : 'text-ink-soft hover:text-ink'
+            }`}
           >
-            {tab === 'stats' ? 'Stats' : 'Leaderboard'}
+            {tab === 'stats' ? (
+              'Your Stats'
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className={`${activeTab === tab ? 'text-amber-500 drop-shadow-sm' : 'text-fuchsia-500 animate-pulse'} transition-colors`}>
+                  <Trophy size={16} />
+                </span>
+                <span className={`${activeTab === tab ? '' : 'bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 to-purple-500 drop-shadow-sm'}`}>
+                  Leaderboard
+                </span>
+                {/* Urgent notification dot */}
+                <span className="flex h-2 w-2 relative ml-0.5 -mt-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                </span>
+              </div>
+            )}
           </button>
         ))}
         <motion.div
