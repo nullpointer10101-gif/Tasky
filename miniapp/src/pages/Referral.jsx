@@ -19,6 +19,7 @@ export default function Referral({ user }) {
   const [activeTab, setActiveTab] = useState('stats');
   const [refData, setRefData] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
+  const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
   const { showToast } = useToast();
 
@@ -33,7 +34,14 @@ export default function Referral({ user }) {
         ]);
         if (!isMounted) return;
         if (refRes.data) setRefData(refRes.data);
-        if (leadRes.data) setLeaderboard(leadRes.data);
+        if (leadRes.data) {
+          if (leadRes.data.leaderboard) {
+            setLeaderboard(leadRes.data.leaderboard);
+            setIsDemo(leadRes.data.is_demo_data || false);
+          } else {
+            setLeaderboard(leadRes.data);
+          }
+        }
       } catch (err) {
         if (!isMounted) return;
         console.error('Referral fetchData error:', err);
@@ -176,46 +184,107 @@ export default function Referral({ user }) {
             </Card>
           </motion.div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="flex flex-col items-center justify-center h-full pt-12 pb-24 px-4 text-center"
-          >
-            {/* The Vault Lock */}
-            <div className="relative mb-8">
-              {/* Glowing back plate (static) */}
-              <div className="absolute inset-0 w-32 h-32 rounded-full border border-dashed border-indigo-500/30 -mx-8 -my-8" />
-              <div className="absolute inset-0 w-24 h-24 rounded-full border border-purple-500/20 -mx-4 -my-4" />
-              
-              {/* Center Lock */}
-              <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-sm" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
-                <Lock size={32} />
+          ['taskycs', 'takycs', 'aleem_crypto', 'testuser'].includes(user?.username?.toLowerCase()?.replace('@', '')) || ['123456', '8823265955'].includes(String(user?.telegram_id)) ? (
+            <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
+            {isDemo && (
+              <div className="p-3 bg-amber-500/10 text-amber-500 rounded-xl text-xs font-medium border border-amber-500/20 flex items-center justify-center gap-2 mb-2">
+                <Sparkles size={14} />
+                <span>Showing demo leaderboard until more players join!</span>
               </div>
-
-              {/* Sparkles (CSS pulse) */}
-              <div className="absolute -top-4 -right-4 text-amber-400 animate-pulse">
-                <Sparkles size={20} />
-              </div>
-            </div>
-
-            {/* Typography */}
-            <h2 className="text-2xl font-black text-ink tracking-tight mb-2">
-              Global Leaderboard
-            </h2>
-            <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Unlocking Soon • Q3 2025</span>
-            </div>
-            <p className="text-sm text-ink-soft max-w-[240px] leading-relaxed mx-auto font-medium">
-              Only the elite will rank. The top 100 players will share massive <strong className="text-emerald-500">USDT Prize Pools</strong> and exclusive NFTs.
-            </p>
+            )}
             
-            {/* Call to action */}
-            <div className="mt-8 p-4 bg-surface-soft rounded-2xl border border-border w-full">
-              <p className="text-xs text-ink-faint font-medium mb-1">Your current mission:</p>
-              <p className="text-sm font-bold text-ink">Keep inviting friends to secure an early rank advantage.</p>
-            </div>
+            {leaderboard.length === 0 && !loading && (
+              <EmptyState icon={<Medal />} title="No data" description="The leaderboard is empty." />
+            )}
+
+            {leaderboard.map((user, index) => {
+              const rank = index + 1;
+              let bgClass = "bg-surface-soft border border-border";
+              let rankTextClass = "text-ink-faint font-bold";
+              let icon = null;
+
+              if (rank === 1) {
+                bgClass = "bg-gradient-to-br from-amber-200 to-amber-500 border border-amber-300 text-amber-950 shadow-lg shadow-amber-500/20";
+                rankTextClass = "text-amber-900 font-black";
+                icon = <Trophy size={18} className="text-amber-900" />;
+              } else if (rank === 2) {
+                bgClass = "bg-gradient-to-br from-slate-200 to-slate-400 border border-slate-300 text-slate-900 shadow-lg shadow-slate-500/10";
+                rankTextClass = "text-slate-800 font-black";
+                icon = <Medal size={18} className="text-slate-800" />;
+              } else if (rank === 3) {
+                bgClass = "bg-gradient-to-br from-orange-200 to-orange-400 border border-orange-300 text-orange-950 shadow-lg shadow-orange-500/10";
+                rankTextClass = "text-orange-900 font-black";
+                icon = <Medal size={18} className="text-orange-900" />;
+              }
+
+              return (
+                <motion.div
+                  key={user.id || user.telegram_id || index}
+                  variants={{ initial: { opacity: 0, y: 10 }, animate: { opacity: 1, y: 0 } }}
+                  className={`rounded-2xl p-4 flex items-center gap-3 ${bgClass}`}
+                >
+                  <div className={`w-8 flex justify-center ${rankTextClass}`}>
+                    {icon || `#${rank}`}
+                  </div>
+                  
+                  <div className="h-10 w-10 rounded-full bg-black/10 flex items-center justify-center font-bold overflow-hidden shrink-0">
+                    {user.username ? (
+                      <span className="opacity-80 text-sm">{user.username.substring(0, 2).toUpperCase()}</span>
+                    ) : (
+                      <Users size={18} className="opacity-70" />
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 min-w-0">
+                    <h3 className={`font-bold truncate ${rank <= 3 ? '' : 'text-ink'}`}>
+                      {user.first_name || user.username || 'Anonymous'}
+                    </h3>
+                    <p className={`text-xs ${rank <= 3 ? 'opacity-80' : 'text-ink-soft'} truncate`}>
+                      {user.valid_referrals} valid / {user.total_referrals} total
+                    </p>
+                  </div>
+                  
+                  <div className="text-right shrink-0">
+                    <div className="font-black text-lg">
+                      {user.valid_referrals}
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
           </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ type: "spring", stiffness: 300, damping: 25 }}
+              className="flex flex-col items-center justify-center h-full pt-12 pb-24 px-4 text-center"
+            >
+              <div className="relative mb-8">
+                <div className="absolute inset-0 w-32 h-32 rounded-full border border-dashed border-indigo-500/30 -mx-8 -my-8" />
+                <div className="absolute inset-0 w-24 h-24 rounded-full border border-purple-500/20 -mx-4 -my-4" />
+                <div className="relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center text-white shadow-sm" style={{ background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)' }}>
+                  <Lock size={32} />
+                </div>
+                <div className="absolute -top-4 -right-4 text-amber-400 animate-pulse">
+                  <Sparkles size={20} />
+                </div>
+              </div>
+              <h2 className="text-2xl font-black text-ink tracking-tight mb-2">
+                Global Leaderboard
+              </h2>
+              <div className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/20 rounded-full mb-4">
+                <span className="text-[10px] font-black uppercase tracking-widest text-amber-500">Unlocking Soon • Q3 2025</span>
+              </div>
+              <p className="text-sm text-ink-soft max-w-[240px] leading-relaxed mx-auto font-medium">
+                Only the elite will rank. The top 100 players will share massive <strong className="text-emerald-500">USDT Prize Pools</strong> and exclusive NFTs.
+              </p>
+              <div className="mt-8 p-4 bg-surface-soft rounded-2xl border border-border w-full">
+                <p className="text-xs text-ink-faint font-medium mb-1">Your current mission:</p>
+                <p className="text-sm font-bold text-ink">Keep inviting friends to secure an early rank advantage.</p>
+              </div>
+            </motion.div>
+          )
         )}
       </div>
     </div>

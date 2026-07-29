@@ -29,7 +29,7 @@ router.post('/register', async (req, res) => {
         
         let referred_by = null;
         if (ref && ref !== telegram_id.toString()) {
-            const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1', [ref]);
+            const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1 OR telegram_id::text = $1', [ref]);
             if (refUser.rows.length > 0 && refUser.rows[0].telegram_id !== telegram_id) {
                 referred_by = refUser.rows[0].telegram_id;
             }

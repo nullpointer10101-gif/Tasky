@@ -70,10 +70,16 @@ const mockData = {
     reward_per_referral: 200,
     tasks_required_for_valid: 3
   },
-  getReferralLeaderboard: [
-    { id: 1, first_name: 'CryptoKing', valid_referrals: 450, total_referrals: 1200 },
-    { id: 2, first_name: 'Satoshi', valid_referrals: 380, total_referrals: 890 }
-  ],
+  getReferralLeaderboard: {
+    is_demo_data: true,
+    leaderboard: [
+      { id: 1, first_name: 'CryptoKing', valid_referrals: 450, total_referrals: 1200 },
+      { id: 2, first_name: 'Satoshi', valid_referrals: 380, total_referrals: 890 },
+      { id: 3, first_name: 'Vitalik', valid_referrals: 310, total_referrals: 750 },
+      { id: 4, first_name: 'DogeFather', valid_referrals: 250, total_referrals: 600 },
+      { id: 5, first_name: 'DiamondHands', valid_referrals: 150, total_referrals: 300 }
+    ]
+  },
   getWithdrawalSettings: { 
     min_withdrawal_tasky: 1000, 
     fee_percent: 35, 
