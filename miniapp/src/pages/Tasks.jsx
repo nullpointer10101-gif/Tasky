@@ -43,6 +43,7 @@ const getIconBgColor = (name) => {
 export default function Tasks({ user, refreshUser }) {
   const [activeTab, setActiveTab] = useState('available');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [placementCategory, setPlacementCategory] = useState('internal');
   const [tasks, setTasks] = useState([]);
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -272,6 +273,23 @@ export default function Tasks({ user, refreshUser }) {
       <div className="flex-1 overflow-y-auto hide-scrollbar">
         {activeTab === 'available' ? (
           <div className="flex flex-col h-full">
+            {user?.username?.toLowerCase() === 'taskycs' && (
+              <div className="flex gap-2 mb-4">
+                <button
+                  onClick={() => setPlacementCategory('internal')}
+                  className={`flex-1 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${placementCategory === 'internal' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.15)]' : 'bg-surface-soft border-border text-ink-soft'}`}
+                >
+                  Tasky Missions
+                </button>
+                <button
+                  onClick={() => setPlacementCategory('partner')}
+                  className={`flex-1 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider transition-all border ${placementCategory === 'partner' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]' : 'bg-surface-soft border-border text-ink-soft'}`}
+                >
+                  Partner Promos
+                </button>
+              </div>
+            )}
+
             <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-2 mb-4 shrink-0">
               {['all', 'daily', 'weekly', 'bounty', 'social'].map(cat => (
                 <button
@@ -291,7 +309,12 @@ export default function Tasks({ user, refreshUser }) {
                 {['daily', 'weekly', 'social', 'bounty']
                   .filter(type => activeCategory === 'all' || activeCategory === type)
                   .map(type => {
-                  const typeTasks = tasks.filter(t => (type === 'social' ? (t.type !== 'daily' && t.type !== 'weekly' && t.type !== 'bounty') : t.type === type));
+                  const typeTasks = tasks.filter(t => {
+                    const typeMatch = (type === 'social' ? (t.type !== 'daily' && t.type !== 'weekly' && t.type !== 'bounty') : t.type === type);
+                    const isTaskycs = user?.username?.toLowerCase() === 'taskycs';
+                    const categoryMatch = isTaskycs ? (t.category || 'internal') === placementCategory : true;
+                    return typeMatch && categoryMatch;
+                  });
                 
                 return (
                   <div key={type} className="space-y-3">
@@ -304,7 +327,7 @@ export default function Tasks({ user, refreshUser }) {
                       </div>
                     ) : (
                       typeTasks.map(task => (
-                        <Card key={task.id} className="relative cursor-pointer hover:border-ink-faint transition-colors flex items-center gap-4" onClick={() => handleSelectTask(task)}>
+                        <Card key={task.id} className={`relative cursor-pointer transition-colors flex items-center gap-4 ${task.category === 'partner' ? 'border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.1)] hover:border-amber-400' : 'hover:border-ink-faint'}`} onClick={() => handleSelectTask(task)}>
                           <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-soft shrink-0 ${getIconBgColor(task.icon)}`}>
                             <IconRenderer name={task.icon} size={20} />
                           </div>
