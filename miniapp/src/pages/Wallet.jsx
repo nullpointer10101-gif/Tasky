@@ -55,8 +55,8 @@ export default function Wallet({ user, refreshUser }) {
   const [isSavingWallet, setIsSavingWallet] = useState(false);
   const tonAddressRaw = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
-  const walletAddress = user?.wallet_address || tonAddressRaw;
-  const isConnected = !!walletAddress;
+  const walletAddress = tonAddressRaw || user?.wallet_address;
+  const isConnected = !!tonAddressRaw;
 
   useEffect(() => {
     if (tonAddressRaw && tonAddressRaw !== user?.wallet_address) {
