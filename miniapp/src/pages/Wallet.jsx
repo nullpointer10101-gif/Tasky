@@ -290,8 +290,10 @@ export default function Wallet({ user, refreshUser }) {
           <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-4 flex flex-col h-full">
             
             {/* The Huge Input Card */}
-            <div className="bg-surface border border-border rounded-[2rem] p-6 shadow-sm flex flex-col items-center relative overflow-hidden">
-              <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none" />
+            <div className="bg-surface border border-border rounded-[2rem] p-6 shadow-sm flex flex-col items-center relative z-10">
+              <div className="absolute inset-0 overflow-hidden rounded-[2rem] pointer-events-none">
+                <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-indigo-500/5 to-transparent" />
+              </div>
               
               <span className="text-xs font-bold text-ink-soft tracking-widest uppercase mb-1 z-10">You Send</span>
               
@@ -303,64 +305,58 @@ export default function Wallet({ user, refreshUser }) {
                   placeholder="0"
                   className="w-full text-center bg-transparent text-5xl font-black text-ink focus:outline-none placeholder:text-ink-faint py-2"
                 />
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="text-sm font-black text-ink bg-surface-soft px-3 py-1 rounded-full border border-border">TASKY</span>
+                
+                <div className="flex items-center gap-1 bg-surface-soft border border-border rounded-full p-1 mt-4 shadow-inner">
+                  <span className="text-xs font-black text-ink px-3 py-1">TASKY</span>
+                  <div className="w-[1px] h-4 bg-border" />
                   <button
                     onClick={() => setSwapAmount(String(Math.floor(balance)))}
-                    className="text-xs font-bold text-indigo-500 bg-indigo-500/10 px-3 py-1 rounded-full active:scale-95 transition-all"
+                    className="text-xs font-bold text-indigo-500 hover:bg-indigo-500/10 px-3 py-1 rounded-full active:scale-95 transition-all"
                   >
                     MAX
                   </button>
                 </div>
               </div>
 
-              <div className="text-xs font-medium text-ink-soft mt-4">
+              <div className="text-xs font-medium text-ink-soft mt-4 z-10">
                 Balance: {Math.floor(balance).toLocaleString()} TASKY
               </div>
             </div>
 
-            <div className="flex justify-center -my-6 relative z-20 pointer-events-none">
+            <div className="flex justify-center -my-4 relative z-30 pointer-events-none">
               <div className="w-10 h-10 bg-surface border border-border rounded-full flex items-center justify-center shadow-md">
                 <ArrowDown size={18} className="text-indigo-500" />
               </div>
             </div>
 
             {/* The Receive Card */}
-            <div className="bg-surface-soft border border-border rounded-[2rem] p-6 flex flex-col items-center relative mt-0">
+            <div className="bg-surface-soft border border-border rounded-[2rem] p-6 flex flex-col items-center relative z-10 mt-0">
               <span className="text-xs font-bold text-ink-soft tracking-widest uppercase mb-2">You Receive</span>
               <div className="flex items-center justify-center gap-3">
                 <span className="text-4xl font-black text-success">≈ {receiveAmount}</span>
               </div>
               
-              <div className="flex bg-surface p-1 rounded-2xl relative mt-4 w-full max-w-[200px] border border-border shadow-sm">
-                {['USDT'].map((token) => {
-                  const tokenData = rates.find(r => r.token_name === token);
-                  let isActive = tokenData ? tokenData.is_active : false;
-                  if (token === 'USDT' && !isUserAdmin) isActive = false;
-                  
-                  return (
-                    <motion.button
-                      key={token}
-                      onClick={() => {
-                        setSelectedDestination(token);
-                        if (!isActive) {
-                          if (window.Telegram?.WebApp?.HapticFeedback) {
-                            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                          }
-                          showToast(`${token} swap is coming soon`, 'info');
-                          setTimeout(() => setIsUsdtTeaserOpen(true), 300);
-                        }
-                      }}
-                      className={`relative w-full flex items-center justify-center gap-1.5 py-2 text-sm font-black z-10 transition-all rounded-xl text-ink`}
-                    >
-                      {!isActive && <Lock size={14} className="relative z-10 text-ink-soft" />}
-                      <span className="relative z-10">{token} (TON)</span>
-                    </motion.button>
-                  );
-                })}
-              </div>
-              <div className="text-[10px] text-ink-faint font-medium mt-3">
-                Rate: {taskyPerUnit} TASKY = 1 {selectedDestination}
+              <button
+                onClick={() => {
+                  if (!isUserAdmin) {
+                    if (window.Telegram?.WebApp?.HapticFeedback) {
+                      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                    }
+                    showToast(`USDT swap is coming soon`, 'info');
+                    setTimeout(() => setIsUsdtTeaserOpen(true), 300);
+                  }
+                }}
+                className="flex items-center gap-2 mt-4 bg-surface px-5 py-2.5 rounded-2xl border border-border shadow-sm active:scale-95 transition-transform"
+              >
+                <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center shadow-inner">
+                  <span className="text-white text-[10px] font-black">₮</span>
+                </div>
+                <span className="text-sm font-black text-ink">USDT (TON)</span>
+                {!isUserAdmin && <Lock size={14} className="text-ink-soft ml-1" />}
+              </button>
+
+              <div className="text-[10px] text-ink-faint font-medium mt-4 bg-surface/50 px-3 py-1 rounded-full border border-border/50">
+                Rate: {taskyPerUnit} TASKY = 1 USDT
               </div>
             </div>
 
