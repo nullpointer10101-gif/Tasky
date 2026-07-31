@@ -305,13 +305,13 @@ export default function Tasks({ user, refreshUser }) {
                       <motion.div 
                         key={task.id} 
                         whileTap={{ scale: 0.96 }}
-                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'border border-rose-500/60 border-b-[3px] bg-gradient-to-r from-rose-50/80 to-orange-50/80 dark:from-rose-500/10 dark:via-purple-500/5 dark:to-orange-500/10 shadow-[0_6px_15px_-4px_rgba(244,63,94,0.2)]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
+                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'border border-fuchsia-500/50 border-b-[3px] bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-fuchsia-50/80 dark:from-indigo-500/10 dark:via-fuchsia-500/10 dark:to-cyan-500/10 shadow-[0_6px_15px_-4px_rgba(217,70,239,0.25)]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
                         onClick={() => handleSelectTask(task)}
                       >
                         {task.verification_type === 'auto_ad' && (
                           <>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                            <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-rose-500 to-orange-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-rose-400/50">
+                            <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-fuchsia-400/50">
                               <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 drop-shadow-md">HOT</span>
                             </div>
                           </>
@@ -320,8 +320,8 @@ export default function Tasks({ user, refreshUser }) {
                           <IconRenderer name={task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
                             <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border-2 border-white dark:border-gray-900"></span>
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 border-2 border-white dark:border-gray-900"></span>
                             </div>
                           )}
                         </div>
@@ -331,9 +331,9 @@ export default function Tasks({ user, refreshUser }) {
                             {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
                             {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-md border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
                           </h3>
-                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
+                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-fuchsia-600 dark:text-fuchsia-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 shadow-[0_4px_10px_rgba(244,63,94,0.3)]' : 'bg-surface-soft border border-border'}`}>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_4px_12px_rgba(217,70,239,0.3)] bg-[length:200%_200%] animate-[shimmer_3s_infinite]' : 'bg-surface-soft border border-border'}`}>
                           <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white drop-shadow-md' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </motion.div>
@@ -416,7 +416,7 @@ export default function Tasks({ user, refreshUser }) {
               
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-[22px] font-black text-ink leading-tight pr-4">{selectedTask.title}</h2>
-                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 shadow-[0_8px_16px_-6px_rgba(244,63,94,0.4)]' : 'bg-gradient-primary shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]'}`}>
+                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_8px_16px_-6px_rgba(217,70,239,0.4)] bg-[length:200%_200%] animate-[shimmer_3s_infinite]' : 'bg-gradient-primary shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]'}`}>
                   <span className="text-[15px] font-black text-white">+{selectedTask.reward_tasky} TASKY</span>
                 </div>
               </div>
@@ -450,22 +450,22 @@ export default function Tasks({ user, refreshUser }) {
                 )}
                 
                 {selectedTask.verification_type === 'auto_ad' && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-[1.5rem] p-5 mt-4 relative overflow-hidden">
-                    <p className="text-[13px] font-black text-rose-500 mb-4 uppercase tracking-wider flex items-center gap-2 relative z-10">
-                      <AlertCircle size={18} className="text-rose-500" />
+                  <div className="bg-fuchsia-500/10 border border-fuchsia-500/20 rounded-[1.5rem] p-5 mt-4 relative overflow-hidden">
+                    <p className="text-[13px] font-black text-fuchsia-500 mb-4 uppercase tracking-wider flex items-center gap-2 relative z-10">
+                      <AlertCircle size={18} className="text-fuchsia-500" />
                       Required Rules
                     </p>
                     <ul className="space-y-4 relative z-10">
-                      <li className="flex items-start gap-3 text-[15px] text-rose-600 dark:text-rose-300">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                      <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
                         <span className="leading-relaxed font-medium">You must watch the entire ad to get the reward.</span>
                       </li>
-                      <li className="flex items-start gap-3 text-[15px] text-rose-600 dark:text-rose-300">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                      <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
                         <span className="leading-relaxed font-medium">Skipping or closing the ad early will cancel the reward.</span>
                       </li>
-                      <li className="flex items-start gap-3 text-[15px] text-rose-600 dark:text-rose-300">
-                        <div className="w-2 h-2 rounded-full bg-rose-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.4)]" />
+                      <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
                         <span className="leading-relaxed font-medium">Daily limit: 60 ads per 24 hours (30 TASKY per ad).</span>
                       </li>
                     </ul>

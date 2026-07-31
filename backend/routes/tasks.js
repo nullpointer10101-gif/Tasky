@@ -85,13 +85,13 @@ router.get('/', async (req, res) => {
                 if (t.verification_type === 'auto_ad') {
                     const timesCompleted = adCountMap[t.id]?.count || 0;
                     const lastAdTime = adCountMap[t.id]?.last_ad_time || null;
-                    if (timesCompleted < 50) {
+                    if (timesCompleted < 60) {
                         return {
                             ...t,
                             completed: false,
                             submission_status: null,
                             last_ad_time: lastAdTime,
-                            subtitle: `${timesCompleted}/50 completed in last 24h. ${t.subtitle}`
+                            subtitle: `${timesCompleted}/60 completed in last 24h. ${t.subtitle}`
                         };
                     }
                 }
