@@ -11,6 +11,7 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock, watchWithdrawalAd } from '../api';
 import { useToast } from '../App';
+import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -52,8 +53,16 @@ export default function Wallet({ user, refreshUser }) {
 
   const [walletInput, setWalletInput] = useState('');
   const [isSavingWallet, setIsSavingWallet] = useState(false);
-  const walletAddress = user?.wallet_address;
+  const tonAddressRaw = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
+  const walletAddress = user?.wallet_address || tonAddressRaw;
   const isConnected = !!walletAddress;
+
+  useEffect(() => {
+    if (tonAddressRaw && tonAddressRaw !== user?.wallet_address) {
+       saveWalletAddress(user?.telegram_id || '123456', tonAddressRaw).then(() => refreshUser());
+    }
+  }, [tonAddressRaw, user?.wallet_address]);
 
   useEffect(() => { fetchData(); }, [user, activeTab]);
 
@@ -345,7 +354,7 @@ export default function Wallet({ user, refreshUser }) {
                       className={`relative w-full flex items-center justify-center gap-1.5 py-2 text-sm font-black z-10 transition-all rounded-xl text-ink`}
                     >
                       {!isActive && <Lock size={14} className="relative z-10 text-ink-soft" />}
-                      <span className="relative z-10">{token} (BSC)</span>
+                      <span className="relative z-10">{token} (TON)</span>
                     </motion.button>
                   );
                 })}
@@ -361,31 +370,23 @@ export default function Wallet({ user, refreshUser }) {
                 <div className="bg-surface border border-border rounded-[2rem] p-5 shadow-sm space-y-4 animate-fade-in">
                   <div className="text-center">
                     <h3 className="font-black text-ink text-sm mb-1">Bind Destination Wallet</h3>
-                    <p className="text-xs text-ink-soft">Enter your BSC (BEP-20) address to receive funds</p>
+                    <p className="text-xs text-ink-soft mb-4">Connect your TON wallet to receive funds</p>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="0x..."
-                    value={walletInput}
-                    onChange={(e) => setWalletInput(e.target.value)}
-                    className="w-full bg-surface-soft border border-border rounded-2xl px-5 py-4 text-sm text-center font-mono text-ink focus:outline-none focus:border-indigo-500 transition-colors shadow-inner"
-                  />
                   <Button
-                    onClick={handleSaveWallet}
-                    disabled={isSavingWallet || !walletInput}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-ink text-surface disabled:opacity-50"
+                    onClick={() => tonConnectUI.openModal()}
+                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-[#0098EA] text-white shadow-lg shadow-[#0098EA]/30"
                   >
-                    {isSavingWallet ? 'Saving...' : 'Save Wallet'}
+                    Connect TON Wallet
                   </Button>
                 </div>
               ) : (
                 <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center justify-between shadow-inner">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center">
-                      <WalletIcon size={14} className="text-indigo-500" />
+                    <div className="w-8 h-8 rounded-full bg-[#0098EA]/10 flex items-center justify-center">
+                      <WalletIcon size={14} className="text-[#0098EA]" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-ink-soft">BSC Address Linked</span>
+                      <span className="text-[10px] font-bold text-ink-soft">TON Address Linked</span>
                       <span className="font-mono text-xs font-black text-ink">{truncateAddress(walletAddress)}</span>
                     </div>
                   </div>
@@ -467,7 +468,7 @@ export default function Wallet({ user, refreshUser }) {
                     </div>
                     <div className="text-right">
                       <p className="font-black text-ink text-sm">-{item.tasky_amount} TASKY</p>
-                      {item.receive_amount && <p className="text-xs text-success font-black mt-0.5">+{Number(item.receive_amount).toFixed(4)} BSC</p>}
+                      {item.receive_amount && <p className="text-xs text-success font-black mt-0.5">+{Number(item.receive_amount).toFixed(4)} USDT</p>}
                     </div>
                   </div>
                   <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/50">
