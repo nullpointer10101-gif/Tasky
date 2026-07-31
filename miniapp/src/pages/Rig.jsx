@@ -309,7 +309,7 @@ export default function Rig({ user, refreshUser }) {
             
             <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 drop-shadow-md">Mining Speed</p>
             <div className="flex items-baseline gap-1.5 mb-6">
-              <span className="text-5xl font-black tracking-tighter drop-shadow-lg">{displaySpeed}</span>
+              <span className="text-4xl sm:text-5xl font-black tracking-tighter drop-shadow-lg">{displaySpeed}</span>
               <span className="text-sm font-black text-white/80 uppercase tracking-wider">TASKY / hr</span>
             </div>
             
@@ -386,7 +386,7 @@ export default function Rig({ user, refreshUser }) {
                 <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
                 {/* Press button */}
                 <motion.button
-                  className="relative w-48 h-48 flex flex-col items-center justify-center z-10 select-none bg-indigo-950/50 rounded-full border-b-[6px] border-indigo-800 shadow-[0_0_40px_rgba(99,102,241,0.3)] active:border-b-[2px] active:translate-y-[4px] active:shadow-none transition-all"
+                  className="relative w-40 h-40 sm:w-48 sm:h-48 flex flex-col items-center justify-center z-10 select-none bg-indigo-950/50 rounded-full border-b-[6px] border-indigo-800 shadow-[0_0_40px_rgba(99,102,241,0.3)] active:border-b-[2px] active:translate-y-[4px] active:shadow-none transition-all"
                   animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
                   onClick={handleStartMining}
@@ -447,17 +447,17 @@ export default function Rig({ user, refreshUser }) {
 
               {/* Central earnings display */}
               <div className="flex flex-col items-center mb-8 mt-4 relative">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 sm:w-48 sm:h-48 bg-indigo-500/20 rounded-full blur-3xl" />
                 <motion.div 
-                    className="w-[160px] h-[160px] rounded-full overflow-hidden flex items-center justify-center mb-4 drop-shadow-[0_0_35px_rgba(139,92,246,0.6)] relative z-10"
+                    className="w-[130px] h-[130px] sm:w-[160px] sm:h-[160px] rounded-full overflow-hidden flex items-center justify-center mb-4 drop-shadow-[0_0_35px_rgba(139,92,246,0.6)] relative z-10"
                     animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
                 >
                     <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
                 </motion.div>
 
-                <div className="flex flex-col items-center relative z-10 bg-black/20 px-8 py-3 rounded-[2rem] border border-white/10 backdrop-blur-sm shadow-inner">
-                  <span className="text-5xl font-black text-white leading-tight font-mono tracking-tighter drop-shadow-lg">
+                <div className="flex flex-col items-center relative z-10 bg-black/20 px-6 sm:px-8 py-3 rounded-[2rem] border border-white/10 backdrop-blur-sm shadow-inner">
+                  <span className="text-4xl sm:text-5xl font-black text-white leading-tight font-mono tracking-tighter drop-shadow-lg">
                     {Number(liveEarnings).toFixed(4)}
                   </span>
                   <span className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-1">TASKY</span>
@@ -502,7 +502,7 @@ export default function Rig({ user, refreshUser }) {
               <div className="relative mb-6 mt-2 flex justify-center w-full">
                 <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
                 <motion.div 
-                  className="w-[180px] h-[180px] rounded-full overflow-hidden flex items-center justify-center drop-shadow-[0_0_50px_rgba(52,211,153,0.7)] bg-black/0 relative z-10"
+                  className="w-[150px] h-[150px] sm:w-[180px] sm:h-[180px] rounded-full overflow-hidden flex items-center justify-center drop-shadow-[0_0_50px_rgba(52,211,153,0.7)] bg-black/0 relative z-10"
                   initial={{ scale: 0.8, rotate: -15 }}
                   animate={actionLoading 
                     ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
@@ -514,7 +514,7 @@ export default function Rig({ user, refreshUser }) {
                 </motion.div>
               </div>
 
-              <h3 className="text-3xl font-black text-white mb-1 drop-shadow-md">
+              <h3 className="text-2xl sm:text-3xl font-black text-white mb-1 drop-shadow-md">
                 Ready to Claim! 🏆
               </h3>
               <p className="text-sm text-white/50 font-medium mb-6">Your 4-hour session is complete</p>
@@ -522,9 +522,9 @@ export default function Rig({ user, refreshUser }) {
               {/* Reward amount */}
               <div className="w-full bg-emerald-950/50 border border-emerald-500/30 rounded-2xl p-5 mb-6 backdrop-blur-sm shadow-inner">
                 <p className="text-[10px] text-emerald-400/80 uppercase font-black tracking-[0.2em] mb-2">Total Mined</p>
-                <div className="text-4xl font-black text-emerald-400 drop-shadow-lg">
+                <div className="text-3xl sm:text-4xl font-black text-emerald-400 drop-shadow-lg">
                   +{Number(activeSession.rate_used * 4).toFixed(2)}
-                  <span className="text-xl ml-2 text-emerald-500/70">TASKY</span>
+                  <span className="text-lg sm:text-xl ml-2 text-emerald-500/70">TASKY</span>
                 </div>
               </div>
 
