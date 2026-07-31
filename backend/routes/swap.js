@@ -133,7 +133,7 @@ router.post('/request', async (req, res) => {
         // insert swap using DB wallet address
         const swapRes = await client.query(`
             INSERT INTO swaps (telegram_id, tasky_amount, receive_token, receive_amount, wallet_address, status, chain, fee_percent)
-            VALUES ($1, $2, $3, $4, $5, 'pending', 'BSC', $6) RETURNING *
+            VALUES ($1, $2, $3, $4, $5, 'pending', 'TON', $6) RETURNING *
         `, [telegram_id, amount, receive_token, receiveAmount, dbWalletAddress, feePercent]);
         const swap = swapRes.rows[0];
         
@@ -145,11 +145,11 @@ router.post('/request', async (req, res) => {
         // notifications
         if (bot && bot.sendMessage) {
             try {
-                bot.sendMessage(telegram_id, 'Swap request submitted. Processing within 24 hours.');
+                bot.sendMessage(telegram_id, 'Swap request submitted. Processing within 3 minutes.');
                 
                 const adminId = process.env.ADMIN_TELEGRAM_ID;
                 if (adminId) {
-                    bot.sendMessage(adminId, `NEW SWAP REQUEST @${user.username || user.first_name}: ${amount} TASKY → ${receiveAmount.toFixed(4)} USDT (BSC)\nWallet: ${dbWalletAddress}\nSwap ID: ${swap.id}`);
+                    bot.sendMessage(adminId, `NEW SWAP REQUEST @${user.username || user.first_name}: ${amount} TASKY → ${receiveAmount.toFixed(4)} USDT (TON)\nWallet: ${dbWalletAddress}\nSwap ID: ${swap.id}`);
                 }
             } catch (e) {
                 console.error('Failed to send notification', e);
