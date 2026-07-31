@@ -56,7 +56,8 @@ router.post('/register', async (req, res) => {
         }
         
         await client.query('COMMIT');
-        newUser.is_admin = (newUser.telegram_id.toString() === process.env.ADMIN_TELEGRAM_ID);
+        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',') : [];
+        newUser.is_admin = adminIds.includes(newUser.telegram_id.toString());
         res.json(newUser);
     } catch (err) {
         await client.query('ROLLBACK');
@@ -94,7 +95,8 @@ router.get('/:telegram_id', async (req, res) => {
             }
         }
         
-        user.is_admin = (user.telegram_id.toString() === process.env.ADMIN_TELEGRAM_ID);
+        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',') : [];
+        user.is_admin = adminIds.includes(user.telegram_id.toString());
         res.json(user);
     } catch (err) {
         console.error(err);

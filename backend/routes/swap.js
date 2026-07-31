@@ -76,8 +76,8 @@ router.post('/request', async (req, res) => {
         
         // Admin-only check for USDT
         if (receive_token === 'USDT') {
-            const adminId = process.env.ADMIN_TELEGRAM_ID;
-            if (!adminId || telegram_id.toString() !== adminId.toString()) {
+            const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',') : [];
+            if (!adminIds.includes(telegram_id.toString())) {
                 await client.query('ROLLBACK');
                 return res.status(403).json({ error: 'USDT swap is currently being tested and is only available for admins.' });
             }

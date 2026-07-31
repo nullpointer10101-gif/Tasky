@@ -270,15 +270,11 @@ const initDB = async () => {
         UNIQUE(telegram_id, machine_id)
       );
 
-      INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain)
-      SELECT 'USDT', 500, 500, 'TON' WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
-
       INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
-      SELECT 'DOGS', 0.5, 1000, 'TON', TRUE WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'DOGS');
+      SELECT 'USDT', 20000, 3000, 'TON', TRUE WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
 
-      DELETE FROM swap_rates WHERE token_name NOT IN ('USDT', 'DOGS');
-      UPDATE swap_rates SET is_active = CASE WHEN token_name = 'DOGS' THEN TRUE ELSE FALSE END;
-      UPDATE swap_rates SET tasky_per_unit = 1, min_tasky = 3000 WHERE token_name = 'DOGS';
+      DELETE FROM swap_rates WHERE token_name != 'USDT';
+      UPDATE swap_rates SET is_active = TRUE, tasky_per_unit = 20000, min_tasky = 3000 WHERE token_name = 'USDT';
 
       CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_telegram_id);
       CREATE INDEX IF NOT EXISTS idx_referrals_referred ON referrals(referred_telegram_id);
