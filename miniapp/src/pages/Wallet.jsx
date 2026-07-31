@@ -146,8 +146,8 @@ export default function Wallet({ user, refreshUser }) {
   
   const balance = Number(user?.balance || 0);
   const amount = Number(swapAmount || 0);
-  const feePercent = 10;
-  const netAmount = amount - (amount * (feePercent / 100));
+  const feePercent = 0;
+  const netAmount = amount;
   const receiveAmount = swapAmount ? (netAmount / taskyPerUnit).toFixed(4) : '0.0000';
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
@@ -571,11 +571,11 @@ export default function Wallet({ user, refreshUser }) {
 
                 {/* Receive Calculation — always visible */}
                 <div className="bg-surface-soft rounded-2xl p-4 border border-border text-center">
-                  <span className="text-ink-soft text-xs font-bold block mb-1">You'll receive (after 10% fee)</span>
+                  <span className="text-ink-soft text-xs font-bold block mb-1">You'll receive</span>
                   <span className="font-black text-success text-2xl">≈ {receiveAmount} {selectedDestination}</span>
                 </div>
                 <p className="text-center text-[10px] text-ink-soft font-medium mt-2">
-                  A 10% processing fee is applied. Requests are processed in under 3 minutes.
+                  Requests are processed in under 3 minutes.
                 </p>
 
                 {/* CTA — conditionally shown only when ready */}

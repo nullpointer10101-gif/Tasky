@@ -124,10 +124,10 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: `You must watch 200 ads OR refer 5 valid users to withdraw. Ads: ${user.withdrawal_ads_watched || 0}/200, Refs: ${user.valid_referrals || 0}/5` });
         }
         
-        // apply 10% fee
-        const feePercent = 10;
-        const feeAmount = amount * (feePercent / 100);
-        const netAmount = amount - feeAmount;
+        // apply 0% fee
+        const feePercent = 0;
+        const feeAmount = 0;
+        const netAmount = amount;
 
         // calculate receive amount
         const receiveAmount = netAmount / parseFloat(rate.tasky_per_unit);
