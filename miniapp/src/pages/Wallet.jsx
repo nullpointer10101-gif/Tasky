@@ -308,14 +308,16 @@ export default function Wallet({ user, refreshUser }) {
               <div className="text-xs font-medium text-ink-soft mt-4">
                 Balance: {Math.floor(balance).toLocaleString()} TASKY
               </div>
-              
-              <div className="w-10 h-10 bg-surface border border-border rounded-full flex items-center justify-center absolute -bottom-5 shadow-md z-20">
+            </div>
+
+            <div className="flex justify-center -my-6 relative z-20 pointer-events-none">
+              <div className="w-10 h-10 bg-surface border border-border rounded-full flex items-center justify-center shadow-md">
                 <ArrowDown size={18} className="text-indigo-500" />
               </div>
             </div>
 
             {/* The Receive Card */}
-            <div className="bg-surface-soft border border-border rounded-[2rem] p-6 flex flex-col items-center mt-2 relative">
+            <div className="bg-surface-soft border border-border rounded-[2rem] p-6 flex flex-col items-center relative mt-0">
               <span className="text-xs font-bold text-ink-soft tracking-widest uppercase mb-2">You Receive</span>
               <div className="flex items-center justify-center gap-3">
                 <span className="text-4xl font-black text-success">≈ {receiveAmount}</span>
@@ -377,12 +379,17 @@ export default function Wallet({ user, refreshUser }) {
                   </Button>
                 </div>
               ) : (
-                <div className="bg-surface border border-border rounded-[2rem] p-5 flex items-center justify-between shadow-sm">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-black text-ink-soft tracking-widest uppercase mb-1">Receiving Wallet</span>
-                    <span className="font-mono text-xs font-bold text-success">{truncateAddress(walletAddress)}</span>
+                <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center justify-between shadow-inner">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                      <WalletIcon size={14} className="text-indigo-500" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-bold text-ink-soft">BSC Address Linked</span>
+                      <span className="font-mono text-xs font-black text-ink">{truncateAddress(walletAddress)}</span>
+                    </div>
                   </div>
-                  <div className="px-2 py-1 bg-success-soft text-success text-[10px] font-black rounded-lg uppercase tracking-wider">BSC Connected</div>
+                  <CheckCircle2 size={16} className="text-success" />
                 </div>
               )}
             </div>
