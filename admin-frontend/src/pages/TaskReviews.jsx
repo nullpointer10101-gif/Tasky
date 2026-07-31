@@ -45,6 +45,27 @@ export default function TaskReviews() {
     }
   };
 
+  const handleReviewAll = async (action) => {
+    let reason = '';
+    if (action === 'reject') {
+      reason = prompt('Enter rejection reason for ALL tasks:');
+      if (reason === null) return;
+    } else {
+      if (!window.confirm('Are you sure you want to approve ALL pending tasks?')) return;
+    }
+
+    setProcessingId('all');
+    try {
+      await api.post('/tasks/review-all', { action, rejection_reason: reason });
+      toast.success(`All tasks ${action}d successfully`);
+      setTasks([]);
+    } catch (e) {
+      toast.error(e.response?.data?.error || `Failed to ${action} all tasks`);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-10 h-full flex items-center justify-center">
@@ -58,9 +79,29 @@ export default function TaskReviews() {
 
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
-      <div className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">Task Reviews</h1>
-        <p className="text-ink-soft text-sm md:text-base">Review user submitted proofs and approve rewards.</p>
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">Task Reviews</h1>
+          <p className="text-ink-soft text-sm md:text-base">Review user submitted proofs and approve rewards.</p>
+        </div>
+        {tasks.length > 0 && (
+          <div className="flex gap-3">
+            <button
+              onClick={() => handleReviewAll('reject')}
+              disabled={processingId === 'all'}
+              className="py-2.5 px-5 rounded-xl border border-red-500/20 text-red-400 font-bold text-sm hover:bg-red-500/10 hover:border-red-500/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <XCircle size={18} /> Reject All
+            </button>
+            <button
+              onClick={() => handleReviewAll('approve')}
+              disabled={processingId === 'all'}
+              className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-400 text-slate-900 font-black text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              <CheckCircle2 size={18} /> Approve All
+            </button>
+          </div>
+        )}
       </div>
 
       {tasks.length === 0 ? (

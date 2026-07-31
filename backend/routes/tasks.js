@@ -45,7 +45,13 @@ router.get('/latest-post', async (req, res) => {
 router.get('/', async (req, res) => {
     const { telegram_id } = req.query;
     try {
-        const tasksRes = await pool.query('SELECT * FROM tasks WHERE is_active = TRUE ORDER BY is_featured DESC, created_at DESC');
+        let queryStr = 'SELECT * FROM tasks WHERE is_active = TRUE';
+        const adminId = process.env.ADMIN_TELEGRAM_ID;
+        if (!telegram_id || (adminId && telegram_id.toString() !== adminId.toString())) {
+            queryStr += ' AND admin_only = FALSE';
+        }
+        queryStr += ' ORDER BY is_featured DESC, created_at DESC';
+        const tasksRes = await pool.query(queryStr);
         const tasks = tasksRes.rows;
 
         if (telegram_id) {

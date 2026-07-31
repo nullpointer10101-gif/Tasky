@@ -149,6 +149,43 @@ router.post('/tasks/review', async (req, res) => {
   }
 });
 
+router.post('/tasks/review-all', async (req, res) => {
+  const { action, rejection_reason } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    if (action === 'approve') {
+      const pendingRes = await client.query(`
+        SELECT ut.telegram_id, SUM(t.reward_tasky) as total_reward
+        FROM user_tasks ut
+        JOIN tasks t ON ut.task_id = t.id
+        WHERE ut.status = 'pending'
+        GROUP BY ut.telegram_id
+      `);
+
+      if (pendingRes.rows.length > 0) {
+        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE status = 'pending'`);
+        for (const row of pendingRes.rows) {
+          await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [row.total_reward, row.telegram_id]);
+        }
+      }
+    } else if (action === 'reject') {
+      await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW() WHERE status = 'pending'`, [rejection_reason]);
+    } else {
+      throw new Error('Invalid action');
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: \`All pending tasks \${action}d successfully\` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ==========================================
 // 4. WITHDRAWALS (MAPPED TO SWAPS)
 // ==========================================

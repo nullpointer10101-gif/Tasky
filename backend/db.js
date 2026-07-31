@@ -71,7 +71,8 @@ const initDB = async () => {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'Default';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS telegram_chat_id VARCHAR(100);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS x_subtype VARCHAR(20);
-
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS admin_only BOOLEAN DEFAULT FALSE;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'internal';
 
       CREATE TABLE IF NOT EXISTS user_tasks (
         id SERIAL PRIMARY KEY,
