@@ -56,7 +56,8 @@ router.post('/register', async (req, res) => {
         }
         
         await client.query('COMMIT');
-        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',') : [];
+        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
+        adminIds.push('5487109053'); // Fallback for the known admin ID
         newUser.is_admin = adminIds.includes(newUser.telegram_id.toString());
         res.json(newUser);
     } catch (err) {
@@ -95,7 +96,8 @@ router.get('/:telegram_id', async (req, res) => {
             }
         }
         
-        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',') : [];
+        const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
+        adminIds.push('5487109053'); // Fallback for the known admin ID
         user.is_admin = adminIds.includes(user.telegram_id.toString());
         res.json(user);
     } catch (err) {
