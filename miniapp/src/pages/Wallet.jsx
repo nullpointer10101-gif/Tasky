@@ -392,6 +392,17 @@ export default function Wallet({ user, refreshUser }) {
                   <CheckCircle2 size={16} className="text-success" />
                 </div>
               )}
+              
+              <div className="flex items-center justify-center gap-4 mt-6 mb-2 animate-fade-in">
+                <div className="flex items-center gap-1.5 bg-success/10 border border-success/20 px-3 py-1.5 rounded-full shadow-sm">
+                  <Clock size={12} className="text-success" />
+                  <span className="text-[10px] font-black text-success uppercase tracking-wider">3 Min Arrival</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-full shadow-sm">
+                  <Lock size={12} className="text-indigo-500" />
+                  <span className="text-[10px] font-black text-indigo-500 uppercase tracking-wider">1 Swap / Day</span>
+                </div>
+              </div>
             </div>
 
             {/* Floating Action Button */}
