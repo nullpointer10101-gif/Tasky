@@ -304,37 +304,37 @@ export default function Tasks({ user, refreshUser }) {
                     filteredTasks.map(task => (
                       <motion.div 
                         key={task.id} 
-                        whileTap={{ scale: 0.98 }}
-                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-4 py-4 px-5 overflow-hidden rounded-[1.5rem] shadow-sm active:shadow-none ${task.verification_type === 'auto_ad' ? 'border-2 border-rose-500 bg-gradient-to-r from-rose-50 to-orange-50 dark:from-rose-500/10 dark:via-purple-500/5 dark:to-orange-500/10 shadow-[0_10px_25px_-5px_rgba(244,63,94,0.3)] my-3' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20' : 'bg-surface border border-border'}`} 
+                        whileTap={{ scale: 0.96 }}
+                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'border border-rose-500/60 border-b-[3px] bg-gradient-to-r from-rose-50/80 to-orange-50/80 dark:from-rose-500/10 dark:via-purple-500/5 dark:to-orange-500/10 shadow-[0_6px_15px_-4px_rgba(244,63,94,0.2)]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
                         onClick={() => handleSelectTask(task)}
                       >
                         {task.verification_type === 'auto_ad' && (
                           <>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                            <div className="absolute -top-3 -right-3 w-16 h-16 bg-gradient-to-br from-rose-500 to-orange-500 rotate-45 flex items-end justify-center pb-2 z-10 shadow-lg border-b border-rose-400/50">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-4 drop-shadow-md">HOT</span>
+                            <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-rose-500 to-orange-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-rose-400/50">
+                              <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 drop-shadow-md">HOT</span>
                             </div>
                           </>
                         )}
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shrink-0 relative z-10 ${getIconBgColor(task.icon)}`}>
-                          <IconRenderer name={task.icon} size={24} />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${getIconBgColor(task.icon)}`}>
+                          <IconRenderer name={task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
-                            <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4">
+                            <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                              <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 border-2 border-white dark:border-gray-900"></span>
+                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border-2 border-white dark:border-gray-900"></span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0 pr-16 relative z-10">
-                          <h3 className="font-black text-ink text-[17px] leading-tight mb-1 truncate flex items-center gap-1.5">
+                          <h3 className="font-black text-ink text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5">
                             {task.title}
-                            {task.x_subtype === 'follow' && <span className="text-[10px] bg-indigo-500/10 text-indigo-500 px-2 py-0.5 rounded-lg border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
-                            {task.x_subtype === 'repost' && <span className="text-[10px] bg-emerald-500/10 text-emerald-500 px-2 py-0.5 rounded-lg border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
+                            {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
+                            {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-md border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
                           </h3>
-                          <p className={`text-[13px] truncate ${task.verification_type === 'auto_ad' ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
+                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-5 top-1/2 -translate-y-1/2 px-4 py-2 rounded-2xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 shadow-[0_4px_10px_rgba(244,63,94,0.3)]' : 'bg-surface-soft border border-border'}`}>
-                          <span className={`text-[15px] font-black ${task.verification_type === 'auto_ad' ? 'text-white drop-shadow-md' : 'text-ink'}`}>+{task.reward_tasky}</span>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 shadow-[0_4px_10px_rgba(244,63,94,0.3)]' : 'bg-surface-soft border border-border'}`}>
+                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white drop-shadow-md' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </motion.div>
                     ))
