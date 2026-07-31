@@ -177,7 +177,7 @@ router.post('/tasks/review-all', async (req, res) => {
     }
 
     await client.query('COMMIT');
-    res.json({ success: true, message: \`All pending tasks \${action}d successfully\` });
+    res.json({ success: true, message: `All pending tasks ${action}d successfully` });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });
