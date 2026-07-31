@@ -12,7 +12,6 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock, watchWithdrawalAd } from '../api';
 import { useToast } from '../App';
-import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -35,9 +34,9 @@ const KEY_POINTS = [
     accentColor: '#3b82f6',
     badgeBg: 'bg-blue-100',
     badgeText: 'text-blue-700',
-    tag: 'TON ONLY',
-    title: 'TON Network Only',
-    desc: 'Swaps are securely powered by the TON blockchain.',
+    tag: 'BSC ONLY',
+    title: 'BSC Network Only',
+    desc: 'Swaps are securely powered by the Binance Smart Chain (BEP-20).',
     cardBg: 'bg-blue-50',
   },
   {
@@ -47,7 +46,7 @@ const KEY_POINTS = [
     badgeText: 'text-emerald-700',
     tag: 'TASKY',
     title: 'Direct to Wallet',
-    desc: 'All payouts are made directly to your connected TON wallet address.',
+    desc: 'All payouts are made directly to your connected BSC wallet address.',
     cardBg: 'bg-emerald-50',
   }
 ];
@@ -87,33 +86,34 @@ export default function Wallet({ user, refreshUser }) {
     };
   }, [isUsdtTeaserOpen]);
 
-  const [tonConnectUI] = useTonConnectUI();
-  const walletAddress = useTonAddress();
+  const [walletInput, setWalletInput] = useState('');
+  const [isSavingWallet, setIsSavingWallet] = useState(false);
+  const walletAddress = user?.wallet_address;
   const isConnected = !!walletAddress;
 
   useEffect(() => { fetchData(); }, [user, activeTab]);
 
-  // Sync wallet address to backend when connected, if user object doesn't have it
-  useEffect(() => {
-    if (walletAddress && user && user.wallet_address !== walletAddress) {
-      try {
-        saveWalletAddress(user.telegram_id || '123456', walletAddress).then(async ({ error }) => {
-          if (error) {
-            showToast(error, 'error');
-            await tonConnectUI.disconnect();
-          } else {
-            refreshUser();
-          }
-        }).catch(err => {
-          console.error('saveWalletAddress catch:', err);
-          showToast(err.message || 'Error saving wallet address', 'error');
-        });
-      } catch (err) {
-        console.error('saveWalletAddress outer catch:', err);
-        showToast(err.message || 'Error saving wallet address', 'error');
-      }
+  const handleSaveWallet = async () => {
+    if (!walletInput || walletInput.length < 20 || !walletInput.startsWith('0x')) {
+      return showToast('Please enter a valid BSC (BEP-20) address starting with 0x', 'error');
     }
-  }, [walletAddress, user, tonConnectUI, showToast, refreshUser]);
+    
+    try {
+      setIsSavingWallet(true);
+      const { error } = await saveWalletAddress(user?.telegram_id || '123456', walletInput);
+      if (error) {
+        showToast(error, 'error');
+      } else {
+        showToast('Wallet address saved successfully', 'success');
+        refreshUser();
+      }
+    } catch (err) {
+      console.error('saveWalletAddress catch:', err);
+      showToast(err.message || 'Error saving wallet address', 'error');
+    } finally {
+      setIsSavingWallet(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -592,12 +592,22 @@ export default function Wallet({ user, refreshUser }) {
                     Unlocking Soon
                   </Button>
                 ) : !isConnected ? (
-                  <Button
-                    onClick={() => tonConnectUI.openModal()}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 "
-                  >
-                    Connect Wallet to Swap
-                  </Button>
+                  <div className="w-full flex flex-col gap-3">
+                    <input
+                      type="text"
+                      placeholder="Paste your BSC (BEP-20) wallet address..."
+                      value={walletInput}
+                      onChange={(e) => setWalletInput(e.target.value)}
+                      className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3.5 text-sm text-ink focus:outline-none focus:border-indigo-500 transition-colors"
+                    />
+                    <Button
+                      onClick={handleSaveWallet}
+                      disabled={isSavingWallet || !walletInput}
+                      className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-gradient-to-r from-indigo-500 to-purple-600 text-white hover:from-indigo-400 hover:to-purple-500 shadow-xl shadow-indigo-500/20 disabled:opacity-50"
+                    >
+                      {isSavingWallet ? 'Saving...' : 'Save BSC Wallet to Swap'}
+                    </Button>
+                  </div>
                 ) : hasPendingSwap ? (
                   <div className="w-full py-3.5 rounded-2xl bg-warning-soft border border-warning/20 text-warning text-sm font-bold text-center flex items-center justify-center gap-2">
                     <Clock size={14} />
@@ -701,11 +711,11 @@ export default function Wallet({ user, refreshUser }) {
                     {item.status === 'pending' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-warning-soft text-warning rounded-pill uppercase tracking-wider font-bold"><Clock size={10}/> Pending</span>}
                     {item.status === 'done' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-success-soft text-success rounded-pill uppercase tracking-wider font-bold"><CheckCircle2 size={10}/> Done</span>}
                     
-                    <span className="text-[10px] text-ink-faint font-mono font-bold ml-2">TON</span>
+                    <span className="text-[10px] text-ink-faint font-mono font-bold ml-2">BSC</span>
 
                     {item.tx_hash && (
-                      <a href={`https://tonscan.org/tx/${item.tx_hash}`} target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-400 transition-colors">
-                        View on Tonscan <ExternalLink size={10} />
+                      <a href={`https://bscscan.com/tx/${item.tx_hash}`} target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-400 transition-colors">
+                        View TX <ExternalLink size={10} />
                       </a>
                     )}
                   </div>

@@ -271,7 +271,7 @@ const initDB = async () => {
       );
 
       INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
-      SELECT 'USDT', 20000, 20000, 'TON', TRUE WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
+      SELECT 'USDT', 20000, 20000, 'BSC', TRUE WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
 
       DELETE FROM swap_rates WHERE token_name != 'USDT';
       UPDATE swap_rates SET is_active = TRUE, tasky_per_unit = 20000, min_tasky = 20000 WHERE token_name = 'USDT';
