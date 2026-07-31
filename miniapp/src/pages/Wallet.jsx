@@ -61,7 +61,7 @@ export default function Wallet({ user, refreshUser }) {
   const [isSwapping, setIsSwapping] = useState(false);
   const [withdrawalSettings, setWithdrawalSettings] = useState(null);
   const [isRulesExpanded, setIsRulesExpanded] = useState(false);
-  const [selectedDestination, setSelectedDestination] = useState('DOGS');
+  const [selectedDestination, setSelectedDestination] = useState('USDT');
   const [isUsdtTeaserOpen, setIsUsdtTeaserOpen] = useState(false);
   const [isNotified, setIsNotified] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
@@ -140,9 +140,9 @@ export default function Wallet({ user, refreshUser }) {
   const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 1000;
   
   const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
-  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 1000;
+  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 20000;
   const minSwap = currentRate ? Number(currentRate.min_tasky) : 3000;
-  const isSelectedActive = currentRate ? Boolean(currentRate.is_active) : false;
+  const isSelectedActive = currentRate ? (selectedDestination === 'USDT' && !user?.is_admin ? false : Boolean(currentRate.is_active)) : false;
   
   const balance = Number(user?.balance || 0);
   const amount = Number(swapAmount || 0);
@@ -487,9 +487,10 @@ export default function Wallet({ user, refreshUser }) {
                 <div>
                   <label className="block text-[10px] font-black text-ink-soft uppercase tracking-widest mb-2">Select Destination</label>
                   <div className="flex bg-surface-soft p-1.5 rounded-2xl relative mb-6">
-                    {['DOGS', 'USDT'].map((token) => {
+                    {['USDT'].map((token) => {
                       const tokenData = rates.find(r => r.token_name === token);
-                      const isActive = tokenData ? tokenData.is_active : false;
+                      let isActive = tokenData ? tokenData.is_active : false;
+                      if (token === 'USDT' && !user?.is_admin) isActive = false;
                       const isSelected = selectedDestination === token;
                       
                       return (
@@ -525,9 +526,9 @@ export default function Wallet({ user, refreshUser }) {
                     })}
                     <motion.div
                       layoutId="swapDestinationIndicator"
-                      className="absolute top-1.5 bottom-1.5 w-[calc(50%-6px)] bg-surface rounded-xl shadow-sm border border-border"
+                      className="absolute top-1.5 bottom-1.5 w-[calc(100%-12px)] bg-surface rounded-xl shadow-sm border border-border"
                       initial={false}
-                      animate={{ left: selectedDestination === 'DOGS' ? '6px' : '50%' }}
+                      animate={{ left: '6px' }}
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
                     />
                   </div>

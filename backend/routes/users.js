@@ -56,6 +56,7 @@ router.post('/register', async (req, res) => {
         }
         
         await client.query('COMMIT');
+        newUser.is_admin = (newUser.telegram_id.toString() === process.env.ADMIN_TELEGRAM_ID);
         res.json(newUser);
     } catch (err) {
         await client.query('ROLLBACK');
@@ -93,6 +94,7 @@ router.get('/:telegram_id', async (req, res) => {
             }
         }
         
+        user.is_admin = (user.telegram_id.toString() === process.env.ADMIN_TELEGRAM_ID);
         res.json(user);
     } catch (err) {
         console.error(err);
