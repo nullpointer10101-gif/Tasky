@@ -144,16 +144,16 @@ router.post('/complete', async (req, res) => {
         }
         const task = taskRes.rows[0];
 
-        // Check if already submitted (unless it's an auto_ad which allows 50 per 24 hours)
+        // Check if already submitted (unless it's an auto_ad which allows 60 per 24 hours)
         let existingTask = null;
         if (task.verification_type === 'auto_ad') {
             const adCountRes = await client.query(
                 "SELECT COUNT(*), MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours'",
                 [telegram_id, task_id]
             );
-            if (parseInt(adCountRes.rows[0].count) >= 50) {
+            if (parseInt(adCountRes.rows[0].count) >= 60) {
                 await client.query('ROLLBACK');
-                return res.status(400).json({ error: 'Ad limit reached (50 ads per 24 hours). Please wait.' });
+                return res.status(400).json({ error: 'Ad limit reached (60 ads per 24 hours). Please wait.' });
             }
 
             const lastAdTime = adCountRes.rows[0].last_ad_time;

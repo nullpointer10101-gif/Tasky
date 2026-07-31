@@ -293,20 +293,29 @@ export default function Tasks({ user, refreshUser }) {
                     </div>
                   ) : (
                     filteredTasks.map(task => (
-                      <Card key={task.id} className={`relative cursor-pointer transition-all duration-300 flex items-center gap-4 py-3 px-4 ${task.category === 'partner' ? 'border-amber-500/50 bg-gradient-to-r from-amber-500/5 to-transparent hover:border-amber-400' : 'hover:border-indigo-500/30 bg-surface-soft'}`} onClick={() => handleSelectTask(task)}>
-                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 ${getIconBgColor(task.icon)}`}>
+                      <Card key={task.id} className={`relative cursor-pointer transition-all duration-300 flex items-center gap-4 py-3 px-4 overflow-hidden ${task.verification_type === 'auto_ad' ? 'border-rose-500/50 bg-gradient-to-r from-rose-500/10 via-purple-500/5 to-orange-500/10 hover:border-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.15)] my-1' : task.category === 'partner' ? 'border-amber-500/50 bg-gradient-to-r from-amber-500/5 to-transparent hover:border-amber-400' : 'hover:border-indigo-500/30 bg-surface-soft'}`} onClick={() => handleSelectTask(task)}>
+                        {task.verification_type === 'auto_ad' && (
+                          <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+                        )}
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white shadow-lg shrink-0 relative z-10 ${getIconBgColor(task.icon)}`}>
                           <IconRenderer name={task.icon} size={20} />
+                          {task.verification_type === 'auto_ad' && (
+                            <div className="absolute -top-1 -right-1 flex h-4 w-4">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-4 w-4 bg-rose-500 border-2 border-surface"></span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0 pr-16">
+                        <div className="flex-1 min-w-0 pr-16 relative z-10">
                           <h3 className="font-bold text-ink text-[15px] leading-tight mb-1 truncate flex items-center gap-1.5">
                             {task.title}
                             {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-400 px-1.5 py-0.5 rounded border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
                             {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-1.5 py-0.5 rounded border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
                           </h3>
-                          <p className="text-xs text-ink-soft truncate">{task.subtitle}</p>
+                          <p className={`text-xs truncate ${task.verification_type === 'auto_ad' ? 'text-rose-400/80 font-medium' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 bg-surface border border-border px-3 py-1.5 rounded-full shadow-sm">
-                          <span className="text-sm font-black text-ink">+{task.reward_tasky}</span>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3 py-1.5 rounded-full shadow-sm border z-10 ${task.verification_type === 'auto_ad' ? 'bg-rose-500/10 border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]' : 'bg-surface border-border'}`}>
+                          <span className={`text-sm font-black ${task.verification_type === 'auto_ad' ? 'text-rose-500' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </Card>
                     ))
@@ -435,6 +444,10 @@ export default function Tasks({ user, refreshUser }) {
                       <li className="flex items-start gap-2 text-sm text-ink-soft">
                         <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
                         <span className="leading-tight">Skipping or closing the ad early will cancel the reward.</span>
+                      </li>
+                      <li className="flex items-start gap-2 text-sm text-ink-soft">
+                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-1.5 shrink-0" />
+                        <span className="leading-tight">Daily limit: 60 ads per 24 hours (30 TASKY per ad).</span>
                       </li>
                     </ul>
                   </div>
