@@ -288,32 +288,38 @@ export default function Rig({ user, refreshUser }) {
       </div>
 
       {/* Hero Card */}
-      <Card className="relative overflow-hidden rounded-3xl border-0 shadow-lg">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600 to-indigo-800" />
-        
-        
-        <div className="relative z-10 p-2 text-white">
-          <div className="flex justify-between items-start mb-4">
-            <span className="bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5">
-              <Gem size={12} className="text-blue-200"/> {displayLevel}
-            </span>
-            <span className={`bg-white/20 text-white border border-white/20 px-3 py-1 rounded-full text-xs font-bold shadow-sm  flex items-center gap-1.5 ${displayEff > 100 ? '' : ''}`}>
-              <Zap size={12} className={displayEff > 100 ? 'text-yellow-300' : 'text-blue-200'}/> {displayEff}% Efficiency
-            </span>
-          </div>
+      <motion.div variants={containerVariants} className="relative group perspective-1000 mb-2">
+        <motion.div 
+          whileTap={{ scale: 0.98, rotateX: 2 }}
+          className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60 shadow-[0_15px_35px_-10px_rgba(99,102,241,0.4)] active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
+        >
+          {/* Animated Background Elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 group-hover:bg-white/20 transition-all duration-700" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
           
-          <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest mb-0.5">Mining Speed</p>
-          <div className="flex items-baseline gap-1.5 mb-5">
-            <span className="text-4xl font-black tracking-tight">{displaySpeed}</span>
-            <span className="text-sm font-medium text-white/80">TASKY / hr</span>
+          <div className="relative z-10 p-5 text-white">
+            <div className="flex justify-between items-start mb-6">
+              <span className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5">
+                <Gem size={12} className="text-blue-300"/> {displayLevel}
+              </span>
+              <span className={`bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5`}>
+                <Zap size={12} className={displayEff > 100 ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'text-blue-300'}/> {displayEff}% EFF
+              </span>
+            </div>
+            
+            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 drop-shadow-md">Mining Speed</p>
+            <div className="flex items-baseline gap-1.5 mb-6">
+              <span className="text-5xl font-black tracking-tighter drop-shadow-lg">{displaySpeed}</span>
+              <span className="text-sm font-black text-white/80 uppercase tracking-wider">TASKY / hr</span>
+            </div>
+            
+            <div className="bg-black/20 backdrop-blur-sm rounded-[1.25rem] px-4 py-3 border border-white/10 flex items-center justify-between shadow-inner">
+              <span className="text-xs font-bold text-white/70 uppercase tracking-wider">TASKY Balance</span>
+              <span className="text-sm font-black">{displayHolding}</span>
+            </div>
           </div>
-          
-          <div className="bg-black/20 rounded-xl px-3.5 py-2.5  border border-white/10 flex items-center justify-between">
-            <span className="text-xs font-medium text-white/70">TASKY Balance</span>
-            <span className="text-sm font-bold">{displayHolding} TASKY</span>
-          </div>
-        </div>
-      </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Efficiency Progress Indicator */}
       <motion.div variants={containerVariants} className="space-y-2">
@@ -669,40 +675,41 @@ export default function Rig({ user, refreshUser }) {
                     animate={{ opacity: 1, y: 0, x: isShaking ? [0, -5, 5, -5, 5, 0] : 0 }}
                     transition={{ duration: 0.3, delay: Math.min(idx, 8) * 0.05, x: { duration: 0.3 } }}
                     onClick={() => handleMachineTap(m)}
+                    whileTap={!isHidden ? { scale: 0.95 } : {}}
                     className={`
-                       relative flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all overflow-hidden
-                       ${isOwned ? `bg-surface border-solid ${conf.border} shadow-sm` : ''}
-                       ${isVisible ? `bg-surface-soft border-dashed ${conf.border} opacity-80` : ''}
-                       ${isHidden ? `bg-surface-soft border-solid border-border opacity-50` : ''}
+                       relative flex flex-col items-center justify-center p-3.5 rounded-[1.25rem] transition-all overflow-hidden text-center
+                       ${isOwned ? `bg-surface border-x border-t border-b-[3px] active:translate-y-[2px] active:border-b-[1px] shadow-sm active:shadow-none ${conf.border}` : ''}
+                       ${isVisible ? `bg-surface-soft border border-dashed ${conf.border} opacity-80 active:scale-95` : ''}
+                       ${isHidden ? `bg-surface-soft border border-solid border-border opacity-50` : ''}
                     `}
                  >
                     {isOwned && (
-                       <div className={`absolute top-2 right-2 text-[10px] font-black px-1.5 py-0.5 rounded-md ${conf.badgeBg} ${conf.color}`}>
+                       <div className={`absolute -top-1 -right-1 w-16 h-16 rounded-full blur-xl ${conf.bg}`} />
+                    )}
+                    {isOwned && (
+                       <div className={`absolute top-2 right-2 text-[10px] font-black px-1.5 py-0.5 rounded-md ${conf.badgeBg} ${conf.color} border border-current/20 shadow-sm z-10`}>
                           +{m.bonus}%
                        </div>
                     )}
-                    <div className={`w-12 h-12 rounded-xl mb-2 flex items-center justify-center ${isHidden ? 'bg-surface border border-border text-ink-faint' : conf.bg}`}>
+                    <div className={`relative z-10 w-12 h-12 rounded-xl mb-2 flex items-center justify-center shadow-inner ${isHidden ? 'bg-surface border border-border text-ink-faint' : conf.bg}`}>
                        <RarityIcon size={24} className={isHidden ? 'text-ink-faint' : (isVisible ? 'text-ink-soft grayscale' : conf.color)} />
                     </div>
-                    <div className="font-bold text-xs text-ink truncate w-full mb-0.5">
+                    <div className="relative z-10 font-black text-[11px] text-ink truncate w-full mb-0.5 uppercase tracking-wide">
                        {isHidden ? 'Mystery Rig' : m.name}
                     </div>
-                    <div className="text-[10px] text-ink-soft w-full px-1">
+                    <div className="relative z-10 text-[10px] text-ink-soft w-full px-1">
                        {isHidden ? (
-                         <div className="flex items-center justify-center gap-1 text-brand/80 font-medium tracking-wide">
+                         <div className="flex items-center justify-center gap-1 text-ink-faint font-bold tracking-widest mt-1">
                             <Lock size={10} /> LOCKED
                          </div>
                        ) : (isOwned ? (
-                         m.rarity.toUpperCase()
+                         <span className="font-bold uppercase tracking-widest opacity-80">{m.rarity}</span>
                        ) : (
-                         <div className="w-full flex flex-col items-center gap-1 mt-1">
-                           <div className="text-[9px]">Hold {Number(m.min_holding).toLocaleString()} TASKY</div>
+                         <div className="w-full flex flex-col items-center gap-1.5 mt-1.5">
+                           <div className="text-[9px] font-bold uppercase tracking-widest text-ink-soft">Hold {Number(m.min_holding).toLocaleString()}</div>
                            <div className="w-full flex flex-col gap-0.5">
-                             <div className="text-[8px] text-center text-ink-faint">
-                               {displayHolding} / {Number(m.min_holding).toLocaleString()} TASKY
-                             </div>
-                             <div className="w-full h-1 bg-surface-soft border border-border rounded-full overflow-hidden">
-                               <div className="h-full bg-brand" style={{ width: `${Math.min(100, (Number(displayHolding.replace(/,/g, '')) / Number(m.min_holding)) * 100)}%` }} />
+                             <div className="w-full h-1.5 bg-surface-soft border border-border shadow-inner rounded-full overflow-hidden">
+                               <div className="h-full bg-gradient-to-r from-blue-400 to-indigo-500" style={{ width: `${Math.min(100, (Number(displayHolding.replace(/,/g, '')) / Number(m.min_holding)) * 100)}%` }} />
                              </div>
                            </div>
                          </div>
@@ -715,31 +722,35 @@ export default function Rig({ user, refreshUser }) {
       </Card>
 
       {/* Explainer Card */}
-      <Card className="rounded-3xl border-border space-y-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="bg-surface-soft p-1.5 rounded-lg">
-            <Info size={16} className="text-ink-soft" />
+      <Card className="rounded-[2rem] border-b-[4px] border-x border-t border-border shadow-sm space-y-4 p-5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+        <div className="flex items-center gap-3 mb-2 relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center border border-brand/20">
+            <Info size={20} className="text-brand fill-brand/20" />
           </div>
-          <h2 className="text-sm font-bold text-ink">How Rig Works</h2>
+          <div>
+             <h2 className="text-lg font-black text-ink leading-tight">How Rig Works</h2>
+             <p className="text-[10px] font-bold uppercase tracking-widest text-ink-soft">Master Mining</p>
+          </div>
         </div>
-        <ul className="space-y-2 text-xs text-ink-soft">
-          <li className="flex items-start gap-2">
-            <span className="text-brand mt-0.5">•</span>
-            <span>Hold TASKY in your wallet to unlock higher tiers automatically.</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brand mt-0.5">•</span>
-            <span>The longer you hold without withdrawing, the higher your efficiency bonus grows.</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brand mt-0.5">•</span>
-            <span>Withdrawing or reducing your balance resets efficiency back to 100%.</span>
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-brand mt-0.5">•</span>
-            <span>Start a mining session, then return in 4 hours to claim your earnings.</span>
-          </li>
-        </ul>
+        <div className="space-y-3 relative z-10">
+           <div className="flex gap-3 items-start">
+             <div className="w-6 h-6 rounded-md bg-surface-soft flex items-center justify-center shrink-0 border border-border font-black text-xs text-ink-soft">1</div>
+             <p className="text-[12px] text-ink-soft font-medium leading-snug pt-0.5"><strong className="text-ink">Hold TASKY</strong> in your wallet to automatically unlock higher tiers and new machines.</p>
+           </div>
+           <div className="flex gap-3 items-start">
+             <div className="w-6 h-6 rounded-md bg-surface-soft flex items-center justify-center shrink-0 border border-border font-black text-xs text-ink-soft">2</div>
+             <p className="text-[12px] text-ink-soft font-medium leading-snug pt-0.5">The longer you hold without withdrawing, the <strong className="text-ink">higher your efficiency bonus grows</strong>.</p>
+           </div>
+           <div className="flex gap-3 items-start">
+             <div className="w-6 h-6 rounded-md bg-surface-soft flex items-center justify-center shrink-0 border border-border font-black text-xs text-ink-soft">3</div>
+             <p className="text-[12px] text-danger font-medium leading-snug pt-0.5">Withdrawing or transferring your balance <strong className="font-bold">resets efficiency to 100%</strong>.</p>
+           </div>
+           <div className="flex gap-3 items-start">
+             <div className="w-6 h-6 rounded-md bg-surface-soft flex items-center justify-center shrink-0 border border-border font-black text-xs text-ink-soft">4</div>
+             <p className="text-[12px] text-ink-soft font-medium leading-snug pt-0.5"><strong className="text-ink">Tap MINE</strong> to start a 4-hour session. Return to claim your rewards!</p>
+           </div>
+        </div>
       </Card>
       
       {/* Machine Detail Bottom Sheet */}
