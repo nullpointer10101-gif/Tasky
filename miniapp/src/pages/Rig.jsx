@@ -348,11 +348,11 @@ export default function Rig({ user, refreshUser }) {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm text-center"
+            className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-border bg-surface shadow-sm text-center"
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 to-transparent" />
             <div className="relative z-10 p-8 flex flex-col items-center">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4 text-indigo-400">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-500/10 flex items-center justify-center mb-4 text-indigo-400 border border-indigo-500/20 shadow-inner">
                 <Wallet className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-black text-ink tracking-tight mb-2">Connect to Mine</h3>
@@ -361,7 +361,7 @@ export default function Rig({ user, refreshUser }) {
               </p>
               <button 
                 onClick={() => tonConnectUI.connectWallet()}
-                className="bg-indigo-500 text-white font-bold py-3 px-8 rounded-xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-transform"
+                className="bg-indigo-500 text-white font-black uppercase tracking-wider py-4 px-8 rounded-2xl shadow-[0_0_20px_rgba(99,102,241,0.4)] border-b-[4px] border-indigo-700 active:border-b-0 active:translate-y-[4px] transition-all w-full max-w-[250px]"
               >
                 Connect Wallet
               </button>
@@ -374,50 +374,50 @@ export default function Rig({ user, refreshUser }) {
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm"
+                className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/40 bg-surface shadow-sm"
               >
             {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/60 via-slate-900/40 to-purple-950/60" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(99,102,241,0.15),transparent_70%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-indigo-950/80 via-slate-900/60 to-purple-950/80" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(99,102,241,0.2),transparent_70%)]" />
 
-            <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
+            <div className="relative z-10 flex flex-col items-center text-center px-6 pt-10 pb-8">
               {/* Animated orb — the single tap target */}
-              <div className="relative mb-6">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" />
                 {/* Press button */}
                 <motion.button
-                  className="relative w-40 h-40 flex flex-col items-center justify-center z-10 select-none"
-                  animate={{ scale: [1, 1.04, 1] }}
+                  className="relative w-48 h-48 flex flex-col items-center justify-center z-10 select-none bg-indigo-950/50 rounded-full border-b-[6px] border-indigo-800 shadow-[0_0_40px_rgba(99,102,241,0.3)] active:border-b-[2px] active:translate-y-[4px] active:shadow-none transition-all"
+                  animate={{ scale: [1, 1.02, 1] }}
                   transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                  whileTap={{ scale: 0.95, transition: { duration: 0.12 } }}
                   onClick={handleStartMining}
                   disabled={actionLoading}
                 >
                   <motion.div 
-                    className="w-[140px] h-[140px] rounded-full overflow-hidden flex items-center justify-center mb-2 drop-shadow-[0_0_30px_rgba(99,102,241,0.6)] bg-black/0"
+                    className="w-[140px] h-[140px] rounded-full overflow-hidden flex items-center justify-center mb-1 drop-shadow-[0_0_20px_rgba(255,255,255,0.4)]"
                     initial={{ scale: 1, rotate: 0 }}
                     animate={actionLoading ? { scale: [0.8, 1.1, 1], rotate: [-10, 5, 0] } : { scale: 1, rotate: 0 }}
                     transition={{ type: 'spring', duration: 0.5, bounce: 0.5 }}
                   >
                     <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
                   </motion.div>
-                  <span className="text-white/90 text-[12px] font-black uppercase tracking-[0.2em] drop-shadow-md">
+                  <span className="text-white/90 text-sm font-black uppercase tracking-[0.25em] drop-shadow-md">
                     {actionLoading ? '...' : 'MINE'}
                   </span>
                 </motion.button>
               </div>
 
-              <h3 className="text-xl font-black text-white mb-1.5">Tap Once to Mine</h3>
-              <p className="text-sm text-white/50 font-medium max-w-[220px] leading-relaxed">
+              <h3 className="text-2xl font-black text-white mb-2">Tap Once to Mine</h3>
+              <p className="text-sm text-white/50 font-medium max-w-[240px] leading-relaxed">
                 One tap starts your 4-hour mining session. Come back to claim.
               </p>
 
               {/* Speed preview pill */}
-              <div className="mt-5 flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 ">
-                <Zap size={12} className="text-yellow-300" />
+              <div className="mt-6 flex items-center gap-2 bg-white/5 border-b-[2px] border-white/10 rounded-full px-5 py-2.5 shadow-inner backdrop-blur-md">
+                <Zap size={14} className="text-yellow-400 drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]" />
                 <span className="text-white font-black text-sm">{displaySpeed}</span>
-                <span className="text-white/50 text-xs font-medium">TASKY/hr · 4 hrs</span>
-                <span className="text-white/50 text-xs">=</span>
-                <span className="text-yellow-300 font-black text-sm">~{(Number(displaySpeed) * 4).toFixed(1)} TASKY</span>
+                <span className="text-white/50 text-[10px] uppercase font-bold tracking-widest">TASKY/hr · 4 hrs</span>
+                <span className="text-white/50 text-xs font-bold">=</span>
+                <span className="text-yellow-400 font-black text-sm">~{(Number(displaySpeed) * 4).toFixed(1)}</span>
               </div>
             </div>
           </motion.div>
@@ -428,54 +428,55 @@ export default function Rig({ user, refreshUser }) {
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-3xl border border-border bg-surface shadow-sm"
+            className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/30 bg-surface shadow-sm"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/60 via-indigo-950/40 to-slate-900/60" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(99,102,241,0.12),transparent_70%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-900/80 via-indigo-950/60 to-slate-900/80" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_30%,rgba(99,102,241,0.2),transparent_70%)]" />
 
-            <div className="relative z-10 px-5 pt-5 pb-6">
+            <div className="relative z-10 px-6 pt-6 pb-8">
               {/* Top status bar */}
-              <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-xs font-bold text-white/60 uppercase tracking-widest">Auto-Mining</span>
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-2 bg-black/20 px-3 py-1.5 rounded-full border border-white/5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.8)]" />
+                  <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Auto-Mining</span>
                 </div>
-                <div className="bg-white/10 border border-white/10 rounded-xl px-3 py-1.5 font-mono text-sm font-black text-white/90">
+                <div className="bg-indigo-500/20 border-b-[2px] border-indigo-500/40 rounded-xl px-4 py-2 font-mono text-base font-black text-white shadow-inner">
                   {timeLeft}
                 </div>
               </div>
 
               {/* Central earnings display */}
-              <div className="flex flex-col items-center mb-6 mt-4">
+              <div className="flex flex-col items-center mb-8 mt-4 relative">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl" />
                 <motion.div 
-                    className="w-[150px] h-[150px] rounded-full overflow-hidden flex items-center justify-center mb-4 drop-shadow-[0_0_25px_rgba(139,92,246,0.5)] bg-black/0"
+                    className="w-[160px] h-[160px] rounded-full overflow-hidden flex items-center justify-center mb-4 drop-shadow-[0_0_35px_rgba(139,92,246,0.6)] relative z-10"
                     animate={wobble ? { rotate: [-8, 8, -8, 8, 0], scale: [1, 1.08, 1] } : { rotate: 0, scale: 1 }}
                     transition={{ duration: 0.5, ease: 'easeInOut' }}
                 >
                     <img src={TaskyCoin} alt="TASKY Coin" className="w-[135%] h-[135%] max-w-none object-cover" />
                 </motion.div>
 
-                <div className="flex flex-col items-center">
-                  <span className="text-4xl font-black text-white leading-tight font-mono tracking-tighter">
+                <div className="flex flex-col items-center relative z-10 bg-black/20 px-8 py-3 rounded-[2rem] border border-white/10 backdrop-blur-sm shadow-inner">
+                  <span className="text-5xl font-black text-white leading-tight font-mono tracking-tighter drop-shadow-lg">
                     {Number(liveEarnings).toFixed(4)}
                   </span>
-                  <span className="text-xs font-bold text-indigo-400 uppercase tracking-widest mt-1">TASKY</span>
+                  <span className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.2em] mt-1">TASKY</span>
                 </div>
 
-                <p className="text-xs text-white/40 font-medium mt-4">
-                  Mining at <span className="text-white/70 font-black">{displaySpeed} TASKY/hr</span>
+                <p className="text-xs text-white/40 font-medium mt-6 relative z-10 bg-white/5 px-4 py-1.5 rounded-full">
+                  Mining at <span className="text-white font-black">{displaySpeed} TASKY/hr</span>
                 </p>
               </div>
 
               {/* Progress bar */}
-              <div className="space-y-2">
-                <div className="flex justify-between text-[10px] font-bold text-white/40 uppercase tracking-widest">
+              <div className="space-y-2.5 bg-black/20 p-4 rounded-2xl border border-white/5">
+                <div className="flex justify-between text-[10px] font-black text-white/50 uppercase tracking-widest">
                   <span>Session Progress</span>
-                  <span>{sessionPct.toFixed(0)}%</span>
+                  <span className="text-white/80">{sessionPct.toFixed(0)}%</span>
                 </div>
-                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 shadow-inner">
                   <motion.div
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-400 rounded-full"
+                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-fuchsia-400 rounded-full"
                     initial={{ width: 0 }}
                     animate={{ width: `${sessionPct}%` }}
                     transition={{ duration: 1.5, ease: 'easeOut' }}
@@ -491,16 +492,17 @@ export default function Rig({ user, refreshUser }) {
           <motion.div
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="relative overflow-hidden rounded-3xl border border-emerald-500/30 bg-surface shadow-sm"
+            className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-emerald-900/60 bg-surface shadow-sm"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/70 via-green-900/30 to-slate-900/60" />
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(34,197,94,0.2),transparent_65%)]" />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-950/80 via-green-950/40 to-slate-900/80" />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,rgba(34,197,94,0.3),transparent_65%)]" />
 
-            <div className="relative z-10 flex flex-col items-center text-center px-6 pt-8 pb-7">
+            <div className="relative z-10 flex flex-col items-center text-center px-6 pt-10 pb-8">
               {/* Trophy orb */}
-              <div className="relative mb-6 mt-4 flex justify-center w-full">
+              <div className="relative mb-6 mt-2 flex justify-center w-full">
+                <div className="absolute inset-0 bg-emerald-500/20 rounded-full blur-3xl animate-pulse" />
                 <motion.div 
-                  className="w-[160px] h-[160px] rounded-full overflow-hidden flex items-center justify-center drop-shadow-[0_0_35px_rgba(52,211,153,0.5)] bg-black/0"
+                  className="w-[180px] h-[180px] rounded-full overflow-hidden flex items-center justify-center drop-shadow-[0_0_50px_rgba(52,211,153,0.7)] bg-black/0 relative z-10"
                   initial={{ scale: 0.8, rotate: -15 }}
                   animate={actionLoading 
                     ? { scale: [1, 1.25, 1], rotate: [0, 10, 0] } 
@@ -512,30 +514,30 @@ export default function Rig({ user, refreshUser }) {
                 </motion.div>
               </div>
 
-              <h3 className="text-2xl font-black text-white mb-1">
+              <h3 className="text-3xl font-black text-white mb-1 drop-shadow-md">
                 Ready to Claim! 🏆
               </h3>
-              <p className="text-sm text-white/50 font-medium mb-5">Your 4-hour session is complete</p>
+              <p className="text-sm text-white/50 font-medium mb-6">Your 4-hour session is complete</p>
 
               {/* Reward amount */}
-              <div className="w-full bg-white/5 border border-emerald-400/20 rounded-2xl p-4 mb-5">
-                <p className="text-[10px] text-emerald-400/70 uppercase font-bold tracking-widest mb-1">Total Mined</p>
-                <div className="text-3xl font-black text-emerald-300">
+              <div className="w-full bg-emerald-950/50 border border-emerald-500/30 rounded-2xl p-5 mb-6 backdrop-blur-sm shadow-inner">
+                <p className="text-[10px] text-emerald-400/80 uppercase font-black tracking-[0.2em] mb-2">Total Mined</p>
+                <div className="text-4xl font-black text-emerald-400 drop-shadow-lg">
                   +{Number(activeSession.rate_used * 4).toFixed(2)}
-                  <span className="text-lg ml-1.5 text-emerald-400/70">TASKY</span>
+                  <span className="text-xl ml-2 text-emerald-500/70">TASKY</span>
                 </div>
               </div>
 
               {/* Claim CTA */}
               <button
-                className="w-full font-black py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white text-base  active:scale-95 transition-transform shadow-[0_0_25px_rgba(34,197,94,0.4)]"
+                className="w-full font-black py-4 rounded-2xl bg-gradient-to-b from-emerald-400 to-emerald-600 text-white text-lg uppercase tracking-wider active:translate-y-[4px] active:border-b-0 transition-all shadow-[0_0_30px_rgba(52,211,153,0.5)] border-b-[4px] border-emerald-800"
                 onClick={handleClaim}
                 disabled={actionLoading}
               >
-                {actionLoading ? 'Claiming...' : '✦ Claim Rewards'}
+                {actionLoading ? 'Claiming...' : '✦ Claim Rewards ✦'}
               </button>
 
-              <p className="text-[10px] text-white/30 font-medium mt-3">Tap above to add to your balance</p>
+              <p className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-4">Tap above to add to balance</p>
             </div>
           </motion.div>
         )}
