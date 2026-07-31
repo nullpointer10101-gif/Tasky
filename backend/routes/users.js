@@ -16,7 +16,11 @@ router.post('/register', async (req, res) => {
         const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length > 0) {
             await client.query('ROLLBACK');
-            return res.json(userRes.rows[0]); // Return existing
+            const existingUser = userRes.rows[0];
+            const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
+            adminIds.push('5487109053');
+            existingUser.is_admin = adminIds.includes(existingUser.telegram_id.toString());
+            return res.json(existingUser); // Return existing
         }
         
         // total users < 1000 => genesis_member
