@@ -119,7 +119,7 @@ export default function Wallet({ user, refreshUser }) {
   const isUserAdmin = Boolean(user?.is_admin) || 
     ['8823265955', '5487109053'].includes(String(user?.telegram_id || ''));
     
-  const isSelectedActive = currentRate ? (selectedDestination === 'USDT' && !isUserAdmin ? false : Boolean(currentRate.is_active)) : false;
+  const isSelectedActive = currentRate ? Boolean(currentRate.is_active) : false;
   
   const balance = Number(user?.balance || 0);
   const amount = Number(swapAmount || 0);
@@ -336,24 +336,14 @@ export default function Wallet({ user, refreshUser }) {
                 <span className="text-4xl font-black text-success">≈ {receiveAmount}</span>
               </div>
               
-              <button
-                onClick={() => {
-                  if (!isUserAdmin) {
-                    if (window.Telegram?.WebApp?.HapticFeedback) {
-                      window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                    }
-                    showToast(`USDT swap is coming soon`, 'info');
-                    setTimeout(() => setIsUsdtTeaserOpen(true), 300);
-                  }
-                }}
-                className="flex items-center gap-2 mt-4 bg-surface px-5 py-2.5 rounded-2xl border border-border shadow-sm active:scale-95 transition-transform"
+              <div
+                className="flex items-center gap-2 mt-4 bg-surface px-5 py-2.5 rounded-2xl border border-border shadow-sm"
               >
                 <div className="w-6 h-6 rounded-full bg-teal-500 flex items-center justify-center shadow-inner">
                   <span className="text-white text-[10px] font-black">₮</span>
                 </div>
                 <span className="text-sm font-black text-ink">USDT (TON)</span>
-                {!isUserAdmin && <Lock size={14} className="text-ink-soft ml-1" />}
-              </button>
+              </div>
 
               <div className="text-[10px] text-ink-faint font-medium mt-4 bg-surface/50 px-3 py-1 rounded-full border border-border/50">
                 Rate: {taskyPerUnit} TASKY = 1 USDT
