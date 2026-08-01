@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { waitForGiga } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket } from 'lucide-react';
@@ -175,15 +176,16 @@ export default function Tasks({ user, refreshUser }) {
       } else if (selectedTask.verification_type === 'auto_ad') {
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
-          if (secondsSinceLastAd < 30) {
-            const timeLeft = Math.ceil(30 - secondsSinceLastAd);
+          if (secondsSinceLastAd < 20) {
+            const timeLeft = Math.ceil(20 - secondsSinceLastAd);
             showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
             setIsSubmitting(false);
             return;
           }
         }
         
-        if (typeof window.showGiga === 'undefined') {
+        const gigaReady = await waitForGiga(5000);
+        if (!gigaReady) {
           showToast('Ad network not loaded. Please try again later.', 'error');
           setIsSubmitting(false);
           return;

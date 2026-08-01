@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { waitForGiga } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -176,7 +177,8 @@ export default function Wallet({ user, refreshUser, navigate }) {
   };
 
   const handleWatchAd = async () => {
-    if (typeof window.showGiga === 'undefined') {
+    const gigaReady = await waitForGiga(5000);
+    if (!gigaReady) {
       return showToast('Ad network not loaded. Please try again later.', 'error');
     }
     try {

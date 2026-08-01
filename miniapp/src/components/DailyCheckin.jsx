@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { waitForGiga } from '../adUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Calendar, Sparkles } from 'lucide-react';
 import Card from './Card';
@@ -82,7 +83,8 @@ export default function DailyCheckin({ user, refreshUser }) {
   }
 
   const handleClaim = async () => {
-    if (typeof window.showGiga === 'undefined') {
+    const gigaReady = await waitForGiga(5000);
+    if (!gigaReady) {
       showToast('Ad network not loaded. Please try again later.', 'error');
       return;
     }
