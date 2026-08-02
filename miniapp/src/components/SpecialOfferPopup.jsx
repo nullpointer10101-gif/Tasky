@@ -1,12 +1,14 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users, X, Zap, Clock } from 'lucide-react';
+import { Users, X, Zap, Clock, Timer } from 'lucide-react';
 import { getSpecialOfferStatus, claimSpecialOffer } from '../api';
 import { useToast } from '../App';
 
 const OFFER_ID = 'invite_20_get_20k';
 const REQUIRED_REFERRALS = 20;
 const REWARD_TOKENS = 20000;
+const OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
+const LS_SEEN_KEY = `tasky_offer_${OFFER_ID}_seen`;
 
 function isOfferDone() {
   try { return !!localStorage.getItem(`tasky_offer_${OFFER_ID}_done`); } catch { return false; }
@@ -16,12 +18,40 @@ function dismissOfferPermanently() {
   try { localStorage.setItem(`tasky_offer_${OFFER_ID}_done`, '1'); } catch {}
 }
 
+function getSeenTimestamp() {
+  try {
+    const v = localStorage.getItem(LS_SEEN_KEY);
+    return v ? parseInt(v, 10) : Date.now();
+  } catch { return Date.now(); }
+}
+
+function markOfferSeen() {
+  try {
+    if (!localStorage.getItem(LS_SEEN_KEY))
+      localStorage.setItem(LS_SEEN_KEY, Date.now().toString());
+  } catch {}
+}
+
+function calcTimeLeft(seenAt) {
+  const deadline = seenAt + OFFER_DURATION_MS;
+  const diff = Math.max(0, deadline - Date.now());
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  return {
+    total: diff,
+    str: `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+  };
+}
+
 export default function SpecialOfferPopup({ user }) {
   const [showBubble, setShowBubble] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [offerStatus, setOfferStatus] = useState({ valid_referrals: 0, claim: null });
   const [claiming, setClaiming] = useState(false);
   const [claimDone, setClaimDone] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ total: OFFER_DURATION_MS, str: '24:00:00' });
+  const timerRef = useRef(null);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -30,7 +60,12 @@ export default function SpecialOfferPopup({ user }) {
     if (isOfferDone()) return;
 
     // Show bubble immediately — don't wait for API
-    setTimeout(() => setShowBubble(true), 1500);
+    setTimeout(() => {
+      markOfferSeen(); // stamp seen time now
+      const seenAt = getSeenTimestamp();
+      setTimeLeft(calcTimeLeft(seenAt));
+      setShowBubble(true);
+    }, 1500);
 
     // Load status in background — failure is non-fatal
     const load = async () => {
@@ -50,6 +85,21 @@ export default function SpecialOfferPopup({ user }) {
     };
     load();
   }, [user?.telegram_id]);
+
+  // Live countdown — ticks every second
+  useEffect(() => {
+    if (!showBubble) return;
+    const seenAt = getSeenTimestamp();
+    timerRef.current = setInterval(() => {
+      const tl = calcTimeLeft(seenAt);
+      setTimeLeft(tl);
+      if (tl.total <= 0) {
+        clearInterval(timerRef.current);
+        setShowBubble(false); // offer expired
+      }
+    }, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [showBubble]);
 
   const handleCloseModal = () => setModalOpen(false);
 
@@ -98,7 +148,7 @@ export default function SpecialOfferPopup({ user }) {
             className="fixed z-40 flex flex-col items-end gap-1.5"
             style={{ bottom: '88px', right: '14px' }}
           >
-            {/* "24hr OFFER" pill label */}
+            {/* Countdown timer pill */}
             <motion.div
               initial={{ opacity: 0, x: 10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -106,7 +156,7 @@ export default function SpecialOfferPopup({ user }) {
               className="flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black text-black whitespace-nowrap"
               style={{ background: 'linear-gradient(135deg, #f59e0b, #fbbf24)', boxShadow: '0 2px 10px rgba(245,158,11,0.55)' }}
             >
-              🔥 24hr OFFER
+              <Timer size={8} strokeWidth={3} /> {timeLeft.str}
             </motion.div>
 
             {/* Main circle */}
@@ -192,7 +242,7 @@ export default function SpecialOfferPopup({ user }) {
                 style={{ background: 'radial-gradient(circle, #f59e0b 0%, transparent 70%)' }} />
 
               <div className="relative p-6 pb-8">
-                <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <motion.div animate={{ rotate: [0, 10, -10, 0] }}
                       transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
@@ -211,6 +261,34 @@ export default function SpecialOfferPopup({ user }) {
                     </button>
                   )}
                 </div>
+
+                {/* ── LIVE COUNTDOWN BAR ── */}
+                {!claimDone && !isPending && (
+                  <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 mb-4"
+                    style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-2 w-2 relative">
+                        <motion.span
+                          animate={{ scale: [1, 2, 1], opacity: [0.9, 0, 0.9] }}
+                          transition={{ repeat: Infinity, duration: 1.1 }}
+                          className="absolute inline-flex h-full w-full rounded-full"
+                          style={{ background: '#ef4444' }}
+                        />
+                        <span className="relative inline-flex rounded-full h-2 w-2" style={{ background: '#ef4444' }} />
+                      </span>
+                      <span className="text-xs font-bold" style={{ color: 'rgba(239,68,68,0.9)' }}>Expires in</span>
+                    </div>
+                    <motion.span
+                      key={timeLeft.str}
+                      initial={{ opacity: 0.6, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="font-black text-sm tracking-widest tabular-nums"
+                      style={{ color: '#ef4444', fontVariantNumeric: 'tabular-nums' }}
+                    >
+                      {timeLeft.str}
+                    </motion.span>
+                  </div>
+                )}
 
                 {claimDone || isPending ? (
                   <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
