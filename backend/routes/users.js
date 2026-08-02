@@ -294,4 +294,86 @@ router.post('/wallet/disconnect', async (req, res) => {
     }
 });
 
+// ==========================================
+// SPECIAL OFFER — Invite 20 Friends, Get 20,000 TASKY
+// ==========================================
+
+// GET /api/users/special-offer/status/:telegram_id
+router.get('/special-offer/status/:telegram_id', async (req, res) => {
+    const { telegram_id } = req.params;
+    try {
+        const userRes = await pool.query(
+            'SELECT valid_referrals FROM users WHERE telegram_id = $1',
+            [telegram_id]
+        );
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+        const claimRes = await pool.query(
+            'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1',
+            [telegram_id]
+        );
+
+        res.json({
+            valid_referrals: userRes.rows[0].valid_referrals || 0,
+            claim: claimRes.rows[0] || null
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// POST /api/users/special-offer/claim
+router.post('/special-offer/claim', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Check if already claimed
+        const existingClaim = await client.query(
+            'SELECT id, status FROM special_offer_claims WHERE telegram_id = $1',
+            [telegram_id]
+        );
+        if (existingClaim.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.json({ success: false, error: 'already_claimed', status: existingClaim.rows[0].status });
+        }
+
+        // Get user's valid referral count
+        const userRes = await client.query(
+            'SELECT valid_referrals FROM users WHERE telegram_id = $1',
+            [telegram_id]
+        );
+        if (userRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const validReferrals = userRes.rows[0].valid_referrals || 0;
+        if (validReferrals < 20) {
+            await client.query('ROLLBACK');
+            return res.json({ success: false, error: 'not_enough_referrals', valid_referrals: validReferrals });
+        }
+
+        // Insert claim record (pending admin review)
+        await client.query(`
+            INSERT INTO special_offer_claims (telegram_id, offer_id, status, valid_referrals_at_claim, claimed_at)
+            VALUES ($1, 'invite_20_get_20k', 'pending', $2, NOW())
+        `, [telegram_id, validReferrals]);
+
+        await client.query('COMMIT');
+        res.json({ success: true, message: 'Claim submitted! Admin will review shortly.' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(err);
+        res.status(500).json({ error: 'Internal server error' });
+    } finally {
+        client.release();
+    }
+});
+
 module.exports = router;
+

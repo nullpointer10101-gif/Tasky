@@ -245,3 +245,14 @@ export const markMachineSeen = withMock((telegram_id, machine_id) => {
   mockData.getMachines.unrevealed_new_machines = mockData.getMachines.unrevealed_new_machines.filter(id => id !== machine_id);
   return { success: true };
 }, (telegram_id, machine_id) => () => api.post('/api/mining/machines/mark-seen', { telegram_id, machine_id }))
+
+// --- SPECIAL OFFER ---
+export const getSpecialOfferStatus = withMock(
+  () => ({ valid_referrals: 14, claim: null }),
+  (telegram_id) => () => api.get(`/api/users/special-offer/status/${telegram_id}`)
+)
+export const claimSpecialOffer = withMock(
+  { success: true, message: 'Claim submitted! Admin will review shortly.' },
+  (telegram_id) => () => api.post('/api/users/special-offer/claim', { telegram_id })
+)
+

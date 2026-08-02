@@ -528,4 +528,105 @@ router.delete('/machines/:id', async (req, res) => {
   }
 });
 
+// ==========================================
+// 10. SPECIAL OFFER CLAIMS
+// ==========================================
+
+// GET /admin/special-offers — list all claims
+router.get('/special-offers', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        soc.id, soc.telegram_id, soc.offer_id, soc.status,
+        soc.valid_referrals_at_claim, soc.claimed_at, soc.reviewed_at, soc.rejection_reason,
+        u.username, u.first_name, u.balance, u.valid_referrals as current_valid_referrals
+      FROM special_offer_claims soc
+      JOIN users u ON soc.telegram_id = u.telegram_id
+      ORDER BY soc.claimed_at DESC
+      LIMIT 500
+    `);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /admin/special-offers/review — approve or reject
+router.post('/special-offers/review', async (req, res) => {
+  const { claim_id, action, rejection_reason } = req.body;
+  const OFFER_REWARD = 20000;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const claimRes = await client.query(
+      "SELECT telegram_id, status FROM special_offer_claims WHERE id = $1",
+      [claim_id]
+    );
+    if (claimRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Claim not found' });
+    }
+
+    const { telegram_id, status } = claimRes.rows[0];
+    if (status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Claim is not in pending state' });
+    }
+
+    if (action === 'approve') {
+      await client.query(
+        "UPDATE special_offer_claims SET status = 'approved', reviewed_at = NOW() WHERE id = $1",
+        [claim_id]
+      );
+      await client.query(
+        'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2',
+        [OFFER_REWARD, telegram_id]
+      );
+      // Notify via Telegram bot
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `🎉 <b>Congratulations!</b>\n\nYour Special Offer claim has been <b>approved</b>!\n\n<b>+20,000 TASKY</b> has been added to your balance! 🚀\n\nKeep inviting friends to unlock more rewards!`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user:', e.message);
+        }
+      }
+    } else if (action === 'reject') {
+      await client.query(
+        "UPDATE special_offer_claims SET status = 'rejected', rejection_reason = $2, reviewed_at = NOW() WHERE id = $1",
+        [claim_id, rejection_reason || 'Requirements not met']
+      );
+      // Notify user of rejection
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `❌ <b>Special Offer Update</b>\n\nYour claim for the <b>Invite 20 Friends</b> offer was not approved.\n\nReason: ${rejection_reason || 'Requirements not met'}\n\nIf you believe this is a mistake, please contact support.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user:', e.message);
+        }
+      }
+    } else {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid action' });
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: `Claim ${action}d successfully` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
+

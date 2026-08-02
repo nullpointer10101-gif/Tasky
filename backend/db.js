@@ -44,6 +44,20 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS has_unseen_approved_withdrawal BOOLEAN DEFAULT FALSE;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS withdrawal_popup_views INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ads_watched INT DEFAULT 0;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS special_offer_seen_at TIMESTAMPTZ;
+
+      CREATE TABLE IF NOT EXISTS special_offer_claims (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT UNIQUE NOT NULL,
+        offer_id VARCHAR(50) NOT NULL DEFAULT 'invite_20_get_20k',
+        status VARCHAR(20) DEFAULT 'pending',
+        valid_referrals_at_claim INT DEFAULT 0,
+        seen_at TIMESTAMPTZ DEFAULT NOW(),
+        claimed_at TIMESTAMPTZ,
+        reviewed_at TIMESTAMPTZ,
+        rejection_reason TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_special_offer_claims_status ON special_offer_claims(status);
 
       CREATE TABLE IF NOT EXISTS ad_views (
         id SERIAL PRIMARY KEY,
