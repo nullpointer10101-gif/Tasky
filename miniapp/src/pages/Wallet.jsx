@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { waitForGiga } from '../adUtils';
+import { showRewardedAd } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -177,13 +177,13 @@ export default function Wallet({ user, refreshUser, navigate }) {
   };
 
   const handleWatchAd = async () => {
-    const gigaReady = await waitForGiga(5000);
-    if (!gigaReady) {
-      return showToast('Ad network not loaded. Please try again later.', 'error');
-    }
     try {
       setIsWatchingAd(true);
-      await window.showGiga("main");
+      const adResult = await showRewardedAd('main');
+      if (!adResult.success) {
+        showToast(adResult.error || 'Failed to complete ad', 'error');
+        return;
+      }
       
       setLocalAdsWatched(prev => prev + 1);
       
@@ -195,7 +195,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
         showToast(error || 'Failed to update ad progress', 'error');
       }
     } catch (e) {
-      showToast('You must watch the entire ad to get credit.', 'error');
+      showToast(e.message || 'You must watch the entire ad to get credit.', 'error');
     } finally {
       setIsWatchingAd(false);
     }

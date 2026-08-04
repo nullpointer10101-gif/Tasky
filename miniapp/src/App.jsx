@@ -13,9 +13,13 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
+import { initGigaAds } from './adUtils'
 
 export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
+
+// Pre-warm ad network SDK on application load
+initGigaAds();
 
 
 

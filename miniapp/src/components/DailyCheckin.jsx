@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { waitForGiga } from '../adUtils';
+import { showRewardedAd } from '../adUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Calendar, Sparkles } from 'lucide-react';
 import Card from './Card';
@@ -84,16 +84,15 @@ export default function DailyCheckin({ user, refreshUser }) {
   }
 
   const handleClaim = async () => {
-    const gigaReady = await waitForGiga(5000);
-    if (!gigaReady) {
-      showToast('Ad network not loaded. Please try again later.', 'error');
-      return;
-    }
-
     setClaiming(true);
     
     try {
-      await window.showGiga("main");
+      const adResult = await showRewardedAd('main');
+      if (!adResult.success) {
+        showToast(adResult.error || 'You must watch the entire ad to claim your reward.', 'error');
+        setClaiming(false);
+        return;
+      }
     } catch (e) {
       showToast('You must watch the entire ad to claim your reward.', 'error');
       setClaiming(false);

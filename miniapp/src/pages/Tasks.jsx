@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { waitForGiga } from '../adUtils';
+import { showRewardedAd } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket } from 'lucide-react';
@@ -184,16 +184,9 @@ export default function Tasks({ user, refreshUser }) {
           }
         }
         
-        const gigaReady = await waitForGiga(5000);
-        if (!gigaReady) {
-          showToast('Ad network not loaded. Please try again later.', 'error');
-          setIsSubmitting(false);
-          return;
-        }
-        try {
-          await window.showGiga("main");
-        } catch (e) {
-          showToast('You must watch the entire ad to get the reward.', 'error');
+        const adResult = await showRewardedAd('main');
+        if (!adResult.success) {
+          showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);
           return;
         }
