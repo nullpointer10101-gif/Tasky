@@ -22,7 +22,7 @@ const options = {
   parse_mode: 'Markdown',
   reply_markup: {
     inline_keyboard: [
-      [{ text: '💸 OPEN APP & CASH OUT 🚀', url: 'https://t.me/TaskyAppBot/app' }]
+      [{ text: '💸 OPEN APP & CASH OUT 🚀', url: 'https://t.me/TaskyAppbot/app' }]
     ]
   }
 };

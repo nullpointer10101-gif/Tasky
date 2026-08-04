@@ -16,7 +16,7 @@ const opts = {
     caption: caption,
     parse_mode: 'Markdown',
     reply_markup: {
-        inline_keyboard: [[{ text: 'Claim 100 USDT 💸', url: 'https://t.me/TaskyAppBot/app' }]]
+        inline_keyboard: [[{ text: 'Claim 100 USDT 💸', url: 'https://t.me/TaskyAppbot/app' }]]
     }
 };
 
