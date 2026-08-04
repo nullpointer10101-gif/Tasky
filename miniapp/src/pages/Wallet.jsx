@@ -144,14 +144,6 @@ export default function Wallet({ user, refreshUser, navigate }) {
       return showToast('Insufficient balance', 'error');
     }
     
-    const hasEnoughAds = localAdsWatched >= 200;
-    const hasEnoughRefs = (user?.valid_referrals || 0) >= 5;
-    
-    if (!hasEnoughAds && !hasEnoughRefs) {
-      setShowAdRequirement(true);
-      return;
-    }
-    
     if (hasPendingSwap) return showToast('You already have a pending swap request.', 'error');
 
     try {
@@ -424,39 +416,6 @@ export default function Wallet({ user, refreshUser, navigate }) {
               ) : hasPendingSwap ? (
                 <div className="w-full py-4 rounded-2xl bg-warning font-black text-white text-center shadow-[0_8px_30px_rgb(245,158,11,0.3)]">
                   Pending Swap in Progress
-                </div>
-              ) : (isConnected && swapAmount && Number(swapAmount) >= minSwap && Number(swapAmount) <= balance && !meetsSwapRequirements) ? (
-                <div className="bg-surface border border-border rounded-[2rem] p-5 shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col gap-3">
-                  <h3 className="font-black text-ink text-center text-sm">Unlock Swap Feature</h3>
-                  <p className="text-xs text-ink-soft text-center mb-1">Complete ONE of the following requirements:</p>
-                  
-                  <div className="bg-surface-soft p-3 rounded-2xl border border-border">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-ink">Watch Ads</span>
-                      <span className="text-xs font-black text-indigo-500">{localAdsWatched} / 500</span>
-                    </div>
-                    <div className="w-full bg-border rounded-full h-1.5 mb-3 overflow-hidden">
-                      <div className="bg-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${Math.min((localAdsWatched / 500) * 100, 100)}%` }} />
-                    </div>
-                    <Button onClick={() => navigate && navigate('tasks')} className="w-full py-2.5 text-xs font-black rounded-xl bg-indigo-500/10 text-indigo-500">
-                      Go to Tasks
-                    </Button>
-                  </div>
-                  
-                  <div className="text-center text-[10px] font-black text-ink-faint">OR</div>
-                  
-                  <div className="bg-surface-soft p-3 rounded-2xl border border-border">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-xs font-bold text-ink">Invite Friends</span>
-                      <span className="text-xs font-black text-success">{totalRefs} / 10</span>
-                    </div>
-                    <div className="w-full bg-border rounded-full h-1.5 mb-3 overflow-hidden">
-                      <div className="bg-success h-1.5 rounded-full transition-all" style={{ width: `${Math.min((totalRefs / 10) * 100, 100)}%` }} />
-                    </div>
-                    <Button onClick={() => navigate && navigate('referral')} className="w-full py-2.5 text-xs font-black rounded-xl bg-success/10 text-success">
-                      Invite Friends
-                    </Button>
-                  </div>
                 </div>
               ) : (
                 <Button

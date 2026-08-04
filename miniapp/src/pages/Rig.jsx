@@ -309,8 +309,8 @@ export default function Rig({ user, refreshUser }) {
           baseMined={liveEarnings}
           speedPerHour={boostedSpeed || displaySpeed}
           currentLevel={status?.mining_level || 1}
-          onClaim={handleClaimSession}
-          onStart={handleStartSession}
+          onClaim={handleClaim}
+          onStart={handleStartMining}
           claiming={actionLoading}
           starting={actionLoading}
         />

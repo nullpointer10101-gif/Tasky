@@ -77,18 +77,15 @@ export default function Home({ user, refreshUser, navigate }) {
       initial="initial"
       animate="animate"
     >
-      {/* Admin Mode Badge (Visible only to Admin) */}
-      {isUserAdmin && (
-        <motion.div variants={itemVariants} className="flex items-center justify-between px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
-          <div className="flex items-center gap-1.5 text-xs font-black text-indigo-400">
-            <ShieldCheck size={14} />
-            <span>Admin Dopamine Loop Mode</span>
-          </div>
-          <span className="text-[10px] uppercase tracking-wider font-bold text-ink-soft bg-surface px-2 py-0.5 rounded-full border border-border">
-            Admin Preview
-          </span>
-        </motion.div>
-      )}
+      {/* Launch Banner */}
+      <motion.div variants={itemVariants} className="bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 border border-indigo-500/20 p-3 rounded-2xl text-center shadow-inner">
+        <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest">
+          Launching TASKY Token
+        </h2>
+        <p className="text-[10px] font-bold text-ink-soft mt-0.5">
+          when development dashboard completes
+        </p>
+      </motion.div>
 
       {/* Header with Streak Flame */}
       <motion.div variants={itemVariants} className="flex justify-between items-center mb-2">

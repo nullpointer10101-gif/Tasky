@@ -95,7 +95,7 @@ export default function CyberMiningCore({
       <div className="absolute -bottom-12 -right-12 w-44 h-44 bg-purple-500/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
 
       {/* Cybernetic Core Reactor Ring */}
-      <div className="relative flex flex-col items-center justify-center my-4">
+      <div className="relative flex flex-col items-center justify-center my-2">
         <div
           className="relative w-48 h-48 flex items-center justify-center select-none"
         >
@@ -119,7 +119,7 @@ export default function CyberMiningCore({
       </div>
 
       {/* Live Odometer Ticker */}
-      <div className="flex flex-col items-center text-center my-3">
+      <div className="flex flex-col items-center text-center my-2">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.25em]">
           MINED REWARD ACCUMULATOR
         </p>
@@ -135,7 +135,7 @@ export default function CyberMiningCore({
       </div>
 
       {/* Near-Miss Tier Framing Banner */}
-      <div className="my-3 p-3 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 backdrop-blur-md">
+      <div className="my-2 p-2.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 backdrop-blur-md">
         <div className="flex items-center justify-between text-xs font-black mb-1.5">
           <span className="flex items-center gap-1 text-amber-300">
             <Flame size={14} className="fill-amber-400 text-amber-400 animate-bounce" />
@@ -158,7 +158,7 @@ export default function CyberMiningCore({
       </div>
 
       {/* Action Claim / Start Buttons */}
-      <div className="mt-4">
+      <div className="mt-2">
         {activeSession ? (
           <button
             onClick={handleClaimClick}
