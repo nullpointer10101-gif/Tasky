@@ -82,7 +82,7 @@ router.post('/redeem', async (req, res) => {
     res.json({
       success: true,
       reward_amount: promo.reward_amount,
-      message: 'Bounty code successfully redeemed!'
+      message: `Successfully redeemed ${promo.reward_amount} TASKY!`
     });
 
   } catch (error) {
