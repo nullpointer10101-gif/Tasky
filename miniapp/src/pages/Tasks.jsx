@@ -188,35 +188,43 @@ export default function Tasks({ user, refreshUser }) {
           }
         }
         
+        // Hide the modal before showing the ad so the ad doesn't get covered by z-index
+        const currentTask = selectedTask;
+        setSelectedTask(null);
+
         const adResult = await showRewardedAd('main');
         if (!adResult.success) {
           showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);
+          // Re-open modal if they canceled
+          setSelectedTask(currentTask);
           return;
         }
       }
 
-      const res = await completeTask(user?.telegram_id, selectedTask.id, proof_screenshot_url, proof_url);
+      // If we got here, we are submitting the proof
+      const activeTask = currentTask || selectedTask;
+      const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
-        const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s'].includes(selectedTask.verification_type);
+        const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s'].includes(activeTask.verification_type);
         
         const updatedTask = { 
-          ...selectedTask, 
+          ...activeTask, 
           status: isAutoApproved ? 'approved' : 'pending',
           submitted_at: new Date().toISOString()
         };
         setTasks(prev => {
-          if (selectedTask.verification_type === 'auto_ad') return prev;
-          return prev.filter(t => t.id !== selectedTask.id);
+          if (activeTask.verification_type === 'auto_ad') return prev;
+          return prev.filter(t => t.id !== activeTask.id);
         });
         setSubmissions(prev => [updatedTask, ...prev]);
 
         setSelectedTask(null);
         if (isAutoApproved) {
-          showToast(`Task Verified! +${selectedTask.reward_tasky} TASKY`, 'success');
+          showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
         } else {
-          setSubmittedTask(selectedTask);
+          setSubmittedTask(activeTask);
         }
         
         reloadData();
