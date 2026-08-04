@@ -19,13 +19,57 @@ export default function CyberMiningCore({
 }) {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [claimedAmount, setClaimedAmount] = useState(0);
-  const [internalMinedState, setInternalMinedState] = useState(Number(baseMined) || 0);
   const animRef = useRef(null);
   const intRef = useRef(null);
   const decRef = useRef(null);
   const progressRef = useRef(null);
   const nextTargetRef = useRef(null);
   const claimBtnRef = useRef(null);
+
+  useEffect(() => {
+    if (!activeSession || activeSession.is_ready_to_claim) return;
+
+    const rate = Number(activeSession.rate_used);
+    const maxEarned = rate * 4;
+    const start = new Date(activeSession.started_at).getTime();
+
+    let animationFrameId;
+    let lastUpdate = 0;
+
+    const updateDisplay = (timestamp) => {
+      // Throttle DOM updates slightly (every 50ms) to ensure perfect scrolling
+      if (timestamp - lastUpdate > 50) {
+        const now = Date.now();
+        const elapsedHours = (now - start) / (1000 * 60 * 60);
+        let currentEarned = rate * elapsedHours;
+        if (currentEarned > maxEarned) currentEarned = maxEarned;
+
+        if (intRef.current) {
+          intRef.current.textContent = Math.floor(currentEarned).toLocaleString();
+        }
+        if (decRef.current) {
+          decRef.current.textContent = (currentEarned % 1).toFixed(3).substring(1);
+        }
+        
+        if (progressRef.current) {
+          const pct = Math.min(100, Math.max(10, ((currentEarned % 2400) / 2400) * 100));
+          progressRef.current.style.width = `${pct}%`;
+        }
+        
+        if (nextTargetRef.current) {
+          nextTargetRef.current.textContent = `${Math.floor(2400 - (currentEarned % 2400)).toLocaleString()} TASKY to unlock next tier!`;
+        }
+        
+        lastUpdate = timestamp;
+      }
+
+      animationFrameId = requestAnimationFrame(updateDisplay);
+    };
+
+    animationFrameId = requestAnimationFrame(updateDisplay);
+
+    return () => cancelAnimationFrame(animationFrameId);
+  }, [activeSession]);
 
   const handleClaimClick = async () => {
     // Determine claim amount directly from DOM if session was active, else from baseMined
@@ -51,6 +95,14 @@ export default function CyberMiningCore({
       await onClaim();
     }
   };
+
+  let displayAmount = Number(baseMined) || 0;
+  if (activeSession && !activeSession.is_ready_to_claim) {
+      const rate = Number(activeSession.rate_used);
+      const maxEarned = rate * 4;
+      const elapsedHours = (Date.now() - new Date(activeSession.started_at).getTime()) / (1000 * 60 * 60);
+      displayAmount = Math.min(rate * elapsedHours, maxEarned);
+  }
 
   return (
     <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5  ">
@@ -86,10 +138,10 @@ export default function CyberMiningCore({
         </p>
         <div className="flex items-baseline justify-center gap-1 my-1">
           <span ref={intRef} className="text-4xl font-black text-white font-mono tracking-tight drop-">
-            {Math.floor(baseMined).toLocaleString()}
+            {Math.floor(displayAmount).toLocaleString()}
           </span>
           <span ref={decRef} className="text-xl font-black text-cyan-300 font-mono">
-            {(baseMined % 1).toFixed(3).substring(1)}
+            {(displayAmount % 1).toFixed(3).substring(1)}
           </span>
           <span className="text-xs font-black text-indigo-300 uppercase ml-1">TASKY</span>
         </div>

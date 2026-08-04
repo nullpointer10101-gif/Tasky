@@ -123,7 +123,6 @@ export default function Rig({ user, refreshUser }) {
     const tick = () => {
       const now = new Date();
       const end = new Date(activeSession.expected_claim_at);
-      const start = new Date(activeSession.started_at);
       
       if (now >= end) {
         fetchStatus(false);
@@ -134,15 +133,7 @@ export default function Rig({ user, refreshUser }) {
         const s = Math.floor((diff / 1000) % 60);
         setTimeLeft(`${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
         
-        const elapsedHours = (now - start) / (1000 * 60 * 60);
-        const rate = Number(activeSession.rate_used);
-        const currentEarned = rate * elapsedHours;
-        const maxEarned = rate * 4;
-        setLiveEarnings(Math.min(currentEarned, maxEarned));
-
-        // Smooth dynamic UI updates
-        const nextInterval = 50;
-        timeoutId = setTimeout(tick, nextInterval);
+        timeoutId = setTimeout(tick, 1000);
       }
     };
     
