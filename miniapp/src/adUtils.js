@@ -127,6 +127,18 @@ export function waitForGiga(timeoutMs = 12000) {
  */
 export async function showRewardedAd(placement = 'main') {
   try {
+    // PRESERVE USER GESTURE: If the ad network is already loaded, we MUST call it 
+    // synchronously before any `await` (like waitForGiga). Awaiting a promise that 
+    // takes more than a microtask to resolve will drop the trusted user gesture,
+    // causing iOS Safari/WKWebView to silently block the ad iframe from appearing.
+    if (typeof window !== 'undefined' && typeof window.showGiga === 'function') {
+      await Promise.race([
+        window.showGiga(placement),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
+      ]);
+      return { success: true };
+    }
+
     const isReady = await waitForGiga(12000);
 
     if (!isReady || typeof window.showGiga !== 'function') {
@@ -137,7 +149,6 @@ export async function showRewardedAd(placement = 'main') {
     }
 
     // Call the rewarded ad method with a 60-second fallback timeout
-    // to prevent the UI from freezing indefinitely if the ad network hangs
     await Promise.race([
       window.showGiga(placement),
       new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
