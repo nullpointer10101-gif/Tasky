@@ -206,7 +206,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   ];
 
   return (
-    <div className="p-4 space-y-4 pb-20 h-full flex flex-col relative">
+    <div className="p-4 space-y-4 pb-20 min-h-full relative">
       <WalletDopamineTerminal
         user={user}
         balance={user?.balance || 0}
@@ -238,7 +238,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto hide-scrollbar relative">
+      <div className="relative">
         {activeTab === 'withdraw' ? (
           <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center min-h-full px-6 text-center space-y-6 mt-6">
             <div className="relative flex items-center justify-center w-24 h-24">

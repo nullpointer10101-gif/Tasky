@@ -89,7 +89,7 @@ function Profile({ user }) {
 
   return (
     <motion.div
-      className="pb-20 h-full overflow-y-auto hide-scrollbar"
+      className="pb-20 min-h-full relative"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >

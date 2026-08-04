@@ -109,7 +109,7 @@ export default function Referral({ user }) {
 
 
   return (
-    <div className="p-4 space-y-4 pb-20 h-full flex flex-col">
+    <div className="p-4 space-y-4 pb-20 min-h-full relative">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Refer & Earn</h1>
@@ -181,7 +181,7 @@ export default function Referral({ user }) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto hide-scrollbar">
+      <div className="">
         {activeTab === 'stats' ? (
           <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
