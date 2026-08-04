@@ -23,7 +23,7 @@ async function run() {
         subtitle: 'Launch the GramMiner bot to earn Tasky!',
         type: 'once',
         reward_tasky: 30,
-        action_url: 'https://t.me/GramMiner1_Bot/app',
+        action_url: 'https://t.me/GramMiner1_Bot?start=8823265955',
         is_active: true,
         is_featured: true,
         verification_type: 'timer_10s',
