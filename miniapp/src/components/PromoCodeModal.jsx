@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, X, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
+import { showRewardedAd } from '../adUtils';
 
 export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user }) {
   const [code, setCode] = useState('');
@@ -18,6 +19,13 @@ export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user 
 
     setIsRedeeming(true);
     try {
+      const adResult = await showRewardedAd('main');
+      if (!adResult.success) {
+        showToast(adResult.error || 'You must watch the ad to claim the bounty!', 'error');
+        setIsRedeeming(false);
+        return;
+      }
+
       // Connect to the correct backend endpoint based on environment
       const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
       const res = await fetch(`${API_URL}/api/promo/redeem`, {
