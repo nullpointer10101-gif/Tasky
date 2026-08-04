@@ -85,7 +85,7 @@ function Profile({ user }) {
     else window.open(url, '_blank');
   };
 
-  const isUserAdmin = useIsAdmin();
+
 
   return (
     <motion.div
@@ -93,7 +93,6 @@ function Profile({ user }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
-      {isUserAdmin && (
         <div className="p-4 pb-0">
           <ProfileGenesisCard
             user={user}
@@ -101,7 +100,6 @@ function Profile({ user }) {
             balance={user?.balance || 0}
           />
         </div>
-      )}
 
       {/* ── Hero Banner ── */}
       <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}>

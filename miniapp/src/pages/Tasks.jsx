@@ -229,7 +229,7 @@ export default function Tasks({ user, refreshUser }) {
     }
   };
 
-  const isUserAdmin = useIsAdmin();
+
 
   return (
     <div className="p-4 space-y-4 pb-24 h-full flex flex-col relative">
@@ -238,20 +238,13 @@ export default function Tasks({ user, refreshUser }) {
           <h1 className="text-2xl font-bold text-ink">Tasks</h1>
           <p className="text-sm text-ink-soft">Complete tasks to earn TASKY</p>
         </div>
-        {isUserAdmin && (
-          <span className="text-[10px] font-black uppercase text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2.5 py-1 rounded-full">
-            Quest Overdrive
-          </span>
-        )}
       </div>
 
-      {isUserAdmin && (
-        <TaskDopamineHub
-          completedCount={submissions?.filter(s => s.status === 'approved').length || 3}
-          targetCount={5}
-          multiplierBonus="2.0x Boost"
-        />
-      )}
+      <TaskDopamineHub
+        completedCount={submissions?.filter(s => s.status === 'approved').length || 3}
+        targetCount={5}
+        multiplierBonus="2.0x Boost"
+      />
 
       <div className="flex p-1.5 rounded-[1.25rem] relative mb-5 bg-surface-soft shadow-inner">
         {['available', 'submissions'].map((tab) => (

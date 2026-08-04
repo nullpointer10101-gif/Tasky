@@ -34,8 +34,6 @@ export default function Home({ user, refreshUser, navigate }) {
   const [loading, setLoading] = useState(true);
 
   const tgId = String(user?.telegram_id || user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
-  const isUserAdmin = Boolean(user?.is_admin) || 
-    ['8823265955', '5487109053'].includes(tgId);
 
   useEffect(() => {
     let isMounted = true;
@@ -121,14 +119,12 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Dynamic Streak Flame Badge */}
-      {isUserAdmin && (
-        <motion.div variants={itemVariants}>
-          <StreakFlameBadge 
-            streakDays={user.streak_days} 
-            lastCheckin={user.last_checkin} 
-          />
-        </motion.div>
-      )}
+      <motion.div variants={itemVariants}>
+        <StreakFlameBadge 
+          streakDays={user.streak_days} 
+          lastCheckin={user.last_checkin} 
+        />
+      </motion.div>
 
       {/* Hero Balance Card */}
       <motion.div variants={itemVariants} className="relative group perspective-1000">
@@ -141,40 +137,23 @@ export default function Home({ user, refreshUser, navigate }) {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
           
-          {isUserAdmin ? (
-            <DopamineBalanceTicker 
-              balance={user.balance} 
-              speedPerHour={miningSpeed} 
-              usdtRate={taskyPerUsdt} 
-            />
-          ) : (
-            <div className="relative z-10 flex flex-col items-center text-center">
-              <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-2">{t('home.totalPortfolio') || 'TOTAL PORTFOLIO'}</p>
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
-                  {Math.floor(Number(user.balance)).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-                <span className="text-sm font-bold text-white/90">≈ ${usdtValue}</span>
-                <span className="text-xs font-black text-indigo-200">USDT</span>
-              </div>
-            </div>
-          )}
+          <DopamineBalanceTicker 
+            balance={user.balance} 
+            speedPerHour={miningSpeed} 
+            usdtRate={taskyPerUsdt} 
+          />
         </motion.div>
       </motion.div>
 
-      {/* Swap Dopamine Goal Card (Admin Loop) */}
-      {isUserAdmin && (
-        <motion.div variants={itemVariants}>
-          <SwapProgressCard 
-            balance={user.balance} 
-            taskyPerUsdt={taskyPerUsdt} 
-            targetUsd={1.00} 
-            onNavigate={navigate}
-          />
-        </motion.div>
-      )}
+      {/* Swap Dopamine Goal Card */}
+      <motion.div variants={itemVariants}>
+        <SwapProgressCard 
+          balance={user.balance} 
+          taskyPerUsdt={taskyPerUsdt} 
+          targetUsd={1.00} 
+          onNavigate={navigate}
+        />
+      </motion.div>
 
       {/* 2x2 Stats Grid - Gamified 3D Buttons */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
@@ -216,14 +195,12 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Referral Dopamine Unlock Tracker */}
-      {isUserAdmin && (
-        <motion.div variants={itemVariants}>
-          <ReferralDopamineCard 
-            referralData={referralData} 
-            onNavigate={navigate} 
-          />
-        </motion.div>
-      )}
+      <motion.div variants={itemVariants}>
+        <ReferralDopamineCard 
+          referralData={referralData} 
+          onNavigate={navigate} 
+        />
+      </motion.div>
 
       {/* Gamified Components */}
       <motion.div variants={itemVariants} className="space-y-4">
@@ -282,17 +259,15 @@ export default function Home({ user, refreshUser, navigate }) {
         </div>
       </motion.div>
 
-      {/* Welcome Back Overnight Accrual Modal (Admin preview) */}
-      {isUserAdmin && (
-        <WelcomeBackModal 
-          user={user} 
-          speedPerHour={miningSpeed} 
-          onClaim={(claimedAmount) => {
-            showToast(`+${claimedAmount} TASKY collected from passive mining! ⚡`, 'success');
-            refreshUser();
-          }} 
-        />
-      )}
+      {/* Welcome Back Overnight Accrual Modal */}
+      <WelcomeBackModal 
+        user={user} 
+        speedPerHour={miningSpeed} 
+        onClaim={(claimedAmount) => {
+          showToast(`+${claimedAmount} TASKY collected from passive mining! ⚡`, 'success');
+          refreshUser();
+        }} 
+      />
 
     </motion.div>
   );

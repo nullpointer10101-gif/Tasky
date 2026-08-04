@@ -119,8 +119,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 20000;
   const minSwap = currentRate ? Number(currentRate.min_tasky) : 20000;
   
-  const isUserAdmin = Boolean(user?.is_admin) || 
-    ['8823265955', '5487109053'].includes(String(user?.telegram_id || ''));
+
     
   const isSelectedActive = currentRate ? Boolean(currentRate.is_active) : false;
   
@@ -208,15 +207,13 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
   return (
     <div className="p-4 space-y-4 pb-32 h-full flex flex-col relative">
-      {isUserAdmin && (
-        <WalletDopamineTerminal
-          user={user}
-          balance={user?.balance || 0}
-          swapRates={rates}
-          onWatchAdSuccess={refreshUser}
-          showToast={showToast}
-        />
-      )}
+      <WalletDopamineTerminal
+        user={user}
+        balance={user?.balance || 0}
+        swapRates={rates}
+        onWatchAdSuccess={refreshUser}
+        showToast={showToast}
+      />
 
       <div className="flex bg-surface-soft p-1 rounded-pill relative mb-2 shadow-inner">
         {tabs.map((tab) => {

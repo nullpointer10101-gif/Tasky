@@ -106,7 +106,7 @@ export default function Referral({ user }) {
 
 
 
-  const isUserAdmin = useIsAdmin();
+
 
   return (
     <div className="p-4 space-y-4 pb-24 h-full flex flex-col">
