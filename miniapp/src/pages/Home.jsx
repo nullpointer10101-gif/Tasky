@@ -7,7 +7,7 @@ import DopamineBalanceTicker from '../components/DopamineBalanceTicker';
 import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
 import SwapProgressCard from '../components/SwapProgressCard';
-import ReferralDopamineCard from '../components/ReferralDopamineCard';
+
 import { useTranslation } from '../i18n/I18nContext';
 import { getReferral, getSwapRates, getMiningStatus } from '../api';
 import { useToast } from '../App';
@@ -194,13 +194,7 @@ export default function Home({ user, refreshUser, navigate }) {
         </motion.div>
       </motion.div>
 
-      {/* Referral Dopamine Unlock Tracker */}
-      <motion.div variants={itemVariants}>
-        <ReferralDopamineCard 
-          referralData={referralData} 
-          onNavigate={navigate} 
-        />
-      </motion.div>
+
 
       {/* Gamified Components */}
       <motion.div variants={itemVariants} className="space-y-4">

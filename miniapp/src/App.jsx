@@ -31,6 +31,9 @@ const getTelegramUser = () => {
     if (tg?.initDataUnsafe?.user?.id) {
       tg.ready()
       tg.expand()
+      if (tg.disableVerticalSwipes) {
+        tg.disableVerticalSwipes()
+      }
       return tg.initDataUnsafe.user
     }
   } catch (_) {}
