@@ -100,6 +100,13 @@ export default function App() {
 
   useEffect(() => {
     console.log('[App] Mounted. Adding visibility change listener.');
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand();
+      if (window.Telegram.WebApp.disableVerticalSwipes) {
+        window.Telegram.WebApp.disableVerticalSwipes();
+      }
+    }
     
     const handleVisibilityChange = () => {
       console.log(`[App] Visibility changed to: ${document.visibilityState}`);
