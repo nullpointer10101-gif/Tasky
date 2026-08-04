@@ -101,66 +101,7 @@ function Profile({ user }) {
           />
         </div>
 
-      {/* ── Hero Banner ── */}
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}>
-        
-        <div className="relative z-10 p-5 pb-6">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-black text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
-                  {initials}
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-400 rounded-full border-2 border-slate-900" />
-              </div>
-              <div>
-                <h1 className="text-xl font-black text-white leading-tight">{user.first_name}</h1>
-                <p className="text-slate-400 text-xs font-medium">@{user.username || user.telegram_id}</p>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <span className="text-slate-500 text-[10px]">ID:</span>
-                  <span className="text-slate-400 text-[10px] font-mono">{user.telegram_id}</span>
-                  <button onClick={handleCopyId} className="text-slate-500 hover:text-indigo-400 transition-colors">
-                    <Copy size={10} />
-                  </button>
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-col gap-1.5 items-end">
-              {user.genesis_member && (
-                <div className="flex items-center gap-1 bg-amber-400/15 border border-amber-400/30 px-2.5 py-1 rounded-full">
-                  <Star size={10} className="text-amber-400 fill-amber-400" />
-                  <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider">{t('profile.genesis')}</span>
-                </div>
-              )}
-              <div className="flex items-center gap-1 px-2.5 py-1 rounded-full border" style={{ background: `${rank.color}15`, borderColor: `${rank.color}40`, color: rank.color }}>
-                <RankIcon size={10} />
-                <span className="text-[10px] font-black uppercase tracking-wider">{rank.label}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 mb-3">
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-widest mb-0.5">{t('profile.totalBalance')}</p>
-            <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-black text-white">{Math.floor(balance).toLocaleString()}</span>
-              <span className="text-slate-400 text-sm font-bold">TASKY</span>
-              <span className="ml-auto text-emerald-400 text-sm font-black">≈ {(balance / TASKY_PER_USDT).toFixed(4)} USDT</span>
-            </div>
-          </div>
-
-          {rank.next && (
-            <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-slate-500 text-[10px] font-medium">{t('profile.rankProgress')}</span>
-                <span className="text-slate-400 text-[10px] font-bold">{totalEarned.toLocaleString()} / {rank.next.toLocaleString()}</span>
-              </div>
-              <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(rank.progress, 100)}%` }} transition={{ duration: 1, ease: 'easeOut' }} className="h-full rounded-full" style={{ background: `linear-gradient(90deg, ${rank.color}, #fff6)` }} />
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Old Hero Banner Removed to fix double profile rendering */}
 
       <div className="p-4 space-y-3">
         {/* ── Stats Grid ── */}

@@ -240,7 +240,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
       <div className="flex-1 overflow-y-auto hide-scrollbar relative">
         {activeTab === 'withdraw' ? (
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center h-full px-6 text-center space-y-6 mt-6">
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="flex flex-col items-center justify-center min-h-full px-6 text-center space-y-6 mt-6">
             <div className="relative flex items-center justify-center w-24 h-24">
               <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />
               <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-sm relative z-10">
@@ -295,7 +295,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
             </div>
           </motion.div>
         ) : activeTab === 'swap' ? (
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-4 flex flex-col h-full">
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-4 flex flex-col min-h-full">
             
             {/* The Huge Input Card */}
             <div className="bg-surface border border-border rounded-[2rem] p-6 shadow-sm flex flex-col items-center relative z-10">
@@ -400,8 +400,8 @@ export default function Wallet({ user, refreshUser, navigate }) {
               </div>
             </div>
 
-            {/* Floating Action Button / Requirement UI */}
-            <div className="fixed bottom-20 left-4 right-4 z-30">
+            {/* Action Button / Requirement UI */}
+            <div className="w-full z-30 pt-2 pb-2">
               {!isSelectedActive ? (
                 <Button 
                   onClick={() => setIsUsdtTeaserOpen(true)}
