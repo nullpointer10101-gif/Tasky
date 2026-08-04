@@ -16,10 +16,7 @@ export default function Toast({ message, type = 'success', onClose }) {
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -50, x: '-50%' }}
-        animate={{ opacity: 1, y: 0, x: '-50%' }}
-        exit={{ opacity: 0, y: -50, x: '-50%' }}
-        className={`fixed top-4 left-1/2 z-[9999] px-4 py-2 rounded-pill shadow-soft font-medium text-sm whitespace-nowrap ${colors[type]}`}
+        className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] px-6 py-4 rounded-2xl shadow-2xl font-bold text-center text-sm w-[85%] max-w-xs leading-relaxed ${colors[type]}`}
       >
         {message}
       </motion.div>
