@@ -13,6 +13,9 @@ export default function CyberMiningCore({
   onStart,
   claiming = false,
   starting = false,
+  timeLeft,
+  isConnected,
+  onConnect,
 }) {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [claimedAmount, setClaimedAmount] = useState(0);
@@ -117,23 +120,39 @@ export default function CyberMiningCore({
 
       {/* Action Claim / Start Buttons */}
       <div className="mt-2">
-        {activeSession ? (
+        {!isConnected ? (
           <button
-            onClick={handleClaimClick}
-            disabled={claiming || Number(baseMined) <= 0}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-black text-sm uppercase tracking-wider  active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            onClick={onConnect}
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/20"
           >
-            <Sparkles size={18} className="" />
-            {claiming ? 'CLAIMING MINED VAULT...' : `CLAIM TASKY NOW 💥`}
+            CONNECT WALLET TO MINE
           </button>
+        ) : activeSession ? (
+          activeSession.is_ready_to_claim ? (
+            <button
+              onClick={handleClaimClick}
+              disabled={claiming || Number(baseMined) <= 0}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-white/20"
+            >
+              <Sparkles size={18} />
+              {claiming ? 'CLAIMING MINED VAULT...' : `CLAIM TASKY NOW 💥`}
+            </button>
+          ) : (
+            <button
+              disabled
+              className="w-full py-4 rounded-2xl bg-indigo-900/40 text-indigo-200 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-indigo-500/20"
+            >
+              MINING IN PROGRESS {timeLeft ? `• ${timeLeft}` : ''}
+            </button>
+          )
         ) : (
           <button
             onClick={onStart}
             disabled={starting}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm uppercase tracking-wider  active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-white/20"
           >
             <Zap size={18} className="fill-white" />
-            {starting ? 'ENGAGING CORE...' : 'START 8H MINING OVERDRIVE ⚡'}
+            {starting ? 'ENGAGING CORE...' : 'START 4H MINING OVERDRIVE ⚡'}
           </button>
         )}
       </div>

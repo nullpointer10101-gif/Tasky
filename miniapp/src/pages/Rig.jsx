@@ -307,6 +307,9 @@ export default function Rig({ user, refreshUser }) {
         onStart={handleStartMining}
         claiming={actionLoading}
         starting={actionLoading}
+        timeLeft={timeLeft}
+        isConnected={isConnected}
+        onConnect={() => tonConnectUI.openModal()}
       />
 
       {/* Hero Card */}
