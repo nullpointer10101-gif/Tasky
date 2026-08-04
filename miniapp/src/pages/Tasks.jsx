@@ -232,7 +232,7 @@ export default function Tasks({ user, refreshUser }) {
 
 
   return (
-    <div className="p-4 space-y-4 pb-20 h-full flex flex-col relative">
+    <div className="p-4 space-y-4 pb-20 min-h-full relative">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Tasks</h1>
@@ -266,9 +266,9 @@ export default function Tasks({ user, refreshUser }) {
         />
       </div>
 
-      <div className="flex-1 overflow-y-auto hide-scrollbar">
+      <div className="">
         {activeTab === 'available' ? (
-          <div className="flex flex-col h-full">
+          <div className="flex flex-col">
               <div className="flex gap-3 mb-6 px-1">
                 <motion.button
                   whileTap={{ scale: 0.95 }}
