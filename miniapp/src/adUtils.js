@@ -9,6 +9,20 @@ let isInjecting = false;
 let injectionAttempts = 0;
 const MAX_INJECTION_ATTEMPTS = 3;
 
+// Patch Telegram.WebApp.showAlert to suppress annoying ad fill alerts from third-party networks
+if (typeof window !== 'undefined' && window.Telegram?.WebApp?.showAlert) {
+  const originalShowAlert = window.Telegram.WebApp.showAlert;
+  window.Telegram.WebApp.showAlert = function(message, callback) {
+    const msg = String(message).toLowerCase();
+    if (msg.includes('ad') && (msg.includes('not available') || msg.includes('currently'))) {
+      console.warn('[AdManager] Suppressed native ad alert:', message);
+      if (callback) callback();
+      return;
+    }
+    return originalShowAlert.apply(this, arguments);
+  };
+}
+
 /**
  * Dynamically injects or re-injects the GigaPub script if not present or failed.
  */
