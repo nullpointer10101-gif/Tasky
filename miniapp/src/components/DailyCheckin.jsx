@@ -6,6 +6,7 @@ import Card from './Card';
 import Button from './Button';
 import { checkin } from '../api';
 import { useToast } from '../App';
+import triggerConfetti from '../confetti';
 
 export default function DailyCheckin({ user, refreshUser }) {
   const [claiming, setClaiming] = useState(false);
@@ -104,6 +105,16 @@ export default function DailyCheckin({ user, refreshUser }) {
       
       if (res.data) {
         setReward(res.data);
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+          triggerConfetti({
+            particleCount: 80,
+            spread: 60,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {}
         await refreshUser();
       } else {
         showToast(res.error || 'Failed to claim', 'error');
@@ -173,8 +184,18 @@ export default function DailyCheckin({ user, refreshUser }) {
                   })}
                 </div>
 
+                {/* Escalating Reward Teaser */}
+                <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl px-3.5 py-2 mb-3 flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-ink-soft">
+                    {user.streak_days % 7 === 6 ? "✨ Day 7 Grand Reward Tomorrow!" : `Day ${(user.streak_days % 7) + 2} Next: Milestone Upgrade`}
+                  </span>
+                  <span className="text-xs font-black text-emerald-400">
+                    {user.streak_days % 7 === 6 ? "🎁 +100 TASKY" : "🔥 +30–500 TASKY"}
+                  </span>
+                </div>
+
                 <Button 
-                  className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${checkedInToday ? 'bg-surface-soft border-border text-ink-faint shadow-none' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border-none  active:scale-95'}`}
+                  className={`w-full font-black text-lg py-4 rounded-2xl transition-all ${checkedInToday ? 'bg-surface-soft border-border text-ink-faint shadow-none' : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 border-none active:scale-95'}`}
                   onClick={handleClaim} 
                   disabled={claiming || checkedInToday}
                 >

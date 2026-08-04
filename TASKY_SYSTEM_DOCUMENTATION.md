@@ -113,56 +113,64 @@ graph TB
 
 Tasky uses a structured relational PostgreSQL schema initialized in `backend/db.js`. Below is the complete schema map:
 
-### 4.1 `users`
-Primary ledger and state table for all registered members.
+### 4.1 Core User & Account Tables (`users`, `wallet_bindings`)
 ```sql
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT UNIQUE NOT NULL,
-    username VARCHAR(255),
-    first_name VARCHAR(255),
-    last_name VARCHAR(255),
-    balance NUMERIC(18, 4) DEFAULT 0,
-    total_earned NUMERIC(18, 4) DEFAULT 0,
-    task_earnings NUMERIC(18, 4) DEFAULT 0,
-    referral_earnings NUMERIC(18, 4) DEFAULT 0,
+    username VARCHAR(64),
+    first_name VARCHAR(64),
+    referral_code VARCHAR(20) UNIQUE,
     referred_by BIGINT,
     total_referrals INT DEFAULT 0,
     valid_referrals INT DEFAULT 0,
+    balance NUMERIC DEFAULT 0,
     streak_days INT DEFAULT 0,
     last_checkin TIMESTAMPTZ,
+    genesis_member BOOLEAN DEFAULT FALSE,
+    is_banned BOOLEAN DEFAULT FALSE,
     spins_available INT DEFAULT 0,
     spins_used_today INT DEFAULT 0,
     last_spin_date DATE,
-    wallet_address VARCHAR(255),
-    is_banned BOOLEAN DEFAULT FALSE,
-    is_admin BOOLEAN DEFAULT FALSE,
-    genesis_member BOOLEAN DEFAULT FALSE,
+    wallet_address VARCHAR(100),
+    mining_level INT DEFAULT 0,
+    efficiency_percent NUMERIC DEFAULT 100,
+    holding_stable_since TIMESTAMPTZ,
+    last_known_balance NUMERIC DEFAULT 0,
     withdrawal_ads_watched INT DEFAULT 0,
     total_ads_watched INT DEFAULT 0,
     has_unseen_approved_withdrawal BOOLEAN DEFAULT FALSE,
     withdrawal_popup_views INT DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    special_offer_seen_at TIMESTAMPTZ,
+    notify_usdt_unlock BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS wallet_bindings (
+    id SERIAL PRIMARY KEY,
+    wallet_address VARCHAR(100) UNIQUE NOT NULL,
+    telegram_id BIGINT UNIQUE NOT NULL,
+    bound_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-### 4.2 `tasks` & `user_tasks`
-Mission definition and individual submission tracking.
+### 4.2 Tasks & Submissions (`tasks`, `user_tasks`)
 ```sql
 CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    subtitle VARCHAR(255),
-    type VARCHAR(50) NOT NULL,              -- 'telegram', 'twitter', 'youtube', 'general', 'video'
-    category VARCHAR(50) DEFAULT 'internal',-- 'internal', 'partner', 'sponsored'
-    reward_tasky NUMERIC(18, 4) NOT NULL,
-    action_url VARCHAR(500),
-    verification_type VARCHAR(50) NOT NULL, -- 'auto_telegram', 'auto_referral', 'proof_screenshot', 'proof_username', 'timer_10s', 'auto_ad'
-    telegram_chat_id VARCHAR(100),          -- Used for auto membership verification
+    title VARCHAR(200) NOT NULL,
+    subtitle VARCHAR(200),
+    type VARCHAR(20) NOT NULL,              -- 'telegram', 'twitter', 'youtube', 'general', 'video'
+    reward_tasky NUMERIC NOT NULL,
+    action_url TEXT,
+    verification_type VARCHAR(20) DEFAULT 'proof_screenshot', -- 'auto_telegram', 'auto_referral', 'proof_screenshot', 'proof_username', 'timer_10s', 'auto_ad'
+    telegram_chat_id VARCHAR(100),          -- Used for Telegram membership check
     icon VARCHAR(50) DEFAULT 'Default',
+    category VARCHAR(50) DEFAULT 'internal',-- 'internal', 'partner', 'sponsored'
     is_featured BOOLEAN DEFAULT FALSE,
     is_active BOOLEAN DEFAULT TRUE,
+    admin_only BOOLEAN DEFAULT FALSE,
+    x_subtype VARCHAR(20),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -170,73 +178,81 @@ CREATE TABLE IF NOT EXISTS user_tasks (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT NOT NULL,
     task_id INT REFERENCES tasks(id),
-    status VARCHAR(50) DEFAULT 'pending',   -- 'pending', 'approved', 'rejected'
+    status VARCHAR(20) DEFAULT 'pending',   -- 'pending', 'approved', 'rejected'
     proof_screenshot_url TEXT,
-    proof_url TEXT,
     rejection_reason TEXT,
     submitted_at TIMESTAMPTZ DEFAULT NOW(),
     reviewed_at TIMESTAMPTZ,
-    completed_at TIMESTAMPTZ,
-    UNIQUE(telegram_id, task_id)
+    completed_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-### 4.3 `user_mining_state`, `mining_sessions` & `machines`
-Powers the off-chain hardware mining rig and vault tier progression.
+### 4.3 Mining, Rig Hardware & Levels (`mining_sessions`, `mining_levels`, `efficiency_tiers`, `machines`, `user_machines`)
 ```sql
-CREATE TABLE IF NOT EXISTS user_mining_state (
-    id SERIAL PRIMARY KEY,
-    telegram_id BIGINT UNIQUE NOT NULL,
-    mining_level INT DEFAULT 1,             -- 1: No Vault, 2: Bronze, 3: Silver, 4: Gold, 5: Diamond
-    base_speed_per_hour NUMERIC(10, 4) DEFAULT 5.0,
-    holding_stable_since TIMESTAMPTZ DEFAULT NOW(),
-    efficiency_percent INT DEFAULT 100,     -- 100% up to 200% based on holding days
-    last_recalculated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
 CREATE TABLE IF NOT EXISTS mining_sessions (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT NOT NULL,
+    wallet_address VARCHAR(100),
     started_at TIMESTAMPTZ DEFAULT NOW(),
-    expected_claim_at TIMESTAMPTZ NOT NULL, -- started_at + 4 hours
+    session_duration_hours INT DEFAULT 4,
+    expected_claim_at TIMESTAMPTZ NOT NULL,
+    rate_used NUMERIC NOT NULL,
+    level_used INT,
+    efficiency_used NUMERIC,
+    claimed BOOLEAN DEFAULT FALSE,
     claimed_at TIMESTAMPTZ,
-    rate_used NUMERIC(10, 4) NOT NULL,      -- Snapshot of effective speed at session start
-    tasky_earned NUMERIC(18, 4) DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'active'     -- 'active', 'claimed', 'abandoned'
+    tasky_earned NUMERIC DEFAULT 0,
+    status VARCHAR(20) DEFAULT 'active'     -- 'active', 'claimed'
+);
+
+CREATE TABLE IF NOT EXISTS mining_levels (
+    id SERIAL PRIMARY KEY,
+    level INT,                              -- 0: No Vault, 1: Bronze, 2: Silver, 3: Gold, 4: Diamond
+    min_holding NUMERIC,                    -- 0, 500, 2000, 5000, 15000
+    base_speed_per_hour NUMERIC,            -- 5, 8, 14, 25, 45
+    name VARCHAR(50)
+);
+
+CREATE TABLE IF NOT EXISTS efficiency_tiers (
+    id SERIAL PRIMARY KEY,
+    min_days INT,                           -- 0, 4, 8, 15, 30
+    multiplier NUMERIC                      -- 1.0 (100%), 1.10 (110%), 1.25 (125%), 1.50 (150%), 2.0 (200%)
 );
 
 CREATE TABLE IF NOT EXISTS machines (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL,
-    rarity VARCHAR(50) NOT NULL,            -- 'common', 'rare', 'epic', 'legendary'
-    min_holding NUMERIC(18, 4) NOT NULL,    -- Required balance to unlock
-    speed_bonus_percent INT NOT NULL,       -- Additional % boost to mining speed
-    icon_key VARCHAR(100) NOT NULL,
-    reveal_at_holding NUMERIC(18, 4) NOT NULL, -- Balance threshold to reveal from mystery state
+    name VARCHAR(50) NOT NULL,
+    rarity VARCHAR(20) NOT NULL,            -- 'common', 'rare', 'epic', 'legendary'
+    min_holding NUMERIC NOT NULL,
+    speed_bonus_percent NUMERIC NOT NULL,
+    icon_key VARCHAR(50) NOT NULL,
+    reveal_at_holding NUMERIC NOT NULL,
     sort_order INT DEFAULT 0
 );
 
-CREATE TABLE IF NOT EXISTS user_unlocked_machines (
+CREATE TABLE IF NOT EXISTS user_machines (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT NOT NULL,
     machine_id INT REFERENCES machines(id),
     unlocked_at TIMESTAMPTZ DEFAULT NOW(),
-    is_seen BOOLEAN DEFAULT FALSE,
+    reveal_seen BOOLEAN DEFAULT FALSE,
     UNIQUE(telegram_id, machine_id)
 );
 ```
 
-### 4.4 `swaps`, `withdrawals` & Settings Tables
-Handles currency exchange, fee calculations, and system-wide configurations.
+### 4.4 Swaps, Withdrawals & Settings (`swaps`, `swap_rates`, `withdrawals`, `withdrawal_settings`, `referral_rules`, `system_settings`, `special_offer_claims`, `ad_views`, `referrals`)
 ```sql
 CREATE TABLE IF NOT EXISTS swaps (
     id SERIAL PRIMARY KEY,
     telegram_id BIGINT NOT NULL,
-    tasky_amount NUMERIC(18, 4) NOT NULL,
-    receive_token VARCHAR(50) NOT NULL,     -- 'USDT', 'DOGS'
-    receive_amount NUMERIC(18, 4) NOT NULL,
-    wallet_address VARCHAR(255) NOT NULL,
-    status VARCHAR(50) DEFAULT 'pending',   -- 'pending', 'done', 'rejected'
+    tasky_amount NUMERIC NOT NULL,
+    receive_token VARCHAR(10) NOT NULL,     -- 'USDT'
+    receive_amount NUMERIC NOT NULL,
+    wallet_address VARCHAR(100) NOT NULL,
+    status VARCHAR(20) DEFAULT 'pending',   -- 'pending', 'done', 'rejected'
+    tx_hash VARCHAR(100),
+    fee_percent NUMERIC DEFAULT 2,
+    chain VARCHAR(20) DEFAULT 'BSC',        -- Default 'BSC' (BEP-20)
     rejection_reason TEXT,
     requested_at TIMESTAMPTZ DEFAULT NOW(),
     processed_at TIMESTAMPTZ
@@ -244,35 +260,61 @@ CREATE TABLE IF NOT EXISTS swaps (
 
 CREATE TABLE IF NOT EXISTS swap_rates (
     id SERIAL PRIMARY KEY,
-    token_name VARCHAR(50) UNIQUE NOT NULL,
-    tasky_per_unit NUMERIC(18, 4) NOT NULL,
-    min_tasky NUMERIC(18, 4) NOT NULL,
+    token_name VARCHAR(10) NOT NULL,
+    tasky_per_unit NUMERIC NOT NULL,        -- 20,000 TASKY per USDT
+    min_tasky NUMERIC NOT NULL,             -- 20,000 min TASKY
+    chain VARCHAR(20) DEFAULT 'BSC',
     is_active BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS withdrawal_settings (
+CREATE TABLE IF NOT EXISTS referrals (
     id SERIAL PRIMARY KEY,
-    min_withdrawal_tasky NUMERIC(18, 4) DEFAULT 1000,
-    fee_percent NUMERIC(5, 2) DEFAULT 35.0,
-    usdt_rate NUMERIC(18, 8) DEFAULT 0.00003,
-    is_locked BOOLEAN DEFAULT FALSE,
-    unlock_message TEXT,
-    target_users_milestone INT DEFAULT 500000
+    referrer_telegram_id BIGINT NOT NULL,
+    referred_telegram_id BIGINT NOT NULL,
+    reward_paid BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS referral_rules (
     id SERIAL PRIMARY KEY,
-    reward_per_referral NUMERIC(18, 4) DEFAULT 200,
+    reward_per_referral NUMERIC DEFAULT 200,
     tasks_required_for_valid INT DEFAULT 3,
-    spin_reward_per_referral INT DEFAULT 2
+    spin_reward_per_referral INT DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS special_offer_claims (
+    id SERIAL PRIMARY KEY,
+    telegram_id BIGINT UNIQUE NOT NULL,
+    offer_id VARCHAR(50) NOT NULL DEFAULT 'invite_20_get_20k',
+    status VARCHAR(20) DEFAULT 'pending',   -- 'pending', 'approved', 'rejected'
+    valid_referrals_at_claim INT DEFAULT 0,
+    seen_at TIMESTAMPTZ DEFAULT NOW(),
+    claimed_at TIMESTAMPTZ,
+    reviewed_at TIMESTAMPTZ,
+    rejection_reason TEXT
+);
+
+CREATE TABLE IF NOT EXISTS ad_views (
+    id SERIAL PRIMARY KEY,
+    telegram_id BIGINT,
+    ad_type VARCHAR(50),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS withdrawal_settings (
+    id SERIAL PRIMARY KEY,
+    min_withdrawal_tasky NUMERIC DEFAULT 1000,
+    fee_percent NUMERIC DEFAULT 35,
+    usdt_rate NUMERIC DEFAULT 0.00003,
+    is_locked BOOLEAN DEFAULT TRUE,
+    unlock_message TEXT DEFAULT 'Withdrawals unlock when TASKY launches on-chain',
+    target_users_milestone INT DEFAULT 500000
 );
 
 CREATE TABLE IF NOT EXISTS system_settings (
-    id SERIAL PRIMARY KEY,
-    key VARCHAR(100) UNIQUE NOT NULL,
-    value JSONB NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    key VARCHAR(50) PRIMARY KEY,
+    value JSONB NOT NULL
 );
 ```
 

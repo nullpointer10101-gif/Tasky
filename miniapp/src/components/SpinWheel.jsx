@@ -5,6 +5,7 @@ import Card from './Card';
 import Button from './Button';
 import { playSpin } from '../api';
 import { useToast } from '../App';
+import triggerConfetti from '../confetti';
 
 // Premium casino-like color palette
 const PRIZES = [
@@ -64,6 +65,17 @@ export default function SpinWheel({ user, refreshUser }) {
       setTimeout(() => {
         setSpinning(false);
         setReward(res.data);
+        try {
+          if (window.Telegram?.WebApp?.HapticFeedback) {
+            window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+          }
+          triggerConfetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+        } catch (e) {}
+
         if (res.data.tier === 'high') {
            showToast(`🎰 JACKPOT! You won ${res.data.reward_earned} TASKY!`);
         } else {
@@ -87,16 +99,30 @@ export default function SpinWheel({ user, refreshUser }) {
       
 
       <div className="relative z-10 p-5">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div className="flex flex-col">
-            <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 uppercase tracking-wide flex items-center gap-2">
-              <Sparkles size={18} className="text-yellow-400" />
-              Spin & Win
-            </h2>
-            <p className="text-xs text-amber-400 font-bold mt-1">Get 1 free spin by inviting a friend!</p>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-yellow-600 uppercase tracking-wide flex items-center gap-2">
+                <Sparkles size={18} className="text-yellow-400" />
+                Spin & Win
+              </h2>
+              {spinsAvailable > 0 && spinsUsedToday < 5 && (
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                </span>
+              )}
+            </div>
+            {spinsAvailable > 0 && spinsUsedToday < 5 ? (
+              <p className="text-xs text-amber-300 font-black mt-1 flex items-center gap-1 animate-pulse">
+                🎰 {spinsAvailable} Free Spin{spinsAvailable > 1 ? 's' : ''} Ready!
+              </p>
+            ) : (
+              <p className="text-xs text-amber-400/80 font-bold mt-1">Get 1 free spin by inviting a friend!</p>
+            )}
           </div>
-          <div className="text-right bg-black/40 px-3 py-1 rounded-full border border-white/5">
-            <p className="text-sm font-black text-white">{spinsAvailable} <span className="text-ink-soft font-medium">Spins</span></p>
+          <div className="text-right bg-black/40 px-3 py-1 rounded-2xl border border-white/10 shadow-sm">
+            <p className="text-sm font-black text-white">{spinsAvailable} <span className="text-indigo-200 font-bold">Spins</span></p>
             <p className="text-[10px] text-ink-faint">{spinsUsedToday}/5 Today</p>
           </div>
         </div>

@@ -7,6 +7,7 @@ import { useToast } from '../App';
 import { getMiningStatus, startMiningSession, claimMiningSession, getMiningLevels, saveWalletAddress, getMachines, markMachineSeen } from '../api';
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import TaskyCoin from '../assets/tasky-coin.jpg';
+import triggerConfetti from '../confetti';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -187,7 +188,10 @@ export default function Rig({ user, refreshUser }) {
       const { data, error } = await claimMiningSession(user?.telegram_id || '123456', walletAddress);
       
       if (data) {
-        showToast(`+${data.tasky_earned} TASKY claimed successfully!`);
+        try {
+          triggerConfetti({ particleCount: 100, spread: 80, origin: { y: 0.6 } });
+        } catch (e) {}
+        showToast(`+${data.tasky_earned} TASKY MINED 💥`, 'success');
         await refreshUser();
         await fetchStatus(false, { current: true });
       } else {

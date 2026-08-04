@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star } from 'lucide-react';
+import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck } from 'lucide-react';
 import DailyCheckin from '../components/DailyCheckin';
 import SpinWheel from '../components/SpinWheel';
+import DopamineBalanceTicker from '../components/DopamineBalanceTicker';
+import StreakFlameBadge from '../components/StreakFlameBadge';
+import WelcomeBackModal from '../components/WelcomeBackModal';
+import SwapProgressCard from '../components/SwapProgressCard';
+import ReferralDopamineCard from '../components/ReferralDopamineCard';
 import { useTranslation } from '../i18n/I18nContext';
-import { getReferral, getSwapRates } from '../api';
+import { getReferral, getSwapRates, getMiningStatus } from '../api';
 import { useToast } from '../App';
 
 const containerVariants = {
@@ -20,29 +25,37 @@ const itemVariants = {
   animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
-export default function Home({ user, refreshUser }) {
+export default function Home({ user, refreshUser, navigate }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const [swapRates, setSwapRates] = useState([]);
   const [referralData, setReferralData] = useState(null);
+  const [miningSpeed, setMiningSpeed] = useState(5.0);
   const [loading, setLoading] = useState(true);
+
+  const tgId = String(user?.telegram_id || user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
+  const isUserAdmin = Boolean(user?.is_admin) || 
+    ['8823265955', '5487109053'].includes(tgId);
 
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [refRes, ratesRes] = await Promise.all([
+        const [refRes, ratesRes, miningRes] = await Promise.all([
           getReferral(user?.telegram_id || '123456'),
-          getSwapRates()
+          getSwapRates(),
+          getMiningStatus(user?.telegram_id || '123456')
         ]);
         if (!isMounted) return;
         if (refRes.data) setReferralData(refRes.data);
         if (ratesRes.data) setSwapRates(ratesRes.data);
+        if (miningRes.data?.current_level?.rate_per_hour) {
+          setMiningSpeed(Number(miningRes.data.current_level.rate_per_hour) || 5.0);
+        }
       } catch (err) {
         if (!isMounted) return;
         console.error('Home fetchData error:', err);
-        showToast(err.message || 'Error loading home data', 'error');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -64,7 +77,20 @@ export default function Home({ user, refreshUser }) {
       initial="initial"
       animate="animate"
     >
-      {/* Header */}
+      {/* Admin Mode Badge (Visible only to Admin) */}
+      {isUserAdmin && (
+        <motion.div variants={itemVariants} className="flex items-center justify-between px-3.5 py-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-2xl">
+          <div className="flex items-center gap-1.5 text-xs font-black text-indigo-400">
+            <ShieldCheck size={14} />
+            <span>Admin Dopamine Loop Mode</span>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider font-bold text-ink-soft bg-surface px-2 py-0.5 rounded-full border border-border">
+            Admin Preview
+          </span>
+        </motion.div>
+      )}
+
+      {/* Header with Streak Flame */}
       <motion.div variants={itemVariants} className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-0.5 shadow-md">
@@ -89,6 +115,16 @@ export default function Home({ user, refreshUser }) {
         </motion.button>
       </motion.div>
 
+      {/* Dynamic Streak Flame Badge */}
+      {isUserAdmin && (
+        <motion.div variants={itemVariants}>
+          <StreakFlameBadge 
+            streakDays={user.streak_days} 
+            lastCheckin={user.last_checkin} 
+          />
+        </motion.div>
+      )}
+
       {/* Hero Balance Card */}
       <motion.div variants={itemVariants} className="relative group perspective-1000">
         <motion.div 
@@ -100,20 +136,40 @@ export default function Home({ user, refreshUser }) {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
           
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-2">{t('home.totalPortfolio') || 'TOTAL PORTFOLIO'}</p>
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
-                {Math.floor(Number(user.balance)).toLocaleString()}
-              </span>
+          {isUserAdmin ? (
+            <DopamineBalanceTicker 
+              balance={user.balance} 
+              speedPerHour={miningSpeed} 
+              usdtRate={taskyPerUsdt} 
+            />
+          ) : (
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-2">{t('home.totalPortfolio') || 'TOTAL PORTFOLIO'}</p>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md">
+                  {Math.floor(Number(user.balance)).toLocaleString()}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
+                <span className="text-sm font-bold text-white/90">≈ ${usdtValue}</span>
+                <span className="text-xs font-black text-indigo-200">USDT</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20">
-              <span className="text-sm font-bold text-white/90">≈ ${usdtValue}</span>
-              <span className="text-xs font-black text-indigo-200">USDT</span>
-            </div>
-          </div>
+          )}
         </motion.div>
       </motion.div>
+
+      {/* Swap Dopamine Goal Card (Admin Loop) */}
+      {isUserAdmin && (
+        <motion.div variants={itemVariants}>
+          <SwapProgressCard 
+            balance={user.balance} 
+            taskyPerUsdt={taskyPerUsdt} 
+            targetUsd={1.00} 
+            onNavigate={navigate}
+          />
+        </motion.div>
+      )}
 
       {/* 2x2 Stats Grid - Gamified 3D Buttons */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
@@ -153,6 +209,16 @@ export default function Home({ user, refreshUser }) {
           <p className="text-[11px] font-black text-ink-soft uppercase tracking-wider">{t('home.referralEarnings') || 'Ref Income'}</p>
         </motion.div>
       </motion.div>
+
+      {/* Referral Dopamine Unlock Tracker */}
+      {isUserAdmin && (
+        <motion.div variants={itemVariants}>
+          <ReferralDopamineCard 
+            referralData={referralData} 
+            onNavigate={navigate} 
+          />
+        </motion.div>
+      )}
 
       {/* Gamified Components */}
       <motion.div variants={itemVariants} className="space-y-4">
@@ -211,6 +277,19 @@ export default function Home({ user, refreshUser }) {
         </div>
       </motion.div>
 
+      {/* Welcome Back Overnight Accrual Modal (Admin preview) */}
+      {isUserAdmin && (
+        <WelcomeBackModal 
+          user={user} 
+          speedPerHour={miningSpeed} 
+          onClaim={(claimedAmount) => {
+            showToast(`+${claimedAmount} TASKY collected from passive mining! ⚡`, 'success');
+            refreshUser();
+          }} 
+        />
+      )}
+
     </motion.div>
   );
 }
+
