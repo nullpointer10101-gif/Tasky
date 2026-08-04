@@ -117,7 +117,7 @@ export default function SpinWheel({ user, refreshUser }) {
              {spinsAvailable > 0 && spinsUsedToday < 5 ? (
                <p className="text-xs text-amber-400 font-black mt-1 flex items-center gap-1.5 bg-amber-500/10 w-fit px-3 py-1 rounded-full border border-amber-500/20">
                  <span className="relative flex h-2 w-2">
-                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                   <span className=" absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                  </span>
                  {spinsAvailable} Free Spin{spinsAvailable > 1 ? 's' : ''} Ready!
@@ -146,7 +146,7 @@ export default function SpinWheel({ user, refreshUser }) {
                 {/* Outer Ring with Lights */}
                 <div className="absolute -inset-4 rounded-full border-4 border-[#2D2459] shadow-[0_0_50px_rgba(99,102,241,0.3)] bg-[#130E26]">
                   {/* Dotted border for a 'bulb' effect */}
-                  <div className={`absolute inset-0 rounded-full border-[6px] border-dashed border-yellow-500/40 ${spinning ? 'animate-[spin_4s_linear_infinite]' : ''}`} />
+                  <div className={`absolute inset-0 rounded-full border-[6px] border-dashed border-yellow-500/40 ${spinning ? '' : ''}`} />
                 </div>
 
                 {/* The Pointer */}

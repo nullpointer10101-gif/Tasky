@@ -157,7 +157,7 @@ export default function Referral({ user }) {
               'Your Stats'
             ) : (
               <div className="flex items-center gap-1.5">
-                <span className={`${activeTab === tab ? 'text-amber-500 drop-shadow-sm' : 'text-fuchsia-500 animate-pulse'} transition-colors`}>
+                <span className={`${activeTab === tab ? 'text-amber-500 drop-shadow-sm' : 'text-fuchsia-500 '} transition-colors`}>
                   <Trophy size={16} />
                 </span>
                 <span className={`${activeTab === tab ? '' : 'bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 to-purple-500 drop-shadow-sm'}`}>
@@ -165,7 +165,7 @@ export default function Referral({ user }) {
                 </span>
                 {/* Urgent notification dot */}
                 <span className="flex h-2 w-2 relative ml-0.5 -mt-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
+                  <span className=" absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
                 </span>
               </div>
@@ -183,7 +183,7 @@ export default function Referral({ user }) {
 
       <div className="">
         {activeTab === 'stats' ? (
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-4">
+          <motion.div    className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <Card className="flex flex-col">
                 <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center mb-3">
@@ -240,7 +240,7 @@ export default function Referral({ user }) {
             </Card>
           </motion.div>
         ) : (
-            <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
+            <motion.div    className="space-y-3 pb-8">
             <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
               
               <div className="relative z-10 flex flex-col items-center gap-2 w-full">
@@ -250,7 +250,7 @@ export default function Referral({ user }) {
                 </div>
                 
                 <h2 className="text-[28px] font-black text-white drop-shadow-lg tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
-                  <Clock className="text-fuchsia-400 animate-pulse drop-shadow-md shrink-0" size={26} />
+                  <Clock className="text-fuchsia-400  drop-shadow-md shrink-0" size={26} />
                   <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-fuchsia-100 to-fuchsia-300 tabular-nums">
                     {timeLeft}
                   </span>
@@ -282,7 +282,7 @@ export default function Referral({ user }) {
               let statClass = "text-ink-soft";
 
               if (rank === 1) {
-                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100] shadow-[0_10px_30px_rgba(255,143,0,0.5)] border border-[#FFE082] animate-pulse-slow scale-[1.02] transform z-20 relative";
+                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100] shadow-[0_10px_30px_rgba(255,143,0,0.5)] border border-[#FFE082]  scale-[1.02] transform z-20 relative";
                 rankTextClass = "text-[#FFF8E1] font-black text-xl drop-shadow-md";
                 icon = <Trophy size={24} className="text-[#FFF8E1] drop-shadow-lg" />;
                 prizeText = "100 USDT";

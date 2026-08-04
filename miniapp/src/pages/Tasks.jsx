@@ -275,7 +275,7 @@ export default function Tasks({ user, refreshUser }) {
                   onClick={() => setPlacementCategory('internal')}
                   className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'internal' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
                 >
-                  {placementCategory === 'internal' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />}
+                  {placementCategory === 'internal' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent -translate-x-full " />}
                   Tasky
                 </motion.button>
                 <motion.button
@@ -283,7 +283,7 @@ export default function Tasks({ user, refreshUser }) {
                   onClick={() => setPlacementCategory('partner')}
                   className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'partner' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-[0_8px_16px_-6px_rgba(245,158,11,0.3)]' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
                 >
-                  {placementCategory === 'partner' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />}
+                  {placementCategory === 'partner' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent -translate-x-full " />}
                   Partners
                 </motion.button>
               </div>
@@ -293,7 +293,7 @@ export default function Tasks({ user, refreshUser }) {
             {tasks.length === 0 ? (
               <EmptyState title="No tasks available" message="You've completed all tasks for now!" />
             ) : (
-              <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-6">
+              <motion.div    className="space-y-3 pb-6">
                 {(() => {
                   const filteredTasks = tasks.filter(t => {
                     return (t.category || 'internal') === placementCategory;
@@ -317,7 +317,7 @@ export default function Tasks({ user, refreshUser }) {
                       >
                         {task.verification_type === 'auto_ad' && (
                           <>
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full " />
                             <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-fuchsia-400/50">
                               <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 drop-shadow-md">HOT</span>
                             </div>
@@ -327,7 +327,7 @@ export default function Tasks({ user, refreshUser }) {
                           <IconRenderer name={task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
                             <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                              <span className=" absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-500 border-2 border-white dark:border-gray-900"></span>
                             </div>
                           )}
@@ -340,7 +340,7 @@ export default function Tasks({ user, refreshUser }) {
                           </h3>
                           <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-fuchsia-600 dark:text-fuchsia-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_4px_12px_rgba(217,70,239,0.3)] bg-[length:200%_200%] animate-[shimmer_3s_infinite]' : 'bg-surface-soft border border-border'}`}>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_4px_12px_rgba(217,70,239,0.3)] bg-[length:200%_200%] ' : 'bg-surface-soft border border-border'}`}>
                           <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white drop-shadow-md' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </motion.div>
@@ -371,7 +371,7 @@ export default function Tasks({ user, refreshUser }) {
           submissions.length === 0 ? (
             <EmptyState title="No submissions yet" message="Complete some tasks to see them here." />
           ) : (
-            <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3">
+            <motion.div    className="space-y-3">
               {submissions.map(sub => (
                 <Card key={sub.id} className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center text-ink-soft shrink-0">
@@ -421,7 +421,7 @@ export default function Tasks({ user, refreshUser }) {
               
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-[22px] font-black text-ink leading-tight pr-4">{selectedTask.title}</h2>
-                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_8px_16px_-6px_rgba(217,70,239,0.4)] bg-[length:200%_200%] animate-[shimmer_3s_infinite]' : 'bg-gradient-primary shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]'}`}>
+                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_8px_16px_-6px_rgba(217,70,239,0.4)] bg-[length:200%_200%] ' : 'bg-gradient-primary shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]'}`}>
                   <span className="text-[15px] font-black text-white">+{selectedTask.reward_tasky} TASKY</span>
                 </div>
               </div>
@@ -598,7 +598,7 @@ export default function Tasks({ user, refreshUser }) {
                   {/* Animated icon */}
                   <div className="flex justify-center mb-4">
                     <div className="relative">
-                      <div className="absolute inset-0 rounded-full bg-indigo-400/20 animate-ping" />
+                      <div className="absolute inset-0 rounded-full bg-indigo-400/20 " />
                       <div className="relative w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
                         <Cpu size={28} className="text-white" />
                       </div>
@@ -633,7 +633,7 @@ export default function Tasks({ user, refreshUser }) {
                         {step.active && (
                           <div className="ml-auto flex gap-0.5">
                             {[0,1,2].map(d => (
-                              <div key={d} className="w-1 h-1 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: `${d * 0.15}s` }} />
+                              <div key={d} className="w-1 h-1 rounded-full bg-indigo-400 " style={{ animationDelay: `${d * 0.15}s` }} />
                             ))}
                           </div>
                         )}

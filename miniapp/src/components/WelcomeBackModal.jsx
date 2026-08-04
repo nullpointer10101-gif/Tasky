@@ -90,9 +90,9 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
             {/* Glowing Icon */}
             <div className="relative inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 via-orange-500 to-indigo-600 p-0.5 shadow-xl mb-4">
               <div className="w-full h-full bg-surface rounded-[22px] flex items-center justify-center">
-                <Zap size={36} className="text-amber-400 fill-amber-400 animate-bounce" />
+                <Zap size={36} className="text-amber-400 fill-amber-400 " />
               </div>
-              <Sparkles className="absolute -top-2 -right-2 text-amber-300 w-6 h-6 animate-pulse" />
+              <Sparkles className="absolute -top-2 -right-2 text-amber-300 w-6 h-6 " />
             </div>
 
             {/* Copy */}

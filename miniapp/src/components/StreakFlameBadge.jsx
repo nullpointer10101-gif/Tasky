@@ -77,7 +77,7 @@ export default function StreakFlameBadge({ streakDays = 0, lastCheckin }) {
           >
             <Flame className={`w-5 h-5 ${flameConfig.color} fill-current`} />
             {streak >= 4 && (
-              <Sparkles className="w-3 h-3 text-white absolute -top-1 -right-1 animate-pulse" />
+              <Sparkles className="w-3 h-3 text-white absolute -top-1 -right-1 " />
             )}
           </motion.div>
           <div className="flex flex-col">
@@ -97,7 +97,7 @@ export default function StreakFlameBadge({ streakDays = 0, lastCheckin }) {
             transition={{ repeat: Infinity, duration: 1.2 }}
             className="flex items-center gap-1.5 px-3 py-1 bg-rose-500/20 border border-rose-500/40 rounded-xl text-rose-500 text-[11px] font-black shadow-sm"
           >
-            <Clock size={12} className="animate-spin text-rose-500" />
+            <Clock size={12} className=" text-rose-500" />
             <span>⏰ {hoursUntilReset}h left to save streak!</span>
           </motion.div>
         ) : checkedInToday ? (

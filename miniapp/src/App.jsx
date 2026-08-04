@@ -182,7 +182,7 @@ export default function App() {
         
         {/* Recreated Logo in CSS */}
         <div className="relative w-28 h-28 mb-8">
-          <div className="absolute inset-0 rounded-full bg-indigo-500/30 animate-pulse"></div>
+          <div className="absolute inset-0 rounded-full bg-indigo-500/30 "></div>
           <div className="absolute inset-1 rounded-full bg-[#3F00E7] flex items-center justify-center shadow-xl shadow-indigo-500/40 border-4 border-white">
             <span className="text-6xl font-black text-white" style={{ fontFamily: 'Impact, sans-serif', marginTop: '4px' }}>T</span>
           </div>
@@ -195,7 +195,7 @@ export default function App() {
           <p className="text-sm font-medium text-ink-soft">Your journey to building real wealth starts here.</p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs font-bold text-ink-soft/50 animate-pulse bg-surface-soft px-4 py-2 rounded-full">
+        <div className="flex items-center gap-2 text-xs font-bold text-ink-soft/50  bg-surface-soft px-4 py-2 rounded-full">
           <div className="w-2 h-2 rounded-full bg-indigo-500"></div>
           Syncing Vault...
         </div>

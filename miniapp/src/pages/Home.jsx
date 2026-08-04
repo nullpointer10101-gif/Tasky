@@ -69,16 +69,16 @@ export default function Home({ user, refreshUser, navigate }) {
   return (
     <motion.div 
       className="p-4 space-y-5 pb-20 max-w-md mx-auto"
-      variants={containerVariants}
-      initial="initial"
-      animate="animate"
+      
+      
+      
     >
       {/* Launch Banner */}
-      <motion.div variants={itemVariants} className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-fuchsia-900/40 border-[1.5px] border-indigo-500/30 p-4 rounded-3xl text-center shadow-[0_0_30px_rgba(99,102,241,0.15)] mb-2 mt-2">
+      <motion.div  className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-fuchsia-900/40 border-[1.5px] border-indigo-500/30 p-4 rounded-3xl text-center shadow-[0_0_30px_rgba(99,102,241,0.15)] mb-2 mt-2">
         
         <div className="relative z-10 flex flex-col items-center gap-1.5">
           <div className="bg-indigo-500/20 p-2 rounded-full border border-indigo-500/30 mb-1 shadow-inner">
-            <Zap size={18} className="text-indigo-300 fill-indigo-300 animate-pulse" />
+            <Zap size={18} className="text-indigo-300 fill-indigo-300 " />
           </div>
           <h2 className="text-[15px] font-black text-white uppercase tracking-[0.2em] drop-shadow-md">
             Launching TASKY Token
@@ -90,7 +90,7 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Header with Streak Flame */}
-      <motion.div variants={itemVariants} className="flex justify-between items-center mb-2">
+      <motion.div  className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-0.5 shadow-md">
             <div className="w-full h-full bg-surface rounded-full flex items-center justify-center border-2 border-surface">
@@ -115,7 +115,7 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Dynamic Streak Flame Badge */}
-      <motion.div variants={itemVariants}>
+      <motion.div >
         <StreakFlameBadge 
           streakDays={user.streak_days} 
           lastCheckin={user.last_checkin} 
@@ -123,7 +123,7 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Hero Balance Card */}
-      <motion.div variants={itemVariants} className="relative group perspective-1000">
+      <motion.div  className="relative group perspective-1000">
         <motion.div 
           whileTap={{ scale: 0.97, rotateX: 2 }}
           className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 rounded-[2rem] p-6 overflow-hidden shadow-[0_15px_35px_-10px_rgba(139,92,246,0.4)] border-b-[4px] border-indigo-800/60 active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer"
@@ -140,7 +140,7 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Swap Dopamine Goal Card */}
-      <motion.div variants={itemVariants}>
+      <motion.div >
         <SwapProgressCard 
           balance={user.balance} 
           taskyPerUsdt={taskyPerUsdt} 
@@ -150,7 +150,7 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* 2x2 Stats Grid - Gamified 3D Buttons */}
-      <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+      <motion.div  className="grid grid-cols-2 gap-3">
         <motion.div whileTap={{ scale: 0.95 }} className="bg-surface rounded-[1.5rem] p-4 border-b-[3px] border-x border-t border-border shadow-sm flex flex-col items-center text-center cursor-pointer active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all relative overflow-hidden">
           <div className="absolute -right-2 -top-2 w-16 h-16 bg-blue-500/5 rounded-full" />
           <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 border border-blue-500/20 text-blue-500">
@@ -193,7 +193,7 @@ export default function Home({ user, refreshUser, navigate }) {
 
 
       {/* How to Earn Info Card - Redesigned */}
-      <motion.div variants={itemVariants}>
+      <motion.div >
         <div className="bg-surface rounded-[2rem] p-5 border-b-[4px] border-x border-t border-border shadow-sm">
           <div className="flex items-center gap-3 mb-5">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">

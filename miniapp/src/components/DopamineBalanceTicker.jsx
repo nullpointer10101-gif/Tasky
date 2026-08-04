@@ -46,7 +46,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
       {/* Live Mining Active Pill */}
       <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
         <span className="relative flex h-2 w-2">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span className=" absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1">
@@ -56,7 +56,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
       </div>
 
       <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-1 flex items-center gap-1">
-        <Sparkles size={11} className="text-amber-300 animate-pulse" />
+        <Sparkles size={11} className="text-amber-300 " />
         LIVE PORTFOLIO BALANCE
       </p>
 

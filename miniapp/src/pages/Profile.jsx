@@ -60,7 +60,7 @@ function Profile({ user }) {
 
   if (!user) {
     return (
-      <div className="p-4 space-y-4 animate-pulse">
+      <div className="p-4 space-y-4 ">
         <div className="h-48 bg-surface-soft rounded-3xl w-full" />
         <div className="h-28 bg-surface-soft rounded-3xl w-full" />
         <div className="h-36 bg-surface-soft rounded-3xl w-full" />

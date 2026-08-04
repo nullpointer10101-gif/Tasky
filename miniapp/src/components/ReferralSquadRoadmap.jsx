@@ -63,7 +63,7 @@ export default function ReferralSquadRoadmap({
           
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center animate-bounce">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-400/50 flex items-center justify-center ">
                 <Gift size={24} className="text-amber-400" />
               </div>
               <div>

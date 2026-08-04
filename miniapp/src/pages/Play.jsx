@@ -20,9 +20,9 @@ export default function Play({ user, refreshUser }) {
   return (
     <motion.div 
       className="p-4 space-y-6 pb-20 max-w-md mx-auto min-h-full relative"
-      variants={containerVariants}
-      initial="initial"
-      animate="animate"
+      
+      
+      
     >
       <div className="mb-2 flex items-center justify-between">
         <div>
@@ -34,11 +34,11 @@ export default function Play({ user, refreshUser }) {
         </div>
       </div>
 
-      <motion.div variants={itemVariants}>
+      <motion.div >
         <SpinWheel user={user} refreshUser={refreshUser} />
       </motion.div>
 
-      <motion.div variants={itemVariants}>
+      <motion.div >
         <DailyCheckin user={user} refreshUser={refreshUser} />
       </motion.div>
     </motion.div>

@@ -289,7 +289,7 @@ export default function Rig({ user, refreshUser }) {
 
 
   return (
-    <motion.div variants={containerVariants} initial="initial" animate="animate" className="p-4 space-y-4 pb-20 min-h-full relative">
+    <motion.div    className="p-4 space-y-4 pb-20 min-h-full relative">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Rig</h1>
@@ -310,7 +310,7 @@ export default function Rig({ user, refreshUser }) {
       />
 
       {/* Hero Card */}
-      <motion.div variants={containerVariants} className="relative group perspective-1000 mb-2">
+      <motion.div  className="relative group perspective-1000 mb-2">
         <motion.div 
           whileTap={{ scale: 0.98, rotateX: 2 }}
           className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60 shadow-[0_15px_35px_-10px_rgba(99,102,241,0.4)] active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
@@ -342,7 +342,7 @@ export default function Rig({ user, refreshUser }) {
       </motion.div>
 
       {/* Efficiency Progress Indicator */}
-      <motion.div variants={containerVariants} className="space-y-2">
+      <motion.div  className="space-y-2">
         <div className="flex justify-between text-xs font-medium">
           <span className={isReset ? 'text-yellow-600 dark:text-yellow-500 font-semibold' : 'text-ink-soft'}>
             {isReset ? "Efficiency reset — keep rig undisturbed to rebuild bonus" : effMessage}

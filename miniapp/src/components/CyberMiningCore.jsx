@@ -98,12 +98,12 @@ export default function CyberMiningCore({
           className="relative w-48 h-48 flex items-center justify-center select-none"
         >
           {/* Outer Pulsing Neon Rings */}
-          <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40 animate-[spin_12s_linear_infinite]" />
-          <div className="absolute inset-2 rounded-full border border-cyan-400/30 animate-[spin_8s_linear_infinite_reverse]" />
+          <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40 " />
+          <div className="absolute inset-2 rounded-full border border-cyan-400/30 " />
 
           {/* Inner Glowing Reactor Orb */}
           <div className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-[#2e1d68] to-[#120b2e] border-2 border-indigo-400/50 flex flex-col items-center justify-center shadow-[inset_0_0_20px_rgba(99,102,241,0.6)]">
-            <Cpu size={28} className="text-cyan-300 mb-1 animate-pulse" />
+            <Cpu size={28} className="text-cyan-300 mb-1 " />
             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
               {activeSession ? 'OVERDRIVE ACTIVE' : 'REACTOR IDLE'}
             </span>
@@ -135,7 +135,7 @@ export default function CyberMiningCore({
       <div className="my-2 p-2.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 ">
         <div className="flex items-center justify-between text-xs font-black mb-1.5">
           <span className="flex items-center gap-1 text-amber-300">
-            <Flame size={14} className="fill-amber-400 text-amber-400 animate-bounce" />
+            <Flame size={14} className="fill-amber-400 text-amber-400 " />
             Next: {nextTier.name}
           </span>
           <span className="text-cyan-300">{nextTier.boost} Mining Speed</span>
@@ -162,7 +162,7 @@ export default function CyberMiningCore({
             disabled={claiming || Number(baseMined) <= 0}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-black text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(16,185,129,0.5)] active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Sparkles size={18} className="animate-spin" />
+            <Sparkles size={18} className="" />
             {claiming ? 'CLAIMING MINED VAULT...' : `CLAIM TASKY NOW 💥`}
           </button>
         ) : (
@@ -187,7 +187,7 @@ export default function CyberMiningCore({
               exit={{ scale: 0.8, opacity: 0 }}
               className="w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1f1548] to-[#0d0924] border-2 border-emerald-400 p-6 text-center shadow-[0_0_50px_rgba(16,185,129,0.6)]"
             >
-              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-3 animate-bounce">
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-3 ">
                 <Trophy size={32} className="text-emerald-400" />
               </div>
               <h2 className="text-2xl font-black text-white uppercase tracking-tight mb-1">

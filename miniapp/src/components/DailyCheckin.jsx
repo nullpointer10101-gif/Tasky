@@ -175,7 +175,7 @@ export default function DailyCheckin({ user, refreshUser }) {
                         >
                           {state === 'claimed' ? <Check size={18} strokeWidth={4} /> : `D${day}`}
                           {state === 'current' && (
-                             <Sparkles size={12} className="absolute -top-1 -right-1 text-yellow-100  animate-pulse" />
+                             <Sparkles size={12} className="absolute -top-1 -right-1 text-yellow-100  " />
                           )}
                         </div>
                       </div>
@@ -237,7 +237,7 @@ export default function DailyCheckin({ user, refreshUser }) {
                 <div className="relative mb-4">
                   <div className="absolute inset-0 bg-emerald-500/20 rounded-full scale-[1.2]" />
                   <div className="w-24 h-24 rounded-[32px] bg-gradient-to-br from-emerald-400 to-emerald-600 border-4 border-emerald-200 flex items-center justify-center relative  z-10 rotate-3">
-                    <Sparkles size={30} className="text-emerald-100 absolute top-2 right-2 opacity-60 animate-pulse" />
+                    <Sparkles size={30} className="text-emerald-100 absolute top-2 right-2 opacity-60 " />
                     <span className="text-3xl font-black text-white  -rotate-3">+{reward.bonus_earned}</span>
                   </div>
                 </div>

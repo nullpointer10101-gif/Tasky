@@ -30,7 +30,7 @@ export default function ProfileGenesisCard({ user, totalEarned = 0, balance = 0 
 
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-indigo-600 p-0.5 shadow-xl">
             <div className="w-full h-full rounded-2xl bg-[#130b2c] flex items-center justify-center">
-              <Crown size={28} className="text-amber-300 animate-pulse" />
+              <Crown size={28} className="text-amber-300 " />
             </div>
           </div>
         </div>

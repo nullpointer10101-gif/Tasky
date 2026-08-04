@@ -25,7 +25,7 @@ export default function TaskDopamineHub({
       <div className="rounded-3xl bg-gradient-to-r from-[#1b113d] via-[#21164c] to-[#0f0928] border border-purple-500/30 p-4 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/40 flex items-center justify-center animate-pulse">
+            <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/40 flex items-center justify-center ">
               <Star size={16} className="text-amber-300 fill-amber-300" />
             </div>
             <div>
