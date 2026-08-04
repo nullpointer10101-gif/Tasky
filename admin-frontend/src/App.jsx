@@ -13,6 +13,7 @@ import Broadcast from './pages/Broadcast';
 import Settings from './pages/Settings';
 import Machines from './pages/Machines';
 import SpecialOffers from './pages/SpecialOffers';
+import PromoCodes from './pages/PromoCodes';
 import api from './api';
 import { Toaster } from 'react-hot-toast';
 
@@ -61,6 +62,7 @@ function App() {
             <Route path="broadcast" element={<Broadcast />} />
             <Route path="machines" element={<Machines />} />
             <Route path="special-offers" element={<SpecialOffers />} />
+            <Route path="promocodes" element={<PromoCodes />} />
             <Route path="system-settings" element={<Settings />} />
           </Route>
         ) : (

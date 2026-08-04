@@ -628,5 +628,62 @@ router.post('/special-offers/review', async (req, res) => {
   }
 });
 
+// ==========================================
+// 10. PROMO CODES
+// ==========================================
+router.get('/promos', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM promo_codes ORDER BY created_at DESC');
+    res.json(result.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/promos', async (req, res) => {
+  const { code, reward_amount, max_uses, expires_at } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO promo_codes (code, reward_amount, max_uses, expires_at) 
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [code.toUpperCase(), reward_amount, max_uses, expires_at || null]
+    );
+    res.json({ success: true, promo: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.put('/promos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { is_active } = req.body;
+  try {
+    const result = await pool.query(
+      `UPDATE promo_codes SET is_active = $1 WHERE id = $2 RETURNING *`,
+      [is_active, id]
+    );
+    res.json({ success: true, promo: result.rows[0] });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.delete('/promos/:id', async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM user_promo_claims WHERE promo_code_id = $1', [id]);
+    await client.query('DELETE FROM promo_codes WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;
 

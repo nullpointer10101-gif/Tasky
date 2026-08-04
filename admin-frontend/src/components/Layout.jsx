@@ -24,6 +24,7 @@ export default function Layout({ setAuth }) {
     { path: '/broadcast', label: 'Broadcast', icon: Send },
     { path: '/machines', label: 'Machines', icon: Server },
     { path: '/special-offers', label: '🎁 Special Offers', icon: Gift },
+    { path: '/promocodes', label: 'Bounty Codes', icon: Gift },
     { path: '/system-settings', label: 'System Settings', icon: Server },
   ];
 
