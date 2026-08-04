@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
-    const timer = setTimeout(() => onClose(), 2500);
+    const timer = setTimeout(() => onClose(), 1500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);
