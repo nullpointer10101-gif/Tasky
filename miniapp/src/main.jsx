@@ -6,6 +6,7 @@ import { I18nProvider } from './i18n/I18nContext'
 import './index.css'
 import { TonConnectUIProvider } from '@tonconnect/ui-react'
 import ErrorBoundary from './components/ErrorBoundary'
+import './adUtils'; // Preload ads immediately on app load
 
 const manifestUrl = `${window.location.origin}/tonconnect-manifest.json`;
 
