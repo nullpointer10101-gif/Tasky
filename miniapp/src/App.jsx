@@ -14,6 +14,7 @@ import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
 import { initGigaAds } from './adUtils'
+import { AdminProvider } from './AdminContext'
 
 export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
@@ -197,25 +198,27 @@ export default function App() {
   }
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
-      <div className="flex flex-col h-full bg-bg">
-        {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-        <WithdrawalPopup user={user} refreshUser={refreshUser} />
-        <SpecialOfferPopup user={user} />
-        <WalletManager user={user} refreshUser={refreshUser} />
-        <Header />
+    <AdminProvider user={user} tgUser={tgUser}>
+      <ToastContext.Provider value={{ showToast }}>
+        <div className="flex flex-col h-full bg-bg">
+          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+          <WithdrawalPopup user={user} refreshUser={refreshUser} />
+          <SpecialOfferPopup user={user} />
+          <WalletManager user={user} refreshUser={refreshUser} />
+          <Header />
 
-        <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll h-full">
-          <ActivePage
-            user={user}
-            tgUser={tgUser}
-            refreshUser={refreshUser}
-            navigate={setActivePage}
-          />
-        </main>
+          <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll h-full">
+            <ActivePage
+              user={user}
+              tgUser={tgUser}
+              refreshUser={refreshUser}
+              navigate={setActivePage}
+            />
+          </main>
 
-        <BottomNav active={activePage} onChange={setActivePage} />
-      </div>
-    </ToastContext.Provider>
+          <BottomNav active={activePage} onChange={setActivePage} />
+        </div>
+      </ToastContext.Provider>
+    </AdminProvider>
   )
 }

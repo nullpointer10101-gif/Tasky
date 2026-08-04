@@ -6,6 +6,8 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { getReferral, getReferralLeaderboard } from '../api';
 import { useToast } from '../App';
+import ReferralSquadRoadmap from '../components/ReferralSquadRoadmap';
+import { useIsAdmin } from '../AdminContext';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -104,12 +106,30 @@ export default function Referral({ user }) {
 
 
 
+  const isUserAdmin = useIsAdmin();
+
   return (
     <div className="p-4 space-y-4 pb-24 h-full flex flex-col">
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold text-ink">Refer & Earn</h1>
-        <p className="text-sm text-ink-soft">Invite friends to earn TASKY</p>
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Refer & Earn</h1>
+          <p className="text-sm text-ink-soft">Invite friends to earn TASKY</p>
+        </div>
+        {isUserAdmin && (
+          <span className="text-[10px] font-black uppercase text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-full">
+            Squad Overdrive
+          </span>
+        )}
       </div>
+
+      {isUserAdmin && (
+        <ReferralSquadRoadmap
+          referralCount={refData?.referral_count || user?.referrals_count || 0}
+          unclaimedBounty={refData?.unclaimed_bounty || 250}
+          referralLink={refData?.referral_link || `https://t.me/GramMiner1_Bot?start=${user?.telegram_id || '8823265955'}`}
+          showToast={showToast}
+        />
+      )}
 
       <Card className="bg-gradient-primary border-0 text-white relative overflow-hidden">
         <div className="relative z-10">

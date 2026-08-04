@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import Card from '../components/Card';
 import { useToast } from '../App';
+import ProfileGenesisCard from '../components/ProfileGenesisCard';
+import { useIsAdmin } from '../AdminContext';
 
 const TASKY_PER_USDT = 33333;
 
@@ -83,12 +85,24 @@ function Profile({ user }) {
     else window.open(url, '_blank');
   };
 
+  const isUserAdmin = useIsAdmin();
+
   return (
     <motion.div
       className="pb-24 h-full overflow-y-auto hide-scrollbar"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
     >
+      {isUserAdmin && (
+        <div className="p-4 pb-0">
+          <ProfileGenesisCard
+            user={user}
+            totalEarned={user?.total_earned || 0}
+            balance={user?.balance || 0}
+          />
+        </div>
+      )}
+
       {/* ── Hero Banner ── */}
       <div className="relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}>
         

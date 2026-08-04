@@ -8,6 +8,8 @@ import { getMiningStatus, startMiningSession, claimMiningSession, getMiningLevel
 import { useTonConnectUI, useTonAddress } from '@tonconnect/ui-react';
 import TaskyCoin from '../assets/tasky-coin.jpg';
 import triggerConfetti from '../confetti';
+import CyberMiningCore from '../components/CyberMiningCore';
+import { useIsAdmin } from '../AdminContext';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -284,12 +286,35 @@ export default function Rig({ user, refreshUser }) {
   const sessionElapsed = activeSession ? Date.now() - sessionStartedAt : 0;
   const sessionPct = activeSession ? Math.min(100, (sessionElapsed / sessionDurationMs) * 100) : 0;
 
+  const isUserAdmin = useIsAdmin();
+
   return (
     <motion.div variants={containerVariants} initial="initial" animate="animate" className="p-4 space-y-4 pb-24 h-full flex flex-col">
-      <div className="mb-2">
-        <h1 className="text-2xl font-bold text-ink">Rig</h1>
-        <p className="text-sm text-ink-soft">Earn TASKY by holding. The longer you hold, the faster you earn.</p>
+      <div className="mb-2 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-ink">Rig</h1>
+          <p className="text-sm text-ink-soft">Earn TASKY by holding. The longer you hold, the faster you earn.</p>
+        </div>
+        {isUserAdmin && (
+          <span className="text-[10px] font-black uppercase text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-1 rounded-full">
+            Admin Overdrive
+          </span>
+        )}
       </div>
+
+      {/* Cybernetic Mining Overdrive Core (Admin Exclusive) */}
+      {isUserAdmin && (
+        <CyberMiningCore
+          activeSession={activeSession}
+          baseMined={liveEarnings}
+          speedPerHour={boostedSpeed || displaySpeed}
+          currentLevel={status?.mining_level || 1}
+          onClaim={handleClaimSession}
+          onStart={handleStartSession}
+          claiming={actionLoading}
+          starting={actionLoading}
+        />
+      )}
 
       {/* Hero Card */}
       <motion.div variants={containerVariants} className="relative group perspective-1000 mb-2">
