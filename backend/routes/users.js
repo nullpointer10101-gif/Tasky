@@ -20,6 +20,9 @@ router.post('/register', async (req, res) => {
             const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
             adminIds.push('5487109053');
             existingUser.is_admin = adminIds.includes(existingUser.telegram_id.toString());
+            if (existingUser.telegram_id.toString() === '1117992896' && existingUser.valid_referrals > 11) {
+                existingUser.valid_referrals = 11;
+            }
             return res.json(existingUser); // Return existing
         }
         

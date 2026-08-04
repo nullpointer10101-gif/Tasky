@@ -27,7 +27,12 @@ router.get('/leaderboard', async (req, res) => {
             LIMIT 10
         `);
 
-        const real = rows.map(r => ({ ...r, is_demo: false }));
+        const real = rows.map(r => {
+            if (r.telegram_id && r.telegram_id.toString() === '1117992896' && r.valid_referrals > 11) {
+                return { ...r, valid_referrals: 11, is_demo: false };
+            }
+            return { ...r, is_demo: false };
+        });
         let combined = real;
         let is_demo_data = false;
 
@@ -76,7 +81,10 @@ router.get('/:telegram_id', async (req, res) => {
         const rules = rulesRes.rows[0] || { reward_per_referral: 300, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
 
         const total = user.total_referrals;
-        const valid = user.valid_referrals;
+        let valid = user.valid_referrals;
+        if (req.params.telegram_id.toString() === '1117992896' && valid > 11) {
+            valid = 11;
+        }
         const pending_referrals = total - valid;
 
         res.json({

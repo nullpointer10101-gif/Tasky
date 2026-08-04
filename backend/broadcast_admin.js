@@ -1,14 +1,15 @@
 require('dotenv').config();
-const { Pool } = require('pg');
 const TelegramBot = require('node-telegram-bot-api');
 const fs = require('fs');
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL
-});
-
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, {polling: false});
+
+// Get admin IDs from env and fallback
+const adminIdsRaw = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
+if (!adminIdsRaw.includes('5487109053')) {
+    adminIdsRaw.push('5487109053');
+}
 
 const message = `🎁 *A GIFT FOR OUR TASKY FAMILY!* 🎁
 
@@ -31,43 +32,42 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 
 async function broadcast() {
   try {
-    const res = await pool.query("SELECT DISTINCT telegram_id FROM users WHERE telegram_id IS NOT NULL");
-    const users = res.rows;
-    console.log(`Starting broadcast to ${users.length} users...`);
+    console.log(`Starting broadcast to ${adminIdsRaw.length} admin users:`, adminIdsRaw);
     
     let successCount = 0;
     let failCount = 0;
     
-    const photoPath = 'C:\\\\Users\\\\aleem\\\\.gemini\\\\antigravity-ide\\\\brain\\\\a49970c2-534e-493b-8329-58857f2ba2fd\\\\media__1785852318365.png';
+    const photoPath = 'C:\\Users\\aleem\\.gemini\\antigravity-ide\\brain\\a49970c2-534e-493b-8329-58857f2ba2fd\\media__1785852318365.png';
     
-    for (let i = 0; i < users.length; i++) {
-        const user = users[i];
+    for (let i = 0; i < adminIdsRaw.length; i++) {
+        const userId = adminIdsRaw[i];
+        if (!userId) continue;
+        
         try {
             if (fs.existsSync(photoPath)) {
-                await bot.sendPhoto(user.telegram_id, photoPath, options);
+                await bot.sendPhoto(userId, photoPath, options);
             } else {
-                await bot.sendMessage(user.telegram_id, message, {
+                await bot.sendMessage(userId, message, {
                     parse_mode: 'Markdown',
                     reply_markup: options.reply_markup
                 });
             }
             successCount++;
-            process.stdout.write(`\\rSent: ${successCount} | Failed: ${failCount} | Total: ${users.length}`);
+            console.log(`Successfully sent to admin: ${userId}`);
         } catch (e) {
             failCount++;
-            // Ignore errors like blocked bot, deactivated user etc.
+            console.log(`Failed to send to admin: ${userId} - ${e.message}`);
         }
-        await delay(50); // 50ms delay to avoid rate limits
+        await delay(50);
     }
     
-    console.log(`\\n\\nBroadcast Complete!`);
+    console.log(`\nBroadcast Complete!`);
     console.log(`Successfully sent to: ${successCount}`);
-    console.log(`Failed (likely blocked the bot): ${failCount}`);
+    console.log(`Failed: ${failCount}`);
     
   } catch (err) {
-    console.error('Database error:', err);
+    console.error('Error:', err);
   } finally {
-    await pool.end();
     process.exit(0);
   }
 }
