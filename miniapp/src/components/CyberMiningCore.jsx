@@ -91,8 +91,8 @@ export default function CyberMiningCore({
   return (
     <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5 shadow-[0_0_40px_rgba(79,70,229,0.25)] transform-gpu will-change-transform">
       {/* Background glowing plasma orbs */}
-      <div className="absolute -top-12 -left-12 w-44 h-44 bg-indigo-500/10 rounded-full pointer-events-none" style={{ filter: 'blur(20px)' }} />
-      <div className="absolute -bottom-12 -right-12 w-44 h-44 bg-purple-500/10 rounded-full pointer-events-none" style={{ filter: 'blur(20px)' }} />
+      <div className="absolute -top-12 -left-12 w-44 h-44 bg-indigo-500/10 rounded-full blur-2xl transform-gpu pointer-events-none" />
+      <div className="absolute -bottom-12 -right-12 w-44 h-44 bg-purple-500/10 rounded-full blur-2xl transform-gpu pointer-events-none" />
 
       {/* Cybernetic Core Reactor Ring */}
       <div className="relative flex flex-col items-center justify-center my-2">

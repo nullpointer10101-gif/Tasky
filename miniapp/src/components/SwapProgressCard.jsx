@@ -13,7 +13,7 @@ export default function SwapProgressCard({ balance = 0, taskyPerUsdt = 20000, ta
   return (
     <div className="bg-surface rounded-[2rem] p-5 border-b-[4px] border-x border-t border-border shadow-sm relative overflow-hidden">
       {/* Background Accent */}
-      <div className="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full pointer-events-none" style={{ filter: 'blur(16px)' }} />
+      <div className="absolute -right-8 -top-8 w-28 h-28 bg-emerald-500/10 rounded-full blur-2xl transform-gpu pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
