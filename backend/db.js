@@ -284,6 +284,25 @@ const initDB = async () => {
         UNIQUE(telegram_id, machine_id)
       );
 
+      CREATE TABLE IF NOT EXISTS promo_codes (
+        id SERIAL PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        reward_amount NUMERIC NOT NULL,
+        max_uses INT NOT NULL,
+        current_uses INT DEFAULT 0,
+        expires_at TIMESTAMPTZ,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_promo_claims (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT,
+        promo_id INT REFERENCES promo_codes(id),
+        claimed_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(telegram_id, promo_id)
+      );
+
       INSERT INTO swap_rates (token_name, tasky_per_unit, min_tasky, chain, is_active)
       SELECT 'USDT', 20000, 20000, 'BSC', TRUE WHERE NOT EXISTS (SELECT 1 FROM swap_rates WHERE token_name = 'USDT');
 

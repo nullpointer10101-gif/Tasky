@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { showRewardedAd } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket } from 'lucide-react';
+import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket, Gift } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { getTasks, getMySubmissions, completeTask } from '../api';
 import { useToast } from '../App';
 import TaskDopamineHub from '../components/TaskDopamineHub';
+import PromoCodeModal from '../components/PromoCodeModal';
 import { useIsAdmin } from '../AdminContext';
 
 const containerVariants = {
@@ -53,6 +54,7 @@ export default function Tasks({ user, refreshUser }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTask, setSubmittedTask] = useState(null);
+  const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const { showToast } = useToast();
 
   const [hasVisited, setHasVisited] = useState(false);
@@ -245,6 +247,29 @@ export default function Tasks({ user, refreshUser }) {
         targetCount={5}
         multiplierBonus="2.0x Boost"
       />
+
+      {/* Redeem Bounty Code Banner */}
+      <motion.div 
+        whileTap={{ scale: 0.96 }}
+        onClick={() => setIsPromoModalOpen(true)}
+        className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 border border-indigo-500/30 p-4 mb-4 shadow-[0_0_15px_rgba(99,102,241,0.2)] flex items-center justify-between"
+      >
+        <div className="absolute -right-4 -top-4 w-20 h-20 bg-pink-500/20 blur-xl rounded-full" />
+        <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-indigo-500/20 blur-xl rounded-full" />
+        
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-pink-500 flex items-center justify-center shadow-lg border border-white/20">
+            <Gift size={20} className="text-white" />
+          </div>
+          <div>
+            <h3 className="font-black text-white text-[15px] uppercase tracking-wide">Redeem Bounty Code</h3>
+            <p className="text-[12px] text-indigo-200 font-medium">Claim secret rewards</p>
+          </div>
+        </div>
+        <div className="relative z-10 bg-white/10 p-2 rounded-xl border border-white/10">
+          <ExternalLink size={16} className="text-white" />
+        </div>
+      </motion.div>
 
       <div className="flex p-1.5 rounded-[1.25rem] relative mb-5 bg-surface-soft shadow-inner">
         {['available', 'submissions'].map((tab) => (
@@ -659,6 +684,15 @@ export default function Tasks({ user, refreshUser }) {
         </AnimatePresence>,
         document.body
       )}
+
+      <PromoCodeModal 
+        isOpen={isPromoModalOpen} 
+        onClose={() => setIsPromoModalOpen(false)} 
+        onRedeemSuccess={(amount) => {
+          refreshUser();
+        }}
+        user={user} 
+      />
     </div>
   );
 }
