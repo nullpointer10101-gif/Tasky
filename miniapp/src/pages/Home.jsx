@@ -89,30 +89,7 @@ export default function Home({ user, refreshUser, navigate }) {
         </div>
       </motion.div>
 
-      {/* Header with Streak Flame */}
-      <motion.div  className="flex justify-between items-center mb-2">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 p-0.5 shadow-md">
-            <div className="w-full h-full bg-surface rounded-full flex items-center justify-center border-2 border-surface">
-              <span className="font-black text-lg text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500 uppercase">
-                {user.first_name ? user.first_name.charAt(0) : 'U'}
-              </span>
-            </div>
-          </div>
-          <div>
-            <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">{t('home.hello') || 'GM,'}</p>
-            <h1 className="text-xl font-black text-ink leading-tight truncate max-w-[150px]">
-              {user.first_name} {user.last_name || ''}
-            </h1>
-          </div>
-        </div>
-        <motion.button 
-          whileTap={{ scale: 0.85, rotate: 10 }}
-          className="h-11 w-11 bg-surface border-b-[3px] border-x border-t border-border rounded-xl flex items-center justify-center text-ink shadow-sm active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all"
-        >
-          <Bell size={20} className="text-ink-soft" />
-        </motion.button>
-      </motion.div>
+
 
       {/* Dynamic Streak Flame Badge */}
       <motion.div >
