@@ -109,7 +109,7 @@ export default function Referral({ user }) {
 
 
   return (
-    <div className="p-4 space-y-4 pb-24 h-full flex flex-col">
+    <div className="p-4 space-y-4 h-full flex flex-col">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Refer & Earn</h1>

@@ -70,7 +70,7 @@ export default function Home({ user, refreshUser, navigate }) {
 
   return (
     <motion.div 
-      className="p-4 space-y-5 pb-24 max-w-md mx-auto"
+      className="p-4 space-y-5 max-w-md mx-auto"
       variants={containerVariants}
       initial="initial"
       animate="animate"
