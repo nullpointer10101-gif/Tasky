@@ -16,7 +16,7 @@ export default function ProfileGenesisCard({ user, totalEarned = 0, balance = 0 
   const netWorthUsdt = (numBalance * 0.00003).toFixed(2);
 
   return (
-    <div className="space-y-4 w-full will-change-transform">
+    <div className="space-y-4 w-full ">
       {/* 1. Holographic Genesis / VIP Member Pass */}
       <div className="relative overflow-hidden rounded-3xl p-6 hologram-card shadow-[0_0_35px_rgba(99,102,241,0.3)] shimmer-effect">
         <div className="flex items-start justify-between relative z-10">

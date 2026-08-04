@@ -9,19 +9,26 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
   const intRef = useRef(null);
   const decRef = useRef(null);
   const usdRef = useRef(null);
+  const lastUpdateRef = useRef(null);
 
   useEffect(() => {
     const ratePerMs = (Number(speedPerHour) || 5.0) / (3600 * 1000);
     const startTime = performance.now();
 
     const updateTicker = (now) => {
-      const elapsed = now - startTime;
-      const current = baseBalance + elapsed * ratePerMs;
+      if (!lastUpdateRef.current) lastUpdateRef.current = now;
       
-      if (intRef.current && decRef.current && usdRef.current) {
-        intRef.current.textContent = Math.floor(current).toLocaleString();
-        decRef.current.textContent = (current % 1).toFixed(3).substring(1);
-        usdRef.current.textContent = `≈ $${(current / (Number(usdtRate) || 20000)).toFixed(2)}`;
+      // Throttle DOM updates to ~12fps (every 80ms) to prevent scroll tearing on mobile
+      if (now - lastUpdateRef.current >= 80) {
+        lastUpdateRef.current = now;
+        const elapsed = now - startTime;
+        const current = baseBalance + elapsed * ratePerMs;
+        
+        if (intRef.current && decRef.current && usdRef.current) {
+          intRef.current.textContent = Math.floor(current).toLocaleString();
+          decRef.current.textContent = (current % 1).toFixed(3).substring(1);
+          usdRef.current.textContent = `≈ $${(current / (Number(usdtRate) || 20000)).toFixed(2)}`;
+        }
       }
 
       animFrameRef.current = requestAnimationFrame(updateTicker);
@@ -35,7 +42,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
   }, [baseBalance, speedPerHour, usdtRate]);
 
   return (
-    <div className="relative z-10 flex flex-col items-center text-center will-change-transform">
+    <div className="relative z-10 flex flex-col items-center text-center ">
       {/* Live Mining Active Pill */}
       <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
         <span className="relative flex h-2 w-2">

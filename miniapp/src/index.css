@@ -44,9 +44,7 @@
   -webkit-perspective: 1000px;
 }
 
-.will-change-transform {
-  will-change: transform, opacity;
-}
+
 
 /* Neon Glows */
 .glow-brand {

@@ -89,7 +89,7 @@ export default function CyberMiningCore({
   };
 
   return (
-    <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5 shadow-[0_0_40px_rgba(79,70,229,0.25)] will-change-transform">
+    <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5 shadow-[0_0_40px_rgba(79,70,229,0.25)] ">
       {/* Background glowing plasma orbs */}
 
       {/* Cybernetic Core Reactor Ring */}

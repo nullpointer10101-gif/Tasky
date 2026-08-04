@@ -20,7 +20,7 @@ export default function TaskDopamineHub({
   const tasksRemaining = Math.max(0, targetCount - completedCount);
 
   return (
-    <div className="space-y-3 w-full will-change-transform">
+    <div className="space-y-3 w-full ">
       {/* 1. Quest Multiplier Streak Progress */}
       <div className="rounded-3xl bg-gradient-to-r from-[#1b113d] via-[#21164c] to-[#0f0928] border border-purple-500/30 p-4 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
         <div className="flex items-center justify-between mb-1.5">
