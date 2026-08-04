@@ -78,13 +78,21 @@ export default function Home({ user, refreshUser, navigate }) {
       animate="animate"
     >
       {/* Launch Banner */}
-      <motion.div variants={itemVariants} className="bg-gradient-to-r from-indigo-500/10 to-fuchsia-500/10 border border-indigo-500/20 p-3 rounded-2xl text-center shadow-inner">
-        <h2 className="text-sm font-black text-indigo-400 uppercase tracking-widest">
-          Launching TASKY Token
-        </h2>
-        <p className="text-[10px] font-bold text-ink-soft mt-0.5">
-          when development dashboard completes
-        </p>
+      <motion.div variants={itemVariants} className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-fuchsia-900/40 border-[1.5px] border-indigo-500/30 p-4 rounded-3xl text-center shadow-[0_0_30px_rgba(99,102,241,0.15)] mb-2 mt-2">
+        <div className="absolute -top-10 -left-10 w-28 h-28 bg-indigo-500/20 rounded-full blur-3xl" />
+        <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-fuchsia-500/20 rounded-full blur-3xl" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-1.5">
+          <div className="bg-indigo-500/20 p-2 rounded-full border border-indigo-500/30 mb-1 shadow-inner">
+            <Zap size={18} className="text-indigo-300 fill-indigo-300 animate-pulse" />
+          </div>
+          <h2 className="text-[15px] font-black text-white uppercase tracking-[0.2em] drop-shadow-md">
+            Launching TASKY Token
+          </h2>
+          <p className="text-[11px] font-bold text-indigo-200 mt-0.5 max-w-[250px] leading-tight opacity-90">
+            When development dashboard completes
+          </p>
+        </div>
       </motion.div>
 
       {/* Header with Streak Flame */}
