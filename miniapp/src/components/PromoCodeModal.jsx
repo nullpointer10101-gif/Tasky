@@ -18,8 +18,9 @@ export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user 
 
     setIsRedeeming(true);
     try {
-      // In production this connects to our backend endpoint
-      const res = await fetch('https://tasky-bot.onrender.com/api/promo/redeem', {
+      // Connect to the correct backend endpoint based on environment
+      const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
+      const res = await fetch(`${API_URL}/api/promo/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: user?.telegram_id || '123456', code: cleanCode })
