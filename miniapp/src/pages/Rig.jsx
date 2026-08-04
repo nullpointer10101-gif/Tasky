@@ -316,8 +316,8 @@ export default function Rig({ user, refreshUser }) {
           className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60 shadow-[0_15px_35px_-10px_rgba(99,102,241,0.4)] active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
         >
           {/* Animated Background Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 group-hover:bg-white/20 transition-all duration-700" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:bg-white/10 transition-all duration-700" style={{ filter: 'blur(20px)' }} />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/10 rounded-full translate-y-1/3 -translate-x-1/4" style={{ filter: 'blur(16px)' }} />
           
           <div className="relative z-10 p-5 text-white">
             <div className="flex justify-between items-start mb-6">
@@ -543,7 +543,7 @@ export default function Rig({ user, refreshUser }) {
 
       {/* Explainer Card */}
       <Card className="rounded-[2rem] border-b-[4px] border-x border-t border-border shadow-sm space-y-4 p-5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full -translate-y-1/2 translate-x-1/2" style={{ filter: 'blur(16px)' }} />
         <div className="flex items-center gap-3 mb-2 relative z-10">
           <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center border border-brand/20">
             <Info size={20} className="text-brand fill-brand/20" />

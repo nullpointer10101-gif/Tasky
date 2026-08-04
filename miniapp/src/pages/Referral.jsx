@@ -242,8 +242,8 @@ export default function Referral({ user }) {
         ) : (
             <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
             <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
-              <div className="absolute top-0 left-0 w-40 h-40 bg-fuchsia-500/40 rounded-full blur-[40px] -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-blue-500/40 rounded-full blur-[40px] translate-x-1/2 translate-y-1/2 pointer-events-none"></div>
+              <div className="absolute top-0 left-0 w-40 h-40 bg-fuchsia-500/20 rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none" style={{ filter: 'blur(20px)' }}></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-blue-500/20 rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none" style={{ filter: 'blur(20px)' }}></div>
               
               <div className="relative z-10 flex flex-col items-center gap-2 w-full">
                 <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner backdrop-blur-md">
@@ -317,10 +317,11 @@ export default function Referral({ user }) {
                   className={`rounded-2xl p-4 flex items-center gap-3 overflow-hidden ${bgClass}`}
                 >
                   {rank <= 3 && (
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/20 rounded-full blur-3xl pointer-events-none" />
-                  )}
-                  {rank === 1 && (
-                    <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none" />
+                    <>
+                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full pointer-events-none" style={{ filter: 'blur(20px)' }} />
+                      {/* Decorative Stars */}
+                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full pointer-events-none" style={{ filter: 'blur(16px)' }} />
+                    </>
                   )}
                   
                   <div className={`w-8 flex justify-center shrink-0 ${rankTextClass}`}>

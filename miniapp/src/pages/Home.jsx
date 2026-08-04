@@ -77,8 +77,8 @@ export default function Home({ user, refreshUser, navigate }) {
     >
       {/* Launch Banner */}
       <motion.div variants={itemVariants} className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-fuchsia-900/40 border-[1.5px] border-indigo-500/30 p-4 rounded-3xl text-center shadow-[0_0_30px_rgba(99,102,241,0.15)] mb-2 mt-2">
-        <div className="absolute -top-10 -left-10 w-28 h-28 bg-indigo-500/20 rounded-full blur-3xl" />
-        <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-fuchsia-500/20 rounded-full blur-3xl" />
+        <div className="absolute -top-10 -left-10 w-28 h-28 bg-indigo-500/20 rounded-full" style={{ filter: 'blur(20px)' }} />
+        <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-fuchsia-500/20 rounded-full" style={{ filter: 'blur(20px)' }} />
         
         <div className="relative z-10 flex flex-col items-center gap-1.5">
           <div className="bg-indigo-500/20 p-2 rounded-full border border-indigo-500/30 mb-1 shadow-inner">
@@ -133,9 +133,9 @@ export default function Home({ user, refreshUser, navigate }) {
           className="relative bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-600 rounded-[2rem] p-6 overflow-hidden shadow-[0_15px_35px_-10px_rgba(139,92,246,0.4)] border-b-[4px] border-indigo-800/60 active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer"
         >
           {/* Animated Background Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 group-hover:bg-white/20 transition-all duration-700" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/20 rounded-full blur-2xl translate-y-1/3 -translate-x-1/4" />
-          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay" />
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:bg-white/10 transition-all duration-700" style={{ filter: 'blur(20px)' }} />
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/10 rounded-full translate-y-1/3 -translate-x-1/4" style={{ filter: 'blur(16px)' }} />
+          <div className="absolute inset-0 bg-white/5" />
           
           <DopamineBalanceTicker 
             balance={user.balance} 
@@ -158,7 +158,7 @@ export default function Home({ user, refreshUser, navigate }) {
       {/* 2x2 Stats Grid - Gamified 3D Buttons */}
       <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
         <motion.div whileTap={{ scale: 0.95 }} className="bg-surface rounded-[1.5rem] p-4 border-b-[3px] border-x border-t border-border shadow-sm flex flex-col items-center text-center cursor-pointer active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all relative overflow-hidden">
-          <div className="absolute -right-2 -top-2 w-16 h-16 bg-blue-500/5 rounded-full blur-xl" />
+          <div className="absolute -right-2 -top-2 w-16 h-16 bg-blue-500/5 rounded-full" />
           <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center mb-3 border border-blue-500/20 text-blue-500">
             <Wallet size={20} />
           </div>
@@ -167,7 +167,7 @@ export default function Home({ user, refreshUser, navigate }) {
         </motion.div>
         
         <motion.div whileTap={{ scale: 0.95 }} className="bg-surface rounded-[1.5rem] p-4 border-b-[3px] border-x border-t border-border shadow-sm flex flex-col items-center text-center cursor-pointer active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all relative overflow-hidden">
-          <div className="absolute -right-2 -top-2 w-16 h-16 bg-purple-500/5 rounded-full blur-xl" />
+          <div className="absolute -right-2 -top-2 w-16 h-16 bg-purple-500/5 rounded-full" />
           <div className="h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center mb-3 border border-purple-500/20 text-purple-500">
             <Trophy size={20} />
           </div>
@@ -176,7 +176,7 @@ export default function Home({ user, refreshUser, navigate }) {
         </motion.div>
 
         <motion.div whileTap={{ scale: 0.95 }} className="bg-surface rounded-[1.5rem] p-4 border-b-[3px] border-x border-t border-border shadow-sm flex flex-col items-center text-center cursor-pointer active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all relative overflow-hidden">
-          <div className="absolute -left-2 -bottom-2 w-16 h-16 bg-emerald-500/5 rounded-full blur-xl" />
+          <div className="absolute -left-2 -bottom-2 w-16 h-16 bg-emerald-500/5 rounded-full" />
           <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-3 border border-emerald-500/20 text-emerald-500">
             <CheckCircle2 size={20} />
           </div>
@@ -185,7 +185,7 @@ export default function Home({ user, refreshUser, navigate }) {
         </motion.div>
 
         <motion.div whileTap={{ scale: 0.95 }} className="bg-surface rounded-[1.5rem] p-4 border-b-[3px] border-x border-t border-border shadow-sm flex flex-col items-center text-center cursor-pointer active:translate-y-[2px] active:border-b-[1px] active:shadow-none transition-all relative overflow-hidden">
-          <div className="absolute -right-2 -bottom-2 w-16 h-16 bg-orange-500/5 rounded-full blur-xl" />
+          <div className="absolute -right-2 -bottom-2 w-16 h-16 bg-orange-500/5 rounded-full" />
           <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center mb-3 border border-orange-500/20 text-orange-500">
             <Users size={20} />
           </div>

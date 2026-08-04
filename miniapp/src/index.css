@@ -9,6 +9,15 @@
     touch-action: pan-y;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Stop bounce at root level */
+    position: fixed; /* Lock viewport for TG miniapp */
+  }
+  #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
   }
   body {
     @apply bg-bg text-ink font-sans antialiased;
