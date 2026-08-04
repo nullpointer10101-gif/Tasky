@@ -159,6 +159,7 @@ export default function Tasks({ user, refreshUser }) {
       setIsSubmitting(true);
       let proof_screenshot_url = null;
       let proof_url = null;
+      let currentTask = selectedTask;
 
       if (selectedTask.verification_type === 'proof_screenshot' && proofData) {
         const formData = new FormData();
@@ -189,7 +190,7 @@ export default function Tasks({ user, refreshUser }) {
         }
         
         // Hide the modal before showing the ad so the ad doesn't get covered by z-index
-        const currentTask = selectedTask;
+        currentTask = selectedTask;
         setSelectedTask(null);
 
         const adResult = await showRewardedAd('main');
