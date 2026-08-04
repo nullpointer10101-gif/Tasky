@@ -27,7 +27,7 @@ export default function CyberMiningCore({
   const claimBtnRef = useRef(null);
 
   useEffect(() => {
-    if (!activeSession || activeSession.is_ready_to_claim) return;
+    if (!isConnected || !activeSession || activeSession.is_ready_to_claim) return;
 
     const rate = Number(activeSession.rate_used);
     const maxEarned = rate * 4;
@@ -69,12 +69,12 @@ export default function CyberMiningCore({
     animationFrameId = requestAnimationFrame(updateDisplay);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [activeSession]);
+  }, [activeSession, isConnected]);
 
   const handleClaimClick = async () => {
     // Determine claim amount directly from DOM if session was active, else from baseMined
     let finalAmount = Number(baseMined) || 0;
-    if (activeSession && intRef.current) {
+    if (isConnected && activeSession && intRef.current) {
         const textVal = intRef.current.textContent.replace(/,/g, '');
         finalAmount = Number(textVal) || finalAmount;
     }
@@ -97,11 +97,13 @@ export default function CyberMiningCore({
   };
 
   let displayAmount = Number(baseMined) || 0;
-  if (activeSession && !activeSession.is_ready_to_claim) {
+  if (isConnected && activeSession && !activeSession.is_ready_to_claim) {
       const rate = Number(activeSession.rate_used);
       const maxEarned = rate * 4;
       const elapsedHours = (Date.now() - new Date(activeSession.started_at).getTime()) / (1000 * 60 * 60);
       displayAmount = Math.min(rate * elapsedHours, maxEarned);
+  } else if (!isConnected) {
+      displayAmount = 0;
   }
 
   return (
@@ -121,7 +123,7 @@ export default function CyberMiningCore({
           <div className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-[#2e1d68] to-[#120b2e] border-2 border-indigo-400/50 flex flex-col items-center justify-center ">
             <Cpu size={28} className="text-cyan-300 mb-1 " />
             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
-              {activeSession ? 'OVERDRIVE ACTIVE' : 'REACTOR IDLE'}
+              {isConnected && activeSession ? 'OVERDRIVE ACTIVE' : 'REACTOR IDLE'}
             </span>
             <span className="text-xs font-black text-cyan-300 flex items-center gap-1 mt-0.5">
               <Zap size={12} className="fill-cyan-300" />
