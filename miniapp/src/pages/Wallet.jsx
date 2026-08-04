@@ -206,7 +206,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   ];
 
   return (
-    <div className="p-4 space-y-4 h-full flex flex-col relative">
+    <div className="p-4 space-y-4 pb-20 h-full flex flex-col relative">
       <WalletDopamineTerminal
         user={user}
         balance={user?.balance || 0}

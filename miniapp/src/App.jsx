@@ -219,7 +219,7 @@ export default function App() {
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header />
 
-          <main className="flex-1 overflow-y-auto hide-scrollbar pb-20 transform-gpu will-change-scroll h-full">
+          <main className="flex-1 overflow-y-auto hide-scrollbar transform-gpu will-change-scroll h-full">
             <ActivePage
               user={user}
               tgUser={tgUser}
