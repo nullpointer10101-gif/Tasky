@@ -104,30 +104,6 @@ function Profile({ user }) {
       {/* Old Hero Banner Removed to fix double profile rendering */}
 
       <div className="p-4 space-y-3">
-        {/* ── Stats Grid ── */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          {[
-            { icon: Coins, label: t('profile.totalEarned'), value: Number(user.total_earned || 0).toLocaleString(), sub: 'TASKY', color: '#fbbf24', bg: 'bg-yellow-500/10' },
-            { icon: Users, label: t('profile.referrals'), value: user.total_referrals || 0, sub: t('profile.invited'), color: '#818cf8', bg: 'bg-indigo-500/10' },
-            { icon: Flame, label: t('profile.streak'), value: user.streak_days || 0, sub: t('profile.days'), color: '#fb923c', bg: 'bg-orange-500/10' },
-            { icon: CheckCircle2, label: t('profile.tasksDone'), value: user.tasks_done || 0, sub: t('profile.completed'), color: '#34d399', bg: 'bg-emerald-500/10' },
-          ].map((stat, i) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className={`${stat.bg} border border-border rounded-2xl p-4`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon size={14} style={{ color: stat.color }} />
-                  <span className="text-xs text-ink-soft font-medium">{stat.label}</span>
-                </div>
-                <p className="text-2xl font-black text-ink leading-none">{stat.value}</p>
-                <p className="text-[10px] text-ink-faint mt-0.5 font-medium">{stat.sub}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-
-
-
         {/* ── Achievements ── */}
         <Card className="rounded-2xl border-border p-4">
           <h3 className="text-sm font-black text-ink mb-3">{t('profile.achievements')}</h3>
