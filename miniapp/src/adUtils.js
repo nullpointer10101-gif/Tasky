@@ -9,6 +9,50 @@ let isInjecting = false;
 let injectionAttempts = 0;
 const MAX_INJECTION_ATTEMPTS = 3;
 
+// --- Monetag Backup Config ---
+let isInjectingMonetag = false;
+let monetagInjectionAttempts = 0;
+const MONETAG_SCRIPT_URL = 'https://libtl.com/sdk.js';
+const MONETAG_SCRIPT_ID = 'monetag-ad-sdk';
+
+export function initMonetagAds() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (typeof window.show_11395836 === 'function') return;
+  if (isInjectingMonetag) return;
+  
+  if (document.getElementById(MONETAG_SCRIPT_ID)) return;
+  if (monetagInjectionAttempts >= MAX_INJECTION_ATTEMPTS) return;
+
+  isInjectingMonetag = true;
+  monetagInjectionAttempts++;
+
+  try {
+    const script = document.createElement('script');
+    script.id = MONETAG_SCRIPT_ID;
+    script.src = MONETAG_SCRIPT_URL;
+    script.setAttribute('data-zone', '11395836');
+    script.setAttribute('data-sdk', 'show_11395836');
+    script.async = true;
+    script.crossOrigin = 'anonymous';
+
+    script.onload = () => {
+      isInjectingMonetag = false;
+      console.log('[AdManager] Monetag script loaded successfully');
+    };
+
+    script.onerror = (err) => {
+      isInjectingMonetag = false;
+      console.warn('[AdManager] Monetag script load error:', err);
+    };
+
+    document.head.appendChild(script);
+  } catch (err) {
+    isInjectingMonetag = false;
+    console.error('[AdManager] Failed to inject Monetag script:', err);
+  }
+}
+// -----------------------------
+
 // Patch Telegram.WebApp.showAlert to suppress annoying ad fill alerts from third-party networks
 if (typeof window !== 'undefined' && window.Telegram?.WebApp?.showAlert) {
   const originalShowAlert = window.Telegram.WebApp.showAlert;
@@ -126,35 +170,78 @@ export function waitForGiga(timeoutMs = 12000) {
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
+  const tryMonetag = async () => {
+    if (typeof window !== 'undefined' && typeof window.show_11395836 === 'function') {
+      console.log('[AdManager] Trying Monetag fallback...');
+      await Promise.race([
+        window.show_11395836(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Monetag timeout')), 60000))
+      ]);
+      return { success: true };
+    }
+    throw new Error('Monetag not available');
+  };
+
   try {
-    // PRESERVE USER GESTURE: If the ad network is already loaded, we MUST call it 
-    // synchronously before any `await` (like waitForGiga). Awaiting a promise that 
-    // takes more than a microtask to resolve will drop the trusted user gesture,
-    // causing iOS Safari/WKWebView to silently block the ad iframe from appearing.
+    // PRESERVE USER GESTURE: Try GigaPub synchronously if loaded
     if (typeof window !== 'undefined' && typeof window.showGiga === 'function') {
+      try {
+        await Promise.race([
+          window.showGiga(placement),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
+        ]);
+        return { success: true };
+      } catch (err) {
+        console.warn('[AdManager] GigaPub failed, falling back to Monetag', err);
+        try {
+          return await tryMonetag();
+        } catch (monetagErr) {
+          throw err; // throw original GigaPub error if fallback fails
+        }
+      }
+    }
+
+    // If GigaPub is NOT ready, but Monetag IS ready, use Monetag immediately to preserve gesture!
+    if (typeof window !== 'undefined' && typeof window.show_11395836 === 'function') {
+      console.warn('[AdManager] GigaPub not ready yet, using Monetag directly');
+      try {
+        return await tryMonetag();
+      } catch (err) {
+        console.error('[AdManager] Monetag direct fallback failed:', err);
+      }
+    }
+
+    // Both are not ready. Wait for GigaPub, but only up to 4 seconds before failing over
+    const isReady = await waitForGiga(4000);
+
+    if (!isReady || typeof window.showGiga !== 'function') {
+       // Timeout! Try Monetag as a last resort
+       console.warn('[AdManager] GigaPub timed out, trying Monetag after wait');
+       try {
+         return await tryMonetag();
+       } catch(err) {
+          return {
+            success: false,
+            error: 'Ad network is loading. Please check your connection and tap again in a moment.'
+          };
+       }
+    }
+
+    // GigaPub loaded after wait
+    try {
       await Promise.race([
         window.showGiga(placement),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
       ]);
       return { success: true };
+    } catch (err) {
+      console.warn('[AdManager] GigaPub failed after wait, falling back to Monetag', err);
+      try {
+        return await tryMonetag();
+      } catch (monetagErr) {
+        throw err;
+      }
     }
-
-    const isReady = await waitForGiga(12000);
-
-    if (!isReady || typeof window.showGiga !== 'function') {
-      return {
-        success: false,
-        error: 'Ad network is loading. Please check your connection and tap again in a moment.'
-      };
-    }
-
-    // Call the rewarded ad method with a 60-second fallback timeout
-    await Promise.race([
-      window.showGiga(placement),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
-    ]);
-
-    return { success: true };
   } catch (err) {
     console.error('[AdManager] Ad playback error:', err);
     
@@ -177,4 +264,5 @@ export async function showRewardedAd(placement = 'main') {
 // Automatically initiate preloading when this module is imported
 if (typeof window !== 'undefined') {
   initGigaAds();
+  initMonetagAds();
 }
