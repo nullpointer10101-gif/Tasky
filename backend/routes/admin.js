@@ -673,7 +673,7 @@ router.delete('/promos/:id', async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('DELETE FROM user_promo_claims WHERE promo_code_id = $1', [id]);
+    await client.query('DELETE FROM user_promo_claims WHERE promo_id = $1', [id]);
     await client.query('DELETE FROM promo_codes WHERE id = $1', [id]);
     await client.query('COMMIT');
     res.json({ success: true });
