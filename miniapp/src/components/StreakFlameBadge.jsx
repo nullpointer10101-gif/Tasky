@@ -33,7 +33,7 @@ export default function StreakFlameBadge({ streakDays = 0, lastCheckin }) {
     tier: 'ember',
     color: 'text-orange-500',
     bg: 'bg-orange-500/10 border-orange-500/30',
-    glow: 'shadow-[0_0_12px_rgba(249,115,22,0.3)]',
+    glow: '',
     scale: 1,
     title: 'Ember Streak'
   };
@@ -43,7 +43,7 @@ export default function StreakFlameBadge({ streakDays = 0, lastCheckin }) {
       tier: 'plasma',
       color: 'text-fuchsia-400',
       bg: 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-pink-500/40',
-      glow: 'shadow-[0_0_20px_rgba(236,72,153,0.5)]',
+      glow: '',
       scale: 1.25,
       title: 'Plasma God Streak'
     };
@@ -52,7 +52,7 @@ export default function StreakFlameBadge({ streakDays = 0, lastCheckin }) {
       tier: 'blaze',
       color: 'text-amber-400',
       bg: 'bg-amber-500/20 border-amber-500/40',
-      glow: 'shadow-[0_0_15px_rgba(245,158,11,0.4)]',
+      glow: '',
       scale: 1.1,
       title: 'Blazing Streak'
     };

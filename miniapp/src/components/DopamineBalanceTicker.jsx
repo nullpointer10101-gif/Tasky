@@ -4,47 +4,17 @@ import { Zap, TrendingUp, Sparkles } from 'lucide-react';
 
 export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0, usdtRate = 20000 }) {
   const baseBalance = Number(balance) || 0;
-  const animFrameRef = useRef(null);
+  // REMOVED live ticking DOM updates entirely to completely eliminate React scroll lag.
+  // The balance will just be the static baseBalance passed in.
   
   const intRef = useRef(null);
   const decRef = useRef(null);
   const usdRef = useRef(null);
-  const lastUpdateRef = useRef(null);
-
-  useEffect(() => {
-    const ratePerMs = (Number(speedPerHour) || 5.0) / (3600 * 1000);
-    const startTime = performance.now();
-
-    const updateTicker = (now) => {
-      if (!lastUpdateRef.current) lastUpdateRef.current = now;
-      
-      // Throttle DOM updates to ~12fps (every 80ms) to prevent scroll tearing on mobile
-      if (now - lastUpdateRef.current >= 80) {
-        lastUpdateRef.current = now;
-        const elapsed = now - startTime;
-        const current = baseBalance + elapsed * ratePerMs;
-        
-        if (intRef.current && decRef.current && usdRef.current) {
-          intRef.current.textContent = Math.floor(current).toLocaleString();
-          decRef.current.textContent = (current % 1).toFixed(3).substring(1);
-          usdRef.current.textContent = `≈ $${(current / (Number(usdtRate) || 20000)).toFixed(2)}`;
-        }
-      }
-
-      animFrameRef.current = requestAnimationFrame(updateTicker);
-    };
-
-    animFrameRef.current = requestAnimationFrame(updateTicker);
-
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [baseBalance, speedPerHour, usdtRate]);
 
   return (
     <div className="relative z-10 flex flex-col items-center text-center ">
       {/* Live Mining Active Pill */}
-      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
+      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 ">
         <span className="relative flex h-2 w-2">
           <span className=" absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -62,7 +32,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
 
       {/* Main Ticking Number */}
       <div className="flex items-baseline justify-center gap-1 mb-2">
-        <span ref={intRef} className="text-5xl font-black text-white tracking-tighter drop-shadow-md font-mono">
+        <span ref={intRef} className="text-5xl font-black text-white tracking-tighter  font-mono">
           {Math.floor(baseBalance).toLocaleString()}
         </span>
         <span ref={decRef} className="text-2xl font-black text-indigo-200/90 font-mono tracking-normal">

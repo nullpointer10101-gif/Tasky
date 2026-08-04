@@ -157,16 +157,16 @@ export default function Referral({ user }) {
               'Your Stats'
             ) : (
               <div className="flex items-center gap-1.5">
-                <span className={`${activeTab === tab ? 'text-amber-500 drop-shadow-sm' : 'text-fuchsia-500 '} transition-colors`}>
+                <span className={`${activeTab === tab ? 'text-amber-500 ' : 'text-fuchsia-500 '} transition-colors`}>
                   <Trophy size={16} />
                 </span>
-                <span className={`${activeTab === tab ? '' : 'bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 to-purple-500 drop-shadow-sm'}`}>
+                <span className={`${activeTab === tab ? '' : 'bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 to-purple-500 '}`}>
                   Leaderboard
                 </span>
                 {/* Urgent notification dot */}
                 <span className="flex h-2 w-2 relative ml-0.5 -mt-2">
                   <span className=" absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,1)]"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 "></span>
                 </span>
               </div>
             )}
@@ -241,23 +241,23 @@ export default function Referral({ user }) {
           </motion.div>
         ) : (
             <motion.div    className="space-y-3 pb-8">
-            <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
+            <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50  flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
               
               <div className="relative z-10 flex flex-col items-center gap-2 w-full">
                 <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner ">
-                  <Trophy size={14} className="text-fuchsia-300 drop-shadow-md" />
-                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest drop-shadow-sm">Weekly Leaderboard W1</span>
+                  <Trophy size={14} className="text-fuchsia-300 " />
+                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest ">Weekly Leaderboard W1</span>
                 </div>
                 
-                <h2 className="text-[28px] font-black text-white drop-shadow-lg tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
-                  <Clock className="text-fuchsia-400  drop-shadow-md shrink-0" size={26} />
+                <h2 className="text-[28px] font-black text-white  tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
+                  <Clock className="text-fuchsia-400   shrink-0" size={26} />
                   <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-fuchsia-100 to-fuchsia-300 tabular-nums">
                     {timeLeft}
                   </span>
                 </h2>
                 
                 <p className="text-[13px] font-medium text-fuchsia-200/90 leading-tight">
-                  Top 10 players win <strong className="text-fuchsia-300 font-bold drop-shadow-sm">USDT & TASKY</strong> every Wednesday!
+                  Top 10 players win <strong className="text-fuchsia-300 font-bold ">USDT & TASKY</strong> every Wednesday!
                 </p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function Referral({ user }) {
 
             {leaderboard.map((user, index) => {
               const rank = index + 1;
-              let bgClass = "bg-surface border border-border/50 hover:bg-surface-soft hover:border-primary/40 hover:shadow-[0_0_15px_rgba(var(--color-primary),0.15)] transition-all duration-300";
+              let bgClass = "bg-surface border border-border/50 hover:bg-surface-soft hover:border-primary/40 hover: transition-all duration-300";
               let rankTextClass = "text-ink-faint font-black text-lg";
               let icon = null;
               let prizeText = "10k TASKY";
@@ -277,33 +277,33 @@ export default function Referral({ user }) {
               else if (rank === 6) prizeText = "30k TASKY";
               else if (rank === 7) prizeText = "20k TASKY";
 
-              let prizeClass = "bg-primary/10 text-primary border border-primary/20 shadow-[0_0_10px_rgba(var(--color-primary),0.1)] font-bold text-[10px] px-2 py-1";
+              let prizeClass = "bg-primary/10 text-primary border border-primary/20  font-bold text-[10px] px-2 py-1";
               let nameClass = "text-ink font-bold text-[15px]";
               let statClass = "text-ink-soft";
 
               if (rank === 1) {
-                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100] shadow-[0_10px_30px_rgba(255,143,0,0.5)] border border-[#FFE082]  scale-[1.02] transform z-20 relative";
-                rankTextClass = "text-[#FFF8E1] font-black text-xl drop-shadow-md";
-                icon = <Trophy size={24} className="text-[#FFF8E1] drop-shadow-lg" />;
+                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100]  border border-[#FFE082]  scale-[1.02] transform z-20 relative";
+                rankTextClass = "text-[#FFF8E1] font-black text-xl ";
+                icon = <Trophy size={24} className="text-[#FFF8E1] " />;
                 prizeText = "100 USDT";
                 prizeClass = "bg-white text-[#E65100] font-black border-0 shadow-lg px-3 py-1 text-xs scale-105";
-                nameClass = "text-white font-black text-lg drop-shadow-sm";
+                nameClass = "text-white font-black text-lg ";
                 statClass = "text-[#FFE082] font-semibold";
               } else if (rank === 2) {
-                bgClass = "bg-gradient-to-r from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8] shadow-[0_8px_25px_rgba(148,163,184,0.4)] border border-white z-10 relative";
-                rankTextClass = "text-[#334155] font-black text-lg drop-shadow-sm";
-                icon = <Medal size={22} className="text-[#334155] drop-shadow-md" />;
+                bgClass = "bg-gradient-to-r from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8]  border border-white z-10 relative";
+                rankTextClass = "text-[#334155] font-black text-lg ";
+                icon = <Medal size={22} className="text-[#334155] " />;
                 prizeText = "50 USDT";
                 prizeClass = "bg-white text-[#475569] font-black border-0 shadow-md px-3 py-1 text-xs";
-                nameClass = "text-[#0F172A] font-extrabold text-[16px] drop-shadow-sm";
+                nameClass = "text-[#0F172A] font-extrabold text-[16px] ";
                 statClass = "text-[#475569] font-semibold";
               } else if (rank === 3) {
-                bgClass = "bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C] shadow-[0_8px_25px_rgba(234,88,12,0.4)] border border-[#FDBA74] z-10 relative";
-                rankTextClass = "text-[#FFEDD5] font-black text-lg drop-shadow-sm";
-                icon = <Medal size={22} className="text-[#FFEDD5] drop-shadow-md" />;
+                bgClass = "bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C]  border border-[#FDBA74] z-10 relative";
+                rankTextClass = "text-[#FFEDD5] font-black text-lg ";
+                icon = <Medal size={22} className="text-[#FFEDD5] " />;
                 prizeText = "20 USDT";
                 prizeClass = "bg-white text-[#C2410C] font-black border-0 shadow-md px-3 py-1 text-xs";
-                nameClass = "text-white font-extrabold text-[16px] drop-shadow-sm";
+                nameClass = "text-white font-extrabold text-[16px] ";
                 statClass = "text-[#FFEDD5] font-semibold";
               }
 

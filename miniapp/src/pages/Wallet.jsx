@@ -368,7 +368,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                   </div>
                   <Button
                     onClick={() => tonConnectUI.openModal()}
-                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-[#0098EA] text-white shadow-lg shadow-[#0098EA]/30"
+                    className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-[#0098EA] text-white shadow-lg /30"
                   >
                     Connect TON Wallet
                   </Button>
@@ -405,20 +405,20 @@ export default function Wallet({ user, refreshUser, navigate }) {
               {!isSelectedActive ? (
                 <Button 
                   onClick={() => setIsUsdtTeaserOpen(true)}
-                  className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-surface border border-border text-ink shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
+                  className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-surface border border-border text-ink "
                 >
                   <Lock size={16} className="inline mr-2 -mt-1" />
                   Unlocking Soon
                 </Button>
               ) : hasPendingSwap ? (
-                <div className="w-full py-4 rounded-2xl bg-warning font-black text-white text-center shadow-[0_8px_30px_rgb(245,158,11,0.3)]">
+                <div className="w-full py-4 rounded-2xl bg-warning font-black text-white text-center ">
                   Pending Swap in Progress
                 </div>
               ) : (
                 <Button
                   onClick={handleSwap}
                   disabled={isSwapping || !isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance}
-                  className={`w-full font-black py-4 rounded-2xl active:scale-95 transition-all shadow-[0_8px_30px_rgb(99,102,241,0.4)] ${
+                  className={`w-full font-black py-4 rounded-2xl active:scale-95 transition-all  ${
                     (!isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance)
                       ? 'bg-surface border border-border text-ink-faint shadow-none'
                       : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white'

@@ -22,7 +22,7 @@ export default function TaskDopamineHub({
   return (
     <div className="space-y-3 w-full ">
       {/* 1. Quest Multiplier Streak Progress */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#1b113d] via-[#21164c] to-[#0f0928] border border-purple-500/30 p-4 shadow-[0_0_25px_rgba(168,85,247,0.2)]">
+      <div className="rounded-3xl bg-gradient-to-r from-[#1b113d] via-[#21164c] to-[#0f0928] border border-purple-500/30 p-4 ">
         <div className="flex items-center justify-between mb-1.5">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-purple-500/20 border border-purple-400/40 flex items-center justify-center ">
@@ -44,7 +44,7 @@ export default function TaskDopamineHub({
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 1, ease: 'easeOut' }}
-            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 shadow-[0_0_10px_rgba(236,72,153,0.8)]"
+            className="h-full rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-amber-400 "
           />
         </div>
 
@@ -67,7 +67,7 @@ export default function TaskDopamineHub({
               onClick={() => onSelectCategory && onSelectCategory(cat.id)}
               className={`px-3.5 py-2 rounded-2xl text-xs font-black whitespace-nowrap transition-all flex items-center gap-1.5 ${
                 isSelected
-                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.5)] border border-indigo-300/40 scale-105'
+                  ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white  border border-indigo-300/40 scale-105'
                   : 'bg-white/5 text-gray-400 hover:text-white border border-white/10'
               }`}
             >

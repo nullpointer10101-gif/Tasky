@@ -38,7 +38,7 @@ export default function SwapProgressCard({ balance = 0, taskyPerUsdt = 20000, ta
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+            className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-full "
           />
         </div>
         <div className="flex justify-between text-[10px] font-bold text-ink-soft">

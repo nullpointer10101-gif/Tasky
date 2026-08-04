@@ -313,7 +313,7 @@ export default function Rig({ user, refreshUser }) {
       <motion.div  className="relative group perspective-1000 mb-2">
         <motion.div 
           whileTap={{ scale: 0.98, rotateX: 2 }}
-          className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60 shadow-[0_15px_35px_-10px_rgba(99,102,241,0.4)] active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
+          className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60  active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
         >
           {/* Animated Background Elements */}
           
@@ -323,13 +323,13 @@ export default function Rig({ user, refreshUser }) {
                 <Gem size={12} className="text-blue-300"/> {displayLevel}
               </span>
               <span className={`bg-white/10  text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5`}>
-                <Zap size={12} className={displayEff > 100 ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'text-blue-300'}/> {displayEff}% EFF
+                <Zap size={12} className={displayEff > 100 ? 'text-yellow-400 drop-' : 'text-blue-300'}/> {displayEff}% EFF
               </span>
             </div>
             
-            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 drop-shadow-md">Mining Speed</p>
+            <p className="text-[10px] font-black text-white/70 uppercase tracking-widest mb-1 ">Mining Speed</p>
             <div className="flex items-baseline gap-1.5 mb-6">
-              <span className="text-4xl sm:text-5xl font-black tracking-tighter drop-shadow-lg">{displaySpeed}</span>
+              <span className="text-4xl sm:text-5xl font-black tracking-tighter ">{displaySpeed}</span>
               <span className="text-sm font-black text-white/80 uppercase tracking-wider">TASKY / hr</span>
             </div>
             

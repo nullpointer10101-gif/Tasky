@@ -59,7 +59,7 @@ export default function ReferralSquadRoadmap({
     <div className="space-y-4 w-full ">
       {/* 1. Uncollected Fren Bounty Vault Chest */}
       {unclaimedBounty > 0 && (
-        <div className="rounded-3xl bg-gradient-to-r from-[#2a134a] via-[#1f0e38] to-[#120724] border-2 border-amber-400/50 p-5 shadow-[0_0_35px_rgba(245,158,11,0.25)] relative overflow-hidden">
+        <div className="rounded-3xl bg-gradient-to-r from-[#2a134a] via-[#1f0e38] to-[#120724] border-2 border-amber-400/50 p-5  relative overflow-hidden">
           
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
@@ -78,7 +78,7 @@ export default function ReferralSquadRoadmap({
             <button
               onClick={handleClaim}
               disabled={bountyClaiming}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.6)] active:scale-95 transition-all"
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-wider  active:scale-95 transition-all"
             >
               {bountyClaiming ? 'HARVESTING...' : 'CLAIM BOUNTY 💥'}
             </button>
@@ -90,7 +90,7 @@ export default function ReferralSquadRoadmap({
       )}
 
       {/* 2. Squad Tier Roadmap */}
-      <div className="rounded-3xl bg-[#130b2c] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+      <div className="rounded-3xl bg-[#130b2c] border border-indigo-500/30 p-5 ">
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
             <Crown size={14} className="text-amber-400" />
@@ -112,7 +112,7 @@ export default function ReferralSquadRoadmap({
                 key={tier.level}
                 className={`rounded-2xl p-2.5 text-center flex flex-col items-center justify-between border transition-all ${
                   isCurrent
-                    ? 'bg-indigo-600/30 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.4)]'
+                    ? 'bg-indigo-600/30 border-indigo-400 '
                     : isUnlocked
                     ? 'bg-white/5 border-white/20'
                     : 'bg-black/40 border-white/5 opacity-50'
@@ -137,7 +137,7 @@ export default function ReferralSquadRoadmap({
         <div className="mt-4 pt-3 border-t border-white/10 flex gap-2">
           <button
             onClick={handleCopyLink}
-            className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(99,102,241,0.4)] flex items-center justify-center gap-2 active:scale-95 transition-transform"
+            className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-xs uppercase tracking-wider  flex items-center justify-center gap-2 active:scale-95 transition-transform"
           >
             {copied ? <CheckCircle2 size={16} className="text-emerald-300" /> : <Copy size={16} />}
             {copied ? 'LINK COPIED! 🚀' : 'COPY SQUAD INVITE LINK'}

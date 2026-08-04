@@ -75,7 +75,7 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.8, y: 30, opacity: 0 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="relative w-full max-w-sm bg-surface border-2 border-indigo-500/40 rounded-[2.5rem] p-6 shadow-[0_25px_60px_-15px_rgba(99,102,241,0.5)] text-center overflow-hidden"
+            className="relative w-full max-w-sm bg-surface border-2 border-indigo-500/40 rounded-[2.5rem] p-6  text-center overflow-hidden"
           >
             {/* Ambient Background Glow */}
 
@@ -123,7 +123,7 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
             <motion.button
               whileTap={{ scale: 0.95 }}
               onClick={handleClaim}
-              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-black text-base shadow-[0_10px_25px_rgba(99,102,241,0.4)] border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2"
+              className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white font-black text-base  border-b-4 border-indigo-900 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2"
             >
               <span>Collect To Balance 💥</span>
             </motion.button>

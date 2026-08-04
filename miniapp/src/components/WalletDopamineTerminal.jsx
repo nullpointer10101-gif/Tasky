@@ -36,7 +36,7 @@ export default function WalletDopamineTerminal({
   return (
     <div className="space-y-4 w-full ">
       {/* 1. USDT Cashout Milestone Progress Bar */}
-      <div className="rounded-3xl bg-gradient-to-r from-[#170e38] via-[#1b1544] to-[#0c0824] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+      <div className="rounded-3xl bg-gradient-to-r from-[#170e38] via-[#1b1544] to-[#0c0824] border border-indigo-500/30 p-5 ">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
@@ -58,7 +58,7 @@ export default function WalletDopamineTerminal({
             initial={{ width: 0 }}
             animate={{ width: `${progressPercent}%` }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
-            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-[0_0_10px_rgba(16,185,129,0.8)]"
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 "
           />
         </div>
 
@@ -70,7 +70,7 @@ export default function WalletDopamineTerminal({
 
 
       {/* 3. Live High-Voltage Swap Matrix */}
-      <div className="rounded-3xl bg-[#120c29] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(79,70,229,0.2)]">
+      <div className="rounded-3xl bg-[#120c29] border border-indigo-500/30 p-5 ">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
             <ArrowRightLeft size={14} className="text-cyan-400" />
@@ -89,7 +89,7 @@ export default function WalletDopamineTerminal({
             onClick={() => setSelectedCurrency('usdt')}
             className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               selectedCurrency === 'usdt'
-                ? 'bg-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                ? 'bg-emerald-500 text-white '
                 : 'bg-white/5 text-gray-400 border border-white/10'
             }`}
           >
@@ -100,7 +100,7 @@ export default function WalletDopamineTerminal({
             onClick={() => setSelectedCurrency('ton')}
             className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
               selectedCurrency === 'ton'
-                ? 'bg-blue-500 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                ? 'bg-blue-500 text-white '
                 : 'bg-white/5 text-gray-400 border border-white/10'
             }`}
           >

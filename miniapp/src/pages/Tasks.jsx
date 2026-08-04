@@ -273,7 +273,7 @@ export default function Tasks({ user, refreshUser }) {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setPlacementCategory('internal')}
-                  className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'internal' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
+                  className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'internal' ? 'bg-indigo-500/10 text-indigo-500 border-indigo-500/30 ' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
                 >
                   {placementCategory === 'internal' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-indigo-500/10 to-transparent -translate-x-full " />}
                   Tasky
@@ -281,7 +281,7 @@ export default function Tasks({ user, refreshUser }) {
                 <motion.button
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setPlacementCategory('partner')}
-                  className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'partner' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 shadow-[0_8px_16px_-6px_rgba(245,158,11,0.3)]' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
+                  className={`flex-1 py-4 rounded-[1.25rem] text-[13px] font-black uppercase tracking-wider transition-all border-2 overflow-hidden relative flex flex-col items-center justify-center gap-1 ${placementCategory === 'partner' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30 ' : 'bg-surface-soft border-transparent text-ink-soft opacity-70'}`}
                 >
                   {placementCategory === 'partner' && <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-500/10 to-transparent -translate-x-full " />}
                   Partners
@@ -312,14 +312,14 @@ export default function Tasks({ user, refreshUser }) {
                       <motion.div 
                         key={task.id} 
                         whileTap={{ scale: 0.96 }}
-                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'border border-fuchsia-500/50 border-b-[3px] bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-fuchsia-50/80 dark:from-indigo-500/10 dark:via-fuchsia-500/10 dark:to-cyan-500/10 shadow-[0_6px_15px_-4px_rgba(217,70,239,0.25)]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
+                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'border border-fuchsia-500/50 border-b-[3px] bg-gradient-to-r from-indigo-50/80 via-purple-50/80 to-fuchsia-50/80 dark:from-indigo-500/10 dark:via-fuchsia-500/10 dark:to-cyan-500/10 ' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
                         onClick={() => handleSelectTask(task)}
                       >
                         {task.verification_type === 'auto_ad' && (
                           <>
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent -translate-x-full " />
                             <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-fuchsia-400/50">
-                              <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 drop-shadow-md">HOT</span>
+                              <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 ">HOT</span>
                             </div>
                           </>
                         )}
@@ -340,8 +340,8 @@ export default function Tasks({ user, refreshUser }) {
                           </h3>
                           <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-fuchsia-600 dark:text-fuchsia-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_4px_12px_rgba(217,70,239,0.3)] bg-[length:200%_200%] ' : 'bg-surface-soft border border-border'}`}>
-                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white drop-shadow-md' : 'text-ink'}`}>+{task.reward_tasky}</span>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500  bg-[length:200%_200%] ' : 'bg-surface-soft border border-border'}`}>
+                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white ' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </motion.div>
                     ))
@@ -353,7 +353,7 @@ export default function Tasks({ user, refreshUser }) {
 
             {placementCategory === 'partner' && (
                 <div className="mt-2 mb-6">
-                  <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.1)] relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
+                  <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300  relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
                     
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30 relative z-10 group-hover:scale-110 transition-transform duration-300">
                       <Rocket size={26} />
@@ -415,13 +415,13 @@ export default function Tasks({ user, refreshUser }) {
                 animate={{ y: 0 }}
                 exit={{ y: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.8 }}
-                className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-[2.5rem] border-t border-border p-6 pb-12 z-[70] shadow-[0_-15px_40px_rgba(0,0,0,0.2)]"
+                className="fixed bottom-0 left-0 right-0 bg-surface rounded-t-[2.5rem] border-t border-border p-6 pb-12 z-[70] "
               >
               <div className="w-14 h-2 bg-surface-soft rounded-full mx-auto mb-6" />
               
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-[22px] font-black text-ink leading-tight pr-4">{selectedTask.title}</h2>
-                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500 shadow-[0_8px_16px_-6px_rgba(217,70,239,0.4)] bg-[length:200%_200%] ' : 'bg-gradient-primary shadow-[0_8px_16px_-6px_rgba(99,102,241,0.3)]'}`}>
+                <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500  bg-[length:200%_200%] ' : 'bg-gradient-primary '}`}>
                   <span className="text-[15px] font-black text-white">+{selectedTask.reward_tasky} TASKY</span>
                 </div>
               </div>
@@ -442,7 +442,7 @@ export default function Tasks({ user, refreshUser }) {
                           if (!cleanRule) return null;
                           return (
                             <li key={idx} className="flex items-start gap-3 text-[15px] text-ink-soft">
-                              <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(99,102,241,0.4)]" />
+                              <div className="w-2 h-2 rounded-full bg-indigo-500 mt-2 shrink-0 " />
                               <span className="leading-relaxed">{cleanRule}</span>
                             </li>
                           );
@@ -462,15 +462,15 @@ export default function Tasks({ user, refreshUser }) {
                     </p>
                     <ul className="space-y-4 relative z-10">
                       <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
-                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 " />
                         <span className="leading-relaxed font-medium">You must watch the entire ad to get the reward.</span>
                       </li>
                       <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
-                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 " />
                         <span className="leading-relaxed font-medium">Skipping or closing the ad early will cancel the reward.</span>
                       </li>
                       <li className="flex items-start gap-3 text-[15px] text-fuchsia-600 dark:text-fuchsia-300">
-                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 shadow-[0_0_8px_rgba(217,70,239,0.4)]" />
+                        <div className="w-2 h-2 rounded-full bg-fuchsia-500 mt-2 shrink-0 " />
                         <span className="leading-relaxed font-medium">Daily limit: 60 ads per 24 hours (30 TASKY per ad).</span>
                       </li>
                     </ul>

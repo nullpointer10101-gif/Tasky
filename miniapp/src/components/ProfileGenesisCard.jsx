@@ -18,7 +18,7 @@ export default function ProfileGenesisCard({ user, totalEarned = 0, balance = 0 
   return (
     <div className="space-y-4 w-full ">
       {/* 1. Holographic Genesis / VIP Member Pass */}
-      <div className="relative overflow-hidden rounded-3xl p-6 hologram-card shadow-[0_0_35px_rgba(99,102,241,0.3)] shimmer-effect">
+      <div className="relative overflow-hidden rounded-3xl p-6 hologram-card  shimmer-effect">
         <div className="flex items-start justify-between relative z-10">
           <div>
             <span className="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-amber-400/20 text-amber-300 border border-amber-400/40 inline-flex items-center gap-1">
@@ -52,7 +52,7 @@ export default function ProfileGenesisCard({ user, totalEarned = 0, balance = 0 
       </div>
 
       {/* 2. Achievement Trophy Showcase */}
-      <div className="rounded-3xl bg-[#130b2c] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+      <div className="rounded-3xl bg-[#130b2c] border border-indigo-500/30 p-5 ">
         <div className="flex items-center justify-between mb-3">
           <span className="text-xs font-black text-indigo-300 uppercase tracking-widest flex items-center gap-1.5">
             <Trophy size={14} className="text-amber-400" />

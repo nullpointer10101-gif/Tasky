@@ -10,13 +10,17 @@
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     width: 100%;
-    /* Remove position: fixed and overflow: hidden to allow butter smooth native scrolling */
+    height: 100vh;
+    height: var(--tg-viewport-stable-height, 100vh);
+    position: fixed;
+    overflow: hidden;
     background-color: #090615;
   }
   #root {
     width: 100%;
-    min-height: 100vh;
-    min-height: var(--tg-viewport-stable-height, 100vh);
+    height: 100vh;
+    height: var(--tg-viewport-stable-height, 100vh);
+    overflow: hidden;
     display: flex;
     flex-direction: column;
   }
