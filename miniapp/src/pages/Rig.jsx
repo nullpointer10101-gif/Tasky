@@ -289,7 +289,7 @@ export default function Rig({ user, refreshUser }) {
 
 
   return (
-    <motion.div variants={containerVariants} initial="initial" animate="animate" className="p-4 space-y-4 pb-20 h-full flex flex-col">
+    <motion.div variants={containerVariants} initial="initial" animate="animate" className="p-4 space-y-4 pb-20 min-h-full relative">
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Rig</h1>
