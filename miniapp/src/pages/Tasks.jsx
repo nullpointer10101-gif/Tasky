@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { showRewardedAd } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket, Gift } from 'lucide-react';
+import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket, Gift, Flame } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -235,21 +235,6 @@ export default function Tasks({ user, refreshUser }) {
 
   return (
     <>
-    <style>{`
-      @keyframes shimmer-fast {
-        0% { transform: translateX(-150%) skewX(-20deg); }
-        100% { transform: translateX(150%) skewX(-20deg); }
-      }
-      .dopamine-task {
-        animation: border-pulse 2s infinite ease-in-out;
-        box-shadow: 0 0 20px rgba(217, 70, 239, 0.4), inset 0 0 10px rgba(217, 70, 239, 0.2);
-        border-color: rgba(217, 70, 239, 0.8) !important;
-      }
-      @keyframes border-pulse {
-        0%, 100% { box-shadow: 0 0 15px rgba(217, 70, 239, 0.3), inset 0 0 5px rgba(217, 70, 239, 0.1); border-color: rgba(217, 70, 239, 0.6) !important; }
-        50% { box-shadow: 0 0 25px rgba(217, 70, 239, 0.6), inset 0 0 15px rgba(217, 70, 239, 0.3); border-color: rgba(217, 70, 239, 1) !important; }
-      }
-    `}</style>
     <div className="p-4 space-y-4 pb-20 min-h-full relative">
       <div className="mb-2 flex items-center justify-between">
         <div>
@@ -353,36 +338,34 @@ export default function Tasks({ user, refreshUser }) {
                       <motion.div 
                         key={task.id} 
                         whileTap={{ scale: 0.96 }}
-                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'dopamine-task border-[2px] border-b-[4px]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
+                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-r from-rose-500/10 via-orange-500/5 to-transparent border border-rose-500/50 border-b-[3px]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
                         onClick={() => handleSelectTask(task)}
                       >
                         {task.verification_type === 'auto_ad' && (
-                          <>
-                            <div className="absolute inset-0 w-[50%] h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-20deg] animate-[shimmer-fast_2s_infinite]" />
-                            <div className="absolute -top-3 -right-3 w-14 h-14 bg-gradient-to-br from-fuchsia-500 to-cyan-500 rotate-45 flex items-end justify-center pb-1.5 z-10 shadow-lg border-b border-fuchsia-400/50">
-                              <span className="text-[8px] font-black uppercase tracking-widest text-white -rotate-45 ml-2 mt-3 animate-pulse">HOT</span>
-                            </div>
-                          </>
+                          <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-black px-2.5 py-1 rounded-bl-xl shadow-sm z-20 flex items-center gap-1">
+                            <Flame size={10} className="text-yellow-300" />
+                            LIMITED TIME
+                          </div>
                         )}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${getIconBgColor(task.icon)} ${task.verification_type === 'auto_ad' ? 'shadow-[0_0_15px_rgba(168,85,247,0.5)] scale-105' : ''}`}>
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500' : getIconBgColor(task.icon)}`}>
                           <IconRenderer name={task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
                             <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-                              <span className=" absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-100 animate-ping"></span>
-                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-cyan-400 border-2 border-white dark:border-gray-900 shadow-[0_0_10px_rgba(34,211,238,0.8)]"></span>
+                              <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping"></span>
+                              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border-2 border-white dark:border-gray-900"></span>
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0 pr-16 relative z-10">
-                          <h3 className={`font-black text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5 ${task.verification_type === 'auto_ad' ? 'text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-cyan-500 drop-shadow-sm' : 'text-ink'}`}>
+                          <h3 className={`font-black text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5 ${task.verification_type === 'auto_ad' ? 'text-rose-500' : 'text-ink'}`}>
                             {task.title}
                             {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
                             {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-md border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
                           </h3>
-                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-fuchsia-600 dark:text-fuchsia-400 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
+                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-orange-500 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500  bg-[length:200%_200%] shadow-[0_0_15px_rgba(217,70,239,0.5)] animate-pulse scale-105' : 'bg-surface-soft border border-border'}`}>
-                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white ' : 'text-ink'}`}>+{task.reward_tasky}</span>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 animate-pulse' : 'bg-surface-soft border border-border'}`}>
+                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white' : 'text-ink'}`}>+{task.reward_tasky}</span>
                         </div>
                       </motion.div>
                     ))
