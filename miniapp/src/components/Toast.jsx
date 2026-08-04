@@ -19,7 +19,7 @@ export default function Toast({ message, type = 'success', onClose }) {
         initial={{ opacity: 0, y: -50, x: '-50%' }}
         animate={{ opacity: 1, y: 0, x: '-50%' }}
         exit={{ opacity: 0, y: -50, x: '-50%' }}
-        className={`fixed top-4 left-1/2 z-50 px-4 py-2 rounded-pill shadow-soft font-medium text-sm whitespace-nowrap ${colors[type]}`}
+        className={`fixed top-4 left-1/2 z-[9999] px-4 py-2 rounded-pill shadow-soft font-medium text-sm whitespace-nowrap ${colors[type]}`}
       >
         {message}
       </motion.div>

@@ -51,19 +51,23 @@ export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user 
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          onClick={onClose}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="w-full max-w-sm rounded-3xl bg-gradient-to-b from-[#1a133b] to-[#0c081e] border-2 border-indigo-500/30 overflow-hidden relative"
+            onClick={(e) => e.stopPropagation()}
           >
             {/* Glowing orb effect behind */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-indigo-500/20 blur-[50px] rounded-full" />
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-indigo-500/20 blur-[50px] rounded-full pointer-events-none" />
             
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-10"
+              className="absolute top-4 right-4 text-white/50 hover:text-white transition-colors z-50 p-2"
             >
               <X size={24} />
             </button>
