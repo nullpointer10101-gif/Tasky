@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck } from 'lucide-react';
-import DailyCheckin from '../components/DailyCheckin';
-import SpinWheel from '../components/SpinWheel';
 import DopamineBalanceTicker from '../components/DopamineBalanceTicker';
 import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
@@ -196,11 +194,7 @@ export default function Home({ user, refreshUser, navigate }) {
 
 
 
-      {/* Gamified Components */}
-      <motion.div variants={itemVariants} className="space-y-4">
-        <SpinWheel user={user} refreshUser={refreshUser} />
-        <DailyCheckin user={user} refreshUser={refreshUser} />
-      </motion.div>
+
 
       {/* How to Earn Info Card - Redesigned */}
       <motion.div variants={itemVariants}>

@@ -8,6 +8,7 @@ import Referral from './pages/Referral'
 import Wallet from './pages/Wallet'
 import Profile from './pages/Profile'
 import Rig from './pages/Rig'
+import Play from './pages/Play'
 import Toast from './components/Toast'
 import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
@@ -40,7 +41,7 @@ const getTelegramUser = () => {
   return { id: 123456, first_name: 'Test', username: 'testuser' }
 }
 
-const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile }
+const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile, play: Play }
 
 export default function App() {
   const [activePage, setActivePage] = useState('home')
@@ -224,7 +225,7 @@ export default function App() {
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
-          <Header />
+          <Header user={user} navigate={setActivePage} />
 
           <main className="flex-1 overflow-y-auto hide-scrollbar h-full w-full">
             <ActivePage

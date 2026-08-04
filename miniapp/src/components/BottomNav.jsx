@@ -1,14 +1,14 @@
 import { motion } from 'framer-motion'
-import { Home, ListChecks, Users, Wallet, User, Gem } from 'lucide-react'
+import { Home, ListChecks, Users, Wallet, Gamepad2, Gem } from 'lucide-react'
 import { useTranslation } from '../i18n/I18nContext'
 
 const NAV_ITEMS = [
   { id: 'home',     key: 'nav.home',     Icon: Home },
   { id: 'rig',      key: 'nav.rig',      Icon: Gem },
+  { id: 'play',     key: 'Play',         Icon: Gamepad2 },
   { id: 'tasks',    key: 'nav.tasks',    Icon: ListChecks },
   { id: 'referral', key: 'nav.referral', Icon: Users },
   { id: 'wallet',   key: 'nav.wallet',   Icon: Wallet },
-  { id: 'profile',  key: 'nav.profile',  Icon: User },
 ]
 
 export default function BottomNav({ active, onChange }) {
