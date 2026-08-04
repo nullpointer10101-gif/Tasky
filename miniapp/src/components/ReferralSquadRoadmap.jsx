@@ -60,7 +60,6 @@ export default function ReferralSquadRoadmap({
       {/* 1. Uncollected Fren Bounty Vault Chest */}
       {unclaimedBounty > 0 && (
         <div className="rounded-3xl bg-gradient-to-r from-[#2a134a] via-[#1f0e38] to-[#120724] border-2 border-amber-400/50 p-5 shadow-[0_0_35px_rgba(245,158,11,0.25)] relative overflow-hidden">
-          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl" />
           
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">

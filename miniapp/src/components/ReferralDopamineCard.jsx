@@ -12,7 +12,6 @@ export default function ReferralDopamineCard({ referralData, onNavigate }) {
   return (
     <div className="bg-surface rounded-[2rem] p-5 border-b-[4px] border-x border-t border-border shadow-sm relative overflow-hidden">
       {/* Background Accent */}
-      <div className="absolute -left-8 -top-8 w-28 h-28 bg-orange-500/10 rounded-full blur-2xl pointer-events-none" />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-3">

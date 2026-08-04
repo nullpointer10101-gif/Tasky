@@ -223,7 +223,7 @@ export default function SpecialOfferPopup({ user }) {
           <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/70 backdrop-blur-md"
+              className="absolute inset-0 bg-black/70 "
               onClick={handleCloseModal}
             />
             <motion.div

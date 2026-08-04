@@ -41,7 +41,7 @@ export default function WithdrawalPopup({ user, refreshUser }) {
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 ">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -51,7 +51,6 @@ export default function WithdrawalPopup({ user, refreshUser }) {
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
           
           <div className="flex justify-center mb-4 relative">
-            <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
             <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center relative border border-indigo-500/30">
               <Gift className="w-8 h-8 text-indigo-400" />
             </div>

@@ -64,7 +64,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
       </div>
 
       {/* USD Value Estimate */}
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-inner">
+      <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10  rounded-full border border-white/20 shadow-inner">
         <span ref={usdRef} className="text-sm font-bold text-white/90">≈ ${(baseBalance / (Number(usdtRate) || 20000)).toFixed(2)}</span>
         <span className="text-xs font-black text-indigo-200">USDT</span>
         <span className="text-[10px] text-emerald-300 font-bold flex items-center">

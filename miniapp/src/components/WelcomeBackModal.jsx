@@ -68,7 +68,7 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 "
         >
           <motion.div
             initial={{ scale: 0.8, y: 30, opacity: 0 }}
@@ -78,8 +78,6 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
             className="relative w-full max-w-sm bg-surface border-2 border-indigo-500/40 rounded-[2.5rem] p-6 shadow-[0_25px_60px_-15px_rgba(99,102,241,0.5)] text-center overflow-hidden"
           >
             {/* Ambient Background Glow */}
-            <div className="absolute -top-16 -left-16 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-16 -right-16 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
 
             {/* Close Icon */}
             <button

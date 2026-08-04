@@ -68,8 +68,6 @@
 /* Hologram Cyberpunk Gradients */
 .hologram-card {
   background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(99,102,241,0.08) 50%, rgba(236,72,153,0.06) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 

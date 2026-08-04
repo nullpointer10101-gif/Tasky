@@ -316,15 +316,13 @@ export default function Rig({ user, refreshUser }) {
           className="relative overflow-hidden rounded-[2rem] border-b-[4px] border-indigo-900/60 shadow-[0_15px_35px_-10px_rgba(99,102,241,0.4)] active:translate-y-[3px] active:border-b-[1px] active:shadow-none transition-all cursor-pointer bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"
         >
           {/* Animated Background Elements */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:bg-white/10 transition-all duration-700 blur-2xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 bg-fuchsia-500/10 rounded-full translate-y-1/3 -translate-x-1/4 blur-2xl pointer-events-none" />
           
           <div className="relative z-10 p-5 text-white">
             <div className="flex justify-between items-start mb-6">
-              <span className="bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5">
+              <span className="bg-white/10  text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5">
                 <Gem size={12} className="text-blue-300"/> {displayLevel}
               </span>
-              <span className={`bg-white/10 backdrop-blur-md text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5`}>
+              <span className={`bg-white/10  text-white border border-white/20 px-3 py-1.5 rounded-full text-[11px] font-black tracking-wider uppercase shadow-sm flex items-center gap-1.5`}>
                 <Zap size={12} className={displayEff > 100 ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.8)]' : 'text-blue-300'}/> {displayEff}% EFF
               </span>
             </div>
@@ -335,7 +333,7 @@ export default function Rig({ user, refreshUser }) {
               <span className="text-sm font-black text-white/80 uppercase tracking-wider">TASKY / hr</span>
             </div>
             
-            <div className="bg-black/20 backdrop-blur-sm rounded-[1.25rem] px-4 py-3 border border-white/10 flex items-center justify-between shadow-inner">
+            <div className="bg-black/20  rounded-[1.25rem] px-4 py-3 border border-white/10 flex items-center justify-between shadow-inner">
               <span className="text-xs font-bold text-white/70 uppercase tracking-wider">TASKY Balance</span>
               <span className="text-sm font-black">{displayHolding}</span>
             </div>
@@ -543,7 +541,6 @@ export default function Rig({ user, refreshUser }) {
 
       {/* Explainer Card */}
       <Card className="rounded-[2rem] border-b-[4px] border-x border-t border-border shadow-sm space-y-4 p-5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-brand/5 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl pointer-events-none" />
         <div className="flex items-center gap-3 mb-2 relative z-10">
           <div className="w-10 h-10 rounded-xl bg-brand/10 flex items-center justify-center border border-brand/20">
             <Info size={20} className="text-brand fill-brand/20" />

@@ -91,8 +91,6 @@ export default function CyberMiningCore({
   return (
     <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5 shadow-[0_0_40px_rgba(79,70,229,0.25)] will-change-transform">
       {/* Background glowing plasma orbs */}
-      <div className="absolute -top-12 -left-12 w-44 h-44 bg-indigo-500/10 rounded-full blur-2xl pointer-events-none" />
-      <div className="absolute -bottom-12 -right-12 w-44 h-44 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
 
       {/* Cybernetic Core Reactor Ring */}
       <div className="relative flex flex-col items-center justify-center my-2">
@@ -102,7 +100,6 @@ export default function CyberMiningCore({
           {/* Outer Pulsing Neon Rings */}
           <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40 animate-[spin_12s_linear_infinite]" />
           <div className="absolute inset-2 rounded-full border border-cyan-400/30 animate-[spin_8s_linear_infinite_reverse]" />
-          <div className="absolute inset-4 rounded-full bg-gradient-to-tr from-indigo-600/30 via-purple-600/20 to-cyan-500/20 blur-md" />
 
           {/* Inner Glowing Reactor Orb */}
           <div className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-[#2e1d68] to-[#120b2e] border-2 border-indigo-400/50 flex flex-col items-center justify-center shadow-[inset_0_0_20px_rgba(99,102,241,0.6)]">
@@ -135,7 +132,7 @@ export default function CyberMiningCore({
       </div>
 
       {/* Near-Miss Tier Framing Banner */}
-      <div className="my-2 p-2.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 backdrop-blur-md">
+      <div className="my-2 p-2.5 rounded-2xl bg-indigo-950/60 border border-indigo-500/20 ">
         <div className="flex items-center justify-between text-xs font-black mb-1.5">
           <span className="flex items-center gap-1 text-amber-300">
             <Flame size={14} className="fill-amber-400 text-amber-400 animate-bounce" />
@@ -183,7 +180,7 @@ export default function CyberMiningCore({
       {/* Claim Celebration Modal */}
       <AnimatePresence>
         {showClaimModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80  p-4">
             <motion.div
               initial={{ scale: 0.6, opacity: 0, y: 50 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}

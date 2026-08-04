@@ -178,7 +178,7 @@ export default function App() {
   if (!user) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-bg relative overflow-hidden px-6 text-center">
-        <div className="absolute inset-0 bg-indigo-500/5 mix-blend-overlay"></div>
+        <div className="absolute inset-0 bg-indigo-500/5 "></div>
         
         {/* Recreated Logo in CSS */}
         <div className="relative w-28 h-28 mb-8">

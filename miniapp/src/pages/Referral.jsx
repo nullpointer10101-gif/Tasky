@@ -242,11 +242,9 @@ export default function Referral({ user }) {
         ) : (
             <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3 pb-8">
             <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50 shadow-[0_0_30px_rgba(168,85,247,0.4)] flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
-              <div className="absolute top-0 left-0 w-40 h-40 bg-fuchsia-500/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl pointer-events-none"></div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-blue-500/20 rounded-full translate-x-1/2 translate-y-1/2 blur-2xl pointer-events-none"></div>
               
               <div className="relative z-10 flex flex-col items-center gap-2 w-full">
-                <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner backdrop-blur-md">
+                <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner ">
                   <Trophy size={14} className="text-fuchsia-300 drop-shadow-md" />
                   <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest drop-shadow-sm">Weekly Leaderboard W1</span>
                 </div>
@@ -318,9 +316,7 @@ export default function Referral({ user }) {
                 >
                   {rank <= 3 && (
                     <>
-                      <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                       
-                      <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none" />
                     </>
                   )}
                   
@@ -328,7 +324,7 @@ export default function Referral({ user }) {
                     {icon || `#${rank}`}
                   </div>
                   
-                  <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 shadow-inner ${rank <= 3 ? 'bg-white/20 text-white backdrop-blur-sm' : 'bg-surface-soft text-ink border border-border/50'}`}>
+                  <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 shadow-inner ${rank <= 3 ? 'bg-white/20 text-white ' : 'bg-surface-soft text-ink border border-border/50'}`}>
                     {user.username ? (
                       <span className="text-sm tracking-wider">{user.username.substring(0, 2).toUpperCase()}</span>
                     ) : (

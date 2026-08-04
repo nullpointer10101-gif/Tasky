@@ -103,8 +103,6 @@ export default function SpinWheel({ user, refreshUser }) {
       
       {/* Decorative Casino Lights */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-20 -left-20 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl mix-blend-screen" />
-        <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl mix-blend-screen" />
       </div>
 
       <div className="relative z-10 p-5">
@@ -224,7 +222,6 @@ export default function SpinWheel({ user, refreshUser }) {
               >
                 <div className="relative mb-6">
                   {/* Glowing ring behind reward */}
-                  <div className="absolute inset-0 bg-amber-500 rounded-full blur-2xl opacity-40 animate-pulse" />
                   
                   <div className="w-36 h-36 rounded-full bg-gradient-to-br from-yellow-300 via-amber-500 to-yellow-600 border-[6px] border-yellow-100 flex flex-col items-center justify-center relative z-10 shadow-2xl">
                     <Sparkles size={40} className="text-yellow-100 absolute top-2 right-2 opacity-70" />
