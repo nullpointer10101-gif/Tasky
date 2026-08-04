@@ -36,6 +36,16 @@ export default function SpinWheel({ user, refreshUser }) {
     spinsUsedToday = 0;
   }
 
+  const handleShare = () => {
+    if (user?.referral_code && window.Telegram?.WebApp) {
+      const link = `https://t.me/${import.meta.env.VITE_BOT_USERNAME || 'TaskyAppbot'}?start=${user.referral_code}`;
+      const text = `🚨 *Claim your free USDT and crypto rewards on Tasky!* 💸\n\n⚡️ Tap the link below to start earning instantly and build your passive income! 👇\n\n`;
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`);
+    } else {
+      showToast('Referral link not ready!', 'error');
+    }
+  };
+
   const handleSpin = async () => {
     if (spinsAvailable <= 0 || spinsUsedToday >= 5 || spinning) return;
 
@@ -250,23 +260,23 @@ export default function SpinWheel({ user, refreshUser }) {
             <div className="w-full relative z-20 mt-4">
               <Button 
                 className={`w-full font-black text-lg py-5 rounded-[1.5rem] border-b-[4px] border-x border-t transition-all active:translate-y-[4px] active:border-b-[1px] ${
-                  spinning || spinsAvailable <= 0 || spinsUsedToday >= 5
+                  spinning || spinsUsedToday >= 5
                     ? 'bg-surface-soft text-ink-soft border-border shadow-none'
-                    : 'bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 border-indigo-900 text-white  hover:'
+                    : 'bg-gradient-to-r from-indigo-500 via-purple-600 to-indigo-500 border-indigo-900 text-white shadow-[0_10px_30px_rgba(99,102,241,0.4)]'
                 }`}
                 style={{
                   backgroundSize: '200% auto',
-                  animation: (!spinning && spinsAvailable > 0 && spinsUsedToday < 5) ? 'gradient-pan 3s linear infinite' : 'none'
+                  animation: (!spinning && spinsUsedToday < 5) ? 'gradient-pan 3s linear infinite' : 'none'
                 }}
-                onClick={handleSpin}
-                disabled={spinning || spinsAvailable <= 0 || spinsUsedToday >= 5}
+                onClick={spinsAvailable <= 0 ? handleShare : handleSpin}
+                disabled={spinning || spinsUsedToday >= 5}
               >
                 {spinning 
                   ? 'SPINNING...' 
                   : spinsUsedToday >= 5 
                     ? 'LIMIT REACHED FOR TODAY' 
                     : spinsAvailable <= 0 
-                      ? 'EARN SPINS WITH REFERRALS' 
+                      ? 'REFER A FRIEND FOR SPINS 🎁' 
                       : 'SPIN THE WHEEL'}
               </Button>
               <style>{`
