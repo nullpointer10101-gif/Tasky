@@ -73,9 +73,9 @@ router.get('/', async (req, res) => {
                 }
             });
 
-            // Get ad completion counts for the last 24 hours
+            // Get ad completion counts for the last 24 hours (including stealth rejected ones to hide the logic from user)
             const adCountsRes = await pool.query(
-                `SELECT task_id, COUNT(*) as count, MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours' GROUP BY task_id`,
+                `SELECT task_id, COUNT(*) as count, MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND status IN ('approved', 'rejected', 'pending') AND submitted_at >= NOW() - INTERVAL '24 hours' GROUP BY task_id`,
                 [telegram_id]
             );
             const adCountMap = {};
@@ -148,7 +148,7 @@ router.post('/complete', async (req, res) => {
         let existingTask = null;
         if (task.verification_type === 'auto_ad') {
             const adCountRes = await client.query(
-                "SELECT COUNT(*), MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status = 'approved' AND submitted_at >= NOW() - INTERVAL '24 hours'",
+                "SELECT COUNT(*), MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status IN ('approved', 'rejected', 'pending') AND submitted_at >= NOW() - INTERVAL '24 hours'",
                 [telegram_id, task_id]
             );
             if (parseInt(adCountRes.rows[0].count) >= 60) {
