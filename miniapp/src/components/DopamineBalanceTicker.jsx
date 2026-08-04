@@ -35,7 +35,7 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
   }, [baseBalance, speedPerHour, usdtRate]);
 
   return (
-    <div className="relative z-10 flex flex-col items-center text-center transform-gpu will-change-transform">
+    <div className="relative z-10 flex flex-col items-center text-center will-change-transform">
       {/* Live Mining Active Pill */}
       <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 shadow-[0_0_15px_rgba(16,185,129,0.25)]">
         <span className="relative flex h-2 w-2">

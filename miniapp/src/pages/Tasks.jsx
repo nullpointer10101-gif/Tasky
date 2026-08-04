@@ -354,8 +354,8 @@ export default function Tasks({ user, refreshUser }) {
             {placementCategory === 'partner' && (
                 <div className="mt-2 mb-6">
                   <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.1)] relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full group-hover:bg-indigo-500/30 transition-all duration-500 blur-2xl transform-gpu pointer-events-none" />
-                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full group-hover:bg-purple-500/30 transition-all duration-500 blur-2xl transform-gpu pointer-events-none" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full group-hover:bg-indigo-500/30 transition-all duration-500 blur-2xl pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-500/20 rounded-full group-hover:bg-purple-500/30 transition-all duration-500 blur-2xl pointer-events-none" />
                     
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30 relative z-10 group-hover:scale-110 transition-transform duration-300">
                       <Rocket size={26} />

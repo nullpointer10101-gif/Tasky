@@ -220,14 +220,14 @@ export default function App() {
   return (
     <AdminProvider user={user} tgUser={tgUser}>
       <ToastContext.Provider value={{ showToast }}>
-        <div className="flex flex-col h-full bg-bg">
+        <div className="flex flex-col min-h-screen bg-bg">
           {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header user={user} navigate={setActivePage} />
 
-          <main className="flex-1 overflow-y-auto hide-scrollbar h-full w-full">
+          <main className="flex-1 w-full pb-20">
             <ActivePage
               user={user}
               tgUser={tgUser}

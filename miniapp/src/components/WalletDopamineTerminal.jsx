@@ -34,7 +34,7 @@ export default function WalletDopamineTerminal({
 
 
   return (
-    <div className="space-y-4 w-full transform-gpu will-change-transform">
+    <div className="space-y-4 w-full will-change-transform">
       {/* 1. USDT Cashout Milestone Progress Bar */}
       <div className="rounded-3xl bg-gradient-to-r from-[#170e38] via-[#1b1544] to-[#0c0824] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
         <div className="flex items-center justify-between mb-2">

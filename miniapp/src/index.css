@@ -6,20 +6,19 @@
   html, body {
     overscroll-behavior-y: none;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
+    touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    height: var(--tg-viewport-stable-height, 100vh);
-    min-height: var(--tg-viewport-stable-height, 100vh);
     width: 100%;
-    overflow: hidden; /* Stop bounce at root level */
-    position: fixed; /* Lock viewport for TG miniapp */
+    /* Remove position: fixed and overflow: hidden to allow butter smooth native scrolling */
+    background-color: #090615;
   }
   #root {
-    height: var(--tg-viewport-stable-height, 100vh);
-    min-height: var(--tg-viewport-stable-height, 100vh);
     width: 100%;
-    overflow: hidden;
+    min-height: 100vh;
+    min-height: var(--tg-viewport-stable-height, 100vh);
+    display: flex;
+    flex-direction: column;
   }
   body {
     @apply bg-bg text-ink font-sans antialiased;
