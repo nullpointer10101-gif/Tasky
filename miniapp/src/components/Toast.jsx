@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
-    const timer = setTimeout(() => onClose(), 3000);
+    const timer = setTimeout(() => onClose(), 2500);
     return () => clearTimeout(timer);
-  }, [onClose]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message]);
 
   const colors = {
     success: 'bg-success text-white',
