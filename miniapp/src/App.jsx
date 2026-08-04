@@ -225,7 +225,7 @@ export default function App() {
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
-          <Header user={user} navigate={setActivePage} />
+          <Header user={user} navigate={setActivePage} activePage={activePage} />
 
           <main className="flex-1 w-full overflow-y-auto hide-scrollbar pb-20" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
             <ActivePage
