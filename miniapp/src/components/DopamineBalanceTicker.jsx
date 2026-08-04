@@ -1,11 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, TrendingUp, Sparkles } from 'lucide-react';
 
-export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0, usdtRate = 1000 }) {
+export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0, usdtRate = 20000 }) {
   const baseBalance = Number(balance) || 0;
-  const [displayValue, setDisplayValue] = useState({ integer: '0', decimal: '.000', raw: 0 });
   const animFrameRef = useRef(null);
+  
+  const intRef = useRef(null);
+  const decRef = useRef(null);
+  const usdRef = useRef(null);
 
   useEffect(() => {
     const ratePerMs = (Number(speedPerHour) || 5.0) / (3600 * 1000);
@@ -14,14 +17,12 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
     const updateTicker = (now) => {
       const elapsed = now - startTime;
       const current = baseBalance + elapsed * ratePerMs;
-      const intVal = Math.floor(current).toLocaleString();
-      const decVal = (current % 1).toFixed(3).substring(1);
       
-      setDisplayValue({
-        integer: intVal,
-        decimal: decVal,
-        raw: current
-      });
+      if (intRef.current && decRef.current && usdRef.current) {
+        intRef.current.textContent = Math.floor(current).toLocaleString();
+        decRef.current.textContent = (current % 1).toFixed(3).substring(1);
+        usdRef.current.textContent = `≈ $${(current / (Number(usdtRate) || 20000)).toFixed(2)}`;
+      }
 
       animFrameRef.current = requestAnimationFrame(updateTicker);
     };
@@ -29,13 +30,9 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
     animFrameRef.current = requestAnimationFrame(updateTicker);
 
     return () => {
-      if (animFrameRef.current) {
-        cancelAnimationFrame(animFrameRef.current);
-      }
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     };
-  }, [baseBalance, speedPerHour]);
-
-  const usdtValue = (displayValue.raw / (Number(usdtRate) || 1000)).toFixed(2);
+  }, [baseBalance, speedPerHour, usdtRate]);
 
   return (
     <div className="relative z-10 flex flex-col items-center text-center transform-gpu will-change-transform">
@@ -58,20 +55,20 @@ export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0,
 
       {/* Main Ticking Number */}
       <div className="flex items-baseline justify-center gap-1 mb-2">
-        <span className="text-5xl font-black text-white tracking-tighter drop-shadow-md font-mono">
-          {displayValue.integer}
+        <span ref={intRef} className="text-5xl font-black text-white tracking-tighter drop-shadow-md font-mono">
+          {Math.floor(baseBalance).toLocaleString()}
         </span>
-        <span className="text-2xl font-black text-indigo-200/90 font-mono tracking-normal">
-          {displayValue.decimal}
+        <span ref={decRef} className="text-2xl font-black text-indigo-200/90 font-mono tracking-normal">
+          {(baseBalance % 1).toFixed(3).substring(1)}
         </span>
       </div>
 
       {/* USD Value Estimate */}
       <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-inner">
-        <span className="text-sm font-bold text-white/90">≈ ${usdtValue}</span>
+        <span ref={usdRef} className="text-sm font-bold text-white/90">≈ ${(baseBalance / (Number(usdtRate) || 20000)).toFixed(2)}</span>
         <span className="text-xs font-black text-indigo-200">USDT</span>
         <span className="text-[10px] text-emerald-300 font-bold flex items-center">
-          <TrendingUp size={10} className="mr-0.5" /> +{(Number(speedPerHour) / (usdtRate || 1000)).toFixed(4)}$/h
+          <TrendingUp size={10} className="mr-0.5" /> +{(Number(speedPerHour) / (usdtRate || 20000)).toFixed(4)}$/h
         </span>
       </div>
     </div>

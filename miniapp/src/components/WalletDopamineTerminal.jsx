@@ -1,30 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, DollarSign, Zap, Lock, Unlock, TrendingUp, Sparkles, ShieldCheck, Flame } from 'lucide-react';
-import { showRewardedAd } from '../adUtils';
-import triggerConfetti from '../confetti';
 
 export default function WalletDopamineTerminal({
   user,
   balance = 0,
-  swapRates = { ton: 0.0001, usdt: 0.00003 },
-  onWatchAdSuccess,
+  swapRates = { ton: 20000, usdt: 20000 },
   showToast
 }) {
   const [taskyAmount, setTaskyAmount] = useState('10000');
   const [selectedCurrency, setSelectedCurrency] = useState('usdt');
-  const [isAdWatching, setIsAdWatching] = useState(false);
   const [flashQuote, setFlashQuote] = useState(false);
 
   const numBalance = Number(balance) || 0;
-  const usdtVal = (numBalance * 0.00003).toFixed(2);
+  const usdtVal = (numBalance / 20000).toFixed(2);
   const unlockTarget = 1.00;
   const progressPercent = Math.min(100, (Number(usdtVal) / unlockTarget) * 100);
 
   // Quote calculation
   const calculatedOutput = selectedCurrency === 'usdt' 
-    ? (Number(taskyAmount || 0) * 0.00003).toFixed(4)
-    : (Number(taskyAmount || 0) * 0.0001).toFixed(4);
+    ? (Number(taskyAmount || 0) / 20000).toFixed(4)
+    : (Number(taskyAmount || 0) / 20000).toFixed(4);
 
   // Live flashing quote effect
   useEffect(() => {
@@ -35,21 +31,7 @@ export default function WalletDopamineTerminal({
     return () => clearInterval(interval);
   }, []);
 
-  const handleQuickAdBoost = async () => {
-    try {
-      setIsAdWatching(true);
-      const res = await showRewardedAd('main');
-      if (res.success) {
-        triggerConfetti({ particleCount: 60, spread: 50, origin: { y: 0.7 } });
-        if (showToast) showToast('⚡ Boost credited! +50 TASKY added to your balance', 'success');
-        if (onWatchAdSuccess) onWatchAdSuccess();
-      } else {
-        if (showToast) showToast(res.error || 'Failed to complete booster ad', 'error');
-      }
-    } finally {
-      setIsAdWatching(false);
-    }
-  };
+
 
   return (
     <div className="space-y-4 w-full transform-gpu will-change-transform">
@@ -85,29 +67,7 @@ export default function WalletDopamineTerminal({
         </p>
       </div>
 
-      {/* 2. Fast Ad-Boost Card */}
-      <div className="rounded-2xl bg-gradient-to-r from-amber-950/40 via-purple-950/40 to-indigo-950/40 border border-amber-500/30 p-4 flex items-center justify-between shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center animate-pulse">
-            <Zap size={20} className="fill-amber-400 text-amber-400" />
-          </div>
-          <div>
-            <p className="text-xs font-black text-white uppercase tracking-wide flex items-center gap-1">
-              Sponsored Fuel Booster
-              <Sparkles size={12} className="text-amber-300" />
-            </p>
-            <p className="text-[10px] text-amber-200/80 font-bold">+50 TASKY + Boost Unlock Progress</p>
-          </div>
-        </div>
 
-        <button
-          onClick={handleQuickAdBoost}
-          disabled={isAdWatching}
-          className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95 transition-all disabled:opacity-50"
-        >
-          {isAdWatching ? 'LOADING...' : 'BOOST ⚡'}
-        </button>
-      </div>
 
       {/* 3. Live High-Voltage Swap Matrix */}
       <div className="rounded-3xl bg-[#120c29] border border-indigo-500/30 p-5 shadow-[0_0_30px_rgba(79,70,229,0.2)]">

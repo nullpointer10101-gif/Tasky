@@ -67,8 +67,8 @@ export default function Home({ user, refreshUser, navigate }) {
   if (!user) return null;
 
   const usdtRate = swapRates.find(r => r.token_name === 'USDT' && r.is_active);
-  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 500;
-  const usdtValue = (parseFloat(user.balance) / taskyPerUsdt).toFixed(2);
+  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 20000;
+  const usdtValue = (parseFloat(user.balance || 0) / taskyPerUsdt).toFixed(2);
 
   return (
     <motion.div 

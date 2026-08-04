@@ -113,7 +113,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   };
 
   const usdtRate = rates.find(r => r.token_name === 'USDT' && r.is_active);
-  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 1000;
+  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 20000;
   
   const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
   const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 20000;

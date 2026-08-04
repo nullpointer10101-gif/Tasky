@@ -111,13 +111,22 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     // Also bind to Telegram's viewportChanged as a fallback for older clients
-    const handleViewportChanged = () => {
+    const handleViewportChanged = (e) => {
+      if (!e.isStateStable) return;
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.expand();
+      }
       console.log('[App] Telegram viewportChanged event fired.');
       if (window.Telegram?.WebApp?.isExpanded && document.visibilityState !== 'visible') {
         console.log('[App] Telegram expanded while document not visible, forcing refresh...');
         refreshUser();
       }
     };
+
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.setHeaderColor?.('#090615');
+      window.Telegram.WebApp.setBackgroundColor?.('#090615');
+    }
 
     if (window.Telegram?.WebApp?.onEvent) {
       window.Telegram.WebApp.onEvent('viewportChanged', handleViewportChanged);

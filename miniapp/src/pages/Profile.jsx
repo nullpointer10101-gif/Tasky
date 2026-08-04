@@ -13,7 +13,7 @@ import { useToast } from '../App';
 import ProfileGenesisCard from '../components/ProfileGenesisCard';
 import { useIsAdmin } from '../AdminContext';
 
-const TASKY_PER_USDT = 33333;
+const TASKY_PER_USDT = 20000;
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇺🇸' },

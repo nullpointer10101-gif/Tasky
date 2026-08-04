@@ -14,17 +14,24 @@ export default function CyberMiningCore({
   claiming = false,
   starting = false,
 }) {
-  const [liveMined, setLiveMined] = useState(baseMined);
-  const [tapBonus, setTapBonus] = useState(0);
-  const [tapParticles, setTapParticles] = useState([]);
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [claimedAmount, setClaimedAmount] = useState(0);
+  const [internalMinedState, setInternalMinedState] = useState(Number(baseMined) || 0);
   const animRef = useRef(null);
+  const intRef = useRef(null);
+  const decRef = useRef(null);
+  const progressRef = useRef(null);
+  const nextTargetRef = useRef(null);
+  const claimBtnRef = useRef(null);
 
-  // 60fps ticking calculation
+  // 60fps ticking calculation via DOM refs
   useEffect(() => {
     if (!activeSession) {
-      setLiveMined(baseMined);
+      if (intRef.current && decRef.current) {
+        const bm = Number(baseMined) || 0;
+        intRef.current.textContent = Math.floor(bm).toLocaleString();
+        decRef.current.textContent = (bm % 1).toFixed(3).substring(1);
+      }
       return;
     }
 
@@ -34,7 +41,18 @@ export default function CyberMiningCore({
 
     const tick = (now) => {
       const elapsed = now - startMs;
-      setLiveMined(initialMined + elapsed * ratePerMs + tapBonus);
+      const current = initialMined + elapsed * ratePerMs;
+      
+      if (intRef.current && decRef.current) {
+        intRef.current.textContent = Math.floor(current).toLocaleString();
+        decRef.current.textContent = (current % 1).toFixed(3).substring(1);
+      }
+      if (progressRef.current && nextTargetRef.current) {
+        const progressToNext = Math.min(100, Math.max(10, ((current % 2400) / 2400) * 100));
+        progressRef.current.style.width = `${progressToNext}%`;
+        nextTargetRef.current.textContent = `${Math.floor(2400 - (current % 2400)).toLocaleString()} TASKY to unlock next tier!`;
+      }
+      
       animRef.current = requestAnimationFrame(tick);
     };
 
@@ -43,31 +61,16 @@ export default function CyberMiningCore({
     return () => {
       if (animRef.current) cancelAnimationFrame(animRef.current);
     };
-  }, [activeSession, baseMined, speedPerHour, tapBonus]);
-
-  const handleHyperchargeTap = (e) => {
-    // Spawn floating particle
-    const rect = e.currentTarget.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-    const id = Date.now() + Math.random();
-
-    setTapParticles((prev) => [...prev.slice(-6), { id, x, y }]);
-    setTapBonus((prev) => prev + 0.05);
-
-    try {
-      if (window.Telegram?.WebApp?.HapticFeedback) {
-        window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-      }
-    } catch (_) {}
-
-    setTimeout(() => {
-      setTapParticles((prev) => prev.filter((p) => p.id !== id));
-    }, 900);
-  };
+  }, [activeSession, baseMined, speedPerHour]);
 
   const handleClaimClick = async () => {
-    const finalAmount = Math.floor(liveMined);
+    // Determine claim amount directly from DOM if session was active, else from baseMined
+    let finalAmount = Number(baseMined) || 0;
+    if (activeSession && intRef.current) {
+        const textVal = intRef.current.textContent.replace(/,/g, '');
+        finalAmount = Number(textVal) || finalAmount;
+    }
+    finalAmount = Math.floor(finalAmount);
     setClaimedAmount(finalAmount);
     
     // Trigger confetti
@@ -85,10 +88,6 @@ export default function CyberMiningCore({
     }
   };
 
-  const integerMined = Math.floor(liveMined).toLocaleString();
-  const decimalMined = (liveMined % 1).toFixed(3).substring(1);
-  const progressToNext = Math.min(100, Math.max(10, ((liveMined % 2400) / 2400) * 100));
-
   return (
     <div className="relative w-full overflow-hidden rounded-3xl bg-gradient-to-b from-[#181135] via-[#0e0a24] to-[#080516] border border-indigo-500/30 p-5 shadow-[0_0_40px_rgba(79,70,229,0.25)] transform-gpu will-change-transform">
       {/* Background glowing plasma orbs */}
@@ -98,8 +97,7 @@ export default function CyberMiningCore({
       {/* Cybernetic Core Reactor Ring */}
       <div className="relative flex flex-col items-center justify-center my-4">
         <div
-          onClick={activeSession ? handleHyperchargeTap : undefined}
-          className="relative w-48 h-48 flex items-center justify-center cursor-pointer select-none active:scale-95 transition-transform"
+          className="relative w-48 h-48 flex items-center justify-center select-none"
         >
           {/* Outer Pulsing Neon Rings */}
           <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/40 animate-[spin_12s_linear_infinite]" />
@@ -117,30 +115,7 @@ export default function CyberMiningCore({
               +{(Number(speedPerHour) || 5.0).toFixed(1)}/hr
             </span>
           </div>
-
-          {/* Tap-to-boost floating particles */}
-          <AnimatePresence>
-            {tapParticles.map((p) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 1, y: 0, scale: 0.8 }}
-                animate={{ opacity: 0, y: -60, scale: 1.4 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="absolute font-black text-xs text-amber-300 pointer-events-none z-30 drop-shadow-[0_0_8px_rgba(245,158,11,0.8)]"
-                style={{ left: p.x, top: p.y }}
-              >
-                +1.5x OVERDRIVE! ⚡
-              </motion.div>
-            ))}
-          </AnimatePresence>
         </div>
-
-        {activeSession && (
-          <p className="text-[11px] font-bold text-indigo-300/80 mt-2 animate-pulse">
-            👆 Tap reactor for Instant Hypercharge Multiplier!
-          </p>
-        )}
       </div>
 
       {/* Live Odometer Ticker */}
@@ -149,11 +124,11 @@ export default function CyberMiningCore({
           MINED REWARD ACCUMULATOR
         </p>
         <div className="flex items-baseline justify-center gap-1 my-1">
-          <span className="text-4xl font-black text-white font-mono tracking-tight drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]">
-            {integerMined}
+          <span ref={intRef} className="text-4xl font-black text-white font-mono tracking-tight drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]">
+            {Math.floor(baseMined).toLocaleString()}
           </span>
-          <span className="text-xl font-black text-cyan-300 font-mono">
-            {decimalMined}
+          <span ref={decRef} className="text-xl font-black text-cyan-300 font-mono">
+            {(baseMined % 1).toFixed(3).substring(1)}
           </span>
           <span className="text-xs font-black text-indigo-300 uppercase ml-1">TASKY</span>
         </div>
@@ -171,15 +146,14 @@ export default function CyberMiningCore({
 
         {/* Progress Bar */}
         <div className="relative w-full h-2.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
-          <motion.div
-            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full"
-            style={{ width: `${progressToNext}%` }}
-            animate={{ opacity: [0.8, 1, 0.8] }}
-            transition={{ repeat: Infinity, duration: 2 }}
+          <div
+            ref={progressRef}
+            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-cyan-400 rounded-full transition-all duration-75"
+            style={{ width: `${Math.min(100, Math.max(10, ((Number(baseMined) % 2400) / 2400) * 100))}%` }}
           />
         </div>
-        <p className="text-[10px] text-gray-400 font-bold mt-1 text-right">
-          {Math.floor(2400 - (liveMined % 2400)).toLocaleString()} TASKY to unlock next tier!
+        <p ref={nextTargetRef} className="text-[10px] text-gray-400 font-bold mt-1 text-right">
+          {Math.floor(2400 - (Number(baseMined) % 2400)).toLocaleString()} TASKY to unlock next tier!
         </p>
       </div>
 
@@ -188,11 +162,11 @@ export default function CyberMiningCore({
         {activeSession ? (
           <button
             onClick={handleClaimClick}
-            disabled={claiming || liveMined <= 0}
+            disabled={claiming || Number(baseMined) <= 0}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-black text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(16,185,129,0.5)] active:scale-98 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             <Sparkles size={18} className="animate-spin" />
-            {claiming ? 'CLAIMING MINED VAULT...' : `CLAIM +${integerMined} TASKY NOW 💥`}
+            {claiming ? 'CLAIMING MINED VAULT...' : `CLAIM TASKY NOW 💥`}
           </button>
         ) : (
           <button

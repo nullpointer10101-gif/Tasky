@@ -2,10 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRightLeft, TrendingUp, Sparkles, ChevronRight, Coins } from 'lucide-react';
 
-export default function SwapProgressCard({ balance = 0, taskyPerUsdt = 1000, targetUsd = 1.00, onNavigate }) {
+export default function SwapProgressCard({ balance = 0, taskyPerUsdt = 20000, targetUsd = 1.00, onNavigate }) {
   const currentBalance = Number(balance) || 0;
-  const currentUsd = currentBalance / (Number(taskyPerUsdt) || 1000);
-  const targetTasky = targetUsd * (Number(taskyPerUsdt) || 1000);
+  const currentUsd = currentBalance / (Number(taskyPerUsdt) || 20000);
+  const targetTasky = targetUsd * (Number(taskyPerUsdt) || 20000);
   const progressPercent = Math.min(100, Math.max(5, (currentUsd / targetUsd) * 100));
 
   const isEligible = currentUsd >= targetUsd;
