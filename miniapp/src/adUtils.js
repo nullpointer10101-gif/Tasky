@@ -136,8 +136,12 @@ export async function showRewardedAd(placement = 'main') {
       };
     }
 
-    // Call the rewarded ad method
-    await window.showGiga(placement);
+    // Call the rewarded ad method with a 60-second fallback timeout
+    // to prevent the UI from freezing indefinitely if the ad network hangs
+    await Promise.race([
+      window.showGiga(placement),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
+    ]);
 
     return { success: true };
   } catch (err) {
