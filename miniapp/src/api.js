@@ -135,7 +135,7 @@ export const playSpin       = withMock(() => {
 export const getTasks       = withMock(mockData.getTasks, (telegram_id) => () => api.get('/api/tasks', { params: { telegram_id } }))
 export const completeTask   = withMock({ success: true }, (telegram_id, task_id, proof_screenshot_url, proof_url) => () => api.post('/api/tasks/complete', { telegram_id, task_id, proof_screenshot_url, proof_url }))
 export const getReferral    = withMock(mockData.getReferral, (id) => () => api.get(`/api/referral/${id}`))
-export const getReferralLeaderboard = async () => ({ data: mockData.getReferralLeaderboard, error: null })
+export const getReferralLeaderboard = withMock(() => mockData.getReferralLeaderboard, () => () => api.get('/api/referral/leaderboard'))
 
 // --- SWAP ---
 export const getSwapRates = withMock(() => mockData.getSwapRates, () => () => api.get('/api/swap/rates'))
