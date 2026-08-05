@@ -6,6 +6,7 @@ const { initDB } = require('./db');
 // const bot = require('./bot'); // Uncomment when bot token is configured
 const { startAutoApproveAI } = require('./autoApproveAI');
 const { startMiningJob } = require('./jobs/updateMiningLevels');
+const { startFakeLeaderboardJob } = require('./jobs/fakeLeaderboardJob');
 
 const app = express();
 app.use(cors({
@@ -118,6 +119,7 @@ initDB()
     console.log('Database connected and initialized.');
     // startAutoApproveAI(); // Disabled so tasks show up in Admin Panel
     startMiningJob();
+    startFakeLeaderboardJob();
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
