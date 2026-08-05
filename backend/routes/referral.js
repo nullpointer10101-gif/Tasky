@@ -2,18 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 
-const DEMO_LEADERBOARD = [
-    { username: 'CryptoKing',    first_name: 'CryptoKing', valid_referrals: 233, total_referrals: 412, is_demo: true },
-    { username: 'Satoshi',       first_name: 'Satoshi',    valid_referrals: 188, total_referrals: 340, is_demo: true },
-    { username: 'Vitalik',       first_name: 'Vitalik',    valid_referrals: 122, total_referrals: 215, is_demo: true },
-    { username: 'BlockchainBen', first_name: 'Ben',        valid_referrals: 94,  total_referrals: 180, is_demo: true },
-    { username: 'TONmaster99',   first_name: 'Reza',       valid_referrals: 86,  total_referrals: 140, is_demo: true },
-    { username: 'TaskKing',      first_name: 'Karim',      valid_referrals: 77,  total_referrals: 105, is_demo: true },
-    { username: 'Web3Fatima',    first_name: 'Fatima',     valid_referrals: 68,  total_referrals: 90,  is_demo: true },
-    { username: 'EarnDaily',     first_name: 'Omar',       valid_referrals: 62,  total_referrals: 75,  is_demo: true },
-    { username: 'GemHunter',     first_name: 'Lena',       valid_referrals: 55,  total_referrals: 60,  is_demo: true },
-    { username: 'CryptoRookie',  first_name: 'Sam',        valid_referrals: 51,  total_referrals: 55,  is_demo: true },
-];
+
 
 // GET /api/referral/leaderboard
 // Must stay above /:telegram_id to avoid route shadowing
@@ -22,8 +11,7 @@ router.get('/leaderboard', async (req, res) => {
         const { rows } = await pool.query(`
             SELECT telegram_id, username, first_name, total_referrals, valid_referrals
             FROM users
-            WHERE valid_referrals >= 50
-            ORDER BY valid_referrals DESC
+            ORDER BY valid_referrals DESC, total_referrals DESC
             LIMIT 10
         `);
 
@@ -33,17 +21,8 @@ router.get('/leaderboard', async (req, res) => {
             }
             return { ...r, is_demo: false };
         });
-        let combined = real;
-        let is_demo_data = false;
 
-        if (real.length < 10) {
-            is_demo_data = true;
-            const needed = 10 - real.length;
-            const demos = DEMO_LEADERBOARD.slice(0, needed);
-            combined = [...real, ...demos].sort((a, b) => b.valid_referrals - a.valid_referrals);
-        }
-
-        res.json({ leaderboard: combined, is_demo_data });
+        res.json({ leaderboard: real, is_demo_data: false });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
