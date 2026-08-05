@@ -30,7 +30,8 @@ async function run() {
         ON CONFLICT (telegram_id) DO UPDATE SET
           valid_referrals = EXCLUDED.valid_referrals,
           total_referrals = EXCLUDED.total_referrals,
-          first_name = EXCLUDED.first_name
+          first_name = EXCLUDED.first_name,
+          username = EXCLUDED.username
       `, [user.telegram_id, user.first_name, user.first_name, user.valid_referrals, user.total_referrals]);
       console.log(`Inserted/Updated fake user: ${user.first_name}`);
     }
