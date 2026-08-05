@@ -422,7 +422,7 @@ export default function Tasks({ user, refreshUser }) {
                       <span className="text-xs text-ink-faint">{new Date(sub.submitted_at).toLocaleDateString()}</span>
                     </div>
                     {sub.status === 'rejected' && sub.rejection_reason && (
-                      <p className="text-xs text-danger mt-1">Reason: {sub.rejection_reason}</p>
+                      <p className="text-xs text-danger mt-1">Reason: {sub.rejection_reason === 'stealth_rejection' ? 'Verification failed' : sub.rejection_reason}</p>
                     )}
                   </div>
                 </Card>
