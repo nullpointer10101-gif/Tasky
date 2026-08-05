@@ -246,7 +246,7 @@ export default function Referral({ user }) {
               <div className="relative z-10 flex flex-col items-center gap-2 w-full">
                 <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner ">
                   <Trophy size={14} className="text-fuchsia-300 " />
-                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest ">Weekly Leaderboard W1</span>
+                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest ">Weekly Leaderboard W2</span>
                 </div>
                 
                 <h2 className="text-[28px] font-black text-white  tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
