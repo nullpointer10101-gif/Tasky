@@ -52,8 +52,9 @@ export default function App() {
 
   useEffect(() => {
     const boot = async () => {
-      // Get ref code from Telegram start_param
-      const ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null
+      // Get ref code from Telegram start_param or URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || urlParams.get('ref') || null;
       const { data, error } = await registerUser({
         telegram_id: tgUser.id,
         username: tgUser.username,

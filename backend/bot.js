@@ -51,7 +51,11 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             })
         });
         
-        const webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
+        let webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
+        
+        if (refCode) {
+            webAppUrl = `${webAppUrl}?ref=${refCode}`;
+        }
         
         // Set the permanent menu button to open the web app
         try {

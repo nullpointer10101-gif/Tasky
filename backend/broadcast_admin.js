@@ -11,19 +11,21 @@ if (!adminIdsRaw.includes('5487109053')) {
     adminIdsRaw.push('5487109053');
 }
 
-const message = `🎁 *A GIFT FOR OUR TASKY FAMILY!* 🎁
+const message = `Some people talk. Others just get paid.
 
-We've just dropped a massive bounty code as a thank you! 🚀
-Hurry, grab your free TASKY before it's gone! 💜
+Week 1 winners just received their 100 USDT drops. 
 
-👉 **Code:** \`TASKYFAMILY\``;
+Week 2 is live. The board is wiped clean. 
+100 USDT goes to #1 next Wednesday. 
+
+You can either watch them win again, or take it from them.
+Your move. 👇`;
 
 const options = {
-  caption: message,
   parse_mode: 'Markdown',
   reply_markup: {
     inline_keyboard: [
-      [{ text: '💸 CLAIM REWARD NOW! 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+      [{ text: '🏆 VIEW LEADERBOARD & PLAY NOW! 🚀', url: 'https://t.me/TaskyAppbot/app' }]
     ]
   }
 };
@@ -37,21 +39,12 @@ async function broadcast() {
     let successCount = 0;
     let failCount = 0;
     
-    const photoPath = 'C:\\Users\\aleem\\.gemini\\antigravity-ide\\brain\\a49970c2-534e-493b-8329-58857f2ba2fd\\media__1785852318365.png';
-    
     for (let i = 0; i < adminIdsRaw.length; i++) {
         const userId = adminIdsRaw[i];
         if (!userId) continue;
         
         try {
-            if (fs.existsSync(photoPath)) {
-                await bot.sendPhoto(userId, photoPath, options);
-            } else {
-                await bot.sendMessage(userId, message, {
-                    parse_mode: 'Markdown',
-                    reply_markup: options.reply_markup
-                });
-            }
+            await bot.sendMessage(userId, message, options);
             successCount++;
             console.log(`Successfully sent to admin: ${userId}`);
         } catch (e) {
