@@ -35,6 +35,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [showAdRequirement, setShowAdRequirement] = useState(false);
   const [localAdsWatched, setLocalAdsWatched] = useState(user?.withdrawal_ads_watched || 0);
+  const [adCooldown, setAdCooldown] = useState(0);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -42,6 +43,16 @@ export default function Wallet({ user, refreshUser, navigate }) {
       setLocalAdsWatched(user.withdrawal_ads_watched || 0);
     }
   }, [user?.withdrawal_ads_watched]);
+  
+  useEffect(() => {
+    let interval;
+    if (adCooldown > 0) {
+      interval = setInterval(() => {
+        setAdCooldown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [adCooldown]);
   
   useEffect(() => {
     if (isUsdtTeaserOpen) {
@@ -191,6 +202,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
       showToast(e.message || 'You must watch the entire ad to get credit.', 'error');
     } finally {
       setIsWatchingAd(false);
+      setAdCooldown(30);
     }
   };
 
@@ -415,10 +427,10 @@ export default function Wallet({ user, refreshUser, navigate }) {
                         <span className="font-black text-indigo-500">{localAdsWatched} / 1000</span>
                         <button 
                           onClick={handleWatchAd}
-                          disabled={isWatchingAd}
-                          className="bg-indigo-500 text-white px-2 py-0.5 rounded-full text-[10px] font-bold active:scale-95 transition-transform"
+                          disabled={isWatchingAd || adCooldown > 0}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold active:scale-95 transition-transform ${isWatchingAd || adCooldown > 0 ? 'bg-indigo-500/50 text-white/70' : 'bg-indigo-500 text-white'}`}
                         >
-                          {isWatchingAd ? 'Watching...' : 'Watch'}
+                          {isWatchingAd ? 'Watching...' : adCooldown > 0 ? `Wait (${adCooldown}s)` : 'Watch'}
                         </button>
                       </div>
                     </div>
