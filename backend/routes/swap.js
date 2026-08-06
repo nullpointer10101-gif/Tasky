@@ -107,12 +107,12 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
-        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 500;
-        const hasEnoughRefs = (user.valid_referrals || 0) >= 10;
+        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 1000;
+        const hasEnoughRefs = (user.valid_referrals || 0) >= 20;
         
         if (!hasEnoughAds && !hasEnoughRefs) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch 500 ads OR have 10 valid referrals to swap. Ads: ${user.withdrawal_ads_watched || 0}/500, Valid Friends: ${user.valid_referrals || 0}/10` });
+            return res.status(400).json({ error: `You must watch 1000 ads OR have 20 valid referrals to swap. Ads: ${user.withdrawal_ads_watched || 0}/1000, Valid Friends: ${user.valid_referrals || 0}/20` });
         }
         
         // apply 0% fee

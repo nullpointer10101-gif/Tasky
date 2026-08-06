@@ -128,8 +128,8 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const receiveAmount = swapAmount ? (amount / taskyPerUnit).toFixed(4) : '0.0000';
   
   const totalRefs = user?.valid_referrals || 0;
-  const hasEnoughAds = localAdsWatched >= 500;
-  const hasEnoughRefs = totalRefs >= 10;
+  const hasEnoughAds = localAdsWatched >= 1000;
+  const hasEnoughRefs = totalRefs >= 20;
   const meetsSwapRequirements = hasEnoughAds || hasEnoughRefs;
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
@@ -182,7 +182,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
       
       const { data, error } = await watchWithdrawalAd(user?.telegram_id);
       if (data && !error) {
-        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 500 completed`, 'success');
+        showToast(`Ad watched! ${data.withdrawal_ads_watched} / 1000 completed`, 'success');
         refreshUser();
       } else {
         showToast(error || 'Failed to update ad progress', 'error');
@@ -412,7 +412,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-ink">Watch Ads</span>
                       <div className="flex items-center gap-2">
-                        <span className="font-black text-indigo-500">{localAdsWatched} / 500</span>
+                        <span className="font-black text-indigo-500">{localAdsWatched} / 1000</span>
                         <button 
                           onClick={handleWatchAd}
                           disabled={isWatchingAd}
@@ -425,7 +425,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                     <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
                       <div 
                         className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (localAdsWatched / 500) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (localAdsWatched / 1000) * 100)}%` }}
                       />
                     </div>
                   </div>
@@ -440,12 +440,12 @@ export default function Wallet({ user, refreshUser, navigate }) {
                   <div className="space-y-1.5">
                     <div className="flex justify-between items-center text-xs">
                       <span className="font-bold text-ink">Invite Friends</span>
-                      <span className="font-black text-teal-500">{totalRefs} / 10</span>
+                      <span className="font-black text-teal-500">{totalRefs} / 20</span>
                     </div>
                     <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
                       <div 
                         className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (totalRefs / 10) * 100)}%` }}
+                        style={{ width: `${Math.min(100, (totalRefs / 20) * 100)}%` }}
                       />
                     </div>
                   </div>
