@@ -403,7 +403,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
             {/* Action Button / Requirement UI */}
             <div className="w-full z-30 pt-2 pb-2 space-y-4">
               
-              {!meetsSwapRequirements && (
+              {!meetsSwapRequirements && balance >= minSwap && (
                 <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm space-y-4">
                   <h3 className="text-xs font-black text-ink-soft tracking-wider text-center uppercase">Complete one task to unlock Swap</h3>
                   
