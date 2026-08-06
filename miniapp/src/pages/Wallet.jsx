@@ -401,7 +401,48 @@ export default function Wallet({ user, refreshUser, navigate }) {
             </div>
 
             {/* Action Button / Requirement UI */}
-            <div className="w-full z-30 pt-2 pb-2">
+            <div className="w-full z-30 pt-2 pb-2 space-y-4">
+              
+              {!meetsSwapRequirements && (
+                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm space-y-4">
+                  <h3 className="text-xs font-black text-ink-soft tracking-wider text-center uppercase">Complete one task to unlock Swap</h3>
+                  
+                  {/* Task 1: Ads */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-ink">Watch Ads</span>
+                      <span className="font-black text-indigo-500">{localAdsWatched} / 500</span>
+                    </div>
+                    <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
+                      <div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (localAdsWatched / 500) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <div className="h-[1px] flex-1 bg-border" />
+                    <span className="text-[10px] font-black text-ink-faint uppercase">OR</span>
+                    <div className="h-[1px] flex-1 bg-border" />
+                  </div>
+
+                  {/* Task 2: Referrals */}
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-ink">Invite Friends</span>
+                      <span className="font-black text-teal-500">{totalRefs} / 10</span>
+                    </div>
+                    <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
+                      <div 
+                        className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (totalRefs / 10) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {!isSelectedActive ? (
                 <Button 
                   onClick={() => setIsUsdtTeaserOpen(true)}
@@ -417,15 +458,16 @@ export default function Wallet({ user, refreshUser, navigate }) {
               ) : (
                 <Button
                   onClick={handleSwap}
-                  disabled={isSwapping || !isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance}
+                  disabled={isSwapping || !isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance || !meetsSwapRequirements}
                   className={`w-full font-black py-4 rounded-2xl active:scale-95 transition-all  ${
-                    (!isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance)
+                    (!isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance || !meetsSwapRequirements)
                       ? 'bg-surface border border-border text-ink-faint shadow-none'
                       : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white'
                   }`}
                 >
                   {isSwapping ? 'Processing...' : 
                    !isConnected ? 'Connect Wallet First' :
+                   !meetsSwapRequirements ? 'Complete Requirements to Swap' :
                    !swapAmount ? 'Enter Amount' :
                    Number(swapAmount) < minSwap ? `Minimum ${minSwap} TASKY` :
                    Number(swapAmount) > balance ? 'Insufficient Balance' :
