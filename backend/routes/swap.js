@@ -108,11 +108,11 @@ router.post('/request', async (req, res) => {
         }
         
         const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 500;
-        const hasEnoughRefs = (user.total_referrals || 0) >= 10;
+        const hasEnoughRefs = (user.valid_referrals || 0) >= 10;
         
         if (!hasEnoughAds && !hasEnoughRefs) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch 500 ads OR invite 10 friends to swap. Ads: ${user.withdrawal_ads_watched || 0}/500, Friends: ${user.total_referrals || 0}/10` });
+            return res.status(400).json({ error: `You must watch 500 ads OR have 10 valid referrals to swap. Ads: ${user.withdrawal_ads_watched || 0}/500, Valid Friends: ${user.valid_referrals || 0}/10` });
         }
         
         // apply 0% fee
