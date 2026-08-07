@@ -178,7 +178,9 @@ export default function Tasks({ user, refreshUser }) {
         }
       } else if (selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') {
         proof_url = proofData;
-      } else if (selectedTask.verification_type === 'auto_ad') {
+      }
+
+      if (selectedTask.verification_type === 'auto_ad') {
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
           if (secondsSinceLastAd < 20) {
@@ -188,19 +190,19 @@ export default function Tasks({ user, refreshUser }) {
             return;
           }
         }
-        
-        // Hide the modal before showing the ad so the ad doesn't get covered by z-index
-        currentTask = selectedTask;
-        setSelectedTask(null);
+      }
 
-        const adResult = await showRewardedAd('main');
-        if (!adResult.success) {
-          showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
-          setIsSubmitting(false);
-          // Re-open modal if they canceled
-          setSelectedTask(currentTask);
-          return;
-        }
+      // Hide the modal before showing the ad so the ad doesn't get covered by z-index
+      currentTask = selectedTask;
+      setSelectedTask(null);
+
+      const adResult = await showRewardedAd('main');
+      if (!adResult.success) {
+        showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
+        setIsSubmitting(false);
+        // Re-open modal if they canceled
+        setSelectedTask(currentTask);
+        return;
       }
 
       // If we got here, we are submitting the proof
