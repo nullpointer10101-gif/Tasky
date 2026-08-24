@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot'); // for notifications
@@ -55,7 +55,7 @@ router.post('/register', async (req, res) => {
             // notify referrer
             if (bot && bot.sendMessage) {
                 try {
-                    bot.sendMessage(referred_by, `🎉 You have a new referral! @${username || first_name} joined using your link.`);
+                    bot.sendMessage(referred_by, `ðŸŽ‰ You have a new referral! @${username || first_name} joined using your link.`);
                 } catch (e) {
                     console.error('Failed to notify referrer', e);
                 }
@@ -298,7 +298,7 @@ router.post('/wallet/disconnect', async (req, res) => {
 });
 
 // ==========================================
-// SPECIAL OFFER — Invite 20 Friends, Get 20,000 TASKY
+// SPECIAL OFFER â€” Invite 20 Friends, Get 20,000 TASKY
 // ==========================================
 
 // GET /api/users/special-offer/status/:telegram_id
@@ -312,7 +312,7 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const claimRes = await pool.query(
-            'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1',
+            'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = ''invite_20_get_20k_v2''',
             [telegram_id]
         );
 
@@ -337,7 +337,7 @@ router.post('/special-offer/claim', async (req, res) => {
 
         // Check if already claimed
         const existingClaim = await client.query(
-            'SELECT id, status FROM special_offer_claims WHERE telegram_id = $1',
+            'SELECT id, status FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = ''invite_20_get_20k_v2''',
             [telegram_id]
         );
         if (existingClaim.rows.length > 0) {
@@ -364,7 +364,7 @@ router.post('/special-offer/claim', async (req, res) => {
         // Insert claim record (pending admin review)
         await client.query(`
             INSERT INTO special_offer_claims (telegram_id, offer_id, status, valid_referrals_at_claim, claimed_at)
-            VALUES ($1, 'invite_20_get_20k', 'pending', $2, NOW())
+            VALUES ($1, 'invite_20_get_20k_v2', 'pending', $2, NOW())
         `, [telegram_id, validReferrals]);
 
         await client.query('COMMIT');
@@ -379,4 +379,5 @@ router.post('/special-offer/claim', async (req, res) => {
 });
 
 module.exports = router;
+
 
