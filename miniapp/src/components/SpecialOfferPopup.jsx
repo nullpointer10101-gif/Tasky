@@ -5,7 +5,7 @@ import { getSpecialOfferStatus, claimSpecialOffer } from '../api';
 import { useToast } from '../App';
 
 const OFFER_ID = 'invite_20_get_20k_v2';
-const REQUIRED_REFERRALS = 20;
+const REQUIRED_REFERRALS = 10;
 const REWARD_TOKENS = 20000;
 const OFFER_DURATION_MS = 24 * 60 * 60 * 1000;
 const LS_SEEN_KEY = `tasky_offer_${OFFER_ID}_seen`;
@@ -64,7 +64,7 @@ export default function SpecialOfferPopup({ user }) {
     // If permanently dismissed/claimed, never show
     if (isOfferDone()) return;
 
-    // Show bubble immediately â€” don't wait for API
+    // Show bubble immediately — don't wait for API
     setTimeout(() => {
       markOfferSeen(); // stamp seen time now
       const seenAt = getSeenTimestamp();
@@ -72,7 +72,7 @@ export default function SpecialOfferPopup({ user }) {
       setShowBubble(true);
     }, 1500);
 
-    // Load status in background â€” failure is non-fatal
+    // Load status in background — failure is non-fatal
     const load = async () => {
       try {
         const { data, error } = await getSpecialOfferStatus(user.telegram_id);
@@ -91,7 +91,7 @@ export default function SpecialOfferPopup({ user }) {
     load();
   }, [user?.telegram_id]);
 
-  // Live countdown â€” ticks every second
+  // Live countdown — ticks every second
   useEffect(() => {
     if (!showBubble) return;
     let seenAt = getSeenTimestamp();
@@ -143,7 +143,7 @@ export default function SpecialOfferPopup({ user }) {
 
   return (
     <>
-      {/* â”€â”€ FLOATING CIRCLE BUBBLE â”€â”€ */}
+      {/* ── FLOATING CIRCLE BUBBLE ── */}
       <AnimatePresence>
         {showBubble && (
           <motion.div
@@ -195,8 +195,9 @@ export default function SpecialOfferPopup({ user }) {
                   className="absolute inset-0 w-1/2 pointer-events-none"
                   style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent)' }}
                 />
-                <span className="text-[22px] leading-none mb-0.5 select-none">ðŸŽ</span>
-                <span className="text-[8px] font-black leading-none" style={{ color: '#fbbf24', letterSpacing: '0.03em' }}>20K TASKY</span>
+                <span className="text-[18px] leading-none mb-0.5 select-none">🎁</span>
+                <span className="text-[11px] font-black leading-none mt-1 text-[#10b981]" style={{ textShadow: '0 0 10px rgba(16,185,129,0.9)' }}>1 USDT</span>
+                <span className="text-[8px] font-bold leading-none mt-0.5" style={{ color: '#fbbf24' }}>+20K TASKY</span>
               </motion.button>
 
               {/* RED URGENCY DOT */}
@@ -223,7 +224,7 @@ export default function SpecialOfferPopup({ user }) {
         )}
       </AnimatePresence>
 
-      {/* â”€â”€ FULL MODAL â”€â”€ */}
+      {/* ── FULL MODAL ── */}
       <AnimatePresence>
         {modalOpen && (
           <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4">
@@ -255,7 +256,7 @@ export default function SpecialOfferPopup({ user }) {
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
                       style={{ background: 'linear-gradient(135deg, #7c3aed, #f59e0b)' }}>ðŸŽ</motion.div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">ðŸ”¥ Limited 24h Offer</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">🔥 Limited 24h Offer</p>
                       <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>Exclusive Milestone Reward</p>
                     </div>
                   </div>
@@ -268,7 +269,7 @@ export default function SpecialOfferPopup({ user }) {
                   )}
                 </div>
 
-                {/* â”€â”€ LIVE COUNTDOWN BAR â”€â”€ */}
+                {/* ── LIVE COUNTDOWN BAR ── */}
                 {!claimDone && !isPending && (
                   <div className="flex items-center justify-between rounded-2xl px-4 py-2.5 mb-4"
                     style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
@@ -304,28 +305,31 @@ export default function SpecialOfferPopup({ user }) {
                       style={{ background: 'rgba(124,58,237,0.15)', border: '2px solid rgba(124,58,237,0.4)' }}>
                       <Clock size={36} className="text-amber-400" />
                     </motion.div>
-                    <h2 className="text-xl font-black text-white mb-2">Claim Submitted! ðŸš€</h2>
+                    <h2 className="text-xl font-black text-white mb-2">Claim Submitted! 🚀</h2>
                     <p className="text-sm leading-relaxed mb-5" style={{ color: 'rgba(255,255,255,0.55)' }}>
-                      Your request for <span className="text-amber-400 font-bold">20,000 TASKY</span> is under review.
+                      Your request for <span className="text-[#10b981] font-bold">1 USDT</span> and <span className="text-amber-400 font-bold">20,000 TASKY</span> is under review.
                       You will get a Telegram message once approved!
                     </p>
                     <button onClick={() => { setModalOpen(false); setShowBubble(false); }}
                       className="px-8 py-3 rounded-2xl text-sm font-bold text-white"
                       style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>
-                      Got it! ðŸŽ‰
+                      Got it! 🎉
                     </button>
                   </motion.div>
                 ) : (
                   <>
                     <div className="text-center mb-5">
-                      <motion.div animate={{ scale: [1, 1.03, 1] }} transition={{ repeat: Infinity, duration: 3 }}>
-                        <div className="text-5xl font-black text-transparent bg-clip-text mb-1"
-                          style={{ backgroundImage: 'linear-gradient(135deg, #f59e0b, #fbbf24, #f59e0b)' }}>
-                          +{REWARD_TOKENS.toLocaleString()}
+                      <motion.div animate={{ scale: [1, 1.05, 1] }} transition={{ repeat: Infinity, duration: 2.5 }}>
+                        <div className="flex items-center justify-center gap-2 mb-1.5">
+                           <span className="text-[64px] leading-none font-black text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #34d399, #10b981)', filter: 'drop-shadow(0 0 18px rgba(16,185,129,0.5))' }}>1</span>
+                           <span className="text-[38px] leading-none font-black text-[#10b981]" style={{ filter: 'drop-shadow(0 0 12px rgba(16,185,129,0.4))' }}>USDT</span>
                         </div>
-                        <div className="text-white font-black text-xl tracking-wide">TASKY</div>
+                        <div className="flex items-center justify-center gap-1.5">
+                           <span className="text-2xl font-black text-amber-400">+{REWARD_TOKENS.toLocaleString()}</span>
+                           <span className="text-lg font-bold text-white">TASKY</span>
+                        </div>
                       </motion.div>
-                      <p className="text-xs mt-1 font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
+                      <p className="text-xs mt-3 font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>
                         Invite {REQUIRED_REFERRALS} valid friends to claim
                       </p>
                     </div>
@@ -343,7 +347,7 @@ export default function SpecialOfferPopup({ user }) {
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 text-black"
                           style={{ background: 'linear-gradient(135deg, #f59e0b, #fbbf24)' }}>3</div>
                         <p className="text-sm font-medium" style={{ color: 'rgba(255,255,255,0.75)' }}>
-                          Hit 20 valid friends <span className="text-amber-400 font-bold">â†’ Claim 20,000 TASKY!</span>
+                          Hit 10 valid friends <span className="text-amber-400 font-bold">→ Claim 1 USDT + 20K TASKY!</span>
                         </p>
                       </div>
                     </div>
@@ -376,7 +380,7 @@ export default function SpecialOfferPopup({ user }) {
                       {canClaim && (
                         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                           className="text-center text-xs font-bold text-amber-400 mt-2">
-                          âœ… Reached 20 friends! Claim your reward!
+                          ✅ Reached 10 friends! Claim your reward!
                         </motion.p>
                       )}
                     </div>
@@ -390,7 +394,7 @@ export default function SpecialOfferPopup({ user }) {
                           style={{ background: 'linear-gradient(135deg,#f59e0b,#fbbf24)' }}>
                           {claiming
                             ? <><motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }} className="w-5 h-5 border-2 border-black/30 border-t-black rounded-full" /> Submitting...</>
-                            : <><Zap size={18} fill="black" /> Claim {REWARD_TOKENS.toLocaleString()} TASKY!</>
+                            : <><Zap size={18} fill="black" /> Claim 1 USDT + 20K TASKY!</>
                           }
                         </motion.button>
                       ) : (

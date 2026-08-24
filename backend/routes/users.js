@@ -356,7 +356,7 @@ router.post('/special-offer/claim', async (req, res) => {
         }
 
         const validReferrals = userRes.rows[0].valid_referrals || 0;
-        if (validReferrals < 20) {
+        if (validReferrals < 10) {
             await client.query('ROLLBACK');
             return res.json({ success: false, error: 'not_enough_referrals', valid_referrals: validReferrals });
         }
