@@ -254,7 +254,7 @@ export default function SpecialOfferPopup({ user }) {
                     <motion.div animate={{ rotate: [0, 10, -10, 0] }}
                       transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
                       className="w-9 h-9 rounded-xl flex items-center justify-center text-lg"
-                      style={{ background: 'linear-gradient(135deg, #7c3aed, #f59e0b)' }}>ðŸŽ</motion.div>
+                      style={{ background: 'linear-gradient(135deg, #7c3aed, #f59e0b)' }}>🎁</motion.div>
                     <div>
                       <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">🔥 Limited 24h Offer</p>
                       <p className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.45)' }}>Exclusive Milestone Reward</p>
