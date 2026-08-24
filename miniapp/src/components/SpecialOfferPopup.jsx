@@ -21,7 +21,12 @@ function dismissOfferPermanently() {
 function getSeenTimestamp() {
   try {
     const v = localStorage.getItem(LS_SEEN_KEY);
-    return v ? parseInt(v, 10) : Date.now();
+    let seenAt = v ? parseInt(v, 10) : Date.now();
+    if (Date.now() - seenAt >= OFFER_DURATION_MS) {
+      seenAt = Date.now();
+      localStorage.setItem(LS_SEEN_KEY, seenAt.toString());
+    }
+    return seenAt;
   } catch { return Date.now(); }
 }
 
@@ -89,14 +94,15 @@ export default function SpecialOfferPopup({ user }) {
   // Live countdown â€” ticks every second
   useEffect(() => {
     if (!showBubble) return;
-    const seenAt = getSeenTimestamp();
+    let seenAt = getSeenTimestamp();
     timerRef.current = setInterval(() => {
-      const tl = calcTimeLeft(seenAt);
-      setTimeLeft(tl);
+      let tl = calcTimeLeft(seenAt);
       if (tl.total <= 0) {
-        clearInterval(timerRef.current);
-        setShowBubble(false); // offer expired
+        seenAt = Date.now();
+        localStorage.setItem(LS_SEEN_KEY, seenAt.toString());
+        tl = calcTimeLeft(seenAt);
       }
+      setTimeLeft(tl);
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [showBubble]);
