@@ -412,5 +412,5 @@ export default function SpecialOfferPopup({ user }) {
       </AnimatePresence>
     </>
   );
-}
+}  
 
