@@ -312,7 +312,7 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         const claimRes = await pool.query(
-            'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = ''invite_20_get_20k_v2''',
+            'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = \'invite_20_get_20k_v2\'',
             [telegram_id]
         );
 
@@ -337,7 +337,7 @@ router.post('/special-offer/claim', async (req, res) => {
 
         // Check if already claimed
         const existingClaim = await client.query(
-            'SELECT id, status FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = ''invite_20_get_20k_v2''',
+            'SELECT id, status FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = \'invite_20_get_20k_v2\'',
             [telegram_id]
         );
         if (existingClaim.rows.length > 0) {
