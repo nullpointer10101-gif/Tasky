@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Search, Ban, CheckCircle, User, Edit2, Zap, Users as UsersIcon, Coins, History, X } from 'lucide-react';
+import { Search, Ban, CheckCircle, User, Edit2, Zap, Users as UsersIcon, Coins, History, X, Wallet } from 'lucide-react';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -73,6 +73,19 @@ export default function Users() {
       setUsers(users.map(u => u.telegram_id === user.telegram_id ? { ...u, spins_available: (u.spins_available || 0) + spinsToAdd } : u));
     } catch (error) {
       toast.error('Failed to add spins');
+    }
+  };
+
+  const handleEditGramWallet = async (user) => {
+    const newAddress = window.prompt(`Enter new Gram wallet address for ${user.username || user.telegram_id} (leave empty to reset/clear):`, user.gram_wallet_address || '');
+    if (newAddress === null) return; // cancelled
+
+    try {
+      await api.post(`/users/${user.telegram_id}/gram-wallet`, { gram_wallet_address: newAddress });
+      toast.success('Gram wallet address updated successfully');
+      setUsers(users.map(u => u.telegram_id === user.telegram_id ? { ...u, gram_wallet_address: newAddress.trim() || null } : u));
+    } catch (error) {
+      toast.error('Failed to update Gram wallet address');
     }
   };
 
@@ -249,7 +262,19 @@ export default function Users() {
                         </span>
                       </div>
                     </div>
-                  </div>
+                   </div>
+
+                  {user.gram_wallet_address && (
+                    <div className="bg-amber-500/5 border border-amber-500/10 rounded-2xl p-3 mb-4 text-left flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet size={16} className="text-amber-500" />
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-ink-soft font-bold uppercase tracking-wider">Gram Wallet</span>
+                          <span className="text-xs text-amber-500 font-mono font-bold break-all">{user.gram_wallet_address}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="flex gap-2 flex-wrap">
@@ -258,6 +283,9 @@ export default function Users() {
                       </button>
                       <button onClick={() => handleAddSpins(user)} className="flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
                         <Zap size={14} /> Spins
+                      </button>
+                      <button onClick={() => handleEditGramWallet(user)} className="flex-1 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
+                        <Wallet size={14} /> Gram
                       </button>
                       <button onClick={() => handleEditBalance(user)} className="flex-1 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 rounded-xl font-bold text-xs flex justify-center items-center gap-1.5 transition-colors">
                         <Edit2 size={14} /> Balance
@@ -304,6 +332,11 @@ export default function Users() {
                             <div>
                               <p className="font-bold text-ink">{user.first_name || 'No Name'}</p>
                               <p className="text-xs text-ink-soft">@{user.username || 'unknown'}</p>
+                              {user.gram_wallet_address && (
+                                <p className="text-[11px] text-amber-500 font-mono mt-0.5" title={user.gram_wallet_address}>
+                                  Gram: {user.gram_wallet_address.substring(0, 8)}...{user.gram_wallet_address.substring(user.gram_wallet_address.length - 4)}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -337,8 +370,11 @@ export default function Users() {
                             <button onClick={() => handleViewHistory(user)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-xl text-xs font-bold transition-colors">
                               <History size={14} /> History
                             </button>
-                            <button onClick={() => handleAddSpins(user)} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl text-xs font-bold transition-colors">
+                             <button onClick={() => handleAddSpins(user)} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl text-xs font-bold transition-colors">
                               <Zap size={14} /> Add Spins
+                            </button>
+                            <button onClick={() => handleEditGramWallet(user)} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 rounded-xl text-xs font-bold transition-colors">
+                              <Wallet size={14} /> Gram
                             </button>
                             <button onClick={() => handleEditBalance(user)} className="flex items-center gap-2 px-3 py-1.5 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 rounded-xl text-xs font-bold transition-colors">
                               <Edit2 size={14} /> Edit

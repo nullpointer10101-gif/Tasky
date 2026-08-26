@@ -238,9 +238,14 @@ export default function Gram({ user, refreshUser }) {
               value={gramAddress}
               onChange={(e) => setGramAddress(e.target.value)}
               placeholder="ENTER YOUR GRAM WALLET ADDRESS"
-              className="w-full bg-black/40 border-2 border-amber-500/20 rounded-2xl py-4 px-4 text-sm font-bold text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 focus:bg-black/60 transition-all"
-              disabled={isSubmitting || status?.claimed_in_last_24h}
+              className="w-full bg-black/40 border-2 border-amber-500/20 rounded-2xl py-4 px-4 text-sm font-bold text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 focus:bg-black/60 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={isSubmitting || status?.claimed_in_last_24h || !!status?.gram_wallet_address}
             />
+            {status?.gram_wallet_address && (
+              <p className="text-[11px] text-amber-500/70 font-bold flex items-center gap-1 mt-2 ml-1">
+                <span>🔒 locked. Contact administrator to change.</span>
+              </p>
+            )}
           </div>
 
           {status?.ads_watched_today >= 60 ? (
@@ -264,6 +269,14 @@ export default function Gram({ user, refreshUser }) {
                   Claim 0.02 GRAM
                 </>
               )}
+            </button>
+          ) : status?.gram_wallet_address ? (
+            <button
+              disabled={true}
+              className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50"
+            >
+              <Sparkles size={18} />
+              Locked (Complete daily quest)
             </button>
           ) : (
             <button

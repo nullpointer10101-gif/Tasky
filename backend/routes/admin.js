@@ -370,7 +370,7 @@ router.get('/users', async (req, res) => {
     const sortBy = req.query.sortBy === 'newest' ? 'created_at DESC' : 'balance DESC';
     const query = `
       SELECT 
-        u.id, u.telegram_id, u.username, u.first_name, u.balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched, u.total_ads_watched,
+        u.id, u.telegram_id, u.username, u.first_name, u.balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched, u.total_ads_watched, u.gram_wallet_address,
         (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched
       FROM users u
       ORDER BY u.${sortBy}
@@ -431,6 +431,18 @@ router.post('/users/:id/spins', async (req, res) => {
   try {
     await pool.query('UPDATE users SET spins_available = spins_available + $1 WHERE telegram_id = $2', [spins_to_add, telegramId]);
     res.json({ success: true, message: 'Spins added successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/users/:id/gram-wallet', async (req, res) => {
+  const telegramId = req.params.id;
+  const { gram_wallet_address } = req.body;
+  try {
+    const cleanAddress = gram_wallet_address ? gram_wallet_address.trim() : null;
+    await pool.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegramId]);
+    res.json({ success: true, message: 'Gram wallet address updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
