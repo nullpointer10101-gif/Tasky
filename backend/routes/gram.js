@@ -9,10 +9,10 @@ router.get('/status/:telegram_id', async (req, res) => {
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     try {
-        // 1. Get user and their gram_wallet_address
-        const userRes = await pool.query('SELECT gram_wallet_address FROM users WHERE telegram_id = $1', [telegram_id]);
+        // 1. Get user and their gram_wallet_address and connected wallet_address
+        const userRes = await pool.query('SELECT gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-        const { gram_wallet_address } = userRes.rows[0];
+        const { gram_wallet_address, wallet_address } = userRes.rows[0];
 
         // 2. Count ads watched in the last 24 hours (verification_type = 'auto_ad')
         const adCountRes = await pool.query(`
@@ -44,10 +44,12 @@ router.get('/status/:telegram_id', async (req, res) => {
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
         // 5. Determine if they can claim
-        const can_claim = ads_watched_today >= 60 && !claimed_in_last_24h;
+        const activeWallet = gram_wallet_address || wallet_address || '';
+        const can_claim = ads_watched_today >= 60 && !claimed_in_last_24h && !!activeWallet;
 
         res.json({
-            gram_wallet_address: gram_wallet_address || '',
+            gram_wallet_address: activeWallet,
+            wallet_connected: !!wallet_address,
             ads_watched_today,
             claimed_in_last_24h,
             can_claim,
@@ -61,25 +63,34 @@ router.get('/status/:telegram_id', async (req, res) => {
 
 // Submit Gram Reward Claim
 router.post('/claim', async (req, res) => {
-    const { telegram_id, gram_wallet_address } = req.body;
-    if (!telegram_id || !gram_wallet_address) {
-        return res.status(400).json({ error: 'telegram_id and gram_wallet_address are required' });
-    }
-
-    const cleanAddress = gram_wallet_address.trim();
-    if (cleanAddress.length < 10) {
-        return res.status(400).json({ error: 'Invalid Gram wallet address' });
+    const { telegram_id } = req.body;
+    if (!telegram_id) {
+        return res.status(400).json({ error: 'telegram_id is required' });
     }
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        // 1. Get user
-        const userRes = await client.query('SELECT id FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+        // 1. Get user and their wallet addresses
+        const userRes = await client.query('SELECT id, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
         if (userRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const { gram_wallet_address, wallet_address } = userRes.rows[0];
+        const activeWallet = gram_wallet_address || wallet_address;
+        
+        if (!activeWallet) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Please connect your TON wallet in the Wallet tab first.' });
+        }
+
+        const cleanAddress = activeWallet.trim();
+        if (cleanAddress.length < 10) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Invalid wallet address link' });
         }
 
         // 2. Verify ads watched count in the last 24 hours
@@ -112,8 +123,10 @@ router.post('/claim', async (req, res) => {
             return res.status(400).json({ error: 'You have already submitted a claim in the last 24 hours.' });
         }
 
-        // 4. Update the user's gram_wallet_address
-        await client.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegram_id]);
+        // 4. Update the user's gram_wallet_address if not set
+        if (!gram_wallet_address) {
+            await client.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegram_id]);
+        }
 
         // 5. Insert new claim
         const claimRes = await client.query(`
