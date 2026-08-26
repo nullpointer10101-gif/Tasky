@@ -263,7 +263,7 @@ router.post('/complete', async (req, res) => {
 
             await client.query('COMMIT');
             const newBalance = parseFloat(updatedUser.rows[0].balance);
-            if (bot && bot.sendMessage) {
+            if (bot && bot.sendMessage && task.verification_type !== 'auto_ad') {
                 try { bot.sendMessage(telegram_id, `🎉 You completed "${task.title}" and earned ${reward} TASKY!`); } catch (e) {}
             }
             // Recalculate tier instantly now that balance changed

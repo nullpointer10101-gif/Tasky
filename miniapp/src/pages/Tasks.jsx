@@ -199,21 +199,15 @@ export default function Tasks({ user, refreshUser, navigate }) {
         }
       }
 
-      // Hide the modal before showing the ad so the ad doesn't get covered by z-index
-      currentTask = selectedTask;
-      setSelectedTask(null);
-
       const adResult = await showRewardedAd('main');
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
         setIsSubmitting(false);
-        // Re-open modal if they canceled
-        setSelectedTask(currentTask);
         return;
       }
 
       // If we got here, we are submitting the proof
-      const activeTask = currentTask || selectedTask;
+      const activeTask = selectedTask;
       const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
