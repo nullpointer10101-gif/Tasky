@@ -22,7 +22,7 @@ export default function GramClaims() {
   const fetchClaims = async (showLoading = false) => {
     if (showLoading) setLoading(true);
     try {
-      const { data } = await api.get('/admin/gram/claims/pending');
+      const { data } = await api.get('/gram/claims/pending');
       setClaims(data);
     } catch (e) {
       if (showLoading) toast.error('Failed to load pending Gram claims');
@@ -33,7 +33,7 @@ export default function GramClaims() {
 
   const fetchHistory = async () => {
     try {
-      const { data } = await api.get('/admin/gram/claims/history');
+      const { data } = await api.get('/gram/claims/history');
       setHistory(data);
     } catch (e) {
       toast.error('Failed to load Gram claims history');
@@ -49,7 +49,7 @@ export default function GramClaims() {
 
     setProcessingId(id);
     try {
-      await api.post('/admin/gram/claims/review', { claim_id: id, action, rejection_reason: reason });
+      await api.post('/gram/claims/review', { claim_id: id, action, rejection_reason: reason });
       toast.success("Gram claim " + action + "d successfully");
       setClaims(claims.filter(c => c.claim_id !== id));
       fetchHistory();
