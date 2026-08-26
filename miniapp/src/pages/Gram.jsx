@@ -116,9 +116,9 @@ export default function Gram({ user, refreshUser }) {
       {/* Header section */}
       <div>
         <h1 className="text-2xl font-bold text-ink flex items-center gap-2 justify-center md:justify-start">
-          <Coins className="text-amber-500" /> Gram Daily Reward
+          <Coins className="text-amber-500" /> Daily Ads Daily Rewards
         </h1>
-        <p className="text-sm text-ink-soft text-center md:text-left">Watch 60 ads daily and claim 0.02 GRAM token reward.</p>
+        <p className="text-sm text-indigo-400 font-bold text-center md:text-left">⚡ Complete daily ads and receive instant payment!</p>
       </div>
 
       {/* Wallet Connection Status */}
@@ -181,12 +181,12 @@ export default function Gram({ user, refreshUser }) {
             </div>
 
             {status?.ads_watched_today < 60 ? (
-              <p className="text-[11px] text-white/40 font-medium">
-                Complete {60 - (status?.ads_watched_today || 0)} more ads today to unlock the claim form.
+              <p className="text-[11px] text-amber-300 font-bold">
+                🚀 Watch {60 - (status?.ads_watched_today || 0)} more ads to receive your 0.02 GRAM Bounty!
               </p>
             ) : (
-              <p className="text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-1.5">
-                <CheckCircle2 size={13} /> Quest completed! Ready to claim.
+              <p className="text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                🎉 QUEST COMPLETED! Unlock your instant rewards below!
               </p>
             )}
           </div>
@@ -221,12 +221,12 @@ export default function Gram({ user, refreshUser }) {
             <button
               onClick={handleClaim}
               disabled={status?.claimed_in_last_24h || !status?.gram_wallet_address || isSubmitting}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-500 to-yellow-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(245,158,11,0.2)] border border-amber-400/20"
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_25px_rgba(16,185,129,0.3)] border border-emerald-400/20"
             >
               {isSubmitting ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
-                  Submitting Claim...
+                  Processing Rewards...
                 </>
               ) : status?.claimed_in_last_24h ? (
                 <>
@@ -234,12 +234,12 @@ export default function Gram({ user, refreshUser }) {
                 </>
               ) : !status?.gram_wallet_address ? (
                 <>
-                  Connect Wallet to Claim
+                  Connect Wallet to Receive
                 </>
               ) : (
                 <>
-                  <Sparkles size={18} />
-                  Claim 0.02 GRAM
+                  <Sparkles size={18} className="animate-pulse" />
+                  Receive 0.02 GRAM Instantly!
                 </>
               )}
             </button>
@@ -249,7 +249,7 @@ export default function Gram({ user, refreshUser }) {
               className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50"
             >
               <Sparkles size={18} />
-              Locked (Complete daily quest)
+              Receive 0.02 GRAM Bounty (Locked)
             </button>
           )}
         </div>
