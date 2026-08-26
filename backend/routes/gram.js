@@ -98,7 +98,7 @@ router.post('/claim', async (req, res) => {
             SELECT COUNT(*) FROM user_tasks ut
             JOIN tasks t ON ut.task_id = t.id
             WHERE ut.telegram_id = $1 
-              AND t.verification_type = 'auto_ad' 
+              AND t.verification_type = 'gram_ad' 
               AND ut.status = 'approved' 
               AND ut.submitted_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);

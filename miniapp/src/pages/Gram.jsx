@@ -30,8 +30,8 @@ export default function Gram({ user, refreshUser }) {
       }
 
       if (tasksRes.data) {
-        const adT = tasksRes.data.find(t => t.verification_type === 'auto_ad');
-        setAdTask(adT);
+        const filtered = tasksRes.data.find(t => t.verification_type === 'gram_ad');
+        setAdTask(filtered);
       }
     } catch (err) {
       console.error('Failed to fetch Gram status:', err);
