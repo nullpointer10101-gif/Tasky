@@ -238,6 +238,42 @@ bot.on('callback_query', async (query) => {
             console.error('Error approving Gram claim:', err);
             bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
         }
+    } else if (data.startsWith('broadcast_promo_')) {
+        const promoId = data.split('_')[2];
+        try {
+            const promoRes = await pool.query('SELECT * FROM promo_codes WHERE id = $1', [promoId]);
+            if (promoRes.rows.length === 0) {
+                return bot.answerCallbackQuery(query.id, { text: 'Promo code not found' });
+            }
+            const promo = promoRes.rows[0];
+
+            bot.editMessageText(`✅ *Broadcast Started*\n\n` + query.message.text, {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'Markdown'
+            });
+            bot.answerCallbackQuery(query.id, { text: 'Broadcasting to all users...' });
+
+            const { rows } = await pool.query('SELECT telegram_id FROM users WHERE is_banned = FALSE');
+            let successCount = 0;
+            const broadcastMsg = `🎁 <b>New Daily Gift Code!</b>\n\nUse code <b>${promo.code}</b> in the app to claim <b>${promo.reward_amount} TASKY</b>!\n\n<i>Hurry! Valid for a limited time/uses.</i>`;
+
+            // Asynchronously send to all (don't block response)
+            for (let user of rows) {
+                try {
+                    await bot.sendMessage(user.telegram_id, broadcastMsg, { parse_mode: 'HTML' });
+                    successCount++;
+                    // Sleep slightly to avoid rate limiting
+                    await new Promise(r => setTimeout(r, 50));
+                } catch (err) {
+                    console.error(`Failed to send to ${user.telegram_id}`, err.message);
+                }
+            }
+            bot.sendMessage(chatId, `📢 Broadcast completed: sent to ${successCount} users.`);
+        } catch (err) {
+            console.error('Error broadcasting promo:', err);
+            bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
+        }
     }
 });
 

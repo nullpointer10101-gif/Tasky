@@ -722,7 +722,27 @@ router.post('/promos', async (req, res) => {
        VALUES ($1, $2, $3, $4) RETURNING *`,
       [code.toUpperCase(), reward_amount, max_uses, expires_at || null]
     );
-    res.json({ success: true, promo: result.rows[0] });
+    const promo = result.rows[0];
+
+    // Notify admin bot with broadcast button
+    if (bot && bot.sendMessage) {
+      try {
+        const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+        const msg = `🎁 *New Promo Code Created!*\n\nCode: \`${promo.code}\`\nReward: ${promo.reward_amount} TASKY\nMax Uses: ${promo.max_uses}\n\nDo you want to broadcast this gift code to all users?`;
+        bot.sendMessage(adminId, msg, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '📢 Broadcast to All Users', callback_data: `broadcast_promo_${promo.id}` }]
+            ]
+          }
+        });
+      } catch (e) {
+        console.error('Failed to send promo admin notification:', e.message);
+      }
+    }
+
+    res.json({ success: true, promo });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
