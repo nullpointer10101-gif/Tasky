@@ -49,6 +49,7 @@ export default function App() {
   const [tgUser] = useState(getTelegramUser)
   const [toast, setToast] = useState(null)
   const [maintenance, setMaintenance] = useState(false)
+  const [networkError, setNetworkError] = useState(false)
 
   useEffect(() => {
     const boot = async () => {
@@ -63,8 +64,10 @@ export default function App() {
       })
       if (error) {
         console.error("Boot error:", error);
-        if (error === 'MAINTENANCE_MODE' || String(error).includes('503') || String(error).includes('Network Error')) {
+        if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
           setMaintenance(true)
+        } else if (String(error).includes('Network Error')) {
+          setNetworkError(true)
         } else {
           // If it's another error, just set user to a blank state so it doesn't hang infinitely
           setUser({ 
@@ -93,8 +96,10 @@ export default function App() {
   const refreshUser = async () => {
     const { getUser } = await import('./api')
     const { data, error } = await getUser(tgUser.id)
-    if (error === 'MAINTENANCE_MODE') {
+    if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
       setMaintenance(true)
+    } else if (String(error).includes('Network Error')) {
+      setNetworkError(true)
     } else if (data) {
       setUser(data)
     }
@@ -171,6 +176,23 @@ export default function App() {
         <p className="text-ink-soft mb-8">Tasky is currently undergoing scheduled maintenance. Please check back later!</p>
         <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-full bg-white/10 text-white font-bold text-sm">
           Refresh Page
+        </button>
+      </div>
+    );
+  }
+
+  if (networkError) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-bg px-6 text-center">
+        <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-6">
+          <svg className="w-10 h-10 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+          </svg>
+        </div>
+        <h1 className="text-2xl font-black text-white mb-3">Connection Error</h1>
+        <p className="text-ink-soft mb-8">We couldn't connect to the server. Please check your internet connection or disable any active VPN/Proxy and try again.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-full bg-white/10 text-white font-bold text-sm">
+          Try Again
         </button>
       </div>
     );

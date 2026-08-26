@@ -10,21 +10,21 @@ const pool = new Pool({
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(token, {polling: false});
 
-const message = `Some people talk. Others just get paid.
+const message = `🎯 *NEW TASK TYPE: Ad Task!* 🎯
 
-Week 1 winners just received their 100 USDT drops. 
+⚡ *Complete an Ad Task → Earn 1 USDT instantly!*
 
-Week 2 is live. The board is wiped clean. 
-100 USDT goes to #1 next Wednesday. 
+🏆 This is an *early bird, limited-time* offer.
+🚀 Fast movers get rewarded first.
+⏳ Spots are filling up — don't miss out!
 
-You can either watch them win again, or take it from them.
-Your move. 👇`;
+👇 Open Tasky now and grab it before it's gone!`;
 
 const options = {
   parse_mode: 'Markdown',
   reply_markup: {
     inline_keyboard: [
-      [{ text: '🏆 VIEW LEADERBOARD & PLAY NOW! 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+      [{ text: '💰 Complete Ad Task – Earn 1 USDT', url: 'https://t.me/TaskyAppbot/app' }]
     ]
   }
 };

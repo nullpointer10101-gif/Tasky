@@ -18,14 +18,56 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '20px', background: '#ffeded', color: '#ff0000', height: '100vh', overflow: 'auto' }}>
-          <h2>Something went wrong.</h2>
-          <details style={{ whiteSpace: 'pre-wrap' }}>
-            {this.state.error && this.state.error.toString()}
-            <br />
-            {this.state.errorInfo && this.state.errorInfo.componentStack}
-          </details>
-          <button onClick={() => window.location.reload()} style={{ marginTop: '20px', padding: '10px' }}>Reload Page</button>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          background: '#090615',
+          color: '#ffffff',
+          padding: '24px',
+          textAlign: 'center',
+          fontFamily: 'Inter, sans-serif',
+        }}>
+          <div style={{
+            width: '72px',
+            height: '72px',
+            borderRadius: '50%',
+            background: 'rgba(239,68,68,0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '20px',
+          }}>
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+          </div>
+          <h1 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px', color: '#ffffff' }}>
+            Something went wrong
+          </h1>
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '28px', lineHeight: 1.6, maxWidth: '280px' }}>
+            The app ran into an unexpected issue. Please tap the button below to reload.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '14px 32px',
+              borderRadius: '50px',
+              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+              color: '#ffffff',
+              fontWeight: 800,
+              fontSize: '15px',
+              border: 'none',
+              cursor: 'pointer',
+              boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+            }}
+          >
+            Reload App
+          </button>
         </div>
       );
     }
