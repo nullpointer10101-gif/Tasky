@@ -45,7 +45,7 @@ const getIconBgColor = (name) => {
   }
 };
 
-export default function Tasks({ user, refreshUser }) {
+export default function Tasks({ user, refreshUser, navigate }) {
   const [activeTab, setActiveTab] = useState('available');
   const [activeCategory, setActiveCategory] = useState('all');
   const [placementCategory, setPlacementCategory] = useState('internal');
@@ -338,7 +338,7 @@ export default function Tasks({ user, refreshUser }) {
                 <motion.div 
                   whileTap={{ scale: 0.96 }}
                   className="relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-4 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border border-amber-500/25 border-b-[3px] shadow-sm"
-                  onClick={() => setIsGramModalOpen(true)}
+                  onClick={() => navigate('gram')}
                 >
                   <div className="absolute -right-4 -top-4 w-12 h-12 bg-yellow-500/10 blur-lg rounded-full" />
                   
