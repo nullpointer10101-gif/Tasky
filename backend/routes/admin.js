@@ -448,6 +448,44 @@ router.post('/users/:id/gram-wallet', async (req, res) => {
   }
 });
 
+router.post('/users/:id/ton-wallet', async (req, res) => {
+  const telegramId = req.params.id;
+  const { ton_wallet_address } = req.body;
+  try {
+    const cleanAddress = ton_wallet_address ? ton_wallet_address.trim() : null;
+    await pool.query('UPDATE users SET wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegramId]);
+    res.json({ success: true, message: 'TON wallet address updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/users/:id/broadcast', async (req, res) => {
+  const telegramId = req.params.id;
+  const { message } = req.body;
+  try {
+    if (bot && bot.sendMessage) {
+      await bot.sendMessage(telegramId, message, { parse_mode: 'HTML', disable_web_page_preview: true });
+      res.json({ success: true, message: 'Message sent successfully' });
+    } else {
+      res.status(500).json({ error: 'Bot is not configured' });
+    }
+  } catch (error) {
+    console.error('Broadcast failed:', error.message);
+    res.status(500).json({ error: 'Failed to send message: ' + error.message });
+  }
+});
+
+router.post('/users/:id/reset-ads', async (req, res) => {
+  const telegramId = req.params.id;
+  try {
+    await pool.query('UPDATE users SET withdrawal_ads_watched = 0 WHERE telegram_id = $1', [telegramId]);
+    res.json({ success: true, message: 'Ads progress reset to 0' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==========================================
 // 7. BROADCAST
 // ==========================================
