@@ -156,6 +156,7 @@ router.post('/complete', async (req, res) => {
                 return res.status(400).json({ error: 'Ad limit reached (60 ads per 24 hours). Please wait.' });
             }
 
+            const lastAdTime = adCountRes.rows[0].last_ad_time;
             if (lastAdTime) {
                 const secondsSinceLastAd = (new Date() - new Date(lastAdTime)) / 1000;
                 if (secondsSinceLastAd < 40) {
