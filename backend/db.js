@@ -94,6 +94,13 @@ const initDB = async () => {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      CREATE TABLE IF NOT EXISTS pending_broadcasts (
+        id SERIAL PRIMARY KEY,
+        message TEXT NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+
       ALTER TABLE tasks DROP COLUMN IF EXISTS proof_required;
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS verification_type VARCHAR(20) DEFAULT 'proof_screenshot';
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS icon VARCHAR(50) DEFAULT 'Default';

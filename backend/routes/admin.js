@@ -494,25 +494,33 @@ router.post('/broadcast', async (req, res) => {
   if (!message) return res.status(400).json({ error: 'Message is required' });
   
   try {
-    const { rows } = await pool.query('SELECT telegram_id FROM users WHERE is_banned = FALSE');
-    let successCount = 0;
-    
-    // Asynchronously send to all (don't block response)
-    res.json({ success: true, message: `Broadcast started to ${rows.length} users` });
+    const insertRes = await pool.query(
+      "INSERT INTO pending_broadcasts (message) VALUES ($1) RETURNING id",
+      [message]
+    );
+    const broadcastId = insertRes.rows[0].id;
 
-    for (let user of rows) {
+    if (bot && bot.sendMessage) {
       try {
-        await bot.sendMessage(user.telegram_id, message, { parse_mode: 'HTML' });
-        successCount++;
-        // Sleep slightly to avoid rate limiting
-        await new Promise(r => setTimeout(r, 50));
-      } catch (err) {
-        console.error(`Failed to send to ${user.telegram_id}`, err.message);
+        const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+        const msg = `📢 *Global Broadcast Preview*\n\nMessage:\n\`\`\`\n${message}\n\`\`\`\n\nDo you want to send this to ALL users?`;
+        bot.sendMessage(adminId, msg, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✅ Approve & Send to All', callback_data: `broadcast_global_${broadcastId}` }]
+            ]
+          }
+        });
+      } catch (e) {
+        console.error('Failed to send broadcast preview:', e.message);
       }
     }
-    console.log(`Broadcast finished: ${successCount} successful`);
+
+    res.json({ success: true, message: 'Broadcast preview sent to your Telegram Admin Bot for approval!' });
   } catch (error) {
     console.error('Broadcast Error:', error);
+    res.status(500).json({ error: 'Failed to start broadcast' });
   }
 });
 
