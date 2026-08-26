@@ -156,11 +156,10 @@ router.post('/complete', async (req, res) => {
                 return res.status(400).json({ error: 'Ad limit reached (60 ads per 24 hours). Please wait.' });
             }
 
-            const lastAdTime = adCountRes.rows[0].last_ad_time;
             if (lastAdTime) {
                 const secondsSinceLastAd = (new Date() - new Date(lastAdTime)) / 1000;
-                if (secondsSinceLastAd < 20) {
-                    const timeLeft = Math.ceil(20 - secondsSinceLastAd);
+                if (secondsSinceLastAd < 40) {
+                    const timeLeft = Math.ceil(40 - secondsSinceLastAd);
                     await client.query('ROLLBACK');
                     return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
                 }

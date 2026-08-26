@@ -188,7 +188,7 @@ export async function showRewardedAd(placement = 'main') {
       try {
         await Promise.race([
           window.showGiga(placement),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 5000))
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
         ]);
         return { success: true };
       } catch (err) {
@@ -231,7 +231,7 @@ export async function showRewardedAd(placement = 'main') {
     try {
       await Promise.race([
         window.showGiga(placement),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 5000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
       ]);
       return { success: true };
     } catch (err) {

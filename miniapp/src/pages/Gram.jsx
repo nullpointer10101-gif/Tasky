@@ -51,6 +51,15 @@ export default function Gram({ user, refreshUser }) {
       return;
     }
     
+    if (adTask.last_ad_time) {
+      const secondsSinceLastAd = (Date.now() - new Date(adTask.last_ad_time).getTime()) / 1000;
+      if (secondsSinceLastAd < 40) {
+        const timeLeft = Math.ceil(40 - secondsSinceLastAd);
+        showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
+        return;
+      }
+    }
+
     setIsWatchingAd(true);
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}

@@ -190,8 +190,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
       if (selectedTask.verification_type === 'auto_ad') {
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
-          if (secondsSinceLastAd < 20) {
-            const timeLeft = Math.ceil(20 - secondsSinceLastAd);
+          if (secondsSinceLastAd < 40) {
+            const timeLeft = Math.ceil(40 - secondsSinceLastAd);
             showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
             setIsSubmitting(false);
             return;
