@@ -249,7 +249,7 @@ router.post('/complete', async (req, res) => {
 
                 if (approvedCount >= rules.tasks_required_for_valid) {
                     const referrerRes = await client.query(
-                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE RETURNING *',
+                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
                         [user.referred_by, telegram_id]
                     );
                     if (referrerRes.rowCount > 0) {
@@ -481,7 +481,7 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 if (approvedCount >= rules.tasks_required_for_valid) {
                     // Check referrer hasn't already been credited for this user
                     const referrerRes = await client.query(
-                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE RETURNING *',
+                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
                         [ut.referred_by, ut.telegram_id]
                     );
 
