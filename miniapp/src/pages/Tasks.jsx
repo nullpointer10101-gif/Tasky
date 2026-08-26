@@ -290,38 +290,7 @@ export default function Tasks({ user, refreshUser }) {
         </div>
       </motion.div>
 
-      {/* Gram Daily Reward Banner */}
-      <motion.div 
-        whileTap={{ scale: 0.96 }}
-        onClick={() => setIsGramModalOpen(true)}
-        className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#201505] via-[#2d1b02] to-[#201505] border border-amber-500/20 p-4 mb-4 shadow-[0_0_15px_rgba(245,158,11,0.1)] flex items-center justify-between"
-      >
-        <div className="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/5 blur-xl rounded-full" />
-        <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-yellow-500/5 blur-xl rounded-full" />
-        
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg border border-white/20">
-            <Coins size={20} className="text-white" />
-          </div>
-          <div>
-            <h3 className="font-black text-white text-[15px] uppercase tracking-wide flex items-center gap-1.5">
-              Gram Daily Reward
-              {gramStatusData?.ads_watched_today >= 60 && !gramStatusData?.claimed_in_last_24h && (
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-              )}
-            </h3>
-            <p className="text-[12px] text-amber-200/80 font-medium">
-              {gramStatusData ? `Progress: ${gramStatusData.ads_watched_today}/60 ads watched` : 'Claim 0.02 GRAM daily'}
-            </p>
-          </div>
-        </div>
-        <div className="relative z-10 bg-white/10 p-2 rounded-xl border border-white/10">
-          <ExternalLink size={16} className="text-white" />
-        </div>
-      </motion.div>
+
 
       <div className="flex p-1.5 rounded-[1.25rem] relative mb-5 bg-surface-soft shadow-inner">
         {['available', 'submissions'].map((tab) => (
@@ -364,6 +333,39 @@ export default function Tasks({ user, refreshUser }) {
                   Partners
                 </motion.button>
               </div>
+
+              {placementCategory === 'internal' && (
+                <motion.div 
+                  whileTap={{ scale: 0.96 }}
+                  className="relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-4 overflow-hidden rounded-[1.25rem] bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border border-amber-500/25 border-b-[3px] shadow-sm"
+                  onClick={() => setIsGramModalOpen(true)}
+                >
+                  <div className="absolute -right-4 -top-4 w-12 h-12 bg-yellow-500/10 blur-lg rounded-full" />
+                  
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 bg-gradient-to-br from-amber-400 to-yellow-600 border border-white/10">
+                    <Coins size={20} />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0 pr-16 relative z-10 text-left">
+                    <h3 className="font-black text-[15.5px] leading-tight mb-0.5 text-amber-500 flex items-center gap-1.5">
+                      Gram Daily Reward
+                      {gramStatusData?.ads_watched_today >= 60 && !gramStatusData?.claimed_in_last_24h && (
+                        <span className="flex h-2 w-2 relative">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-[12.5px] truncate text-amber-400/80 font-bold">
+                      {gramStatusData ? `Progress: ${gramStatusData.ads_watched_today}/60 ads watched` : 'Claim 0.02 GRAM daily'}
+                    </p>
+                  </div>
+                  
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center bg-gradient-to-br from-amber-500 to-yellow-600 border border-amber-400/20">
+                    <span className="text-[14px] font-black text-slate-900">0.02 GRAM</span>
+                  </div>
+                </motion.div>
+              )}
 
 
             
