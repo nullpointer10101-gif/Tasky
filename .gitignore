@@ -22,3 +22,6 @@ backend/public/uploads/
 
 # Brain/AI workspace
 brain/
+
+.vercel
+.env*

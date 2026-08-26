@@ -45,6 +45,20 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS withdrawal_popup_views INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ads_watched INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS special_offer_seen_at TIMESTAMPTZ;
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gram_wallet_address VARCHAR(100);
+
+      CREATE TABLE IF NOT EXISTS gram_claims (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+        gram_wallet_address VARCHAR(100) NOT NULL,
+        amount NUMERIC DEFAULT 0.02,
+        status VARCHAR(20) DEFAULT 'pending',
+        requested_at TIMESTAMPTZ DEFAULT NOW(),
+        processed_at TIMESTAMPTZ,
+        rejection_reason TEXT
+      );
+      CREATE INDEX IF NOT EXISTS idx_gram_claims_telegram_id ON gram_claims(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_gram_claims_status ON gram_claims(status);
 
       CREATE TABLE IF NOT EXISTS special_offer_claims (
         id SERIAL PRIMARY KEY,

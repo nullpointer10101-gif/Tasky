@@ -120,7 +120,7 @@ router.post('/tasks/review', async (req, res) => {
 
     // Get the task details to find reward and telegram_id
     const utRes = await client.query(`
-      SELECT ut.telegram_id, t.reward_tasky 
+      SELECT ut.telegram_id, t.reward_tasky, t.title 
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
       WHERE ut.id = $1 AND ut.status = 'pending'
@@ -128,13 +128,37 @@ router.post('/tasks/review', async (req, res) => {
 
     if (utRes.rows.length === 0) throw new Error('Task not found or already reviewed');
     
-    const { telegram_id, reward_tasky } = utRes.rows[0];
+    const { telegram_id, reward_tasky, title } = utRes.rows[0];
 
     if (action === 'approve') {
       await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = $1`, [user_task_id]);
       await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [reward_tasky, telegram_id]);
+      
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `🎉 <b>HOORAY! Task Approved!</b> 🎉\n\nYour submission for the task <b>"${title}"</b> has been successfully verified!\n\n<b>+${reward_tasky} TASKY</b> has been added to your balance. 🚀\n\nKeep completing tasks to earn more! 💸`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user of task approval:', e.message);
+        }
+      }
     } else if (action === 'reject') {
       await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $2, reviewed_at = NOW() WHERE id = $1`, [user_task_id, rejection_reason]);
+      
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `❌ <b>Task Rejected</b>\n\nYour submission for the task <b>"${title}"</b> was rejected.\n\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\nPlease ensure you follow all instructions carefully next time.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user of task rejection:', e.message);
+        }
+      }
     } else {
       throw new Error('Invalid action');
     }
@@ -677,6 +701,97 @@ router.delete('/promos/:id', async (req, res) => {
     await client.query('DELETE FROM promo_codes WHERE id = $1', [id]);
     await client.query('COMMIT');
     res.json({ success: true });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ==========================================
+// 11. GRAM CLAIMS (0.02 GRAM REWARD)
+// ==========================================
+router.get('/gram/claims/pending', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at,
+        u.telegram_id, u.username, u.first_name
+      FROM gram_claims gc
+      JOIN users u ON gc.telegram_id = u.telegram_id
+      WHERE gc.status = 'pending'
+      ORDER BY gc.requested_at ASC
+    `;
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/gram/claims/history', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.status, gc.rejection_reason, gc.processed_at,
+        u.telegram_id, u.username, u.first_name
+      FROM gram_claims gc
+      JOIN users u ON gc.telegram_id = u.telegram_id
+      WHERE gc.status IN ('approved', 'rejected')
+      ORDER BY gc.processed_at DESC
+      LIMIT 500
+    `;
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/gram/claims/review', async (req, res) => {
+  const { claim_id, action, rejection_reason } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const claimRes = await client.query('SELECT telegram_id, amount FROM gram_claims WHERE id = $1 AND status = \'pending\'', [claim_id]);
+    if (claimRes.rows.length === 0) throw new Error('Claim not found or already processed');
+
+    const { telegram_id, amount } = claimRes.rows[0];
+
+    if (action === 'approve') {
+      await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW() WHERE id = $1`, [claim_id]);
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `🎉 <b>Gram Reward Approved!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been approved!\n\nAdmin has sent the reward to your Gram wallet address. Thank you for watching all 60 ads today! 🚀`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user of Gram claim approval:', e.message);
+        }
+      }
+    } else if (action === 'reject') {
+      await client.query(`UPDATE gram_claims SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [claim_id, rejection_reason]);
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `❌ <b>Gram Reward Rejected</b>\n\nYour request for the <b>${amount} GRAM</b> reward was rejected.\n\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\nPlease contact support if you think this is an error.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user of Gram claim rejection:', e.message);
+        }
+      }
+    } else {
+      throw new Error('Invalid action');
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: "Claim " + action + "d successfully" });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });

@@ -256,3 +256,13 @@ export const claimSpecialOffer = withMock(
   (telegram_id) => () => api.post('/api/users/special-offer/claim', { telegram_id })
 )
 
+// --- GRAM CLAIMS (0.02 GRAM REWARD) ---
+export const getGramStatus = withMock(
+  () => ({ gram_wallet_address: '', ads_watched_today: 45, claimed_in_last_24h: false, can_claim: false, recent_claim: null }),
+  (telegram_id) => () => api.get(`/api/gram/status/${telegram_id}`)
+)
+export const claimGramReward = withMock(
+  { success: true, message: 'Claim request sent to admin!' },
+  (telegram_id, gram_wallet_address) => () => api.post('/api/gram/claim', { telegram_id, gram_wallet_address })
+)
+

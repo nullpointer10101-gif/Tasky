@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, ArrowDownToLine, Settings, PlusSquare, LogOut, ShieldAlert, Users, Send, Server, Menu, X, PlaySquare, Gift } from 'lucide-react';
+import { LayoutDashboard, CheckSquare, ArrowDownToLine, Settings, PlusSquare, LogOut, ShieldAlert, Users, Send, Server, Menu, X, PlaySquare, Gift, Coins } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 
 export default function Layout({ setAuth }) {
@@ -20,6 +20,7 @@ export default function Layout({ setAuth }) {
     { path: '/tasks', label: 'Manage Tasks', icon: PlusSquare },
     { path: '/reviews', label: 'Task Reviews', icon: CheckSquare },
     { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
+    { path: '/gram-claims', label: 'Gram Claims', icon: Coins },
     { path: '/settings', label: 'Dynamic Settings', icon: Settings },
     { path: '/broadcast', label: 'Broadcast', icon: Send },
     { path: '/machines', label: 'Machines', icon: Server },

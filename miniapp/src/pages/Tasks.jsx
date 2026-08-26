@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { showRewardedAd } from '../adUtils';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket, Gift, Flame } from 'lucide-react';
+import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as ImageIcon, AlertCircle, ShieldAlert, Twitter, Send, Globe, Youtube, Repeat, CheckSquare, Cpu, Zap, Bot, Video, Rocket, Gift, Flame, Coins, Sparkles } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getTasks, getMySubmissions, completeTask } from '../api';
+import { getTasks, getMySubmissions, completeTask, getGramStatus } from '../api';
 import { useToast } from '../App';
 import TaskDopamineHub from '../components/TaskDopamineHub';
 import PromoCodeModal from '../components/PromoCodeModal';
+import GramClaimModal from '../components/GramClaimModal';
 import { useIsAdmin } from '../AdminContext';
 
 const containerVariants = {
@@ -55,6 +56,8 @@ export default function Tasks({ user, refreshUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedTask, setSubmittedTask] = useState(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
+  const [isGramModalOpen, setIsGramModalOpen] = useState(false);
+  const [gramStatusData, setGramStatusData] = useState(null);
   const { showToast } = useToast();
 
   const [hasVisited, setHasVisited] = useState(false);
@@ -67,13 +70,15 @@ export default function Tasks({ user, refreshUser }) {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [tasksRes, subsRes] = await Promise.all([
+        const [tasksRes, subsRes, gramRes] = await Promise.all([
           getTasks(user?.telegram_id || '123456'),
-          getMySubmissions(user?.telegram_id || '123456')
+          getMySubmissions(user?.telegram_id || '123456'),
+          getGramStatus(user?.telegram_id || '123456')
         ]);
         if (!isMounted) return;
         if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
         if (subsRes.data) setSubmissions(subsRes.data);
+        if (gramRes.data) setGramStatusData(gramRes.data);
       } catch (err) {
         if (!isMounted) return;
         console.error('Tasks fetchData error:', err);
@@ -89,12 +94,14 @@ export default function Tasks({ user, refreshUser }) {
   // Expose fetchData for other functions
   const reloadData = async () => {
     try {
-      const [tasksRes, subsRes] = await Promise.all([
+      const [tasksRes, subsRes, gramRes] = await Promise.all([
         getTasks(user?.telegram_id || '123456'),
-        getMySubmissions(user?.telegram_id || '123456')
+        getMySubmissions(user?.telegram_id || '123456'),
+        getGramStatus(user?.telegram_id || '123456')
       ]);
       if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
       if (subsRes.data) setSubmissions(subsRes.data);
+      if (gramRes.data) setGramStatusData(gramRes.data);
     } catch (err) {
       console.error('Tasks reloadData error:', err);
       showToast(err.message || 'Error reloading tasks', 'error');
@@ -276,6 +283,39 @@ export default function Tasks({ user, refreshUser }) {
           <div>
             <h3 className="font-black text-white text-[15px] uppercase tracking-wide">Redeem Bounty Code</h3>
             <p className="text-[12px] text-indigo-200 font-medium">Claim secret rewards</p>
+          </div>
+        </div>
+        <div className="relative z-10 bg-white/10 p-2 rounded-xl border border-white/10">
+          <ExternalLink size={16} className="text-white" />
+        </div>
+      </motion.div>
+
+      {/* Gram Daily Reward Banner */}
+      <motion.div 
+        whileTap={{ scale: 0.96 }}
+        onClick={() => setIsGramModalOpen(true)}
+        className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#201505] via-[#2d1b02] to-[#201505] border border-amber-500/20 p-4 mb-4 shadow-[0_0_15px_rgba(245,158,11,0.1)] flex items-center justify-between"
+      >
+        <div className="absolute -right-4 -top-4 w-20 h-20 bg-amber-500/5 blur-xl rounded-full" />
+        <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-yellow-500/5 blur-xl rounded-full" />
+        
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-lg border border-white/20">
+            <Coins size={20} className="text-white" />
+          </div>
+          <div>
+            <h3 className="font-black text-white text-[15px] uppercase tracking-wide flex items-center gap-1.5">
+              Gram Daily Reward
+              {gramStatusData?.ads_watched_today >= 60 && !gramStatusData?.claimed_in_last_24h && (
+                <span className="flex h-2 w-2 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+              )}
+            </h3>
+            <p className="text-[12px] text-amber-200/80 font-medium">
+              {gramStatusData ? `Progress: ${gramStatusData.ads_watched_today}/60 ads watched` : 'Claim 0.02 GRAM daily'}
+            </p>
           </div>
         </div>
         <div className="relative z-10 bg-white/10 p-2 rounded-xl border border-white/10">
@@ -702,6 +742,15 @@ export default function Tasks({ user, refreshUser }) {
           refreshUser();
         }}
         user={user} 
+      />
+
+      <GramClaimModal
+        isOpen={isGramModalOpen}
+        onClose={() => setIsGramModalOpen(false)}
+        user={user}
+        onClaimSuccess={() => {
+          reloadData();
+        }}
       />
     </div>
     </>
