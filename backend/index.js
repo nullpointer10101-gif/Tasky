@@ -19,7 +19,15 @@ app.use(express.static(path.join(__dirname, 'public')));
 // In-memory tracker for active users (last 5 minutes)
 global.onlineUsers = new Map();
 app.use((req, res, next) => {
-  const telegramId = req.body?.telegram_id || req.query?.telegram_id;
+  let telegramId = req.body?.telegram_id || req.query?.telegram_id;
+  
+  if (!telegramId && req.path) {
+    const match = req.path.match(/\/(\d{5,15})\b/);
+    if (match) {
+      telegramId = match[1];
+    }
+  }
+
   if (telegramId) {
     global.onlineUsers.set(telegramId.toString(), Date.now());
   }
