@@ -265,4 +265,8 @@ export const claimGramReward = withMock(
   { success: true, message: 'Claim request sent to admin!' },
   (telegram_id, gram_wallet_address) => () => api.post('/api/gram/claim', { telegram_id, gram_wallet_address })
 )
+export const saveGramWalletAddress = withMock(
+  { success: true, message: 'Gram wallet address saved successfully!' },
+  (telegram_id, gram_wallet_address) => () => api.post('/api/gram/save-address', { telegram_id, gram_wallet_address })
+)
 

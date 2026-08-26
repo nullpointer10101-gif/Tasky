@@ -132,4 +132,30 @@ router.post('/claim', async (req, res) => {
     }
 });
 
+// Save Gram Wallet Address
+router.post('/save-address', async (req, res) => {
+    const { telegram_id, gram_wallet_address } = req.body;
+    if (!telegram_id || !gram_wallet_address) {
+        return res.status(400).json({ error: 'telegram_id and gram_wallet_address are required' });
+    }
+
+    const cleanAddress = gram_wallet_address.trim();
+    if (cleanAddress.length < 10) {
+        return res.status(400).json({ error: 'Invalid Gram wallet address' });
+    }
+
+    try {
+        const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
+        if (userRes.rows.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        await pool.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegram_id]);
+        res.json({ success: true, message: 'Gram wallet address saved successfully!', gram_wallet_address: cleanAddress });
+    } catch (err) {
+        console.error('Error saving Gram wallet address:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;

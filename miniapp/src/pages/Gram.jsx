@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
-import { getGramStatus, claimGramReward, getTasks, completeTask } from '../api';
+import { getGramStatus, claimGramReward, getTasks, completeTask, saveGramWalletAddress } from '../api';
 import { showRewardedAd } from '../adUtils';
 import Button from '../components/Button';
 import Card, { cardVariants } from '../components/Card';
@@ -114,6 +114,36 @@ export default function Gram({ user, refreshUser }) {
     }
   };
 
+  const handleSaveAddress = async () => {
+    const cleanAddress = gramAddress.trim();
+    if (!cleanAddress) {
+      showToast('Please enter a Gram wallet address', 'error');
+      return;
+    }
+    if (cleanAddress.length < 10) {
+      showToast('Please enter a valid Gram wallet address', 'error');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { data, error } = await saveGramWalletAddress(user?.telegram_id || '123456', cleanAddress);
+      if (error) {
+        showToast(error, 'error');
+        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
+      } else if (data && data.success) {
+        showToast(data.message || 'Gram wallet address saved!', 'success');
+        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+        fetchStatus();
+      }
+    } catch (err) {
+      console.error('Save address error:', err);
+      showToast('Connection error', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-10 h-full flex flex-col items-center justify-center min-h-[70vh]">
@@ -196,24 +226,24 @@ export default function Gram({ user, refreshUser }) {
         </div>
       </Card>
 
-      {/* Claim form section (only visible when 60 ads completed) */}
-      {status?.ads_watched_today >= 60 && (
-        <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
-          <div className="space-y-4">
-            <div className="space-y-2 text-left">
-              <label className="text-xs font-black text-white/60 uppercase tracking-wider flex items-center gap-1.5 ml-1">
-                <Wallet size={13} className="text-amber-500" /> Gram Wallet Address
-              </label>
-              <input
-                type="text"
-                value={gramAddress}
-                onChange={(e) => setGramAddress(e.target.value)}
-                placeholder="ENTER YOUR GRAM WALLET ADDRESS"
-                className="w-full bg-black/40 border-2 border-amber-500/20 rounded-2xl py-4 px-4 text-sm font-bold text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 focus:bg-black/60 transition-all"
-                disabled={isSubmitting || status?.claimed_in_last_24h}
-              />
-            </div>
+      {/* Wallet Address & Claim Form section (always visible) */}
+      <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
+        <div className="space-y-4">
+          <div className="space-y-2 text-left">
+            <label className="text-xs font-black text-white/60 uppercase tracking-wider flex items-center gap-1.5 ml-1">
+              <Wallet size={13} className="text-amber-500" /> Gram Wallet Address
+            </label>
+            <input
+              type="text"
+              value={gramAddress}
+              onChange={(e) => setGramAddress(e.target.value)}
+              placeholder="ENTER YOUR GRAM WALLET ADDRESS"
+              className="w-full bg-black/40 border-2 border-amber-500/20 rounded-2xl py-4 px-4 text-sm font-bold text-white placeholder:text-white/20 focus:outline-none focus:border-amber-500/60 focus:bg-black/60 transition-all"
+              disabled={isSubmitting || status?.claimed_in_last_24h}
+            />
+          </div>
 
+          {status?.ads_watched_today >= 60 ? (
             <button
               onClick={handleClaim}
               disabled={status?.claimed_in_last_24h || isSubmitting}
@@ -235,9 +265,27 @@ export default function Gram({ user, refreshUser }) {
                 </>
               )}
             </button>
-          </div>
-        </Card>
-      )}
+          ) : (
+            <button
+              onClick={handleSaveAddress}
+              disabled={isSubmitting}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.15)] border border-indigo-400/20"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Saving Address...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 size={18} />
+                  Save Wallet Address
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </Card>
 
       {/* Claim History Status Banner */}
       {status?.recent_claim && (
