@@ -76,7 +76,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
           getGramStatus(user?.telegram_id || '123456')
         ]);
         if (!isMounted) return;
-        if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
+        if (tasksRes.data) setTasks(tasksRes.data.filter(t => (!t.submission_status || t.submission_status === 'rejected') && t.verification_type !== 'gram_ad'));
         if (subsRes.data) setSubmissions(subsRes.data);
         if (gramRes.data) setGramStatusData(gramRes.data);
       } catch (err) {
@@ -99,7 +99,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
         getMySubmissions(user?.telegram_id || '123456'),
         getGramStatus(user?.telegram_id || '123456')
       ]);
-      if (tasksRes.data) setTasks(tasksRes.data.filter(t => !t.submission_status || t.submission_status === 'rejected'));
+      if (tasksRes.data) setTasks(tasksRes.data.filter(t => (!t.submission_status || t.submission_status === 'rejected') && t.verification_type !== 'gram_ad'));
       if (subsRes.data) setSubmissions(subsRes.data);
       if (gramRes.data) setGramStatusData(gramRes.data);
     } catch (err) {
