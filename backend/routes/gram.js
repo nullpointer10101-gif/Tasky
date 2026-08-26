@@ -73,13 +73,13 @@ router.post('/claim', async (req, res) => {
         await client.query('BEGIN');
 
         // 1. Get user and their wallet addresses
-        const userRes = await client.query('SELECT id, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+        const userRes = await client.query('SELECT id, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
         if (userRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'User not found' });
         }
         
-        const { gram_wallet_address, wallet_address } = userRes.rows[0];
+        const { gram_wallet_address, wallet_address, username, first_name } = userRes.rows[0];
         const activeWallet = gram_wallet_address || wallet_address;
         
         if (!activeWallet) {
@@ -135,6 +135,19 @@ router.post('/claim', async (req, res) => {
         `, [telegram_id, cleanAddress]);
 
         await client.query('COMMIT');
+
+        // Notify admin about the new Gram claim
+        try {
+            const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+            const displayName = username ? `@${username}` : first_name;
+            const msg = `💎 *New GRAM Claim!*\n\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`\n\n📋 Review in Admin Panel → Gram section.`;
+            if (bot && bot.sendMessage) {
+                bot.sendMessage(adminId, msg, { parse_mode: 'Markdown' });
+            }
+        } catch (e) {
+            console.error('Failed to notify admin of gram claim:', e.message);
+        }
+
         res.json({ success: true, message: 'Claim request sent to admin!', claim: claimRes.rows[0] });
     } catch (err) {
         await client.query('ROLLBACK');
