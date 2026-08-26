@@ -14,6 +14,7 @@ export default function Gram({ user, refreshUser }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [adTask, setAdTask] = useState(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
@@ -99,6 +100,7 @@ export default function Gram({ user, refreshUser }) {
         showToast(data.message || 'Claim submitted successfully!', 'success');
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
         triggerConfetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
+        setShowSuccessModal(true);
         fetchStatus(); // Refresh status after claim
       }
     } catch (err) {
@@ -128,6 +130,28 @@ export default function Gram({ user, refreshUser }) {
           <Coins className="text-amber-500" /> Daily Ads Daily Rewards
         </h1>
         <p className="text-sm text-indigo-400 font-bold text-center md:text-left">⚡ Complete daily ads and receive instant payment!</p>
+      </div>
+
+      {/* Compulsory Proof Sharing Banner */}
+      <div className="bg-red-500/15 border-2 border-red-500/30 rounded-2xl p-4 text-left flex gap-3 shadow-[0_0_20px_rgba(239,68,68,0.1)]">
+        <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500 shrink-0 mt-0.5">
+          <AlertCircle size={18} className="animate-pulse" />
+        </div>
+        <div className="space-y-1">
+          <h4 className="text-xs font-black text-red-400 uppercase tracking-wider">Compulsory Rule</h4>
+          <p className="text-[11px] font-bold text-white/80 leading-relaxed">
+            After receiving payment, you <span className="text-red-400 font-extrabold underline">MUST</span> share proof of payment in our{' '}
+            <a 
+              href="https://t.me/TaskyOfficialCommunity" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-indigo-400 underline hover:text-indigo-300 font-black animate-pulse"
+            >
+              Community Group
+            </a>{' '}
+            (associated with @TaskyAppbot). If proof is not shared, you will be permanently blacklisted from all future payments & rewards!
+          </p>
+        </div>
       </div>
 
       {/* Wallet Connection Status */}
@@ -303,6 +327,48 @@ export default function Gram({ user, refreshUser }) {
           <li>Do not use automation or scripts; this will trigger account suspension.</li>
         </ul>
       </Card>
+      {/* Success Confirmation Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+          <div className="bg-[#12082b] border-2 border-red-500/40 rounded-3xl p-6 w-full max-w-sm text-center space-y-5 shadow-[0_0_50px_rgba(239,68,68,0.2)]">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/30">
+              <CheckCircle2 size={36} className="animate-bounce" />
+            </div>
+
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Claim Requested!</h3>
+              <p className="text-xs text-white/60">Your 0.02 GRAM daily reward has been submitted to the admin queue.</p>
+            </div>
+
+            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-left space-y-1.5">
+              <h4 className="text-xs font-black text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+                <AlertCircle size={14} /> Critical Requirement
+              </h4>
+              <p className="text-[11px] text-white/80 font-bold leading-normal">
+                Once payment is received in your wallet, you <span className="text-red-400 font-extrabold underline">MUST</span> share a screenshot of the payment proof in our{' '}
+                <a 
+                  href="https://t.me/TaskyOfficialCommunity" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-indigo-400 underline font-black"
+                >
+                  Community Group
+                </a>.
+              </p>
+              <p className="text-[10px] text-red-400/80 font-black">
+                🚨 Failure to share proof will result in an immediate permanent ban on future rewards!
+              </p>
+            </div>
+
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-sm uppercase tracking-wide active:scale-95 transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+            >
+              I Understand & Agree
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
