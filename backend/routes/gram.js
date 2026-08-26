@@ -140,9 +140,16 @@ router.post('/claim', async (req, res) => {
         try {
             const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
             const displayName = username ? `@${username}` : first_name;
-            const msg = `💎 *New GRAM Claim!*\n\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`\n\n📋 Review in Admin Panel → Gram section.`;
+            const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`\n\n📋 Review in Admin Panel → Gram section.`;
             if (bot && bot.sendMessage) {
-                bot.sendMessage(adminId, msg, { parse_mode: 'Markdown' });
+                bot.sendMessage(adminId, msg, { 
+                    parse_mode: 'Markdown',
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: '✅ Approve & Notify User', callback_data: `approve_gram_${claimRes.rows[0].id}` }]
+                        ]
+                    }
+                });
             }
         } catch (e) {
             console.error('Failed to notify admin of gram claim:', e.message);

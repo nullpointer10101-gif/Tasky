@@ -214,6 +214,30 @@ bot.on('callback_query', async (query) => {
             console.error('Admin approval error:', err);
             bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
         }
+    } else if (data.startsWith('approve_gram_')) {
+        const claimId = data.split('_')[2];
+        try {
+            const claimRes = await pool.query('SELECT * FROM gram_claims WHERE id = $1', [claimId]);
+            if (claimRes.rows.length === 0) {
+                return bot.answerCallbackQuery(query.id, { text: 'Claim not found' });
+            }
+            const claim = claimRes.rows[0];
+            if (claim.status !== 'pending') {
+                return bot.answerCallbackQuery(query.id, { text: `Already ${claim.status}` });
+            }
+            
+            await pool.query("UPDATE gram_claims SET status = 'approved', processed_at = NOW() WHERE id = $1", [claimId]);
+            
+            bot.editMessageText(`✅ GRAM Claim Approved\n\n` + query.message.text, {
+                chat_id: chatId,
+                message_id: query.message.message_id
+            });
+            bot.sendMessage(claim.telegram_id, '✅ Your 0.02 GRAM claim has been approved! The funds will be sent to your wallet shortly.');
+            bot.answerCallbackQuery(query.id, { text: 'Gram claim approved!' });
+        } catch (err) {
+            console.error('Error approving Gram claim:', err);
+            bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
+        }
     }
 });
 
