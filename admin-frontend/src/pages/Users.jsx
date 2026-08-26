@@ -313,10 +313,10 @@ export default function Users() {
                       </td>
                       <td className="p-4">
                         <div className="flex items-center gap-1 text-sm font-bold">
-                          <span className={user.withdrawal_ads_watched >= 200 ? 'text-emerald-400' : 'text-red-400'}>
+                          <span className={user.withdrawal_ads_watched >= 1000 ? 'text-emerald-400' : 'text-red-400'}>
                             {user.withdrawal_ads_watched || 0}
                           </span>
-                          <span className="text-ink-soft">/ 200</span>
+                          <span className="text-ink-soft">/ 1000</span>
                         </div>
                       </td>
                       <td className="p-4">

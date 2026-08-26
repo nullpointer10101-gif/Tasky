@@ -73,12 +73,13 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
-        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 200;
+        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 1000;
         const hasEnoughRefs = (user.valid_referrals || 0) >= 5;
-        
-        if (!hasEnoughAds && !hasEnoughRefs) {
+
+        // Skip ad/ref requirement for Genesis members
+        if (!user.genesis_member && !hasEnoughAds && !hasEnoughRefs) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch 200 ads OR refer 5 valid users to withdraw. Ads: ${user.withdrawal_ads_watched || 0}/200, Refs: ${user.valid_referrals || 0}/5` });
+            return res.status(400).json({ error: `You must watch 1000 ads OR refer 5 valid users to withdraw. (Ads: ${user.withdrawal_ads_watched || 0}/1000, Refs: ${user.valid_referrals || 0}/5)` });
         }
 
         // Calculate fee and USDT
