@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Home, ListChecks, Users, Wallet, Gamepad2, Gem } from 'lucide-react'
+import { Home, ListChecks, Users, Wallet, Gamepad2, Gem, Coins } from 'lucide-react'
 import { useTranslation } from '../i18n/I18nContext'
 
 const NAV_ITEMS = [
@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { id: 'rig',      key: 'nav.rig',      Icon: Gem },
   { id: 'play',     key: 'Play',         Icon: Gamepad2 },
   { id: 'tasks',    key: 'nav.tasks',    Icon: ListChecks },
+  { id: 'gram',     key: 'Gram',         Icon: Coins },
   { id: 'referral', key: 'nav.referral', Icon: Users },
   { id: 'wallet',   key: 'nav.wallet',   Icon: Wallet },
 ]

@@ -9,6 +9,7 @@ import Wallet from './pages/Wallet'
 import Profile from './pages/Profile'
 import Rig from './pages/Rig'
 import Play from './pages/Play'
+import Gram from './pages/Gram'
 import Toast from './components/Toast'
 import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
@@ -41,7 +42,7 @@ const getTelegramUser = () => {
   return { id: 123456, first_name: 'Test', username: 'testuser' }
 }
 
-const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile, play: Play }
+const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile, play: Play, gram: Gram }
 
 export default function App() {
   const [activePage, setActivePage] = useState('home')
