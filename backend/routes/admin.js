@@ -778,8 +778,8 @@ router.post('/gram/claims/review', async (req, res) => {
         try {
           await bot.sendMessage(
             telegram_id,
-            `🎉 <b>Gram Reward Approved!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been approved!\n\nAdmin has sent the reward to your Gram wallet address. Thank you for watching all 60 ads today! 🚀`,
-            { parse_mode: 'HTML' }
+            `🎉 <b>Gram Reward Approved & Paid!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
+            { parse_mode: 'HTML', disable_web_page_preview: true }
           );
         } catch (e) {
           console.error('Failed to notify user of Gram claim approval:', e.message);

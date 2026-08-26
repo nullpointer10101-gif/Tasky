@@ -196,7 +196,11 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
             if (bot && bot.sendMessage) {
                 try {
-                    bot.sendMessage(w.telegram_id, 'Withdrawal approved, processing your payment now.');
+                    bot.sendMessage(
+                        w.telegram_id,
+                        `🎉 <b>Withdrawal Approved & Paid!</b> 🎉\n\nYour request for the withdrawal of <b>${w.tasky_amount} TASKY</b> has been successfully approved and the payment has been sent! 🚀\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
+                        { parse_mode: 'HTML', disable_web_page_preview: true }
+                    );
                 } catch (e) {}
             }
             res.json({ status: 'approved' });
