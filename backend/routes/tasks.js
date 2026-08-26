@@ -249,12 +249,11 @@ router.post('/complete', async (req, res) => {
 
                 if (approvedCount >= rules.tasks_required_for_valid) {
                     const referrerRes = await client.query(
-                        'SELECT * FROM referrals WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE',
+                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE RETURNING *',
                         [user.referred_by, telegram_id]
                     );
-                    if (referrerRes.rows.length > 0) {
+                    if (referrerRes.rowCount > 0) {
                         await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, user.referred_by, rules.spin_reward_per_referral]);
-                        await client.query('UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2', [user.referred_by, telegram_id]);
                         if (bot && bot.sendMessage) {
                             try { bot.sendMessage(user.referred_by, `🎉 Your referral @${user.username || user.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
                         }
@@ -482,23 +481,17 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 if (approvedCount >= rules.tasks_required_for_valid) {
                     // Check referrer hasn't already been credited for this user
                     const referrerRes = await client.query(
-                        'SELECT * FROM referrals WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE',
+                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2 AND reward_paid = FALSE RETURNING *',
                         [ut.referred_by, ut.telegram_id]
                     );
 
-                    if (referrerRes.rows.length > 0) {
+                    if (referrerRes.rowCount > 0) {
                         // Credit referrer
                         await client.query(`
                             UPDATE users
                             SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3
                             WHERE telegram_id = $2
                         `, [rules.reward_per_referral, ut.referred_by, rules.spin_reward_per_referral]);
-
-                        // Mark the referred user so we don't double-credit
-                        await client.query(
-                            'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2',
-                            [ut.referred_by, ut.telegram_id]
-                        );
 
                         // Notify referrer
                         if (bot && bot.sendMessage) {
