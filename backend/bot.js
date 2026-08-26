@@ -51,10 +51,12 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             })
         });
         
-        let webAppUrl = process.env.WEBAPP_URL || 'https://tasky-kohl-six.vercel.app/'; // User needs to set WEBAPP_URL in .env
+        // PERMANENT STABLE URL — always use the alias, never the hash deployment URL
+        const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
+        let webAppUrl = STABLE_APP_URL;
         
         if (refCode) {
-            webAppUrl = `${webAppUrl}?ref=${refCode}`;
+            webAppUrl = `${STABLE_APP_URL}?startapp=${refCode}`;
         }
         
         // Set the permanent menu button to open the web app
