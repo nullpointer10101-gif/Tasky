@@ -9,13 +9,15 @@ try {
 async function runAutoApproveAI() {
   const client = await pool.connect();
   try {
-    // Fetch up to 10 pending tasks
+    // Fetch up to 10 pending tasks that do NOT require manual proof review.
+    // proof_screenshot, proof_url, proof_username tasks must ALWAYS be reviewed by admin.
     const { rows: pendingTasks } = await client.query(`
       SELECT ut.id as user_task_id, ut.telegram_id, t.reward_tasky, t.title, u.username, u.first_name, u.referred_by, u.valid_referrals
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
       JOIN users u ON ut.telegram_id = u.telegram_id
       WHERE ut.status = 'pending'
+      AND t.verification_type NOT IN ('proof_screenshot', 'proof_url', 'proof_username')
       ORDER BY ut.submitted_at ASC
       LIMIT 10
     `);
