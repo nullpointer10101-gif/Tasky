@@ -453,9 +453,12 @@ export default function Tasks({ user, refreshUser, navigate }) {
                       <h3 className="font-bold text-ink">{sub.title}</h3>
                       <span className="text-sm font-bold">+{sub.reward_tasky}</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {sub.status === 'pending' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-warning-soft text-warning rounded-pill uppercase font-bold tracking-wide"><Clock size={10}/> Pending</span>}
-                      {sub.status === 'approved' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-success-soft text-success rounded-pill uppercase font-bold tracking-wide"><CheckCircle2 size={10}/> Approved</span>}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {sub.status === 'pending' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-warning-soft text-warning rounded-pill uppercase font-bold tracking-wide"><Clock size={10}/> Pending Review</span>}
+                      {sub.status === 'approved' && sub.approved_by === 'admin' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-success-soft text-success rounded-pill uppercase font-bold tracking-wide"><CheckCircle2 size={10}/> ✅ Admin Approved</span>}
+                      {sub.status === 'approved' && sub.approved_by === 'ai' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-pill uppercase font-bold tracking-wide" style={{background:'rgba(139,92,246,0.15)',color:'#a78bfa'}}><Bot size={10}/> 🤖 AI Approved</span>}
+                      {sub.status === 'approved' && sub.approved_by === 'auto' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-pill uppercase font-bold tracking-wide" style={{background:'rgba(139,92,246,0.15)',color:'#a78bfa'}}><Zap size={10}/> Auto Verified</span>}
+                      {sub.status === 'approved' && !sub.approved_by && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-success-soft text-success rounded-pill uppercase font-bold tracking-wide"><CheckCircle2 size={10}/> Approved</span>}
                       {sub.status === 'rejected' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-danger-soft text-danger rounded-pill uppercase font-bold tracking-wide"><XCircle size={10}/> Rejected</span>}
                       <span className="text-xs text-ink-faint">{new Date(sub.submitted_at).toLocaleDateString()}</span>
                     </div>

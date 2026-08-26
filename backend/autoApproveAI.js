@@ -29,40 +29,19 @@ async function runAutoApproveAI() {
     for (const task of pendingTasks) {
       await client.query('BEGIN');
       try {
-        // Approve task
-        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = $1`, [task.user_task_id]);
+        // Approve task - mark as AI approved
+        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW(), approved_by = 'ai' WHERE id = $1`, [task.user_task_id]);
         
         // Add balance
         await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [task.reward_tasky, task.telegram_id]);
 
-        // Referral Logic
-        if (task.referred_by) {
-            const approvedCountRes = await client.query(
-                `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved'`,
-                [task.telegram_id]
-            );
-            const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
-            const rulesRes = await client.query('SELECT * FROM referral_rules LIMIT 1');
-            const rules = rulesRes.rows[0];
-
-            if (approvedCount >= rules.tasks_required_for_valid && task.valid_referrals === 0) {
-                const referrerRes = await client.query(
-                    'SELECT * FROM referrals WHERE referrer_telegram_id = $1 AND referred_telegram_id = $2',
-                    [task.referred_by, task.telegram_id]
-                );
-                if (referrerRes.rows.length > 0) {
-                    await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, task.referred_by, rules.spin_reward_per_referral]);
-                    await client.query('UPDATE users SET valid_referrals = valid_referrals + 1 WHERE telegram_id = $1', [task.telegram_id]);
-                    if (bot && bot.sendMessage) {
-                        try { bot.sendMessage(task.referred_by, `🎉 Auto AI Verified: Your referral @${task.username || task.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
-                    }
-                }
-            }
-        }
+        // NOTE: AI-approved tasks do NOT count toward referral validation.
+        // Only admin-manually-approved tasks count. Referral credit is handled
+        // exclusively in the admin review endpoint (/tasks/admin/review).
 
         await client.query('COMMIT');
 
-        // Notify user
+        // Notify user - clearly label as AI approved
         if (bot && bot.sendMessage) {
           try { bot.sendMessage(task.telegram_id, `🤖 Auto AI has approved your proof for "${task.title}"! +${task.reward_tasky} TASKY added to your balance.`); } catch (e) {}
         }

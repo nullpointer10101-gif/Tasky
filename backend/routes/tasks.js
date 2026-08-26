@@ -217,8 +217,8 @@ router.post('/complete', async (req, res) => {
             let finalStatus = 'approved';
 
             await client.query(`
-                INSERT INTO user_tasks (telegram_id, task_id, status, submitted_at, reviewed_at, proof_screenshot_url, rejection_reason)
-                VALUES ($1, $2, $3, NOW(), NOW(), 'auto_verified_by_bot', null)
+                INSERT INTO user_tasks (telegram_id, task_id, status, submitted_at, reviewed_at, proof_screenshot_url, rejection_reason, approved_by)
+                VALUES ($1, $2, $3, NOW(), NOW(), 'auto_verified_by_bot', null, 'auto')
             `, [telegram_id, task_id, finalStatus]);
 
             let updatedUser = { rows: [user] };
@@ -237,10 +237,10 @@ router.post('/complete', async (req, res) => {
                 [reward, telegram_id]
             );
 
-            // ── Check referral validity (duplicate logic from review) ─────
+            // ── Check referral validity (only admin-approved tasks count) ──
             if (user.referred_by) {
                 const approvedCountRes = await client.query(
-                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved'`,
+                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND approved_by = 'admin'`,
                     [telegram_id]
                 );
                 const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
@@ -382,7 +382,7 @@ router.get('/my-submissions/:telegram_id', async (req, res) => {
     try {
         const { rows } = await pool.query(`
             SELECT ut.id, ut.task_id, ut.status, ut.proof_screenshot_url,
-                   ut.submitted_at, ut.reviewed_at, ut.rejection_reason,
+                   ut.submitted_at, ut.reviewed_at, ut.rejection_reason, ut.approved_by,
                    t.title, t.reward_tasky, t.type, t.x_subtype
             FROM user_tasks ut
             JOIN tasks t ON ut.task_id = t.id
@@ -452,10 +452,10 @@ router.post('/admin/review', isAdmin, async (req, res) => {
         if (decision === 'approve') {
             const reward = parseFloat(ut.reward_tasky);
 
-            // Approve + pay
+            // Approve + pay (mark as admin-approved)
             await client.query(`
                 UPDATE user_tasks
-                SET status = 'approved', reviewed_at = NOW()
+                SET status = 'approved', reviewed_at = NOW(), approved_by = 'admin'
                 WHERE id = $1
             `, [user_task_id]);
 
@@ -464,11 +464,11 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 [reward, ut.telegram_id]
             );
 
-            // ── Check referral validity ────────────────────────────────────
+            // ── Check referral validity (only admin-approved tasks count) ──
             if (ut.referred_by) {
-                // Count this user's approved tasks
+                // Count only admin-approved tasks
                 const approvedCountRes = await client.query(
-                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved'`,
+                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND approved_by = 'admin'`,
                     [ut.telegram_id]
                 );
                 const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
