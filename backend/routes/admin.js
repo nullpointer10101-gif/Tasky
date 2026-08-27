@@ -965,7 +965,7 @@ router.post('/broadcast/promo', async (req, res) => {
     return res.status(400).json({ error: 'Another broadcast is currently in progress.' });
   }
 
-  const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <b>${code.toUpperCase()}</b> 👈\n\n🚀 Open the app and enter the code to redeem!`;
+  const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <code>${code.toUpperCase()}</code> 👈\n<i>(Tap the code above to copy it)</i>\n\n🚀 Open the app and enter the code to redeem!`;
 
   try {
     const adminId = '8823265955';
@@ -996,7 +996,14 @@ router.post('/broadcast/promo', async (req, res) => {
         try {
           if (bot && bot.sendMessage) {
             console.log(`[PROMO BROADCAST] Sending message to ${tid}...`);
-            await bot.sendMessage(tid, text, { parse_mode: 'HTML' });
+            await bot.sendMessage(tid, text, { 
+              parse_mode: 'HTML',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '🎁 Open App & Claim Reward 🚀', web_app: { url: 'https://tasky-kohl-six.vercel.app' } }]
+                ]
+              }
+            });
             console.log(`[PROMO BROADCAST] Sent successfully to ${tid}`);
             global.promoBroadcast.success++;
           } else {
