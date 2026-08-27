@@ -282,7 +282,7 @@ router.post('/tasks/review-all', async (req, res) => {
 
     if (action === 'approve') {
       const pendingRes = await client.query(`
-        SELECT ut.telegram_id, SUM(t.reward_tasky) as total_reward
+        SELECT ut.telegram_id, SUM(t.reward_tasky) as total_reward, SUM(COALESCE(t.reward_gram, 0)) as total_gram_reward
         FROM user_tasks ut
         JOIN tasks t ON ut.task_id = t.id
         WHERE ut.status = 'pending'
@@ -292,7 +292,13 @@ router.post('/tasks/review-all', async (req, res) => {
       if (pendingRes.rows.length > 0) {
         await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE status = 'pending'`);
         for (const row of pendingRes.rows) {
-          await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [row.total_reward, row.telegram_id]);
+          await client.query(
+            `UPDATE users 
+             SET balance = balance + $1, 
+                 gram_balance = COALESCE(gram_balance, 0) + $2 
+             WHERE telegram_id = $3`, 
+            [row.total_reward, row.total_gram_reward || 0, row.telegram_id]
+          );
         }
       }
     } else if (action === 'reject') {
@@ -402,14 +408,25 @@ router.get('/tasks/live', async (req, res) => {
 });
 
 router.post('/tasks/create', async (req, res) => {
-  const { title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category } = req.body;
+  const { title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category, reward_gram } = req.body;
   try {
     const query = `
-      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category, reward_gram)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *
     `;
-    const { rows } = await pool.query(query, [title, subtitle, type, reward_tasky, action_url, verification_type, icon || 'Default', telegram_chat_id || null, category || 'internal']);
+    const { rows } = await pool.query(query, [
+      title, 
+      subtitle, 
+      type, 
+      reward_tasky || 0, 
+      action_url, 
+      verification_type, 
+      icon || 'Default', 
+      telegram_chat_id || null, 
+      category || 'internal',
+      reward_gram || 0
+    ]);
     res.json(rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });

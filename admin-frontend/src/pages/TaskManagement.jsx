@@ -13,6 +13,7 @@ export default function TaskManagement() {
     subtitle: '',
     type: 'social',
     reward_tasky: 500,
+    reward_gram: 0,
     action_url: '',
     verification_type: 'proof_screenshot',
     icon: 'Default',
@@ -45,7 +46,7 @@ export default function TaskManagement() {
     try {
       await api.post('/tasks/create', formData);
       toast.success('Task created successfully!');
-      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal' });
+      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal', reward_tasky: 500, reward_gram: 0 });
     } catch (e) {
       toast.error('Failed to create task');
     } finally {
@@ -146,10 +147,23 @@ export default function TaskManagement() {
                 <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Reward (TASKY)</label>
                 <input
                   type="number"
+                  min="0"
                   required
                   value={formData.reward_tasky}
-                  onChange={e => setFormData({ ...formData, reward_tasky: e.target.value })}
+                  onChange={e => setFormData({ ...formData, reward_tasky: Number(e.target.value) })}
                   className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Reward (GRAM)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.reward_gram}
+                  onChange={e => setFormData({ ...formData, reward_gram: Number(e.target.value) })}
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-blue-400 font-bold focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all outline-none"
                 />
               </div>
 
@@ -234,9 +248,18 @@ export default function TaskManagement() {
                       <h3 className="font-bold text-ink text-lg leading-tight mb-1">{task.title}</h3>
                       <p className="text-ink-soft text-sm">{task.subtitle}</p>
                     </div>
-                    <span className="bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1.5 rounded-xl text-xs shrink-0 border border-emerald-500/20">
-                      +{task.reward_tasky} TASKY
-                    </span>
+                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      {task.reward_tasky > 0 && (
+                        <span className="bg-emerald-500/10 text-emerald-400 font-bold px-3 py-1 rounded-xl text-xs border border-emerald-500/20 whitespace-nowrap">
+                          +{task.reward_tasky} TASKY
+                        </span>
+                      )}
+                      {Number(task.reward_gram || 0) > 0 && (
+                        <span className="bg-blue-500/10 text-blue-400 font-bold px-3 py-1 rounded-xl text-xs border border-blue-500/20 whitespace-nowrap">
+                          +{task.reward_gram} GRAM 💎
+                        </span>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="bg-[#0a0f1c] p-3 rounded-2xl border border-border/50 text-xs text-ink-soft space-y-2">
