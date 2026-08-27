@@ -65,11 +65,25 @@ router.get('/stats', async (req, res) => {
       };
     });
 
+    // Pending gram claims & withdrawals for sidebar badges
+    let pendingGramClaims = 0;
+    let pendingGramWithdrawals = 0;
+    try {
+      const gcRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE status = 'pending'");
+      pendingGramClaims = parseInt(gcRes.rows[0].count, 10) || 0;
+    } catch (_) {}
+    try {
+      const gwRes = await pool.query("SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending'");
+      pendingGramWithdrawals = parseInt(gwRes.rows[0].count, 10) || 0;
+    } catch (_) {}
+
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count),
       onlineUsers: global.onlineUsers ? global.onlineUsers.size : 0,
       pendingTasks: parseInt(tasksRes.rows[0].count),
       pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count),
+      pendingGramClaims,
+      pendingGramWithdrawals,
       totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0),
       todayGramAds,
       yesterdayGramAds,

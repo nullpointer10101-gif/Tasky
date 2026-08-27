@@ -1,12 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, CheckSquare, ArrowDownToLine, Settings, PlusSquare, LogOut, ShieldAlert, Users, Send, Server, Menu, X, PlaySquare, Gift, Coins, Tv } from 'lucide-react';
-
+import {
+  LayoutDashboard, CheckSquare, ArrowDownToLine, Settings,
+  PlusSquare, LogOut, ShieldAlert, Users, Send, Server,
+  Menu, X, PlaySquare, Gift, Coins, Tv
+} from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
+import api from '../api';
+
+function Badge({ count }) {
+  if (!count || count <= 0) return null;
+  return (
+    <span className="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center shadow-lg shadow-red-500/40 animate-pulse">
+      {count > 99 ? '99+' : count}
+    </span>
+  );
+}
 
 export default function Layout({ setAuth }) {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [badges, setBadges] = useState({
+    pendingTasks: 0,
+    pendingWithdrawals: 0,
+    pendingGramClaims: 0,
+    pendingGramWithdrawals: 0,
+  });
+
+  useEffect(() => {
+    const fetchBadges = async () => {
+      try {
+        const { data } = await api.get('/stats');
+        setBadges({
+          pendingTasks: data.pendingTasks || 0,
+          pendingWithdrawals: data.pendingWithdrawals || 0,
+          pendingGramClaims: data.pendingGramClaims || 0,
+          pendingGramWithdrawals: data.pendingGramWithdrawals || 0,
+        });
+      } catch (_) {}
+    };
+    fetchBadges();
+    const interval = setInterval(fetchBadges, 15000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('tasky_admin_password');
@@ -19,11 +55,11 @@ export default function Layout({ setAuth }) {
     { path: '/users', label: 'Users', icon: Users },
     { path: '/ads', label: 'Ads Dashboard', icon: PlaySquare },
     { path: '/tasks', label: 'Manage Tasks', icon: PlusSquare },
-    { path: '/reviews', label: 'Task Reviews', icon: CheckSquare },
-    { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
-    { path: '/gram-claims', label: 'Gram Claims', icon: Coins },
+    { path: '/reviews', label: 'Task Reviews', icon: CheckSquare, badge: badges.pendingTasks },
+    { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine, badge: badges.pendingWithdrawals },
+    { path: '/gram-claims', label: 'Gram Claims', icon: Coins, badge: badges.pendingGramClaims },
     { path: '/gram-watchers', label: '📺 Gram Watchers', icon: Tv },
-    { path: '/gram-withdrawals', label: '💎 GRAM Withdrawals', icon: Coins },
+    { path: '/gram-withdrawals', label: '💎 GRAM Withdrawals', icon: Coins, badge: badges.pendingGramWithdrawals },
     { path: '/settings', label: 'Dynamic Settings', icon: Settings },
     { path: '/broadcast', label: 'Broadcast', icon: Send },
     { path: '/machines', label: 'Machines', icon: Server },
@@ -33,6 +69,9 @@ export default function Layout({ setAuth }) {
   ];
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
+  // Total pending count for mobile top bar
+  const totalPending = badges.pendingTasks + badges.pendingWithdrawals + badges.pendingGramClaims + badges.pendingGramWithdrawals;
 
   return (
     <div className="flex h-screen bg-surface relative">
@@ -45,8 +84,13 @@ export default function Layout({ setAuth }) {
           </div>
           <h1 className="text-xl font-black text-ink tracking-tight">Tasky</h1>
         </div>
-        <button onClick={toggleSidebar} className="text-ink-soft hover:text-ink p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
+        <button onClick={toggleSidebar} className="relative text-ink-soft hover:text-ink p-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors">
           <Menu size={24} />
+          {totalPending > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">
+              {totalPending > 99 ? '99+' : totalPending}
+            </span>
+          )}
         </button>
       </div>
 
@@ -80,6 +124,7 @@ export default function Layout({ setAuth }) {
             <NavLink
               key={item.path}
               to={item.path}
+              end={item.path === '/'}
               onClick={() => setIsSidebarOpen(false)}
               className={({ isActive }) =>
                 "flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-200 text-sm font-bold " + (
@@ -90,7 +135,8 @@ export default function Layout({ setAuth }) {
               }
             >
               <item.icon size={18} className="shrink-0" />
-              {item.label}
+              <span className="flex-1 truncate">{item.label}</span>
+              <Badge count={item.badge} />
             </NavLink>
           ))}
         </nav>
