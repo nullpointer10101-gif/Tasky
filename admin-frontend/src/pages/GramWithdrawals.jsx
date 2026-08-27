@@ -21,7 +21,7 @@ export default function GramWithdrawals() {
   const fetchWithdrawals = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/api/admin/gram-withdrawals');
+      const res = await api.get('/gram-withdrawals');
       setWithdrawals(res.data || []);
     } catch (err) {
       console.error('Failed to fetch gram withdrawals:', err);
@@ -37,7 +37,7 @@ export default function GramWithdrawals() {
   const handleApprove = async (id) => {
     setProcessing(id);
     try {
-      await api.post(`/api/admin/gram-withdrawals/${id}/approve`);
+      await api.post(`/gram-withdrawals/${id}/approve`);
       setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', processed_at: new Date().toISOString() } : w));
     } catch (err) {
       alert('Failed to approve: ' + (err.response?.data?.error || err.message));
@@ -50,7 +50,7 @@ export default function GramWithdrawals() {
     if (!rejectModal) return;
     setProcessing(rejectModal.id);
     try {
-      await api.post(`/api/admin/gram-withdrawals/${rejectModal.id}/reject`, { rejection_reason: rejectReason });
+      await api.post(`/gram-withdrawals/${rejectModal.id}/reject`, { rejection_reason: rejectReason });
       setWithdrawals(prev => prev.map(w => w.id === rejectModal.id ? { ...w, status: 'rejected', rejection_reason: rejectReason } : w));
       setRejectModal(null);
       setRejectReason('');
