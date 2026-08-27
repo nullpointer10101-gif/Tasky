@@ -571,7 +571,7 @@ router.post('/broadcast', async (req, res) => {
 
     if (bot && bot.sendMessage) {
       try {
-        const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+        const adminId = '8823265955';
         const msg = `📢 *Global Broadcast Preview*\n\nMessage:\n\`\`\`\n${message}\n\`\`\`\n\nDo you want to send this to ALL users?`;
         bot.sendMessage(adminId, msg, {
           parse_mode: 'Markdown',
@@ -804,7 +804,7 @@ router.post('/promos', async (req, res) => {
     // Notify admin bot with broadcast button
     if (bot && bot.sendMessage) {
       try {
-        const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+        const adminId = '8823265955';
         const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
         const msg = `<b>[BROADCAST PREVIEW]</b>\n\n🎁 <b>New Daily Gift Code!</b>\n\nA new secret code has been dropped!\nUse the code below in the app to instantly claim <b>${promo.reward_amount} TASKY</b>!\n\n🎟 <b>Code:</b> <code>${promo.code}</code>\n⚡️ <b>Max Uses:</b> ${promo.max_uses}\n\n<i>Hurry! The code expires once all uses are claimed.</i>\n\n---\n<b>Do you want to broadcast this gift code to all users?</b>`;
         
@@ -968,7 +968,7 @@ router.post('/broadcast/promo', async (req, res) => {
   const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <b>${code.toUpperCase()}</b> 👈\n\n🚀 Open the app and enter the code to redeem!`;
 
   try {
-    const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+    const adminId = '8823265955';
     let targets = [];
     if (target === 'admin') {
       targets = [adminId];

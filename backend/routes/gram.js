@@ -184,7 +184,7 @@ router.post('/claim', async (req, res) => {
 
         // Notify admin about the new Gram claim
         try {
-            const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+            const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
             const displayName = username ? `@${username}` : first_name;
             const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`\n\n📋 Review in Admin Panel → Gram section.`;
             if (bot && bot.sendMessage) {

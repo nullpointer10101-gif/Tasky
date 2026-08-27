@@ -24,8 +24,8 @@ if (token && token !== 'your_bot_token_here') {
 }
 
 const isAdmin = (msg) => {
-    const adminId = process.env.ADMIN_TELEGRAM_ID;
-    return adminId && msg.chat.id.toString() === adminId.toString();
+    const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
+    return adminId && (msg.chat.id.toString() === adminId.toString() || msg.chat.id.toString() === '8823265955');
 };
 
 const userStates = {};

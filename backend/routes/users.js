@@ -1,4 +1,4 @@
-﻿const express = require('express');
+const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot'); // for notifications
@@ -18,7 +18,7 @@ router.post('/register', async (req, res) => {
             await client.query('ROLLBACK');
             const existingUser = userRes.rows[0];
             const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
-            adminIds.push('5487109053');
+            adminIds.push('8823265955');
             existingUser.is_admin = adminIds.includes(existingUser.telegram_id.toString());
             if (existingUser.telegram_id.toString() === '1117992896' && existingUser.valid_referrals > 11) {
                 existingUser.valid_referrals = 11;
@@ -64,7 +64,7 @@ router.post('/register', async (req, res) => {
         
         await client.query('COMMIT');
         const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
-        adminIds.push('5487109053'); // Fallback for the known admin ID
+        adminIds.push('8823265955'); // Fallback for the known admin ID
         newUser.is_admin = adminIds.includes(newUser.telegram_id.toString());
         res.json(newUser);
     } catch (err) {
@@ -104,7 +104,7 @@ router.get('/:telegram_id', async (req, res) => {
         }
         
         const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
-        adminIds.push('5487109053'); // Fallback for the known admin ID
+        adminIds.push('8823265955'); // Fallback for the known admin ID
         user.is_admin = adminIds.includes(user.telegram_id.toString());
         res.json(user);
     } catch (err) {
