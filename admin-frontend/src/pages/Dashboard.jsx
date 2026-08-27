@@ -44,7 +44,7 @@ export default function Dashboard() {
         <p className="text-ink-soft text-sm md:text-base">Real-time statistics for the Tasky platform infrastructure.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
         {statCards.map((stat, i) => (
           <div key={i} className={`bg-surface-soft border border-border rounded-3xl p-6 flex flex-col justify-between shadow-xl ${stat.shadow} relative overflow-hidden group`}>
             {/* Background Glow */}
@@ -62,6 +62,90 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Active Users & Live Activity Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
+        {/* Active Users List */}
+        <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-black text-ink flex items-center gap-2">
+              <Activity className="text-indigo-400 animate-pulse" size={20} />
+              Active Users (5M)
+            </h2>
+            <span className="text-xs bg-indigo-500/10 text-indigo-400 font-bold px-2.5 py-1 rounded-full border border-indigo-500/20">
+              {stats.activeUsersList?.length || 0} Online
+            </span>
+          </div>
+
+          <div className="overflow-y-auto space-y-3 flex-1 pr-1 custom-scrollbar">
+            {!stats.activeUsersList || stats.activeUsersList.length === 0 ? (
+              <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+                No active users in the last 5 minutes.
+              </div>
+            ) : (
+              stats.activeUsersList.map((user, idx) => (
+                <div key={idx} className="bg-surface border border-border/60 hover:border-indigo-500/30 transition-all rounded-2xl p-4 flex justify-between items-center shadow-sm">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0">
+                      <Users size={18} />
+                    </div>
+                    <div className="truncate">
+                      <p className="font-bold text-ink text-sm leading-tight">{user.first_name || 'No Name'}</p>
+                      <p className="text-xs text-ink-soft font-mono truncate">@{user.username || user.telegram_id}</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="inline-block text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2.5 py-1 rounded-lg mb-1 leading-none">
+                      {user.lastAction}
+                    </span>
+                    <p className="text-[10px] text-ink-soft font-bold">
+                      {Math.max(0, Math.round((Date.now() - user.timestamp) / 1000))}s ago
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Live Activity Logs */}
+        <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-lg font-black text-ink flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block"></span>
+              Live Activity Feed
+            </h2>
+            <span className="text-[10px] text-ink-soft font-mono font-bold tracking-wider uppercase">
+              Real-time Logs
+            </span>
+          </div>
+
+          <div className="overflow-y-auto space-y-3 flex-1 pr-1 custom-scrollbar">
+            {!stats.recentLogsList || stats.recentLogsList.length === 0 ? (
+              <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+                Listening for incoming requests...
+              </div>
+            ) : (
+              stats.recentLogsList.map((log, idx) => (
+                <div key={idx} className="bg-surface border border-border/60 rounded-2xl p-4 flex flex-col gap-1.5 shadow-sm border-l-2 border-l-emerald-500">
+                  <div className="flex justify-between items-start">
+                    <span className="text-xs font-black text-ink leading-none">
+                      {log.first_name || 'User'} <span className="text-ink-soft font-mono font-normal">(@{log.username})</span>
+                    </span>
+                    <span className="text-[9px] text-ink-soft font-bold">
+                      {new Date(log.timestamp).toLocaleTimeString()}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-emerald-400 flex items-center gap-1.5 leading-none">
+                    <span className="font-mono text-[10px] uppercase bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded text-emerald-400">LOG</span>
+                    {log.action}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

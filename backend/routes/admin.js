@@ -29,12 +29,40 @@ router.get('/stats', async (req, res) => {
     const withdrawalsRes = await pool.query("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'");
     const balanceRes = await pool.query('SELECT SUM(balance) FROM users');
 
+    const onlineIds = global.onlineUsers ? Array.from(global.onlineUsers.keys()) : [];
+    let activeUsersList = [];
+    if (onlineIds.length > 0) {
+      const usersDetailsRes = await pool.query(
+        'SELECT telegram_id, username, first_name, balance FROM users WHERE telegram_id = ANY($1)',
+        [onlineIds.map(id => parseInt(id, 10))]
+      );
+      activeUsersList = usersDetailsRes.rows.map(u => {
+        const tracker = global.onlineUsers.get(u.telegram_id.toString());
+        return {
+          ...u,
+          lastAction: tracker?.lastAction || 'Active',
+          timestamp: tracker?.timestamp || Date.now()
+        };
+      }).sort((a, b) => b.timestamp - a.timestamp);
+    }
+
+    const recentLogsList = (global.recentLogs || []).map(log => {
+      const matchedUser = activeUsersList.find(u => u.telegram_id.toString() === log.telegram_id);
+      return {
+        ...log,
+        username: matchedUser?.username || log.telegram_id,
+        first_name: matchedUser?.first_name || 'User'
+      };
+    });
+
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count),
       onlineUsers: global.onlineUsers ? global.onlineUsers.size : 0,
       pendingTasks: parseInt(tasksRes.rows[0].count),
       pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count),
-      totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0)
+      totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0),
+      activeUsersList,
+      recentLogsList
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

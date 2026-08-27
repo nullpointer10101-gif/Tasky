@@ -16,8 +16,26 @@ app.use(cors({
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// In-memory tracker for active users (last 5 minutes)
+// In-memory tracker for active users and recent logs
 global.onlineUsers = new Map();
+global.recentLogs = [];
+
+const mapPathToAction = (path, method) => {
+  if (path.includes('/register')) return 'Registered Account';
+  if (path.includes('/checkin')) return 'Claimed Daily Check-in';
+  if (path.includes('/spin/play')) return 'Played Spin Wheel';
+  if (path.includes('/tasks/complete')) return 'Completed a Task';
+  if (path.includes('/tasks') && method === 'GET') return 'Viewed Tasks List';
+  if (path.includes('/mining/start')) return 'Started Mining Session';
+  if (path.includes('/mining/claim')) return 'Claimed Mining Rewards';
+  if (path.includes('/wallet/bind')) return 'Bound Wallet Address';
+  if (path.includes('/gram/watch-ad')) return 'Watched Gram Ad';
+  if (path.includes('/gram/claim')) return 'Claimed 0.02 GRAM Bounty';
+  if (path.includes('/gram/save-address')) return 'Updated Gram Wallet';
+  if (path.includes('/upload')) return 'Uploaded Proof Image';
+  return `Visited ${path}`;
+};
+
 app.use((req, res, next) => {
   let telegramId = req.body?.telegram_id || req.query?.telegram_id;
   
@@ -29,7 +47,24 @@ app.use((req, res, next) => {
   }
 
   if (telegramId) {
-    global.onlineUsers.set(telegramId.toString(), Date.now());
+    const action = mapPathToAction(req.path, req.method);
+    const entry = {
+      telegram_id: telegramId.toString(),
+      action,
+      timestamp: Date.now()
+    };
+    
+    // Add to logs
+    global.recentLogs.unshift(entry);
+    if (global.recentLogs.length > 50) {
+      global.recentLogs.pop();
+    }
+
+    // Update onlineUsers map
+    global.onlineUsers.set(telegramId.toString(), {
+      timestamp: Date.now(),
+      lastAction: action
+    });
   }
   next();
 });
@@ -37,8 +72,9 @@ app.use((req, res, next) => {
 // Cleanup old online users every minute
 setInterval(() => {
   const now = Date.now();
-  for (const [id, time] of global.onlineUsers.entries()) {
-    if (now - time > 5 * 60 * 1000) { // 5 minutes
+  for (const [id, data] of global.onlineUsers.entries()) {
+    const timestamp = typeof data === 'object' ? data.timestamp : data;
+    if (now - timestamp > 5 * 60 * 1000) { // 5 minutes
       global.onlineUsers.delete(id);
     }
   }
