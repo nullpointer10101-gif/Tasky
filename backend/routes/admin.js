@@ -736,11 +736,14 @@ router.post('/promos', async (req, res) => {
     if (bot && bot.sendMessage) {
       try {
         const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
-        const msg = `🎁 *New Promo Code Created!*\n\nCode: \`${promo.code}\`\nReward: ${promo.reward_amount} TASKY\nMax Uses: ${promo.max_uses}\n\nDo you want to broadcast this gift code to all users?`;
+        const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
+        const msg = `<b>[BROADCAST PREVIEW]</b>\n\n🎁 <b>New Daily Gift Code!</b>\n\nA new secret code has been dropped!\nUse the code below in the app to instantly claim <b>${promo.reward_amount} TASKY</b>!\n\n🎟 <b>Code:</b> <code>${promo.code}</code>\n⚡️ <b>Max Uses:</b> ${promo.max_uses}\n\n<i>Hurry! The code expires once all uses are claimed.</i>\n\n---\n<b>Do you want to broadcast this gift code to all users?</b>`;
+        
         bot.sendMessage(adminId, msg, {
-          parse_mode: 'Markdown',
+          parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
+              [{ text: '🎁 Claim Now (Preview)', web_app: { url: STABLE_APP_URL } }],
               [{ text: '📢 Broadcast to All Users', callback_data: `broadcast_promo_${promo.id}` }]
             ]
           }

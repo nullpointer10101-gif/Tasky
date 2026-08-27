@@ -54,8 +54,8 @@ export default function Gram({ user, refreshUser }) {
     
     if (adTask.last_ad_time) {
       const secondsSinceLastAd = (Date.now() - new Date(adTask.last_ad_time).getTime()) / 1000;
-      if (secondsSinceLastAd < 40) {
-        const timeLeft = Math.ceil(40 - secondsSinceLastAd);
+      if (secondsSinceLastAd < 20) {
+        const timeLeft = Math.ceil(20 - secondsSinceLastAd);
         showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
         return;
       }

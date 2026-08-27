@@ -14,12 +14,12 @@ router.get('/status/:telegram_id', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         const { gram_wallet_address, wallet_address } = userRes.rows[0];
 
-        // 2. Count ads watched in the last 24 hours (verification_type = 'auto_ad')
+        // 2. Count ads watched in the last 24 hours (verification_type = 'gram_ad')
         const adCountRes = await pool.query(`
             SELECT COUNT(*) FROM user_tasks ut
             JOIN tasks t ON ut.task_id = t.id
             WHERE ut.telegram_id = $1 
-              AND t.verification_type = 'auto_ad' 
+              AND t.verification_type = 'gram_ad' 
               AND ut.status = 'approved' 
               AND ut.submitted_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);

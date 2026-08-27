@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
             adCountsRes.rows.forEach(r => { adCountMap[r.task_id] = { count: parseInt(r.count), last_ad_time: r.last_ad_time }; });
 
             const result = tasks.map(t => {
-                if (t.verification_type === 'auto_ad') {
+                if (t.verification_type === 'auto_ad' || t.verification_type === 'gram_ad') {
                     const timesCompleted = adCountMap[t.id]?.count || 0;
                     const lastAdTime = adCountMap[t.id]?.last_ad_time || null;
                     if (timesCompleted < 60) {
@@ -159,8 +159,8 @@ router.post('/complete', async (req, res) => {
             const lastAdTime = adCountRes.rows[0].last_ad_time;
             if (lastAdTime) {
                 const secondsSinceLastAd = (new Date() - new Date(lastAdTime)) / 1000;
-                if (secondsSinceLastAd < 40) {
-                    const timeLeft = Math.ceil(40 - secondsSinceLastAd);
+                if (secondsSinceLastAd < 20) {
+                    const timeLeft = Math.ceil(20 - secondsSinceLastAd);
                     await client.query('ROLLBACK');
                     return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
                 }
@@ -263,7 +263,7 @@ router.post('/complete', async (req, res) => {
 
             await client.query('COMMIT');
             const newBalance = parseFloat(updatedUser.rows[0].balance);
-            if (bot && bot.sendMessage && task.verification_type !== 'auto_ad') {
+            if (bot && bot.sendMessage && task.verification_type !== 'auto_ad' && task.verification_type !== 'gram_ad') {
                 try { bot.sendMessage(telegram_id, `🎉 You completed "${task.title}" and earned ${reward} TASKY!`); } catch (e) {}
             }
             // Recalculate tier instantly now that balance changed
