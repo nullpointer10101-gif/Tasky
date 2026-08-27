@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, X, Zap, Clock, Timer } from 'lucide-react';
 import { getSpecialOfferStatus, claimSpecialOffer } from '../api';
@@ -21,12 +21,7 @@ function dismissOfferPermanently() {
 function getSeenTimestamp() {
   try {
     const v = localStorage.getItem(LS_SEEN_KEY);
-    let seenAt = v ? parseInt(v, 10) : Date.now();
-    if (Date.now() - seenAt >= OFFER_DURATION_MS) {
-      seenAt = Date.now();
-      localStorage.setItem(LS_SEEN_KEY, seenAt.toString());
-    }
-    return seenAt;
+    return v ? parseInt(v, 10) : Date.now();
   } catch { return Date.now(); }
 }
 
@@ -68,6 +63,13 @@ export default function SpecialOfferPopup({ user }) {
     setTimeout(() => {
       markOfferSeen(); // stamp seen time now
       const seenAt = getSeenTimestamp();
+
+      // If the offer has already expired, dismiss permanently
+      if (Date.now() - seenAt >= OFFER_DURATION_MS) {
+        dismissOfferPermanently();
+        return;
+      }
+
       setTimeLeft(calcTimeLeft(seenAt));
       setShowBubble(true);
     }, 1500);
@@ -94,15 +96,16 @@ export default function SpecialOfferPopup({ user }) {
   // Live countdown — ticks every second
   useEffect(() => {
     if (!showBubble) return;
-    let seenAt = getSeenTimestamp();
+    const seenAt = getSeenTimestamp();
     timerRef.current = setInterval(() => {
       let tl = calcTimeLeft(seenAt);
       if (tl.total <= 0) {
-        seenAt = Date.now();
-        localStorage.setItem(LS_SEEN_KEY, seenAt.toString());
-        tl = calcTimeLeft(seenAt);
+        clearInterval(timerRef.current);
+        dismissOfferPermanently();
+        setShowBubble(false);
+      } else {
+        setTimeLeft(tl);
       }
-      setTimeLeft(tl);
     }, 1000);
     return () => clearInterval(timerRef.current);
   }, [showBubble]);
