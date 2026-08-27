@@ -167,7 +167,7 @@ export default function GramWatchers() {
             </div>
             Gram Watchers
           </h1>
-          <p className="text-ink-soft text-sm">Today's gram ad watchers — real-time progress to 60 ads</p>
+          <p className="text-ink-soft text-sm">Last 24h gram ad watchers — real-time progress to 60 ads</p>
         </div>
 
         {/* Controls */}

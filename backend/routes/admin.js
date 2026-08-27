@@ -86,7 +86,7 @@ router.get('/stats', async (req, res) => {
 // ==========================================
 router.get('/gram-watchers', async (req, res) => {
   try {
-    // Get all users who watched gram ads today, with their count and last watch time
+    // Get all users who watched gram ads in the last 24 hours (rolling window, same as the app logic)
     const watchersRes = await pool.query(`
       SELECT 
         av.telegram_id,
@@ -100,7 +100,7 @@ router.get('/gram-watchers', async (req, res) => {
       FROM ad_views av
       LEFT JOIN users u ON u.telegram_id = av.telegram_id::bigint
       WHERE av.ad_type = 'gram_ad'
-        AND av.created_at >= CURRENT_DATE
+        AND av.created_at >= NOW() - INTERVAL '24 hours'
       GROUP BY av.telegram_id, u.first_name, u.username, u.gram_wallet_address, u.wallet_address
       ORDER BY COUNT(*) DESC
     `);
