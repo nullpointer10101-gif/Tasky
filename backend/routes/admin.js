@@ -950,5 +950,69 @@ router.post('/gram/claims/review', async (req, res) => {
   }
 });
 
+// Global tracking variables for promo broadcasts
+global.promoBroadcast = null;
+
+router.get('/broadcast/promo-status', (req, res) => {
+  res.json(global.promoBroadcast);
+});
+
+router.post('/broadcast/promo', async (req, res) => {
+  const { code, target } = req.body;
+  if (!code) return res.status(400).json({ error: 'Promo code is required' });
+
+  if (global.promoBroadcast && global.promoBroadcast.status === 'running') {
+    return res.status(400).json({ error: 'Another broadcast is currently in progress.' });
+  }
+
+  const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <b>${code.toUpperCase()}</b> 👈\n\n🚀 Open the app and enter the code to redeem!`;
+
+  try {
+    let targets = [];
+    if (target === 'admin') {
+      const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
+      targets = [adminId];
+    } else {
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
+      targets = usersRes.rows.map(r => r.telegram_id);
+    }
+
+    global.promoBroadcast = {
+      code: code.toUpperCase(),
+      target,
+      total: targets.length,
+      success: 0,
+      failed: 0,
+      status: 'running',
+      currentIdx: 0
+    };
+
+    // Process asynchronously in background
+    (async () => {
+      for (let i = 0; i < targets.length; i++) {
+        const tid = targets[i];
+        try {
+          if (bot && bot.sendMessage) {
+            await bot.sendMessage(tid, text, { parse_mode: 'HTML' });
+            global.promoBroadcast.success++;
+          } else {
+            throw new Error('Telegram Bot is not initialized');
+          }
+        } catch (err) {
+          console.error(`Failed to send promo code broadcast to ${tid}:`, err.message);
+          global.promoBroadcast.failed++;
+        }
+        global.promoBroadcast.currentIdx = i + 1;
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
+      global.promoBroadcast.status = 'done';
+    })();
+
+    res.json({ success: true, message: 'Broadcast started' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;
 
