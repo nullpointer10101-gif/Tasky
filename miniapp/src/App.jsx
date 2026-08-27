@@ -260,7 +260,7 @@ export default function App() {
             />
           </main>
 
-          <BottomNav active={activePage} onChange={setActivePage} />
+          <BottomNav active={activePage} onChange={setActivePage} user={user} />
         </div>
       </ToastContext.Provider>
     </AdminProvider>
