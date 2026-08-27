@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem } from 'lucide-react';
+import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, saveGramWalletAddress, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal } from '../api';
@@ -19,6 +20,10 @@ export default function Gram({ user, refreshUser }) {
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showToast } = useToast();
+
+  const tonAddress = useTonAddress();
+  const [tonConnectUI] = useTonConnectUI();
+  const isWalletConnected = !!tonAddress;
 
   const fetchStatus = async () => {
     try {
@@ -167,6 +172,20 @@ export default function Gram({ user, refreshUser }) {
       setIsWithdrawing(false);
     }
   };
+  const handleWithdrawClick = () => {
+    if (!isWalletConnected) {
+      try {
+        tonConnectUI.openModal();
+      } catch (e) {
+        console.error('Failed to open TON Connect modal:', e);
+      }
+      return;
+    }
+    handleWithdrawGram();
+  };
+
+  const isBtnDisabled = isWithdrawing || 
+    (isWalletConnected && (gramInfo?.has_pending_withdrawal || !withdrawAmount || parseFloat(withdrawAmount) < 0.01));
 
   if (loading) {
     return (
@@ -232,16 +251,16 @@ export default function Gram({ user, refreshUser }) {
             </button>
           </div>
           <button
-            onClick={handleWithdrawGram}
-            disabled={isWithdrawing || !gramInfo?.can_withdraw || !withdrawAmount || parseFloat(withdrawAmount) < 0.01}
+            onClick={handleWithdrawClick}
+            disabled={isBtnDisabled}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
           >
-            {isWithdrawing ? (
+            {!isWalletConnected ? (
+              <><Wallet size={16} />Connect Wallet First</>
+            ) : isWithdrawing ? (
               <><Loader2 size={16} className="animate-spin" />Processing...</>
             ) : gramInfo?.has_pending_withdrawal ? (
               <><Clock size={16} />Withdrawal Pending</>  
-            ) : !gramInfo?.wallet ? (
-              <><Wallet size={16} />Connect Wallet First</>
             ) : (
               <><ArrowUpRight size={16} />Withdraw GRAM</>
             )}
