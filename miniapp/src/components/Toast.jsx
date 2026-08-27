@@ -23,11 +23,20 @@ export default function Toast({ message, type = 'success', onClose }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: -20, x: '-50%', scale: 0.92 }}
-      animate={{ opacity: 1, y: 0, x: '-50%', scale: 1 }}
-      exit={{ opacity: 0, y: -10, x: '-50%', scale: 0.95 }}
+      initial={{ opacity: 0, y: -20, scale: 0.92 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -10, scale: 0.95 }}
       transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-      className={`fixed top-8 left-1/2 z-[9999] px-4.5 py-3 rounded-2xl border backdrop-blur-md flex items-center gap-3 w-[88%] max-w-sm shadow-2xl ${styleMap[type]}`}
+      style={{
+        position: 'fixed',
+        top: '28px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        width: '88%',
+        maxWidth: '360px',
+      }}
+      className={`px-4 py-3 rounded-2xl border backdrop-blur-md flex items-center gap-3 shadow-2xl ${styleMap[type]}`}
     >
       <div className="flex items-center justify-center p-1.5 rounded-xl bg-white/5 border border-white/10 shrink-0">
         {IconMap[type]}
