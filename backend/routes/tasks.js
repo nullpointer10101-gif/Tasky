@@ -82,7 +82,7 @@ router.get('/', async (req, res) => {
             adCountsRes.rows.forEach(r => { adCountMap[r.task_id] = { count: parseInt(r.count), last_ad_time: r.last_ad_time }; });
 
             const result = tasks.map(t => {
-                if (t.verification_type === 'auto_ad' || t.verification_type === 'gram_ad') {
+                if (t.verification_type === 'auto_ad') {
                     const timesCompleted = adCountMap[t.id]?.count || 0;
                     const lastAdTime = adCountMap[t.id]?.last_ad_time || null;
                     if (timesCompleted < 60) {
@@ -146,7 +146,7 @@ router.post('/complete', async (req, res) => {
 
         // Check if already submitted (unless it's an auto_ad which allows 60 per 24 hours)
         let existingTask = null;
-        if (task.verification_type === 'auto_ad' || task.verification_type === 'gram_ad') {
+        if (task.verification_type === 'auto_ad') {
             const adCountRes = await client.query(
                 "SELECT COUNT(*), MAX(submitted_at) as last_ad_time FROM user_tasks WHERE telegram_id = $1 AND task_id = $2 AND status IN ('approved', 'rejected', 'pending') AND submitted_at >= NOW() - INTERVAL '24 hours'",
                 [telegram_id, task_id]
@@ -202,7 +202,7 @@ router.post('/complete', async (req, res) => {
         }
         const user = userRes.rows[0];
 
-        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'gram_ad' || task.verification_type === 'timer_10s') {
+        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'timer_10s') {
             if (task.verification_type === 'auto_referral') {
                 if (user.valid_referrals < 5) {
                     await client.query('ROLLBACK');
@@ -224,7 +224,7 @@ router.post('/complete', async (req, res) => {
             let updatedUser = { rows: [user] };
 
             let updateUserQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
-            if (task.verification_type === 'auto_ad' || task.verification_type === 'gram_ad') {
+            if (task.verification_type === 'auto_ad') {
                 updateUserQuery = 'UPDATE users SET balance = balance + $1, total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance';
                 await client.query(
                     'INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)',
@@ -267,7 +267,7 @@ router.post('/complete', async (req, res) => {
 
             await client.query('COMMIT');
             const newBalance = parseFloat(updatedUser.rows[0].balance);
-            if (bot && bot.sendMessage && task.verification_type !== 'auto_ad' && task.verification_type !== 'gram_ad') {
+            if (bot && bot.sendMessage && task.verification_type !== 'auto_ad') {
                 try { bot.sendMessage(telegram_id, `🎉 You completed "${task.title}" and earned ${reward} TASKY!`); } catch (e) {}
             }
             // Recalculate tier instantly now that balance changed
