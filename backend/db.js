@@ -357,6 +357,11 @@ const initDB = async () => {
 
       CREATE INDEX IF NOT EXISTS idx_gram_withdrawals_telegram_id ON gram_withdrawals(telegram_id);
       CREATE INDEX IF NOT EXISTS idx_gram_withdrawals_status ON gram_withdrawals(status);
+
+      -- ADS TRAFFIC SPLIT SUPPORT
+      ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS adsgram_block_id VARCHAR(50) DEFAULT '8223';
+      ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS adsgram_ratio INT DEFAULT 50;
+      ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS gigapub_ratio INT DEFAULT 50;
     `;
 
     await client.query(initScript);
