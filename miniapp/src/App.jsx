@@ -245,7 +245,9 @@ export default function App() {
     <AdminProvider user={user} tgUser={tgUser}>
       <ToastContext.Provider value={{ showToast }}>
         <div className="flex flex-col h-full overflow-hidden bg-bg">
-          {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+          <AnimatePresence>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+          </AnimatePresence>
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
