@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Copy, Clock, History } from 'lucide-react';
+import { CheckCircle2, XCircle, Copy, Clock, History, Search } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,9 @@ export default function Withdrawals() {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tokenFilter, setTokenFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     fetchWithdrawals(true);
@@ -76,6 +79,34 @@ export default function Withdrawals() {
     );
   }
 
+  const filteredWithdrawals = withdrawals.filter(w => {
+    const matchesSearch = (w.username && w.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (w.first_name && w.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (w.telegram_id && w.telegram_id.toString().includes(searchTerm)) ||
+                          (w.wallet_address && w.wallet_address.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesToken = tokenFilter === 'all' || (w.token || 'USDT').toUpperCase() === tokenFilter.toUpperCase();
+    return matchesSearch && matchesToken;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.requested_at) - new Date(a.requested_at);
+    if (sortBy === 'oldest') return new Date(a.requested_at) - new Date(b.requested_at);
+    if (sortBy === 'amount') return Number(b.usdt_amount || 0) - Number(a.usdt_amount || 0);
+    return 0;
+  });
+
+  const filteredHistory = history.filter(w => {
+    const matchesSearch = (w.username && w.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (w.first_name && w.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (w.telegram_id && w.telegram_id.toString().includes(searchTerm)) ||
+                          (w.wallet_address && w.wallet_address.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesToken = tokenFilter === 'all' || (w.token || 'USDT').toUpperCase() === tokenFilter.toUpperCase();
+    return matchesSearch && matchesToken;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.requested_at) - new Date(a.requested_at);
+    if (sortBy === 'oldest') return new Date(a.requested_at) - new Date(b.requested_at);
+    if (sortBy === 'amount') return Number(b.usdt_amount || 0) - Number(a.usdt_amount || 0);
+    return 0;
+  });
+
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
       <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -104,18 +135,61 @@ export default function Withdrawals() {
         </div>
       </div>
 
+      {/* Search & Filters Controls */}
+      <div className="bg-surface-soft border border-border rounded-3xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+        <div className="relative w-full md:max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-soft">
+            <Search size={18} />
+          </span>
+          <input 
+            type="text" 
+            placeholder="Search by username, address, Telegram ID..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-semibold text-sm outline-none transition-all placeholder:text-ink-soft"
+          />
+        </div>
+        
+        <div className="flex w-full md:w-auto items-center gap-3">
+          <div className="relative flex-1 md:flex-none">
+            <select
+              value={tokenFilter}
+              onChange={(e) => setTokenFilter(e.target.value)}
+              className="w-full md:w-40 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+            >
+              <option value="all">All Tokens</option>
+              <option value="USDT">USDT</option>
+              <option value="TON">TON</option>
+              <option value="GRAM">GRAM</option>
+            </select>
+          </div>
+          
+          <div className="relative flex-1 md:flex-none">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full md:w-40 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+            >
+              <option value="newest">Sort: Newest</option>
+              <option value="oldest">Sort: Oldest</option>
+              <option value="amount">Sort: Amount (High)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       {activeTab === 'pending' ? (
-        withdrawals.length === 0 ? (
+        filteredWithdrawals.length === 0 ? (
           <div className="bg-surface-soft p-12 rounded-3xl border border-border flex flex-col items-center justify-center shadow-sm">
-            <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 mb-4">
+            <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 mb-4">
               <CheckCircle2 size={32} />
             </div>
-            <h2 className="text-xl font-bold text-ink mb-1">All Caught Up!</h2>
-            <p className="text-ink-soft text-sm">No pending withdrawals to process right now.</p>
+            <h2 className="text-xl font-bold text-ink mb-1">No Payouts Found</h2>
+            <p className="text-ink-soft text-sm">No pending withdrawals match your search/filters.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {withdrawals.map((w) => (
+            {filteredWithdrawals.map((w) => (
               <div key={w.withdrawal_id} className="bg-surface-soft border border-border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-lg shadow-black/20 hover:border-indigo-500/30 transition-colors">
                 
                 <div className="flex-1 w-full">
@@ -138,7 +212,7 @@ export default function Withdrawals() {
                     <p className="text-xl font-black text-rose-400">-{Number(w.tasky_amount).toLocaleString()} <span className="text-xs text-rose-400/50">TASKY</span></p>
                   </div>
                   <div className="flex flex-col text-right md:text-left">
-                    <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mb-1">To Send (Net)</p>
+                    <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-wider mb-1">To Send (Net)</p>
                     <p className="text-2xl font-black text-emerald-400">{Number(w.usdt_amount).toFixed(4)} <span className="text-xs text-emerald-400/50">{w.token || 'USDT'}</span></p>
                   </div>
                 </div>
@@ -165,14 +239,17 @@ export default function Withdrawals() {
           </div>
         )
       ) : (
-        history.length === 0 ? (
+        filteredHistory.length === 0 ? (
           <div className="bg-surface-soft p-12 rounded-3xl border border-border flex flex-col items-center justify-center shadow-sm">
+            <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 mb-4">
+              <CheckCircle2 size={32} />
+            </div>
             <h2 className="text-xl font-bold text-ink mb-1">No History Found</h2>
-            <p className="text-ink-soft text-sm">Processed withdrawals will appear here.</p>
+            <p className="text-ink-soft text-sm">No processed withdrawals match your search/filters.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {history.map((w) => (
+            {filteredHistory.map((w) => (
               <div key={w.withdrawal_id} className={`bg-surface-soft border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-lg shadow-black/20 transition-colors ${w.status === 'done' ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
                 
                 <div className="flex-1 w-full">

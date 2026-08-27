@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, ExternalLink, Search, SlidersHorizontal } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -7,6 +7,9 @@ export default function TaskReviews() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
     fetchTasks(true);
@@ -77,6 +80,20 @@ export default function TaskReviews() {
     );
   }
 
+  const filteredTasks = tasks.filter(t => {
+    const matchesSearch = (t.title && t.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (t.username && t.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (t.first_name && t.first_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                          (t.telegram_id && t.telegram_id.toString().includes(searchTerm));
+    const matchesCategory = categoryFilter === 'all' || t.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  }).sort((a, b) => {
+    if (sortBy === 'newest') return new Date(b.submitted_at) - new Date(a.submitted_at);
+    if (sortBy === 'oldest') return new Date(a.submitted_at) - new Date(b.submitted_at);
+    if (sortBy === 'reward') return Number(b.reward_tasky || 0) - Number(a.reward_tasky || 0);
+    return 0;
+  });
+
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
       <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -104,17 +121,60 @@ export default function TaskReviews() {
         )}
       </div>
 
-      {tasks.length === 0 ? (
+      {/* Search & Filters Controls */}
+      <div className="bg-surface-soft border border-border rounded-3xl p-4 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+        <div className="relative w-full md:max-w-md">
+          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-ink-soft">
+            <Search size={18} />
+          </span>
+          <input 
+            type="text" 
+            placeholder="Search by username, Telegram ID, task title..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-semibold text-sm outline-none transition-all placeholder:text-ink-soft"
+          />
+        </div>
+        
+        <div className="flex w-full md:w-auto items-center gap-3">
+          <div className="relative flex-1 md:flex-none">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full md:w-40 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+            >
+              <option value="all">All Categories</option>
+              <option value="internal">Internal Tasks</option>
+              <option value="partner">Partner Tasks</option>
+              <option value="social">Social Tasks</option>
+            </select>
+          </div>
+          
+          <div className="relative flex-1 md:flex-none">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full md:w-40 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+            >
+              <option value="newest">Sort: Newest</option>
+              <option value="oldest">Sort: Oldest</option>
+              <option value="reward">Sort: Reward (High)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {filteredTasks.length === 0 ? (
         <div className="bg-surface-soft p-12 rounded-3xl border border-border flex flex-col items-center justify-center shadow-sm">
-          <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center text-emerald-400 mb-4">
+          <div className="w-16 h-16 bg-indigo-500/10 rounded-full flex items-center justify-center text-indigo-400 mb-4">
             <CheckCircle2 size={32} />
           </div>
-          <h2 className="text-xl font-bold text-ink mb-1">All Caught Up!</h2>
-          <p className="text-ink-soft text-sm">No pending tasks to review right now.</p>
+          <h2 className="text-xl font-bold text-ink mb-1">No Reviews Found</h2>
+          <p className="text-ink-soft text-sm">No pending tasks match your search or filters.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
-          {tasks.map((task) => (
+          {filteredTasks.map((task) => (
             <div key={task.user_task_id} className="bg-surface-soft border border-border rounded-3xl overflow-hidden flex flex-col shadow-lg shadow-black/20 hover:border-indigo-500/30 transition-colors group">
               {/* Proof Area */}
               <div className="h-48 bg-[#0a0f1c] relative flex flex-col items-center justify-center border-b border-border/50">
