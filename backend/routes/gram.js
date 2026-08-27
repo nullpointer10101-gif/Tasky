@@ -14,15 +14,16 @@ router.get('/status/:telegram_id', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         const { gram_wallet_address, wallet_address } = userRes.rows[0];
 
-        // 2. Count ads watched in the last 24 hours (verification_type = 'gram_ad')
+        // 2. Count gram ads watched in the last 24 hours (tracked directly in ad_views)
         const adCountRes = await pool.query(`
-            SELECT COUNT(*) FROM user_tasks ut
-            JOIN tasks t ON ut.task_id = t.id
-            WHERE ut.telegram_id = $1 
-              AND t.verification_type = 'gram_ad' 
-              AND ut.submitted_at >= NOW() - INTERVAL '24 hours'
+            SELECT COUNT(*), MAX(created_at) as last_ad_time
+            FROM ad_views
+            WHERE telegram_id = $1
+              AND ad_type = 'gram_ad'
+              AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
+        const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
         // 3. Get the most recent Gram claim status
         const recentClaimRes = await pool.query(`
@@ -50,12 +51,60 @@ router.get('/status/:telegram_id', async (req, res) => {
             gram_wallet_address: activeWallet,
             wallet_connected: !!wallet_address,
             ads_watched_today,
+            last_ad_time,
             claimed_in_last_24h,
             can_claim,
             recent_claim
         });
     } catch (err) {
         console.error('Error fetching Gram status:', err);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Record a Gram Ad Watch
+router.post('/watch-ad', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        // Check user exists
+        const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+        // Check daily limit (60 per 24h)
+        const countRes = await pool.query(`
+            SELECT COUNT(*), MAX(created_at) as last_ad_time
+            FROM ad_views
+            WHERE telegram_id = $1
+              AND ad_type = 'gram_ad'
+              AND created_at >= NOW() - INTERVAL '24 hours'
+        `, [telegram_id]);
+        const count = parseInt(countRes.rows[0].count, 10);
+        const lastAdTime = countRes.rows[0].last_ad_time;
+
+        if (count >= 60) {
+            return res.status(429).json({ error: 'Daily ad limit reached (60 ads per 24 hours). Please wait.' });
+        }
+
+        // Enforce 20-second cooldown
+        if (lastAdTime) {
+            const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
+            if (secondsSinceLast < 20) {
+                const timeLeft = Math.ceil(20 - secondsSinceLast);
+                return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
+            }
+        }
+
+        // Record the ad view
+        await pool.query(
+            `INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, 'gram_ad')`,
+            [telegram_id]
+        );
+
+        res.json({ success: true, ads_watched_today: count + 1 });
+    } catch (err) {
+        console.error('Error recording gram ad watch:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
@@ -92,14 +141,12 @@ router.post('/claim', async (req, res) => {
             return res.status(400).json({ error: 'Invalid wallet address link' });
         }
 
-        // 2. Verify ads watched count in the last 24 hours
+        // 2. Verify ads watched count in the last 24 hours (from ad_views)
         const adCountRes = await client.query(`
-            SELECT COUNT(*) FROM user_tasks ut
-            JOIN tasks t ON ut.task_id = t.id
-            WHERE ut.telegram_id = $1 
-              AND t.verification_type = 'gram_ad' 
-              AND ut.status = 'approved' 
-              AND ut.submitted_at >= NOW() - INTERVAL '24 hours'
+            SELECT COUNT(*) FROM ad_views
+            WHERE telegram_id = $1
+              AND ad_type = 'gram_ad'
+              AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
 

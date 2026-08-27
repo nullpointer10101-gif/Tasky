@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
-import { getGramStatus, claimGramReward, getTasks, completeTask, saveGramWalletAddress } from '../api';
+import { getGramStatus, claimGramReward, saveGramWalletAddress, watchGramAd } from '../api';
 import { showRewardedAd } from '../adUtils';
 import Button from '../components/Button';
 import Card, { cardVariants } from '../components/Card';
@@ -13,25 +13,14 @@ export default function Gram({ user, refreshUser }) {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [adTask, setAdTask] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
     try {
       if (status === null) setLoading(true);
-      const [statusRes, tasksRes] = await Promise.all([
-        getGramStatus(user?.telegram_id || '123456'),
-        getTasks(user?.telegram_id || '123456')
-      ]);
-
+      const statusRes = await getGramStatus(user?.telegram_id || '123456');
       if (statusRes.data) {
         setStatus(statusRes.data);
-      }
-
-      if (tasksRes.data) {
-        const filtered = tasksRes.data.find(t => t.verification_type === 'gram_ad');
-        setAdTask(filtered);
       }
     } catch (err) {
       console.error('Failed to fetch Gram status:', err);
@@ -47,13 +36,9 @@ export default function Gram({ user, refreshUser }) {
   }, [user]);
 
   const handleWatchAd = async () => {
-    if (!adTask) {
-      showToast('Ad task not available. Please try again later.', 'error');
-      return;
-    }
-    
-    if (adTask.last_ad_time) {
-      const secondsSinceLastAd = (Date.now() - new Date(adTask.last_ad_time).getTime()) / 1000;
+    // Check 20-second cooldown from last ad time returned by status endpoint
+    if (status?.last_ad_time) {
+      const secondsSinceLastAd = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
       if (secondsSinceLastAd < 20) {
         const timeLeft = Math.ceil(20 - secondsSinceLastAd);
         showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
@@ -65,22 +50,27 @@ export default function Gram({ user, refreshUser }) {
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       const adResult = await showRewardedAd('main');
-      
+
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         setIsWatchingAd(false);
         return;
       }
 
-      const res = await completeTask(user?.telegram_id, adTask.id);
+      // Record watch via dedicated endpoint (no task dependency)
+      const res = await watchGramAd(user?.telegram_id);
       if (res.error) {
         showToast(res.error, 'error');
       } else {
-        // Optimistically update the counter immediately so UI is responsive
-        setStatus(prev => prev ? { ...prev, ads_watched_today: (prev.ads_watched_today || 0) + 1 } : prev);
+        // Optimistically increment counter immediately
+        setStatus(prev => prev ? {
+          ...prev,
+          ads_watched_today: (prev.ads_watched_today || 0) + 1,
+          last_ad_time: new Date().toISOString()
+        } : prev);
         showToast('Ad watched successfully! Progress updated.', 'success');
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
-        // Refresh from server to confirm actual count
+        // Confirm real count from server
         await fetchStatus();
         if (refreshUser) refreshUser();
       }

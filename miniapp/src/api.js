@@ -269,4 +269,8 @@ export const saveGramWalletAddress = withMock(
   { success: true, message: 'Gram wallet address saved successfully!' },
   (telegram_id, gram_wallet_address) => () => api.post('/api/gram/save-address', { telegram_id, gram_wallet_address })
 )
+export const watchGramAd = withMock(
+  (telegram_id) => ({ success: true, ads_watched_today: 46 }),
+  (telegram_id) => () => api.post('/api/gram/watch-ad', { telegram_id })
+)
 
