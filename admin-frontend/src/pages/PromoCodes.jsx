@@ -9,10 +9,10 @@ export default function PromoCodes() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [processing, setProcessing] = useState(null);
 
-  // Form state
   const [newPromo, setNewPromo] = useState({
     code: '',
     reward_amount: 1000,
+    reward_gram: 0,
     max_uses: 100,
     expires_at: ''
   });
@@ -47,7 +47,7 @@ export default function PromoCodes() {
       await api.post('/promos', payload);
       toast.success('Promo code created successfully!');
       setShowCreateModal(false);
-      setNewPromo({ code: '', reward_amount: 1000, max_uses: 100, expires_at: '' });
+      setNewPromo({ code: '', reward_amount: 1000, reward_gram: 0, max_uses: 100, expires_at: '' });
       fetchPromos();
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to create promo code');
@@ -131,7 +131,11 @@ export default function PromoCodes() {
                 
                 <div className="space-y-1 mb-4">
                   <p className="text-sm text-ink-soft flex items-center justify-between">
-                    <span>Reward:</span> <span className="font-bold text-ink">{Number(promo.reward_amount).toLocaleString()} TASKY</span>
+                    <span>Reward:</span> 
+                    <span className="font-bold text-ink">
+                      {Number(promo.reward_amount).toLocaleString()} TASKY
+                      {parseFloat(promo.reward_gram || 0) > 0 && ` + ${promo.reward_gram} GRAM`}
+                    </span>
                   </p>
                   <p className="text-sm text-ink-soft flex items-center justify-between">
                     <span>Uses:</span> 
@@ -190,14 +194,25 @@ export default function PromoCodes() {
                 />
               </div>
               
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-ink-soft mb-1.5 uppercase tracking-wider">Reward (TASKY)</label>
+                  <label className="block text-xs font-bold text-ink-soft mb-1.5 uppercase tracking-wider">TASKY</label>
                   <input 
                     type="number" 
                     value={newPromo.reward_amount}
                     onChange={e => setNewPromo({...newPromo, reward_amount: Number(e.target.value)})}
-                    className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-surface-soft border border-border rounded-xl px-3 py-2.5 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-ink-soft mb-1.5 uppercase tracking-wider">GRAM</label>
+                  <input 
+                    type="number" 
+                    step="0.01"
+                    value={newPromo.reward_gram}
+                    onChange={e => setNewPromo({...newPromo, reward_gram: Number(e.target.value)})}
+                    className="w-full bg-surface-soft border border-border rounded-xl px-3 py-2.5 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
                     required
                   />
                 </div>
@@ -207,7 +222,7 @@ export default function PromoCodes() {
                     type="number" 
                     value={newPromo.max_uses}
                     onChange={e => setNewPromo({...newPromo, max_uses: Number(e.target.value)})}
-                    className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
+                    className="w-full bg-surface-soft border border-border rounded-xl px-3 py-2.5 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
                     required
                   />
                 </div>

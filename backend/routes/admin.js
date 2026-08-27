@@ -877,12 +877,12 @@ router.get('/promos', async (req, res) => {
 });
 
 router.post('/promos', async (req, res) => {
-  const { code, reward_amount, max_uses, expires_at } = req.body;
+  const { code, reward_amount, max_uses, expires_at, reward_gram } = req.body;
   try {
     const result = await pool.query(
-      `INSERT INTO promo_codes (code, reward_amount, max_uses, expires_at) 
-       VALUES ($1, $2, $3, $4) RETURNING *`,
-      [code.toUpperCase(), reward_amount, max_uses, expires_at || null]
+      `INSERT INTO promo_codes (code, reward_amount, max_uses, expires_at, reward_gram) 
+       VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [code.toUpperCase(), reward_amount, max_uses, expires_at || null, reward_gram || 0]
     );
     const promo = result.rows[0];
 
@@ -891,7 +891,11 @@ router.post('/promos', async (req, res) => {
       try {
         const adminId = '8823265955';
         const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
-        const msg = `<b>[BROADCAST PREVIEW]</b>\n\n🎁 <b>New Daily Gift Code!</b>\n\nA new secret code has been dropped!\nUse the code below in the app to instantly claim <b>${promo.reward_amount} TASKY</b>!\n\n🎟 <b>Code:</b> <code>${promo.code}</code>\n⚡️ <b>Max Uses:</b> ${promo.max_uses}\n\n<i>Hurry! The code expires once all uses are claimed.</i>\n\n---\n<b>Do you want to broadcast this gift code to all users?</b>`;
+        let rewardText = `<b>${promo.reward_amount} TASKY</b>`;
+        if (parseFloat(promo.reward_gram || 0) > 0) {
+          rewardText += ` & <b>${promo.reward_gram} GRAM</b>`;
+        }
+        const msg = `<b>[BROADCAST PREVIEW]</b>\n\n🎁 <b>New Daily Gift Code!</b>\n\nA new secret code has been dropped!\nUse the code below in the app to instantly claim <b>${rewardText}</b>!\n\n🎟 <b>Code:</b> <code>${promo.code}</code>\n⚡️ <b>Max Uses:</b> ${promo.max_uses}\n\n<i>Hurry! The code expires once all uses are claimed.</i>\n\n---\n<b>Do you want to broadcast this gift code to all users?</b>`;
         
         bot.sendMessage(adminId, msg, {
           parse_mode: 'HTML',
