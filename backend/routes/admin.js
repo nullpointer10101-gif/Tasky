@@ -1206,8 +1206,8 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       try {
         bot.sendMessage(
           w.telegram_id,
-          `✅ <b>GRAM Withdrawal Approved!</b>\n\n<b>${w.amount} GRAM</b> is being sent to:\n<code>${w.wallet_address}</code>\n\nThank you! 💎`,
-          { parse_mode: 'HTML' }
+          `💎 <b>GRAM Withdrawal Approved!</b> 💎\n\n💰 <b>Amount:</b> <code>${w.amount} GRAM</code>\n🏦 <b>Address:</b> <code>${w.wallet_address}</code>\n\n🚀 Your GRAM withdrawal request has been successfully approved and is on the way!\n\n📢 <b>SHARE PROOF TO GET REWARDS:</b>\nShare a screenshot of your payment proof in our community to qualify for future bonus rewards:\n👉 <a href="https://t.me/TaskyOfficialCommunity">Join Tasky Official Community</a>\n\nThank you! 💎`,
+          { parse_mode: 'HTML', disable_web_page_preview: true }
         );
       } catch (e) {}
     }
