@@ -32,8 +32,20 @@ export default function PromoCodes() {
 
   const handleCreate = async (e) => {
     e.preventDefault();
-    if (!newPromo.code || newPromo.reward_amount <= 0 || newPromo.max_uses <= 0) {
-      toast.error('Invalid promo code parameters');
+    if (!newPromo.code) {
+      toast.error('Promo code is required');
+      return;
+    }
+    if (newPromo.reward_amount < 0 || newPromo.reward_gram < 0) {
+      toast.error('Rewards cannot be negative');
+      return;
+    }
+    if (newPromo.reward_amount === 0 && newPromo.reward_gram === 0) {
+      toast.error('At least one reward (TASKY or GRAM) must be greater than 0');
+      return;
+    }
+    if (newPromo.max_uses <= 0) {
+      toast.error('Max uses must be greater than 0');
       return;
     }
     
@@ -198,11 +210,11 @@ export default function PromoCodes() {
                 <div>
                   <label className="block text-xs font-bold text-ink-soft mb-1.5 uppercase tracking-wider">TASKY</label>
                   <input 
-                    type="number" 
+                    type="number"
+                    min="0"
                     value={newPromo.reward_amount}
                     onChange={e => setNewPromo({...newPromo, reward_amount: Number(e.target.value)})}
                     className="w-full bg-surface-soft border border-border rounded-xl px-3 py-2.5 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
-                    required
                   />
                 </div>
                 <div>
@@ -210,10 +222,10 @@ export default function PromoCodes() {
                   <input 
                     type="number" 
                     step="0.01"
+                    min="0"
                     value={newPromo.reward_gram}
                     onChange={e => setNewPromo({...newPromo, reward_gram: Number(e.target.value)})}
                     className="w-full bg-surface-soft border border-border rounded-xl px-3 py-2.5 text-ink font-bold focus:outline-none focus:border-indigo-500 transition-colors"
-                    required
                   />
                 </div>
                 <div>
