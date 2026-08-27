@@ -46,6 +46,7 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS total_ads_watched INT DEFAULT 0;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS special_offer_seen_at TIMESTAMPTZ;
       ALTER TABLE users ADD COLUMN IF NOT EXISTS gram_wallet_address VARCHAR(100);
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS referrals_paused BOOLEAN DEFAULT FALSE;
 
       CREATE TABLE IF NOT EXISTS gram_claims (
         id SERIAL PRIMARY KEY,

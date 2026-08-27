@@ -47,6 +47,20 @@ export default function Users() {
     }
   };
 
+  const handleTogglePauseReferrals = async (user) => {
+    const newStatus = !user.referrals_paused;
+    try {
+      await api.post('/users/' + user.telegram_id + '/pause-referrals', { referrals_paused: newStatus });
+      toast.success("Referrals " + (newStatus ? 'Paused' : 'Unpaused') + " successfully");
+      setUsers(users.map(u => u.telegram_id === user.telegram_id ? { ...u, referrals_paused: newStatus } : u));
+      if (selectedManageUser?.telegram_id === user.telegram_id) {
+        setSelectedManageUser(prev => ({ ...prev, referrals_paused: newStatus }));
+      }
+    } catch (error) {
+      toast.error('Failed to update referrals pause status');
+    }
+  };
+
   const handleEditBalance = async (user, action = 'edit') => {
     let promptText = `Enter new balance for ${user.username || user.telegram_id}:`;
     if (action === 'add') promptText = `How much TASKY to ADD for ${user.username || user.telegram_id}?`;
@@ -320,15 +334,22 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {user.is_banned ? (
-                           <span className="text-xs font-bold px-2 py-1 bg-red-500/10 text-red-500 rounded-md border border-red-500/20 flex items-center gap-1 w-fit">
-                             <Ban size={12}/> Banned
-                           </span>
-                        ) : (
-                           <span className="text-xs font-bold px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20 flex items-center gap-1 w-fit">
-                             <CheckCircle size={12}/> Active
-                           </span>
-                        )}
+                        <div className="flex flex-col gap-1">
+                          {user.is_banned ? (
+                             <span className="text-[10px] font-bold px-2 py-0.5 bg-red-500/10 text-red-500 rounded-md border border-red-500/20 flex items-center gap-1 w-fit">
+                               <Ban size={10}/> Banned
+                             </span>
+                          ) : (
+                             <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded-md border border-emerald-500/20 flex items-center gap-1 w-fit">
+                               <CheckCircle size={10}/> Active
+                             </span>
+                          )}
+                          {user.referrals_paused && (
+                             <span className="text-[10px] font-bold px-2 py-0.5 bg-orange-500/10 text-orange-400 rounded-md border border-orange-500/20 flex items-center gap-1 w-fit">
+                               <UsersIcon size={10}/> Ref Paused
+                             </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-4 text-right">
                         <button
@@ -358,7 +379,12 @@ export default function Users() {
                   <User size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black text-ink">{selectedManageUser.first_name || 'No Name'}</h2>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black text-ink">{selectedManageUser.first_name || 'No Name'}</h2>
+                    {selectedManageUser.referrals_paused && (
+                      <span className="text-[9px] font-black uppercase tracking-wider bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded border border-orange-500/30">Ref Paused</span>
+                    )}
+                  </div>
                   <p className="text-sm text-ink-soft font-mono">@{selectedManageUser.username} | ID: {selectedManageUser.telegram_id}</p>
                 </div>
               </div>
@@ -423,7 +449,7 @@ export default function Users() {
               </div>
 
               {/* Action Buttons Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <button onClick={() => handleEditBalance(selectedManageUser, 'add')} className="p-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <ArrowUpRight size={20} />
                   <span className="text-xs font-bold">Add Balance</span>
@@ -448,7 +474,14 @@ export default function Users() {
                   <History size={20} />
                   <span className="text-xs font-bold">View History</span>
                 </button>
-                <button onClick={() => handleToggleBan(selectedManageUser)} className={`p-3 border rounded-xl flex flex-col items-center justify-center gap-2 transition-colors col-span-2 md:col-span-3 ${selectedManageUser.is_banned ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20'}`}>
+                <button 
+                  onClick={() => handleTogglePauseReferrals(selectedManageUser)} 
+                  className={`p-3 border rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${selectedManageUser.referrals_paused ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-orange-500/10 hover:bg-orange-500/20 text-orange-500 border-orange-500/20'}`}
+                >
+                  <UsersIcon size={20}/>
+                  <span className="text-xs font-bold">{selectedManageUser.referrals_paused ? 'Resume Referrals' : 'Pause Referrals'}</span>
+                </button>
+                <button onClick={() => handleToggleBan(selectedManageUser)} className={`p-3 border rounded-xl flex flex-col items-center justify-center gap-2 transition-colors ${selectedManageUser.is_banned ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/20' : 'bg-red-500/10 hover:bg-red-500/20 text-red-500 border-red-500/20'}`}>
                   {selectedManageUser.is_banned ? <CheckCircle size={20}/> : <Ban size={20}/>}
                   <span className="text-xs font-bold">{selectedManageUser.is_banned ? 'Unban User' : 'Ban User'}</span>
                 </button>

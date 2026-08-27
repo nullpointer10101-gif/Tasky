@@ -248,11 +248,15 @@ router.post('/complete', async (req, res) => {
                 const rules = rulesRes.rows[0];
 
                 if (approvedCount >= rules.tasks_required_for_valid) {
+                    // Check if referrer has referrals paused
+                    const checkReferrer = await client.query('SELECT referrals_paused FROM users WHERE telegram_id = $1', [user.referred_by]);
+                    const isPaused = checkReferrer.rows[0]?.referrals_paused || false;
+
                     const referrerRes = await client.query(
                         'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
                         [user.referred_by, telegram_id]
                     );
-                    if (referrerRes.rowCount > 0) {
+                    if (referrerRes.rowCount > 0 && !isPaused) {
                         await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, user.referred_by, rules.spin_reward_per_referral]);
                         if (bot && bot.sendMessage) {
                             try { bot.sendMessage(user.referred_by, `🎉 Your referral @${user.username || user.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
@@ -479,13 +483,17 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
                 // Mark referral as valid if threshold just crossed and not yet counted
                 if (approvedCount >= rules.tasks_required_for_valid) {
+                    // Check if referrer has referrals paused
+                    const checkReferrer = await client.query('SELECT referrals_paused FROM users WHERE telegram_id = $1', [ut.referred_by]);
+                    const isPaused = checkReferrer.rows[0]?.referrals_paused || false;
+
                     // Check referrer hasn't already been credited for this user
                     const referrerRes = await client.query(
                         'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
                         [ut.referred_by, ut.telegram_id]
                     );
 
-                    if (referrerRes.rowCount > 0) {
+                    if (referrerRes.rowCount > 0 && !isPaused) {
                         // Credit referrer
                         await client.query(`
                             UPDATE users
