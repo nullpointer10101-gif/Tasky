@@ -12,6 +12,9 @@ export default function Users() {
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null);
   const [userHistory, setUserHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedUserForReferrals, setSelectedUserForReferrals] = useState(null);
+  const [userReferrals, setUserReferrals] = useState([]);
+  const [loadingReferrals, setLoadingReferrals] = useState(false);
 
   // New state for the user management modal
   const [selectedManageUser, setSelectedManageUser] = useState(null);
@@ -186,6 +189,20 @@ export default function Users() {
       toast.error('Failed to load history');
     } finally {
       setLoadingHistory(false);
+    }
+  };
+
+  const handleViewReferrals = async (user) => {
+    setSelectedUserForReferrals(user);
+    setLoadingReferrals(true);
+    setUserReferrals([]);
+    try {
+      const res = await api.get(`/users/${user.telegram_id}/referrals`);
+      setUserReferrals(res.data);
+    } catch (error) {
+      toast.error('Failed to load referrals');
+    } finally {
+      setLoadingReferrals(false);
     }
   };
 
@@ -449,7 +466,7 @@ export default function Users() {
               </div>
 
               {/* Action Buttons Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <button onClick={() => handleEditBalance(selectedManageUser, 'add')} className="p-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <ArrowUpRight size={20} />
                   <span className="text-xs font-bold">Add Balance</span>
@@ -473,6 +490,10 @@ export default function Users() {
                 <button onClick={() => handleViewHistory(selectedManageUser)} className="p-3 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <History size={20} />
                   <span className="text-xs font-bold">View History</span>
+                </button>
+                <button onClick={() => handleViewReferrals(selectedManageUser)} className="p-3 bg-teal-500/10 hover:bg-teal-500/20 text-teal-400 border border-teal-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
+                  <UsersIcon size={20} />
+                  <span className="text-xs font-bold">View Referrals</span>
                 </button>
                 <button 
                   onClick={() => handleTogglePauseReferrals(selectedManageUser)} 
@@ -524,6 +545,80 @@ export default function Users() {
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* USER REFERRALS MODAL */}
+      {selectedUserForReferrals && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-surface rounded-3xl w-full max-w-3xl max-h-[85vh] flex flex-col border border-border shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-border flex justify-between items-center bg-surface-soft/50 rounded-t-3xl">
+              <div>
+                <h2 className="text-xl font-black text-ink">Referred Users</h2>
+                <p className="text-sm text-ink-soft">Showing referrals for @{selectedUserForReferrals.username || selectedUserForReferrals.telegram_id}</p>
+              </div>
+              <button onClick={() => setSelectedUserForReferrals(null)} className="p-2 bg-surface hover:bg-border text-ink rounded-full transition-colors border border-border">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1">
+              {loadingReferrals ? (
+                <div className="text-center text-ink-soft animate-pulse font-bold p-8">Loading referrals...</div>
+              ) : userReferrals.length === 0 ? (
+                <div className="text-center text-ink-soft p-8 bg-surface-soft rounded-2xl border border-border">No referred users found.</div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Table header for referred list */}
+                  <div className="hidden md:grid grid-cols-5 gap-4 px-4 text-xs font-bold text-ink-soft uppercase tracking-wider border-b border-border pb-2">
+                    <div className="col-span-2">User Details</div>
+                    <div className="text-center">Balance</div>
+                    <div className="text-center">Tasks (Approved)</div>
+                    <div className="text-right">Referral Status</div>
+                  </div>
+                  <div className="space-y-2">
+                    {userReferrals.map((refUser, idx) => (
+                      <div key={idx} className="bg-surface-soft border border-border rounded-2xl p-4 flex flex-col md:grid md:grid-cols-5 md:items-center gap-3 md:gap-4 hover:border-indigo-500/30 transition-colors">
+                        <div className="col-span-2 flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                            <User size={16} />
+                          </div>
+                          <div className="truncate">
+                            <p className="font-bold text-ink text-sm leading-tight">{refUser.first_name || 'No Name'}</p>
+                            <p className="text-xs text-ink-soft font-mono">@{refUser.username || refUser.telegram_id}</p>
+                          </div>
+                        </div>
+                        <div className="flex md:justify-center items-center gap-2">
+                          <span className="md:hidden text-xs font-bold text-ink-soft">Balance: </span>
+                          <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-xs font-black">
+                            {Number(refUser.balance || 0).toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="flex md:justify-center items-center gap-2 text-xs font-bold">
+                          <span className="md:hidden text-xs font-bold text-ink-soft">Tasks Approved: </span>
+                          <span className={refUser.is_valid ? 'text-emerald-400' : 'text-amber-400'}>
+                            {refUser.approved_admin_tasks || 0}
+                          </span>
+                          <span className="text-ink-soft">/ {refUser.tasks_required}</span>
+                        </div>
+                        <div className="flex md:justify-end items-center gap-2">
+                          {refUser.is_valid ? (
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-lg">
+                              Valid Referral
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-1 rounded-lg">
+                              Invalid / Pending
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
