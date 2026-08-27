@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play } from 'lucide-react';
+import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, saveGramWalletAddress, watchGramAd } from '../api';
@@ -14,6 +14,7 @@ export default function Gram({ user, refreshUser }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [claimCountdown, setClaimCountdown] = useState('');
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
@@ -35,6 +36,35 @@ export default function Gram({ user, refreshUser }) {
       fetchStatus();
     }
   }, [user]);
+
+  useEffect(() => {
+    if (!status?.claimed_in_last_24h || !status?.recent_claim?.requested_at) {
+      setClaimCountdown('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const requestedTime = new Date(status.recent_claim.requested_at).getTime();
+      const nextAvailableTime = requestedTime + 24 * 60 * 60 * 1000;
+      const diff = nextAvailableTime - Date.now();
+
+      if (diff <= 0) {
+        setClaimCountdown('');
+        fetchStatus();
+      } else {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setClaimCountdown(
+          `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+        );
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [status]);
 
   const handleWatchAd = async () => {
     // Check 20-second cooldown from last ad time returned by status endpoint
@@ -180,107 +210,132 @@ export default function Gram({ user, refreshUser }) {
         </div>
       )}
 
-      {/* Main progress card */}
-      <Card className="p-6 relative overflow-hidden bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.05)]">
-        <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-[40px] rounded-full pointer-events-none" />
-        
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-300/30">
-            <Coins size={28} className="text-white" />
+      {/* Main progress card or Locked countdown card */}
+      {claimCountdown ? (
+        <Card className="p-6 relative overflow-hidden bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.05)] text-center space-y-4">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-[40px] rounded-full pointer-events-none" />
+          
+          <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <Lock size={28} className="animate-pulse" />
           </div>
 
           <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight">Daily Quest</h2>
-            <p className="text-xs text-amber-300 font-bold tracking-wider uppercase mt-0.5">0.02 GRAM Reward Pool</p>
+            <h2 className="text-lg font-black text-white uppercase tracking-tight">Next Reward Unlocks In</h2>
+            <p className="text-xs text-amber-300/80 font-bold uppercase mt-0.5">Daily quota completed</p>
           </div>
 
-          <div className="w-full bg-black/40 rounded-2xl p-4 border border-white/5 space-y-3">
-            <div className="flex justify-between items-center text-xs">
-              <span className="font-bold text-white/50">Your Daily Progress</span>
-              <span className="font-black text-amber-400">{status?.ads_watched_today || 0} / 60 Ads</span>
-            </div>
+          <div className="bg-black/40 rounded-2xl p-5 border border-white/5 font-mono text-3xl font-black text-amber-400 tracking-widest shadow-inner">
+            {claimCountdown}
+          </div>
+
+          <p className="text-[11.5px] text-white/60 font-bold leading-normal px-2">
+            🎉 You have successfully watched all 60 ads and claimed your 0.02 GRAM daily reward! The quest will unlock again in 24 hours.
+          </p>
+        </Card>
+      ) : (
+        <>
+          <Card className="p-6 relative overflow-hidden bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20 shadow-[0_0_30px_rgba(245,158,11,0.05)]">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 blur-[40px] rounded-full pointer-events-none" />
             
-            <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden p-0.5 border border-white/5">
-              <div 
-                className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, ((status?.ads_watched_today || 0) / 60) * 100)}%` }}
-              />
+            <div className="flex flex-col items-center text-center space-y-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-300/30">
+                <Coins size={28} className="text-white" />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-white uppercase tracking-tight">Daily Quest</h2>
+                <p className="text-xs text-amber-300 font-bold tracking-wider uppercase mt-0.5">0.02 GRAM Reward Pool</p>
+              </div>
+
+              <div className="w-full bg-black/40 rounded-2xl p-4 border border-white/5 space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-white/50">Your Daily Progress</span>
+                  <span className="font-black text-amber-400">{status?.ads_watched_today || 0} / 60 Ads</span>
+                </div>
+                
+                <div className="w-full bg-white/5 h-3 rounded-full overflow-hidden p-0.5 border border-white/5">
+                  <div 
+                    className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${Math.min(100, ((status?.ads_watched_today || 0) / 60) * 100)}%` }}
+                  />
+                </div>
+
+                {status?.ads_watched_today < 60 ? (
+                  <p className="text-[11px] text-amber-300 font-bold">
+                    🚀 Watch {60 - (status?.ads_watched_today || 0)} more ads to receive your 0.02 GRAM Bounty!
+                  </p>
+                ) : (
+                  <p className="text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-1.5 animate-pulse">
+                    🎉 QUEST COMPLETED! Unlock your instant rewards below!
+                  </p>
+                )}
+              </div>
+
+              {/* Action button for watching ad */}
+              {status?.ads_watched_today < 60 && (
+                <button
+                  onClick={handleWatchAd}
+                  disabled={isWatchingAd}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-indigo-400/20"
+                >
+                  {isWatchingAd ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Loading Ad Video...
+                    </>
+                  ) : (
+                    <>
+                      <Play size={16} fill="currentColor" />
+                      Watch Ad (+1 Progress)
+                    </>
+                  )}
+                </button>
+              )}
             </div>
+          </Card>
 
-            {status?.ads_watched_today < 60 ? (
-              <p className="text-[11px] text-amber-300 font-bold">
-                🚀 Watch {60 - (status?.ads_watched_today || 0)} more ads to receive your 0.02 GRAM Bounty!
-              </p>
-            ) : (
-              <p className="text-[11px] text-emerald-400 font-bold flex items-center justify-center gap-1.5 animate-pulse">
-                🎉 QUEST COMPLETED! Unlock your instant rewards below!
-              </p>
-            )}
-          </div>
-
-          {/* Action button for watching ad */}
-          {status?.ads_watched_today < 60 && (
-            <button
-              onClick={handleWatchAd}
-              disabled={isWatchingAd}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-indigo-400/20"
-            >
-              {isWatchingAd ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Loading Ad Video...
-                </>
+          {/* Claim Form Section */}
+          <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
+            <div className="space-y-4">
+              {status?.ads_watched_today >= 60 ? (
+                <button
+                  onClick={handleClaim}
+                  disabled={status?.claimed_in_last_24h || !status?.gram_wallet_address || isSubmitting}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_25px_rgba(16,185,129,0.3)] border border-emerald-400/20"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Processing Rewards...
+                    </>
+                  ) : status?.claimed_in_last_24h ? (
+                    <>
+                      Already Claimed Today
+                    </>
+                  ) : !status?.gram_wallet_address ? (
+                    <>
+                      Connect Wallet to Receive
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles size={18} className="animate-pulse" />
+                      Receive 0.02 GRAM Instantly!
+                    </>
+                  )}
+                </button>
               ) : (
-                <>
-                  <Play size={16} fill="currentColor" />
-                  Watch Ad (+1 Progress)
-                </>
+                <button
+                  disabled={true}
+                  className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50"
+                >
+                  <Sparkles size={18} />
+                  Receive 0.02 GRAM Bounty (Locked)
+                </button>
               )}
-            </button>
-          )}
-        </div>
-      </Card>
-
-      {/* Claim Form Section */}
-      <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
-        <div className="space-y-4">
-          {status?.ads_watched_today >= 60 ? (
-            <button
-              onClick={handleClaim}
-              disabled={status?.claimed_in_last_24h || !status?.gram_wallet_address || isSubmitting}
-              className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_25px_rgba(16,185,129,0.3)] border border-emerald-400/20"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  Processing Rewards...
-                </>
-              ) : status?.claimed_in_last_24h ? (
-                <>
-                  Already Claimed Today
-                </>
-              ) : !status?.gram_wallet_address ? (
-                <>
-                  Connect Wallet to Receive
-                </>
-              ) : (
-                <>
-                  <Sparkles size={18} className="animate-pulse" />
-                  Receive 0.02 GRAM Instantly!
-                </>
-              )}
-            </button>
-          ) : (
-            <button
-              disabled={true}
-              className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50"
-            >
-              <Sparkles size={18} />
-              Receive 0.02 GRAM Bounty (Locked)
-            </button>
-          )}
-        </div>
-      </Card>
+            </div>
+          </Card>
+        </>
+      )}
 
       {/* Claim History Status Banner */}
       {status?.recent_claim && (
