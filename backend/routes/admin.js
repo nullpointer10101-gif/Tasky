@@ -82,7 +82,63 @@ router.get('/stats', async (req, res) => {
 });
 
 // ==========================================
-// 2. CONFIGURATION (GLOBAL SETTINGS)
+// 2. GRAM WATCHERS (Real-time today's viewers)
+// ==========================================
+router.get('/gram-watchers', async (req, res) => {
+  try {
+    // Get all users who watched gram ads today, with their count and last watch time
+    const watchersRes = await pool.query(`
+      SELECT 
+        av.telegram_id,
+        u.first_name,
+        u.username,
+        u.gram_wallet_address,
+        u.wallet_address,
+        COUNT(*) as ads_watched,
+        MAX(av.created_at) as last_watch_time,
+        MIN(av.created_at) as first_watch_time
+      FROM ad_views av
+      LEFT JOIN users u ON u.telegram_id = av.telegram_id::bigint
+      WHERE av.ad_type = 'gram_ad'
+        AND av.created_at >= CURRENT_DATE
+      GROUP BY av.telegram_id, u.first_name, u.username, u.gram_wallet_address, u.wallet_address
+      ORDER BY COUNT(*) DESC
+    `);
+
+    // For each watcher, also check if they claimed in last 24h
+    const telegramIds = watchersRes.rows.map(r => r.telegram_id);
+    let claimedIds = new Set();
+    if (telegramIds.length > 0) {
+      const claimsRes = await pool.query(`
+        SELECT DISTINCT telegram_id::text FROM gram_claims
+        WHERE telegram_id = ANY($1::bigint[])
+          AND requested_at >= NOW() - INTERVAL '24 hours'
+          AND status IN ('pending', 'approved')
+      `, [telegramIds]);
+      claimedIds = new Set(claimsRes.rows.map(r => r.telegram_id));
+    }
+
+    const watchers = watchersRes.rows.map(r => ({
+      telegram_id: r.telegram_id,
+      first_name: r.first_name || 'Unknown',
+      username: r.username || null,
+      ads_watched: parseInt(r.ads_watched, 10),
+      last_watch_time: r.last_watch_time,
+      first_watch_time: r.first_watch_time,
+      wallet: r.gram_wallet_address || r.wallet_address || null,
+      has_wallet: !!(r.gram_wallet_address || r.wallet_address),
+      claimed_today: claimedIds.has(r.telegram_id),
+      can_claim: parseInt(r.ads_watched, 10) >= 60 && !claimedIds.has(r.telegram_id) && !!(r.gram_wallet_address || r.wallet_address),
+    }));
+
+    res.json({ watchers, total: watchers.length, asOf: new Date().toISOString() });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==========================================
+// 3. CONFIGURATION (GLOBAL SETTINGS)
 // ==========================================
 router.get('/config', async (req, res) => {
   try {
