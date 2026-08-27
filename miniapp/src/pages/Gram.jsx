@@ -13,6 +13,7 @@ export default function Gram({ user, refreshUser }) {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
