@@ -188,6 +188,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
       }
 
       if (selectedTask.verification_type === 'auto_ad') {
+        // Enforce 20-second cooldown
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
           if (secondsSinceLastAd < 20) {
@@ -197,40 +198,52 @@ export default function Tasks({ user, refreshUser, navigate }) {
             return;
           }
         }
+
+        // Show the rewarded ad only for auto_ad tasks
+        const adResult = await showRewardedAd('main');
+        if (!adResult.success) {
+          showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
+          setIsSubmitting(false);
+          return;
+        }
       }
 
-      const adResult = await showRewardedAd('main');
-      if (!adResult.success) {
-        showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // If we got here, we are submitting the proof
+      // Submit task completion to backend
       const activeTask = selectedTask;
       const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
         const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s'].includes(activeTask.verification_type);
-        
-        const updatedTask = { 
-          ...activeTask, 
-          status: isAutoApproved ? 'approved' : 'pending',
-          submitted_at: new Date().toISOString()
-        };
-        setTasks(prev => {
-          if (activeTask.verification_type === 'auto_ad') return prev;
-          return prev.filter(t => t.id !== activeTask.id);
-        });
-        setSubmissions(prev => [updatedTask, ...prev]);
+
+        if (activeTask.verification_type === 'auto_ad') {
+          // Optimistically increment the counter in the task subtitle immediately
+          setTasks(prev => prev.map(t => {
+            if (t.id !== activeTask.id) return t;
+            const match = (t.subtitle || '').match(/^(\d+)\/60/);
+            const current = match ? parseInt(match[1]) + 1 : 1;
+            return {
+              ...t,
+              subtitle: `${current}/60 completed in last 24h.`,
+              last_ad_time: new Date().toISOString()
+            };
+          }));
+          showToast(`Ad watched! +${activeTask.reward_tasky} TASKY`, 'success');
+        } else {
+          const updatedTask = {
+            ...activeTask,
+            status: isAutoApproved ? 'approved' : 'pending',
+            submitted_at: new Date().toISOString()
+          };
+          setTasks(prev => prev.filter(t => t.id !== activeTask.id));
+          setSubmissions(prev => [updatedTask, ...prev]);
+          if (isAutoApproved) {
+            showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
+          } else {
+            setSubmittedTask(activeTask);
+          }
+        }
 
         setSelectedTask(null);
-        if (isAutoApproved) {
-          showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
-        } else {
-          setSubmittedTask(activeTask);
-        }
-        
         reloadData();
         refreshUser();
       } else {
