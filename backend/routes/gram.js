@@ -20,7 +20,6 @@ router.get('/status/:telegram_id', async (req, res) => {
             JOIN tasks t ON ut.task_id = t.id
             WHERE ut.telegram_id = $1 
               AND t.verification_type = 'gram_ad' 
-              AND ut.status = 'approved' 
               AND ut.submitted_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);

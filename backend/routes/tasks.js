@@ -91,7 +91,7 @@ router.get('/', async (req, res) => {
                             completed: false,
                             submission_status: null,
                             last_ad_time: lastAdTime,
-                            subtitle: `${timesCompleted}/60 completed in last 24h. ${t.subtitle}`
+                            subtitle: `${timesCompleted}/60 completed in last 24h.${t.subtitle ? ' ' + t.subtitle : ''}`
                         };
                     }
                 }

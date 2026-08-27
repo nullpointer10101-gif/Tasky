@@ -76,8 +76,11 @@ export default function Gram({ user, refreshUser }) {
       if (res.error) {
         showToast(res.error, 'error');
       } else {
+        // Optimistically update the counter immediately so UI is responsive
+        setStatus(prev => prev ? { ...prev, ads_watched_today: (prev.ads_watched_today || 0) + 1 } : prev);
         showToast('Ad watched successfully! Progress updated.', 'success');
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+        // Refresh from server to confirm actual count
         await fetchStatus();
         if (refreshUser) refreshUser();
       }
