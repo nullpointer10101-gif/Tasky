@@ -110,6 +110,7 @@ export default function Home({ user, refreshUser, navigate }) {
           
           <DopamineBalanceTicker 
             balance={user.balance} 
+            gramBalance={user.gram_balance}
             speedPerHour={miningSpeed} 
             usdtRate={taskyPerUsdt} 
           />

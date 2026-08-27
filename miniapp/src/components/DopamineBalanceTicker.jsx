@@ -1,52 +1,52 @@
-import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Zap, TrendingUp, Sparkles } from 'lucide-react';
+import React from 'react';
+import { Sparkles, ArrowRightLeft } from 'lucide-react';
 
-export default function DopamineBalanceTicker({ balance = 0, speedPerHour = 5.0, usdtRate = 20000 }) {
+export default function DopamineBalanceTicker({ balance = 0, gramBalance = 0, speedPerHour = 5.0, usdtRate = 20000 }) {
   const baseBalance = Number(balance) || 0;
-  // REMOVED live ticking DOM updates entirely to completely eliminate React scroll lag.
-  // The balance will just be the static baseBalance passed in.
+  // USDT balance is calculated based on current swap rate
+  const usdtValue = (baseBalance / (Number(usdtRate) || 20000)).toFixed(2);
   
-  const intRef = useRef(null);
-  const decRef = useRef(null);
-  const usdRef = useRef(null);
+  // Format GRAM balance nicely
+  const formattedGram = Number(gramBalance || 0).toLocaleString(undefined, { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 4 
+  });
 
   return (
-    <div className="relative z-10 flex flex-col items-center text-center ">
-      {/* Live Mining Active Pill */}
-      <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-400/30 rounded-full mb-3 ">
-        <span className="relative flex h-2 w-2">
-          <span className=" absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-        </span>
-        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1">
-          <Zap size={11} className="fill-emerald-400 text-emerald-400" />
-          Live Mining: +{(Number(speedPerHour) || 5.0).toFixed(1)}/hr
-        </span>
-      </div>
-
-      <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-1 flex items-center gap-1">
-        <Sparkles size={11} className="text-amber-300 " />
+    <div className="relative z-10 flex flex-col items-center w-full">
+      {/* Title */}
+      <p className="text-[11px] font-black text-white/70 uppercase tracking-[0.2em] mb-4 flex items-center gap-1.5">
+        <Sparkles size={11} className="text-amber-300 animate-pulse" />
         LIVE PORTFOLIO BALANCE
       </p>
 
-      {/* Main Ticking Number */}
-      <div className="flex items-baseline justify-center gap-1 mb-2">
-        <span ref={intRef} className="text-5xl font-black text-white tracking-tighter  font-mono">
-          {Math.floor(baseBalance).toLocaleString()}
-        </span>
-        <span ref={decRef} className="text-2xl font-black text-indigo-200/90 font-mono tracking-normal">
-          {(baseBalance % 1).toFixed(3).substring(1)}
-        </span>
-      </div>
+      {/* Grid containing USDT and GRAM balances side-by-side */}
+      <div className="grid grid-cols-2 gap-3 w-full">
+        {/* USDT Balance Card */}
+        <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-4 flex flex-col items-center justify-center text-center shadow-inner hover:scale-[1.02] transition-transform duration-200">
+          <div className="w-10 h-10 rounded-full bg-[#26A17B]/20 border border-[#26A17B]/30 flex items-center justify-center mb-2.5">
+            {/* Tether (USDT) Official Shape Logo */}
+            <svg viewBox="0 0 128 128" className="w-6 h-6 shrink-0">
+              <circle cx="64" cy="64" r="64" fill="#26A17B" />
+              <path fill="#FFF" d="M83.2 38.4H44.8v6.4h16v25.6c-9.6 1.6-16 4.8-16 8 0 3.2 6.4 6.4 16 8v16h6.4V86.4c9.6-1.6 16-4.8 16-8 0-3.2-6.4-6.4-16-8V44.8h16v-6.4zm-19.2 41.6c-8 0-12.8-1.6-12.8-3.2s4.8-3.2 12.8-3.2 12.8 1.6 12.8 3.2-4.8 3.2-12.8 3.2z" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-black text-white/60 uppercase tracking-wider mb-1">USDT Balance</span>
+          <span className="text-lg font-mono font-black text-white tracking-tight">${usdtValue}</span>
+        </div>
 
-      {/* USD Value Estimate */}
-      <div className="flex items-center gap-2 px-4 py-1.5 bg-white/10  rounded-full border border-white/20 shadow-inner">
-        <span ref={usdRef} className="text-sm font-bold text-white/90">≈ ${(baseBalance / (Number(usdtRate) || 20000)).toFixed(2)}</span>
-        <span className="text-xs font-black text-indigo-200">USDT</span>
-        <span className="text-[10px] text-emerald-300 font-bold flex items-center">
-          <TrendingUp size={10} className="mr-0.5" /> +{(Number(speedPerHour) / (usdtRate || 20000)).toFixed(4)}$/h
-        </span>
+        {/* GRAM Balance Card */}
+        <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-[1.5rem] p-4 flex flex-col items-center justify-center text-center shadow-inner hover:scale-[1.02] transition-transform duration-200">
+          <div className="w-10 h-10 rounded-full bg-[#0088CC]/20 border border-[#0088CC]/30 flex items-center justify-center mb-2.5">
+            {/* TON / GRAM Diamond Logo */}
+            <svg viewBox="0 0 128 128" className="w-6 h-6 shrink-0">
+              <circle cx="64" cy="64" r="64" fill="#0088CC" />
+              <path fill="#FFF" d="M64 20L28 60l36 48 36-48L64 20zM38 58l26-29 26 29H38zm26 38L42 62h44L64 96z" />
+            </svg>
+          </div>
+          <span className="text-[10px] font-black text-white/60 uppercase tracking-wider mb-1">GRAM Balance</span>
+          <span className="text-lg font-mono font-black text-white tracking-tight">{formattedGram}</span>
+        </div>
       </div>
     </div>
   );
