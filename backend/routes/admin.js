@@ -968,14 +968,16 @@ router.post('/broadcast/promo', async (req, res) => {
   const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <b>${code.toUpperCase()}</b> 👈\n\n🚀 Open the app and enter the code to redeem!`;
 
   try {
+    const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
     let targets = [];
     if (target === 'admin') {
-      const adminId = process.env.ADMIN_TELEGRAM_ID || '5487109053';
       targets = [adminId];
     } else {
       const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
       targets = usersRes.rows.map(r => r.telegram_id);
     }
+
+    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}, Targets List:`, targets);
 
     global.promoBroadcast = {
       code: code.toUpperCase(),
@@ -993,23 +995,27 @@ router.post('/broadcast/promo', async (req, res) => {
         const tid = targets[i];
         try {
           if (bot && bot.sendMessage) {
+            console.log(`[PROMO BROADCAST] Sending message to ${tid}...`);
             await bot.sendMessage(tid, text, { parse_mode: 'HTML' });
+            console.log(`[PROMO BROADCAST] Sent successfully to ${tid}`);
             global.promoBroadcast.success++;
           } else {
             throw new Error('Telegram Bot is not initialized');
           }
         } catch (err) {
-          console.error(`Failed to send promo code broadcast to ${tid}:`, err.message);
+          console.error(`[PROMO BROADCAST] Failed to send to ${tid}:`, err.message);
           global.promoBroadcast.failed++;
         }
         global.promoBroadcast.currentIdx = i + 1;
         await new Promise(resolve => setTimeout(resolve, 50));
       }
       global.promoBroadcast.status = 'done';
+      console.log(`[PROMO BROADCAST] Finished! Success: ${global.promoBroadcast.success}, Failed: ${global.promoBroadcast.failed}`);
     })();
 
     res.json({ success: true, message: 'Broadcast started' });
   } catch (error) {
+    console.error('[PROMO BROADCAST] Error in route:', error.message);
     res.status(500).json({ error: error.message });
   }
 });
