@@ -97,6 +97,37 @@ export default function Users() {
     }
   };
 
+  const handleEditGramBalance = async (user, action = 'add') => {
+    let promptText = `How much GRAM to ADD for ${user.username || user.telegram_id}?`;
+    if (action === 'deduct') promptText = `How much GRAM to DEDUCT from ${user.username || user.telegram_id}?`;
+
+    const inputStr = window.prompt(promptText, '');
+    if (inputStr === null || inputStr.trim() === '') return;
+
+    const amount = Number(inputStr);
+    if (isNaN(amount) || amount < 0) {
+      return toast.error('Please enter a valid positive number');
+    }
+
+    let newGramBalance = Number(user.gram_balance || 0);
+    if (action === 'add') newGramBalance += amount;
+    else if (action === 'deduct') {
+      if (amount > newGramBalance) return toast.error('Cannot deduct more than current GRAM balance');
+      newGramBalance -= amount;
+    }
+
+    try {
+      await api.post(`/users/${user.telegram_id}/gram-balance`, { gram_balance: newGramBalance });
+      toast.success(`GRAM Balance updated successfully to ${newGramBalance}`);
+      setUsers(users.map(u => u.telegram_id === user.telegram_id ? { ...u, gram_balance: newGramBalance } : u));
+      if (selectedManageUser?.telegram_id === user.telegram_id) {
+        setSelectedManageUser(prev => ({ ...prev, gram_balance: newGramBalance }));
+      }
+    } catch (error) {
+      toast.error('Failed to update GRAM balance');
+    }
+  };
+
   const handleAddSpins = async (user) => {
     const spinsToAddStr = window.prompt(`How many spins to add for ${user.username || user.telegram_id}?`);
     if (spinsToAddStr === null || spinsToAddStr.trim() === '') return;
@@ -417,10 +448,14 @@ export default function Users() {
             <div className="p-4 md:p-6 space-y-6">
               
               {/* Profile Metrics Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                 <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                  <span className="text-[10px] uppercase font-bold text-ink-soft tracking-wider mb-1">Balance</span>
+                  <span className="text-[10px] uppercase font-bold text-ink-soft tracking-wider mb-1">TASKY Bal</span>
                   <span className="text-lg font-black text-emerald-400">{Number(selectedManageUser.balance || 0).toLocaleString()}</span>
+                </div>
+                <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                  <span className="text-[10px] uppercase font-bold text-ink-soft tracking-wider mb-1">GRAM Bal</span>
+                  <span className="text-lg font-black text-emerald-300">{Number(selectedManageUser.gram_balance || 0).toLocaleString()}</span>
                 </div>
                 <div className="bg-surface-soft border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center">
                   <span className="text-[10px] uppercase font-bold text-ink-soft tracking-wider mb-1">Ads (Total/Prog)</span>
@@ -469,11 +504,19 @@ export default function Users() {
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 <button onClick={() => handleEditBalance(selectedManageUser, 'add')} className="p-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <ArrowUpRight size={20} />
-                  <span className="text-xs font-bold">Add Balance</span>
+                  <span className="text-xs font-bold">Add TASKY</span>
                 </button>
                 <button onClick={() => handleEditBalance(selectedManageUser, 'deduct')} className="p-3 bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <ArrowDownRight size={20} />
-                  <span className="text-xs font-bold">Deduct Balance</span>
+                  <span className="text-xs font-bold">Deduct TASKY</span>
+                </button>
+                <button onClick={() => handleEditGramBalance(selectedManageUser, 'add')} className="p-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
+                  <ArrowUpRight size={20} />
+                  <span className="text-xs font-bold">Add GRAM</span>
+                </button>
+                <button onClick={() => handleEditGramBalance(selectedManageUser, 'deduct')} className="p-3 bg-red-500/10 hover:bg-red-500/20 text-rose-400 border border-red-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
+                  <ArrowDownRight size={20} />
+                  <span className="text-xs font-bold">Deduct GRAM</span>
                 </button>
                 <button onClick={() => handleAddSpins(selectedManageUser)} className="p-3 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-xl flex flex-col items-center justify-center gap-2 transition-colors">
                   <Zap size={20} />

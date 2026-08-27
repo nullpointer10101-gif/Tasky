@@ -471,7 +471,7 @@ router.get('/users', async (req, res) => {
     const sortBy = req.query.sortBy === 'newest' ? 'created_at DESC' : 'balance DESC';
     const query = `
       SELECT 
-        u.id, u.telegram_id, u.username, u.first_name, u.balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched, u.total_ads_watched, u.gram_wallet_address, u.referrals_paused,
+        u.id, u.telegram_id, u.username, u.first_name, u.balance, u.gram_balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched, u.total_ads_watched, u.gram_wallet_address, u.referrals_paused,
         (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched
       FROM users u
       ORDER BY u.${sortBy}
@@ -550,6 +550,18 @@ router.post('/users/:id/balance', async (req, res) => {
   try {
     await pool.query('UPDATE users SET balance = $1 WHERE telegram_id = $2', [balance, telegramId]);
     res.json({ success: true, message: 'Balance updated successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/users/:id/gram-balance', async (req, res) => {
+  const telegramId = req.params.id;
+  const { gram_balance } = req.body;
+  if (typeof gram_balance !== 'number') return res.status(400).json({ error: 'Invalid GRAM balance' });
+  try {
+    await pool.query('UPDATE users SET gram_balance = $1 WHERE telegram_id = $2', [gram_balance, telegramId]);
+    res.json({ success: true, message: 'GRAM balance updated successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
