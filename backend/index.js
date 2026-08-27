@@ -148,6 +148,7 @@ app.use('/api/withdrawal', require('./routes/withdrawal'));
 app.use('/api/mining', require('./routes/mining'));
 app.use('/api/promo', require('./routes/promo'));
 app.use('/api/gram', require('./routes/gram'));
+app.use('/api/gram-currency', require('./routes/gram_currency'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI

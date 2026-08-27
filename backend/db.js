@@ -338,6 +338,25 @@ const initDB = async () => {
       CREATE INDEX IF NOT EXISTS idx_swaps_telegram_id ON swaps(telegram_id);
       CREATE INDEX IF NOT EXISTS idx_withdrawals_telegram_id ON withdrawals(telegram_id);
       CREATE INDEX IF NOT EXISTS idx_users_total_referrals ON users(total_referrals DESC);
+
+      -- GRAM CURRENCY SUPPORT
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS gram_balance NUMERIC DEFAULT 0;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS reward_gram NUMERIC DEFAULT 0;
+      ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS reward_gram NUMERIC DEFAULT 0;
+
+      CREATE TABLE IF NOT EXISTS gram_withdrawals (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT REFERENCES users(telegram_id) ON DELETE CASCADE,
+        wallet_address VARCHAR(100) NOT NULL,
+        amount NUMERIC NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending',
+        requested_at TIMESTAMPTZ DEFAULT NOW(),
+        processed_at TIMESTAMPTZ,
+        rejection_reason TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_gram_withdrawals_telegram_id ON gram_withdrawals(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_gram_withdrawals_status ON gram_withdrawals(status);
     `;
 
     await client.query(initScript);

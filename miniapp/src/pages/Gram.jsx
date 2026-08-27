@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock } from 'lucide-react';
+import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
-import { getGramStatus, claimGramReward, saveGramWalletAddress, watchGramAd } from '../api';
+import { getGramStatus, claimGramReward, saveGramWalletAddress, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal } from '../api';
 import { showRewardedAd } from '../adUtils';
 import Button from '../components/Button';
 import Card, { cardVariants } from '../components/Card';
@@ -15,15 +15,20 @@ export default function Gram({ user, refreshUser }) {
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [claimCountdown, setClaimCountdown] = useState('');
+  const [gramInfo, setGramInfo] = useState(null);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
   const { showToast } = useToast();
 
   const fetchStatus = async () => {
     try {
       if (status === null) setLoading(true);
-      const statusRes = await getGramStatus(user?.telegram_id || '123456');
-      if (statusRes.data) {
-        setStatus(statusRes.data);
-      }
+      const [statusRes, gramRes] = await Promise.all([
+        getGramStatus(user?.telegram_id || '123456'),
+        getGramCurrencyBalance(user?.telegram_id || '123456')
+      ]);
+      if (statusRes.data) setStatus(statusRes.data);
+      if (gramRes.data) setGramInfo(gramRes.data);
     } catch (err) {
       console.error('Failed to fetch Gram status:', err);
     } finally {
@@ -135,6 +140,34 @@ export default function Gram({ user, refreshUser }) {
     }
   };
 
+  const handleWithdrawGram = async () => {
+    const amt = parseFloat(withdrawAmount);
+    if (!amt || amt < 0.01) {
+      showToast('Minimum withdrawal is 0.01 GRAM', 'error');
+      return;
+    }
+    if (amt > (gramInfo?.gram_balance || 0)) {
+      showToast('Insufficient GRAM balance', 'error');
+      return;
+    }
+    setIsWithdrawing(true);
+    try {
+      const { data, error } = await requestGramWithdrawal(user?.telegram_id, amt);
+      if (error) {
+        showToast(error, 'error');
+      } else if (data?.success) {
+        showToast('Withdrawal request submitted! Admin will process it shortly.', 'success');
+        triggerConfetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
+        setWithdrawAmount('');
+        fetchStatus();
+      }
+    } catch (err) {
+      showToast('Connection error', 'error');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 md:p-10 h-full flex flex-col items-center justify-center min-h-[70vh]">
@@ -151,8 +184,104 @@ export default function Gram({ user, refreshUser }) {
       {/* Header section */}
       <div>
         <h1 className="text-2xl font-bold text-ink flex items-center gap-2 justify-center md:justify-start">
-          <Coins className="text-amber-500" /> Daily Ads Daily Rewards
+          <Gem className="text-emerald-400" /> GRAM Currency
         </h1>
+        <p className="text-sm text-emerald-400/70 font-bold text-center md:text-left">💎 Earn GRAM through tasks & promo codes. Withdraw to your TON wallet!</p>
+      </div>
+
+      {/* ── GRAM IN-APP BALANCE CARD ── */}
+      <Card className="p-5 relative overflow-hidden bg-gradient-to-br from-emerald-900/40 to-teal-900/30 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full pointer-events-none" />
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
+              <Gem size={20} className="text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60">Your GRAM Balance</p>
+              <p className="text-2xl font-black text-emerald-300">{parseFloat(gramInfo?.gram_balance || 0).toFixed(4)} <span className="text-sm text-emerald-400/60">GRAM</span></p>
+            </div>
+          </div>
+          {gramInfo?.has_pending_withdrawal && (
+            <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20">
+              Pending
+            </span>
+          )}
+        </div>
+
+        {/* Withdrawal Form */}
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={gramInfo?.gram_balance || 0}
+                value={withdrawAmount}
+                onChange={e => setWithdrawAmount(e.target.value)}
+                placeholder={`Min 0.01 GRAM`}
+                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold placeholder-white/20 focus:outline-none focus:border-emerald-500/50"
+              />
+            </div>
+            <button
+              onClick={() => setWithdrawAmount(String(gramInfo?.gram_balance || 0))}
+              className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors"
+            >
+              MAX
+            </button>
+          </div>
+          <button
+            onClick={handleWithdrawGram}
+            disabled={isWithdrawing || !gramInfo?.can_withdraw || !withdrawAmount || parseFloat(withdrawAmount) < 0.01}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+          >
+            {isWithdrawing ? (
+              <><Loader2 size={16} className="animate-spin" />Processing...</>
+            ) : gramInfo?.has_pending_withdrawal ? (
+              <><Clock size={16} />Withdrawal Pending</>  
+            ) : !gramInfo?.wallet ? (
+              <><Wallet size={16} />Connect Wallet First</>
+            ) : (
+              <><ArrowUpRight size={16} />Withdraw GRAM</>
+            )}
+          </button>
+        </div>
+
+        {/* Withdrawal History */}
+        {gramInfo?.history?.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-widest text-white/30">Recent Withdrawals</p>
+            {gramInfo.history.slice(0, 3).map(w => (
+              <div key={w.id} className={`flex items-center justify-between p-2.5 rounded-lg text-xs border ${
+                w.status === 'approved' ? 'bg-emerald-500/10 border-emerald-500/20' :
+                w.status === 'rejected' ? 'bg-red-500/10 border-red-500/20' :
+                'bg-amber-500/10 border-amber-500/20'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {w.status === 'approved' ? <CheckCircle2 size={12} className="text-emerald-400" /> :
+                   w.status === 'rejected' ? <AlertCircle size={12} className="text-red-400" /> :
+                   <Clock size={12} className="text-amber-400" />}
+                  <span className={`font-black ${
+                    w.status === 'approved' ? 'text-emerald-400' : w.status === 'rejected' ? 'text-red-400' : 'text-amber-400'
+                  }`}>{w.amount} GRAM</span>
+                </div>
+                <span className="text-white/30 capitalize">{w.status}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <div className="border-t border-white/5 pt-1">
+        <p className="text-xs text-white/30 font-bold text-center uppercase tracking-widest">⬇ Daily 0.02 GRAM Ad Reward</p>
+      </div>
+
+      {/* Header for ad section */}
+      <div>
+        <h2 className="text-lg font-bold text-ink flex items-center gap-2 justify-center md:justify-start">
+          <Coins className="text-amber-500" /> Daily Ads Daily Rewards
+        </h2>
         <p className="text-sm text-indigo-400 font-bold text-center md:text-left">⚡ Complete daily ads and receive instant payment!</p>
       </div>
 

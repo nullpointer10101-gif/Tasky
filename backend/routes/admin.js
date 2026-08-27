@@ -216,7 +216,7 @@ router.post('/tasks/review', async (req, res) => {
 
     // Get the task details to find reward and telegram_id
     const utRes = await client.query(`
-      SELECT ut.telegram_id, t.reward_tasky, t.title 
+      SELECT ut.telegram_id, t.reward_tasky, COALESCE(t.reward_gram, 0) as reward_gram, t.title 
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
       WHERE ut.id = $1 AND ut.status = 'pending'
@@ -224,17 +224,22 @@ router.post('/tasks/review', async (req, res) => {
 
     if (utRes.rows.length === 0) throw new Error('Task not found or already reviewed');
     
-    const { telegram_id, reward_tasky, title } = utRes.rows[0];
+    const { telegram_id, reward_tasky, reward_gram, title } = utRes.rows[0];
 
     if (action === 'approve') {
       await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = $1`, [user_task_id]);
       await client.query(`UPDATE users SET balance = balance + $1 WHERE telegram_id = $2`, [reward_tasky, telegram_id]);
+      // Credit GRAM balance if task has a gram reward
+      if (parseFloat(reward_gram) > 0) {
+        await client.query(`UPDATE users SET gram_balance = COALESCE(gram_balance, 0) + $1 WHERE telegram_id = $2`, [reward_gram, telegram_id]);
+      }
       
       if (bot && bot.sendMessage) {
         try {
+          const gramNote = parseFloat(reward_gram) > 0 ? `\n<b>+${reward_gram} GRAM</b> also credited! 💎` : '';
           await bot.sendMessage(
             telegram_id,
-            `🎉 <b>HOORAY! Task Approved!</b> 🎉\n\nYour submission for the task <b>"${title}"</b> has been successfully verified!\n\n<b>+${reward_tasky} TASKY</b> has been added to your balance. 🚀\n\nKeep completing tasks to earn more! 💸`,
+            `🎉 <b>HOORAY! Task Approved!</b> 🎉\n\nYour submission for the task <b>"${title}"</b> has been successfully verified!\n\n<b>+${reward_tasky} TASKY</b> has been added to your balance. 🚀${gramNote}\n\nKeep completing tasks to earn more! 💸`,
             { parse_mode: 'HTML' }
           );
         } catch (e) {
@@ -1092,6 +1097,116 @@ router.post('/broadcast/promo', async (req, res) => {
   } catch (error) {
     console.error('[PROMO BROADCAST] Error in route:', error.message);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// ─── GRAM CURRENCY WITHDRAWAL MANAGEMENT ─────────────────────────────────────
+
+// GET /api/admin/gram-withdrawals — list all gram withdrawal requests
+router.get('/gram-withdrawals', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT gw.*, u.username, u.first_name
+      FROM gram_withdrawals gw
+      LEFT JOIN users u ON gw.telegram_id = u.telegram_id
+      ORDER BY gw.requested_at DESC
+      LIMIT 200
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching gram withdrawals:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// POST /api/admin/gram-withdrawals/:id/approve
+router.post('/gram-withdrawals/:id/approve', async (req, res) => {
+  const { id } = req.params;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const wRes = await client.query(
+      `SELECT * FROM gram_withdrawals WHERE id = $1 AND status = 'pending' FOR UPDATE`,
+      [id]
+    );
+    if (wRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Withdrawal not found or already processed' });
+    }
+    const w = wRes.rows[0];
+    await client.query(
+      `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`,
+      [id]
+    );
+    // Deduct gram_balance
+    await client.query(
+      `UPDATE users SET gram_balance = GREATEST(0, gram_balance - $1) WHERE telegram_id = $2`,
+      [w.amount, w.telegram_id]
+    );
+    await client.query('COMMIT');
+    // Notify user
+    if (bot && bot.sendMessage) {
+      try {
+        bot.sendMessage(
+          w.telegram_id,
+          `✅ <b>GRAM Withdrawal Approved!</b>\n\n<b>${w.amount} GRAM</b> is being sent to:\n<code>${w.wallet_address}</code>\n\nThank you! 💎`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (e) {}
+    }
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error approving gram withdrawal:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
+});
+
+// POST /api/admin/gram-withdrawals/:id/reject
+router.post('/gram-withdrawals/:id/reject', async (req, res) => {
+  const { id } = req.params;
+  const { rejection_reason } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const wRes = await client.query(
+      `SELECT * FROM gram_withdrawals WHERE id = $1 AND status = 'pending' FOR UPDATE`,
+      [id]
+    );
+    if (wRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Withdrawal not found or already processed' });
+    }
+    const w = wRes.rows[0];
+    await client.query(
+      `UPDATE gram_withdrawals SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`,
+      [id, rejection_reason || 'Rejected by admin']
+    );
+    // Refund gram_balance
+    await client.query(
+      `UPDATE users SET gram_balance = COALESCE(gram_balance, 0) + $1 WHERE telegram_id = $2`,
+      [w.amount, w.telegram_id]
+    );
+    await client.query('COMMIT');
+    // Notify user
+    if (bot && bot.sendMessage) {
+      try {
+        bot.sendMessage(
+          w.telegram_id,
+          `❌ <b>GRAM Withdrawal Rejected</b>\n\nYour withdrawal of <b>${w.amount} GRAM</b> was rejected.\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\nYour GRAM balance has been refunded. 💎`,
+          { parse_mode: 'HTML' }
+        );
+      } catch (e) {}
+    }
+    res.json({ success: true });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Error rejecting gram withdrawal:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 });
 

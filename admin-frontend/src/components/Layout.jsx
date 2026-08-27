@@ -23,6 +23,7 @@ export default function Layout({ setAuth }) {
     { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine },
     { path: '/gram-claims', label: 'Gram Claims', icon: Coins },
     { path: '/gram-watchers', label: '📺 Gram Watchers', icon: Tv },
+    { path: '/gram-withdrawals', label: '💎 GRAM Withdrawals', icon: Coins },
     { path: '/settings', label: 'Dynamic Settings', icon: Settings },
     { path: '/broadcast', label: 'Broadcast', icon: Send },
     { path: '/machines', label: 'Machines', icon: Server },

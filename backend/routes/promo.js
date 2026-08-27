@@ -71,18 +71,29 @@ router.post('/redeem', async (req, res) => {
       [promo.id]
     );
 
-    // 6. Update user balance
+    // 6. Update user balance (TASKY)
     await client.query(
       'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2',
       [promo.reward_amount, telegram_id]
     );
 
+    // 7. Award GRAM if promo has a gram reward
+    const gramReward = parseFloat(promo.reward_gram || 0);
+    if (gramReward > 0) {
+      await client.query(
+        'UPDATE users SET gram_balance = COALESCE(gram_balance, 0) + $1 WHERE telegram_id = $2',
+        [gramReward, telegram_id]
+      );
+    }
+
     await client.query('COMMIT');
     
+    const gramMsg = gramReward > 0 ? ` + ${gramReward} GRAM` : '';
     res.json({
       success: true,
       reward_amount: promo.reward_amount,
-      message: `Successfully redeemed ${promo.reward_amount} TASKY!`
+      reward_gram: gramReward,
+      message: `Successfully redeemed ${promo.reward_amount} TASKY${gramMsg}!`
     });
 
   } catch (error) {

@@ -10,6 +10,7 @@ import TaskReviews from './pages/TaskReviews';
 import Withdrawals from './pages/Withdrawals';
 import GramClaims from './pages/GramClaims';
 import GramWatchers from './pages/GramWatchers';
+import GramWithdrawals from './pages/GramWithdrawals';
 import Users from './pages/Users';
 import Broadcast from './pages/Broadcast';
 import Settings from './pages/Settings';
@@ -62,6 +63,7 @@ function App() {
             <Route path="withdrawals" element={<Withdrawals />} />
             <Route path="gram-claims" element={<GramClaims />} />
             <Route path="gram-watchers" element={<GramWatchers />} />
+            <Route path="gram-withdrawals" element={<GramWithdrawals />} />
             <Route path="users" element={<Users />} />
             <Route path="broadcast" element={<Broadcast />} />
             <Route path="machines" element={<Machines />} />
