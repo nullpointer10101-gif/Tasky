@@ -143,6 +143,7 @@ router.get('/gram-watchers', async (req, res) => {
       has_wallet: !!(r.gram_wallet_address || r.wallet_address),
       claimed_today: claimedIds.has(r.telegram_id),
       can_claim: parseInt(r.ads_watched, 10) >= 60 && !claimedIds.has(r.telegram_id) && !!(r.gram_wallet_address || r.wallet_address),
+      isOnline: global.onlineUsers ? global.onlineUsers.has(r.telegram_id.toString()) : false,
     }));
 
     res.json({ watchers, total: watchers.length, asOf: new Date().toISOString() });
@@ -150,6 +151,7 @@ router.get('/gram-watchers', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 // ==========================================
 // 3. CONFIGURATION (GLOBAL SETTINGS)

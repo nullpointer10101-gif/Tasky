@@ -38,7 +38,7 @@ const mapPathToAction = (path, method) => {
 
 app.use((req, res, next) => {
   let telegramId = req.body?.telegram_id || req.query?.telegram_id;
-  
+
   if (!telegramId && req.path) {
     const match = req.path.match(/\/(\d{5,15})\b/);
     if (match) {
@@ -48,22 +48,35 @@ app.use((req, res, next) => {
 
   if (telegramId) {
     const action = mapPathToAction(req.path, req.method);
-    const entry = {
-      telegram_id: telegramId.toString(),
-      action,
-      timestamp: Date.now()
-    };
-    
-    // Add to logs
-    global.recentLogs.unshift(entry);
-    if (global.recentLogs.length > 50) {
-      global.recentLogs.pop();
-    }
+    const tidStr = telegramId.toString();
 
-    // Update onlineUsers map
-    global.onlineUsers.set(telegramId.toString(), {
+    // Always mark user as online immediately (so they show as active)
+    global.onlineUsers.set(tidStr, {
       timestamp: Date.now(),
       lastAction: action
+    });
+
+    // Only log the action to recentLogs AFTER the response is sent
+    // and only if it was a successful response (2xx). This prevents
+    // false "Watched Gram Ad" entries from rate-limited / failed requests.
+    res.on('finish', () => {
+      const statusCode = res.statusCode;
+      if (statusCode >= 200 && statusCode < 300) {
+        const entry = {
+          telegram_id: tidStr,
+          action,
+          timestamp: Date.now()
+        };
+        global.recentLogs.unshift(entry);
+        if (global.recentLogs.length > 50) {
+          global.recentLogs.pop();
+        }
+        // Update the lastAction to the confirmed successful action
+        global.onlineUsers.set(tidStr, {
+          timestamp: Date.now(),
+          lastAction: action
+        });
+      }
     });
   }
   next();

@@ -57,8 +57,14 @@ function WatcherCard({ watcher }) {
 
       {/* User info */}
       <div className="flex items-center gap-3 mb-3 pr-16">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${colors.bar} bg-opacity-10 border border-current/20 ${colors.text}`}>
-          <User size={16} />
+        <div className="relative shrink-0">
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${colors.bar} bg-opacity-10 border border-current/20 ${colors.text}`}>
+            <User size={16} />
+          </div>
+          {/* Yellow online dot */}
+          {watcher.isOnline && (
+            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-yellow-400 border-2 border-surface-soft shadow-sm shadow-yellow-400/50" title="Online now" />
+          )}
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black text-ink leading-tight truncate">{watcher.first_name}</p>
@@ -94,6 +100,7 @@ function WatcherCard({ watcher }) {
     </div>
   );
 }
+
 
 export default function GramWatchers() {
   const [data, setData] = useState(null);
