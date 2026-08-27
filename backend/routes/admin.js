@@ -29,6 +29,16 @@ router.get('/stats', async (req, res) => {
     const withdrawalsRes = await pool.query("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'");
     const balanceRes = await pool.query('SELECT SUM(balance) FROM users');
 
+    const gramAdsRes = await pool.query(`
+      SELECT 
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday
+      FROM ad_views
+      WHERE ad_type = 'gram_ad'
+    `);
+    const todayGramAds = parseInt(gramAdsRes.rows[0].today, 10) || 0;
+    const yesterdayGramAds = parseInt(gramAdsRes.rows[0].yesterday, 10) || 0;
+
     const onlineIds = global.onlineUsers ? Array.from(global.onlineUsers.keys()) : [];
     let activeUsersList = [];
     if (onlineIds.length > 0) {
@@ -61,6 +71,8 @@ router.get('/stats', async (req, res) => {
       pendingTasks: parseInt(tasksRes.rows[0].count),
       pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count),
       totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0),
+      todayGramAds,
+      yesterdayGramAds,
       activeUsersList,
       recentLogsList
     });

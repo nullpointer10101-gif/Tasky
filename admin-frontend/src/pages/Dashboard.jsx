@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, CheckSquare, ArrowDownToLine, Coins, Activity } from 'lucide-react';
+import { Users, CheckSquare, ArrowDownToLine, Coins, Activity, Tv } from 'lucide-react';
 import api from '../api';
 
 export default function Dashboard() {
@@ -37,6 +37,11 @@ export default function Dashboard() {
     { title: 'Circulating TASKY', value: stats.totalCirculatingTasky.toLocaleString(), icon: Coins, color: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/5' },
   ];
 
+  const gramAdCards = [
+    { title: "Today's Gram Ads", value: stats.todayGramAds ?? 0, icon: Tv, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', shadow: 'shadow-violet-500/5', badge: 'TODAY' },
+    { title: "Yesterday's Gram Ads", value: stats.yesterdayGramAds ?? 0, icon: Tv, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20', shadow: 'shadow-fuchsia-500/5', badge: 'YESTERDAY' },
+  ];
+
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
       <div className="mb-10">
@@ -62,6 +67,33 @@ export default function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Gram Ads Stats */}
+      <div className="mt-6">
+        <h2 className="text-lg font-black text-ink flex items-center gap-2 mb-4">
+          <Tv className="text-violet-400" size={20} />
+          Gram Ad Views
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+          {gramAdCards.map((card, i) => (
+            <div key={i} className={`bg-surface-soft border ${card.border} rounded-3xl p-6 flex flex-col justify-between shadow-xl ${card.shadow} relative overflow-hidden group`}>
+              <div className={`absolute -right-8 -top-8 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
+              <div className="flex justify-between items-start mb-8 relative z-10">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.bg} ${card.color} backdrop-blur-md`}>
+                  <card.icon size={28} />
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${card.bg} ${card.color} border ${card.border}`}>
+                  {card.badge}
+                </span>
+              </div>
+              <div className="relative z-10">
+                <p className={`text-4xl font-black mb-1 tracking-tight ${card.color}`}>{card.value.toLocaleString()}</p>
+                <p className="text-sm font-bold text-ink-soft uppercase tracking-wider">{card.title}</p>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Active Users & Live Activity Section */}
