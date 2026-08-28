@@ -277,21 +277,21 @@ export async function showRewardedAd(placement = 'main') {
     try {
       return await tryOnClickA();
     } catch (onClickAErr) {
-      console.warn('[AdManager] OnClickA failed/not ready, trying Monetag...', onClickAErr);
+      console.warn('[AdManager] OnClickA failed/not ready, trying GigaPub...', onClickAErr);
     }
 
-    // 2. Try Monetag second
-    try {
-      return await tryMonetag();
-    } catch (monetagErr) {
-      console.warn('[AdManager] Monetag failed/not ready, trying GigaPub as fallback...', monetagErr);
-    }
-
-    // 3. Try GigaPub (Adsgram) as a last resort
+    // 2. Try GigaPub second
     try {
       return await tryGiga();
     } catch (gigaErr) {
-      console.warn('[AdManager] GigaPub fallback failed, waiting for load...', gigaErr);
+      console.warn('[AdManager] GigaPub failed/not ready, trying Monetag as fallback...', gigaErr);
+    }
+
+    // 3. Try Monetag as a last resort
+    try {
+      return await tryMonetag();
+    } catch (monetagErr) {
+      console.warn('[AdManager] Monetag fallback failed, waiting for ad load...', monetagErr);
     }
 
     // 4. If all are not loaded, wait up to 4 seconds for OnClickA/Monetag/GigaPub
@@ -318,10 +318,10 @@ export async function showRewardedAd(placement = 'main') {
         return await tryOnClickA();
       } catch (e) {
         try {
-          return await tryMonetag();
+          return await tryGiga();
         } catch (e2) {
           try {
-            return await tryGiga();
+            return await tryMonetag();
           } catch (e3) {
             // fall through to error
           }
