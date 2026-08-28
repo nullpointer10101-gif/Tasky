@@ -13,6 +13,11 @@ export default function Broadcast() {
   const [promoStatus, setPromoStatus] = useState(null);
   const [isBroadcastingPromo, setIsBroadcastingPromo] = useState(false);
 
+  // New state variables for GRAM Claim Reminder
+  const [gramTarget, setGramTarget] = useState('admin'); // 'admin' or 'all'
+  const [gramStatus, setGramStatus] = useState(null);
+  const [isBroadcastingGram, setIsBroadcastingGram] = useState(false);
+
   useEffect(() => {
     // Check status on mount
     const checkStatus = async () => {
@@ -28,7 +33,21 @@ export default function Broadcast() {
         console.error(e);
       }
     };
+    const checkGramStatus = async () => {
+      try {
+        const res = await api.get('/broadcast/gram-reminder-status');
+        if (res.data) {
+          setGramStatus(res.data);
+          if (res.data.status === 'running') {
+            setIsBroadcastingGram(true);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
     checkStatus();
+    checkGramStatus();
   }, []);
 
   useEffect(() => {
@@ -51,6 +70,57 @@ export default function Broadcast() {
     }
     return () => clearInterval(interval);
   }, [isBroadcastingPromo]);
+
+  useEffect(() => {
+    let interval;
+    if (isBroadcastingGram) {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get('/broadcast/gram-reminder-status');
+          if (res.data) {
+            setGramStatus(res.data);
+            if (res.data.status === 'done') {
+              setIsBroadcastingGram(false);
+              toast.success('GRAM Claim Reminder Broadcast Complete! 🎉');
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [isBroadcastingGram]);
+
+  const handleSendGramReminder = async () => {
+    const confirmMsg = gramTarget === 'admin' 
+      ? 'Are you sure you want to send the daily GRAM reminder to the ADMIN ONLY?' 
+      : 'Are you sure you want to broadcast the daily GRAM reminder to ALL active users?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setGramStatus({
+        target: gramTarget,
+        total: 0,
+        success: 0,
+        failed: 0,
+        status: 'running',
+        currentIdx: 0
+      });
+      setIsBroadcastingGram(true);
+      await api.post('/broadcast/gram-reminder', { target: gramTarget });
+      toast.success('GRAM claim reminder broadcast started!');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to start broadcast');
+      setIsBroadcastingGram(false);
+      setGramStatus(null);
+    }
+  };
+
+  const handleResetGramStatus = () => {
+    setGramStatus(null);
+  };
 
   const handleSend = async () => {
     if (!message.trim()) {
@@ -115,6 +185,10 @@ export default function Broadcast() {
     ? Math.round((promoStatus.currentIdx / promoStatus.total) * 100) 
     : 0;
 
+  const gramProgressPct = gramStatus?.total > 0 
+    ? Math.round((gramStatus.currentIdx / gramStatus.total) * 100) 
+    : 0;
+
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
       <div className="mb-8">
@@ -122,7 +196,7 @@ export default function Broadcast() {
         <p className="text-ink-soft text-sm md:text-base">Push notifications and rewards directly to every active user's Telegram.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* LEFT COLUMN: RAW MESSAGE BROADCAST */}
         <div className="flex flex-col gap-6">
@@ -317,6 +391,140 @@ export default function Broadcast() {
                   >
                     <Send size={18} />
                     Broadcast Promo Code
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* NEW THIRD COLUMN: GRAM CLAIM REMINDER */}
+        <div className="flex flex-col gap-6">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-5 flex gap-4 items-start shadow-sm shadow-amber-500/5">
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div>
+              <h3 className="text-amber-500 font-bold mb-1 text-base leading-tight">Gram Claim Reminder</h3>
+              <p className="text-amber-500/80 text-xs">
+                Broadcasts the daily GRAM claim reminder template. Offers options to test on admins first or send directly to all users.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-surface-soft border border-border rounded-3xl p-6 md:p-8 shadow-xl shadow-black/20 relative overflow-hidden flex-1">
+            <div className="absolute -top-32 -right-32 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              {gramStatus ? (
+                // ACTIVE BROADCAST RUNNING OR COMPLETED VIEW
+                <div className="flex flex-col gap-6">
+                  <div className="flex items-center justify-between border-b border-border pb-4">
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                        {gramStatus.status === 'running' ? 'Sending Live' : 'Broadcast Finished'}
+                      </span>
+                      <h3 className="text-lg font-black text-ink mt-1.5">GRAM Reminder</h3>
+                    </div>
+                    {gramStatus.status === 'done' && (
+                      <button onClick={handleResetGramStatus} className="p-2 bg-surface hover:bg-border text-ink rounded-xl border border-border transition-colors">
+                        <RefreshCw size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* PROGRESS BAR */}
+                  {gramStatus.status === 'running' && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold text-ink-soft">
+                        <span>Progress</span>
+                        <span>{gramStatus.currentIdx} / {gramStatus.total} ({gramProgressPct}%)</span>
+                      </div>
+                      <div className="w-full h-3 bg-surface border border-border rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full transition-all duration-300"
+                          style={{ width: `${gramProgressPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* SUMMARY LOG */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-surface border border-border rounded-2xl p-4 text-center">
+                      <p className="text-2xl font-black text-ink">{gramStatus.total}</p>
+                      <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Total Targets</p>
+                    </div>
+                    <div className="bg-surface border border-emerald-500/20 rounded-2xl p-4 text-center">
+                      <p className="text-2xl font-black text-emerald-400">{gramStatus.success}</p>
+                      <p className="text-[10px] font-bold text-emerald-500/80 uppercase tracking-wider">Delivered</p>
+                    </div>
+                    <div className="bg-surface border border-rose-500/20 rounded-2xl p-4 text-center">
+                      <p className="text-2xl font-black text-rose-400">{gramStatus.failed}</p>
+                      <p className="text-[10px] font-bold text-rose-500/80 uppercase tracking-wider">Failed</p>
+                    </div>
+                  </div>
+
+                  {gramStatus.status === 'done' && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-4 flex gap-3 items-center">
+                      <CheckCircle2 size={24} className="text-emerald-400 shrink-0" />
+                      <div className="text-xs">
+                        <p className="text-emerald-400 font-bold">Successfully completed!</p>
+                        <p className="text-ink-soft mt-0.5">{gramStatus.success} messages delivered out of {gramStatus.total}. Failed: {gramStatus.failed}.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // FORM INPUT VIEW
+                <div className="flex flex-col gap-6 h-full justify-between">
+                  <div>
+                    <label className="flex items-center gap-2 text-xs font-bold text-ink-soft uppercase tracking-wider mb-3 pl-1">
+                      Target Audience
+                    </label>
+                    <div className="grid grid-cols-2 gap-3 mb-6">
+                      <button
+                        onClick={() => setGramTarget('admin')}
+                        className={`py-3 rounded-2xl border text-xs font-black transition-colors ${
+                          gramTarget === 'admin' 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                            : 'bg-surface border-border text-ink-soft hover:text-ink'
+                        }`}
+                      >
+                        🧪 Send Admin Only (Test)
+                      </button>
+                      <button
+                        onClick={() => setGramTarget('all')}
+                        className={`py-3 rounded-2xl border text-xs font-black transition-colors ${
+                          gramTarget === 'all' 
+                            ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' 
+                            : 'bg-surface border-border text-ink-soft hover:text-ink'
+                        }`}
+                      >
+                        📢 Send to All Users
+                      </button>
+                    </div>
+
+                    {/* Predefined message template preview */}
+                    <div className="bg-[#0a0f1c] border border-border/40 rounded-2xl p-4">
+                      <p className="text-[10px] font-black uppercase text-ink-soft tracking-wider mb-2 border-b border-border/40 pb-1.5">Predefined Template Preview</p>
+                      <div className="text-xs font-medium text-ink-soft space-y-2 whitespace-pre-line leading-relaxed">
+                        ⚠️ <b>You have not claimed your daily GRAM reward yet!</b>
+                        {"\n\n"}
+                        Go complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!
+                        {"\n\n"}
+                        💎 <b>Claim your GRAM now:</b>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleSendGramReminder}
+                    disabled={isBroadcastingGram}
+                    className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-900 font-black text-base shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 transition-all mt-6"
+                  >
+                    <Send size={18} />
+                    One-Click Broadcast GRAM Reminder
                   </button>
                 </div>
               )}

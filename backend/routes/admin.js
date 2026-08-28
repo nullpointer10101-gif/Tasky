@@ -1194,6 +1194,81 @@ router.post('/broadcast/promo', async (req, res) => {
   }
 });
 
+// Global tracking variables for gram reminder broadcasts
+global.gramReminderBroadcast = null;
+
+router.get('/broadcast/gram-reminder-status', (req, res) => {
+  res.json(global.gramReminderBroadcast);
+});
+
+router.post('/broadcast/gram-reminder', async (req, res) => {
+  const { target } = req.body;
+
+  if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running') {
+    return res.status(400).json({ error: 'Another Gram reminder broadcast is currently in progress.' });
+  }
+
+  const text = `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`;
+
+  try {
+    const adminId = '8823265955';
+    let targets = [];
+    if (target === 'admin') {
+      targets = [adminId];
+    } else {
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
+      targets = usersRes.rows.map(r => r.telegram_id);
+    }
+
+    console.log(`[GRAM REMINDER BROADCAST] Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
+
+    global.gramReminderBroadcast = {
+      target,
+      total: targets.length,
+      success: 0,
+      failed: 0,
+      status: 'running',
+      currentIdx: 0
+    };
+
+    // Process asynchronously in background
+    (async () => {
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            if (bot && bot.sendMessage) {
+              await bot.sendMessage(tid, text, { 
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: "🎁 Claim GRAM 🚀", url: "https://t.me/TaskyAppbot/app" }]
+                  ]
+                }
+              });
+              global.gramReminderBroadcast.success++;
+            }
+          } catch (err) {
+            console.error(`[GRAM BROADCAST] Failed for ${tid}:`, err.message);
+            global.gramReminderBroadcast.failed++;
+          }
+        }));
+        global.gramReminderBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      global.gramReminderBroadcast.status = 'done';
+      console.log(`[GRAM BROADCAST] Finished! Success: ${global.gramReminderBroadcast.success}, Failed: ${global.gramReminderBroadcast.failed}`);
+    })();
+
+    res.json({ success: true, message: 'Gram reminder broadcast started' });
+  } catch (error) {
+    console.error('[GRAM BROADCAST] Error in route:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+
 // ─── GRAM CURRENCY WITHDRAWAL MANAGEMENT ─────────────────────────────────────
 
 // GET /api/admin/gram-withdrawals — list all gram withdrawal requests
