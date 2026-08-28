@@ -1199,11 +1199,6 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`,
       [id]
     );
-    // Deduct gram_balance
-    await client.query(
-      `UPDATE users SET gram_balance = GREATEST(0, gram_balance - $1) WHERE telegram_id = $2`,
-      [w.amount, w.telegram_id]
-    );
     await client.query('COMMIT');
     // Notify user
     if (bot && bot.sendMessage) {

@@ -238,6 +238,48 @@ bot.on('callback_query', async (query) => {
             console.error('Error approving Gram claim:', err);
             bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
         }
+    } else if (data.startsWith('approve_gram_w_')) {
+        const withdrawalId = data.split('_')[3];
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            const wRes = await client.query(
+                `SELECT * FROM gram_withdrawals WHERE id = $1 AND status = 'pending' FOR UPDATE`,
+                [withdrawalId]
+            );
+            if (wRes.rows.length === 0) {
+                await client.query('ROLLBACK');
+                return bot.answerCallbackQuery(query.id, { text: 'Withdrawal not found or already processed' });
+            }
+            const w = wRes.rows[0];
+            await client.query(
+                `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`,
+                [withdrawalId]
+            );
+            await client.query('COMMIT');
+
+            bot.editMessageText(`✅ Approved by admin\n\n` + query.message.text, {
+                chat_id: chatId,
+                message_id: query.message.message_id
+            });
+
+            try {
+                bot.sendMessage(
+                    w.telegram_id,
+                    `💎 <b>GRAM Withdrawal Approved!</b> 💎\n\n💰 <b>Amount:</b> <code>${w.amount} GRAM</code>\n🏦 <b>Address:</b> <code>${w.wallet_address}</code>\n\n🚀 Your GRAM withdrawal request has been successfully approved and is on the way!\n\n📢 <b>SHARE PROOF TO GET REWARDS:</b>\nShare a screenshot of your payment proof in our community to qualify for future bonus rewards:\n👉 <a href="https://t.me/TaskyOfficialCommunity">Join Tasky Official Community</a>\n\nThank you! 💎`,
+                    { parse_mode: 'HTML', disable_web_page_preview: true }
+                );
+            } catch (e) {
+                console.error('Failed to notify user of approved gram withdrawal:', e.message);
+            }
+            bot.answerCallbackQuery(query.id, { text: 'Gram withdrawal approved!' });
+        } catch (err) {
+            await client.query('ROLLBACK');
+            console.error('Error approving Gram withdrawal:', err);
+            bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
+        } finally {
+            client.release();
+        }
     } else if (data.startsWith('broadcast_promo_')) {
         const promoId = data.split('_')[2];
         try {
