@@ -238,19 +238,20 @@ export function waitForGiga(timeoutMs = 12000) {
 }
 
 /**
- * Helper to play an ad with strict watch time and tab focus lost tracking.
+ * Helper to play an ad with strict watch time and visibility change tracking.
  * Prevents cheating by ensuring the user stays on the app and watches the ad to completion.
  */
 async function playAdWithFocusProtection(playAdFn) {
   let isInterrupted = false;
 
   const handleInterruption = () => {
-    console.log('[AdManager] Focus lost or tab hidden during ad playback!');
-    isInterrupted = true;
+    if (document.hidden) {
+      console.log('[AdManager] Ad interrupted: WebApp backgrounded or hidden');
+      isInterrupted = true;
+    }
   };
 
   if (typeof window !== 'undefined') {
-    window.addEventListener('blur', handleInterruption);
     document.addEventListener('visibilitychange', handleInterruption);
   }
 
@@ -260,7 +261,7 @@ async function playAdWithFocusProtection(playAdFn) {
     const elapsed = (Date.now() - startTime) / 1000;
 
     if (isInterrupted) {
-      throw new Error('Ad playback was interrupted (navigated away or clicked the ad).');
+      throw new Error('Ad playback was interrupted (navigated away or closed early).');
     }
 
     if (elapsed < 12) {
@@ -270,7 +271,6 @@ async function playAdWithFocusProtection(playAdFn) {
     return res;
   } finally {
     if (typeof window !== 'undefined') {
-      window.removeEventListener('blur', handleInterruption);
       document.removeEventListener('visibilitychange', handleInterruption);
     }
   }
