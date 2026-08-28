@@ -21,13 +21,16 @@ export default function Users() {
   const [selectedManageUser, setSelectedManageUser] = useState(null);
 
   useEffect(() => {
-    fetchUsers();
-  }, [sortBy]);
+    const delayDebounce = setTimeout(() => {
+      fetchUsers();
+    }, 450); // 450ms debounce for search query
+    return () => clearTimeout(delayDebounce);
+  }, [sortBy, searchTerm]);
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/users?sortBy=' + sortBy);
+      const res = await api.get(`/users?sortBy=${sortBy}&search=${encodeURIComponent(searchTerm)}`);
       setUsers(res.data);
     } catch (error) {
       toast.error('Failed to load users');

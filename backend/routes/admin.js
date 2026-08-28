@@ -527,12 +527,38 @@ router.get('/ads/stats', async (req, res) => {
 // ==========================================
 router.get('/users', async (req, res) => {
   try {
+    const { sortBy, search } = req.query;
     let orderClause = 'u.balance DESC';
-    if (req.query.sortBy === 'newest') orderClause = 'u.created_at DESC';
-    else if (req.query.sortBy === 'total_referrals' || req.query.sortBy === 'referrals') orderClause = 'u.total_referrals DESC';
-    else if (req.query.sortBy === 'valid_referrals') orderClause = 'u.valid_referrals DESC';
-    else if (req.query.sortBy === 'referrals_today') {
+    if (sortBy === 'newest') orderClause = 'u.created_at DESC';
+    else if (sortBy === 'total_referrals' || sortBy === 'referrals') orderClause = 'u.total_referrals DESC';
+    else if (sortBy === 'valid_referrals') orderClause = 'u.valid_referrals DESC';
+    else if (sortBy === 'referrals_today') {
       orderClause = `(SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id AND created_at >= NOW() - INTERVAL '24 hours') DESC`;
+    }
+
+    let whereClause = '';
+    const queryParams = [];
+    if (search && search.trim() !== '') {
+      const isNumber = /^\d+$/.test(search.trim());
+      if (isNumber) {
+        whereClause = `
+          WHERE u.telegram_id = $1
+             OR u.username ILIKE $2
+             OR u.first_name ILIKE $2
+             OR u.wallet_address ILIKE $2
+             OR u.gram_wallet_address ILIKE $2
+        `;
+        queryParams.push(parseInt(search.trim(), 10));
+        queryParams.push(`%${search.trim()}%`);
+      } else {
+        whereClause = `
+          WHERE u.username ILIKE $1
+             OR u.first_name ILIKE $1
+             OR u.wallet_address ILIKE $1
+             OR u.gram_wallet_address ILIKE $1
+        `;
+        queryParams.push(`%${search.trim()}%`);
+      }
     }
 
     const query = `
@@ -541,10 +567,11 @@ router.get('/users', async (req, res) => {
         (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched,
         (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id AND created_at >= NOW() - INTERVAL '24 hours') as referrals_today
       FROM users u
+      ${whereClause}
       ORDER BY ${orderClause}
       LIMIT 1000
     `;
-    const { rows } = await pool.query(query);
+    const { rows } = await pool.query(query, queryParams);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
