@@ -77,7 +77,13 @@ router.get('/stats', async (req, res) => {
       pendingGramWithdrawals = parseInt(gwRes.rows[0].count, 10) || 0;
     } catch (_) {}
 
-    // New users who joined in the last 24 hours
+    // New users count in the last 24 hours
+    const newUsersCountRes = await pool.query(`
+      SELECT COUNT(*) FROM users WHERE created_at >= NOW() - INTERVAL '24 hours'
+    `);
+    const newUsersToday = parseInt(newUsersCountRes.rows[0].count, 10) || 0;
+
+    // New users list (still limited to 200 for frontend rendering performance)
     const newUsersRes = await pool.query(`
       SELECT telegram_id, username, first_name, created_at
       FROM users
@@ -86,7 +92,6 @@ router.get('/stats', async (req, res) => {
       LIMIT 200
     `);
     const newUsersList = newUsersRes.rows;
-    const newUsersToday = newUsersList.length;
 
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count),

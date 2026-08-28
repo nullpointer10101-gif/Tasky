@@ -40,6 +40,7 @@ function getActionBadge(action) {
 
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [activeFeedTab, setActiveFeedTab] = useState('activity'); // 'activity' or 'new_users'
 
   useEffect(() => {
     fetchStats();
@@ -132,18 +133,154 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* New Users Today */}
-      <div className="mt-6">
-        <h2 className="text-lg font-black text-ink flex items-center gap-2 mb-4">
-          <UserPlus className="text-pink-400" size={20} />
-          New Users (Last 24h)
-          <span className="text-xs bg-pink-500/10 text-pink-400 font-bold px-2.5 py-1 rounded-full border border-pink-500/20 ml-1">
-            {stats.newUsersToday ?? 0} joined
+      {/* Tab Switcher for Feeds */}
+      <div className="flex bg-surface-soft p-1 rounded-2xl border border-border w-fit mt-10 mb-6 shadow-sm">
+        <button
+          onClick={() => setActiveFeedTab('activity')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+            activeFeedTab === 'activity' 
+              ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+              : 'text-ink-soft hover:text-ink'
+          }`}
+        >
+          <Activity size={14} className={activeFeedTab === 'activity' ? 'animate-pulse' : ''} />
+          Live User Activity
+        </button>
+        <button
+          onClick={() => setActiveFeedTab('new_users')}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs transition-all ${
+            activeFeedTab === 'new_users' 
+              ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/20' 
+              : 'text-ink-soft hover:text-ink'
+          }`}
+        >
+          <UserPlus size={14} />
+          New Registrations (Last 24h)
+          <span className="text-[10px] bg-pink-500/10 text-pink-400 font-bold px-2 py-0.5 rounded-md border border-pink-500/20 ml-1">
+            {stats.newUsersToday ?? 0}
           </span>
-        </h2>
-        <div className="bg-surface-soft border border-border rounded-3xl p-4 shadow-xl">
+        </button>
+      </div>
+
+      {activeFeedTab === 'activity' ? (
+        /* Active Users & Live Activity Section */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-250">
+          {/* Active Users List */}
+          <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-black text-ink flex items-center gap-2">
+                <Activity className="text-indigo-400 animate-pulse" size={20} />
+                Active Users
+              </h2>
+              <span className="text-xs bg-indigo-500/10 text-indigo-400 font-bold px-2.5 py-1 rounded-full border border-indigo-500/20">
+                {stats.activeUsersList?.length || 0} Online
+              </span>
+            </div>
+
+            <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 custom-scrollbar">
+              {!stats.activeUsersList || stats.activeUsersList.length === 0 ? (
+                <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+                  No active users in the last 5 minutes.
+                </div>
+              ) : (
+                stats.activeUsersList.map((user, idx) => {
+                  const meta = getActionBadge(user.lastAction);
+                  const IconComp = meta.icon;
+                  return (
+                    <div key={idx} className="bg-surface border border-border/60 hover:border-indigo-500/30 transition-all rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
+                      {/* Avatar */}
+                      <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0 text-sm font-black">
+                        {(user.first_name || '?')[0].toUpperCase()}
+                      </div>
+                      {/* Name + handle */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-ink text-sm leading-tight truncate">{user.first_name || 'No Name'}</p>
+                        <p className="text-[11px] text-ink-soft font-mono truncate">@{user.username || user.telegram_id}</p>
+                      </div>
+                      {/* Action badge */}
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-1 rounded-lg border ${meta.bg} ${meta.color} ${meta.border}`}>
+                          <IconComp size={10} />
+                          {meta.label}
+                        </span>
+                        <span className="text-[10px] text-ink-soft font-bold">
+                          {Math.max(0, Math.round((Date.now() - user.timestamp) / 1000))}s ago
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Live Activity Logs */}
+          <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-black text-ink flex items-center gap-2">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
+                </span>
+                Live Activity
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-black bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                Real-time
+              </span>
+            </div>
+
+            <div className="overflow-y-auto space-y-2 flex-1 pr-1 custom-scrollbar">
+              {!stats.recentLogsList || stats.recentLogsList.length === 0 ? (
+                <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+                  Listening for incoming requests...
+                </div>
+              ) : (
+                stats.recentLogsList.map((log, idx) => {
+                  const meta = getActionMeta(log.action);
+                  const IconComp = meta.icon;
+                  return (
+                    <div key={idx} className={`bg-surface border border-border/60 rounded-2xl p-3 flex items-center gap-3 shadow-sm border-l-2`}
+                      style={{ borderLeftColor: meta.color.replace('text-', '').includes('indigo') ? '#818cf8' : undefined }}
+                    >
+                      {/* Action Icon */}
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${meta.bg} ${meta.color} border ${meta.border}`}>
+                        <IconComp size={14} />
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-1.5 flex-wrap">
+                          <span className="text-xs font-black text-ink leading-none">{log.first_name || 'User'}</span>
+                          {log.username && log.username !== log.telegram_id && (
+                            <span className="text-[10px] text-ink-soft font-mono">@{log.username}</span>
+                          )}
+                        </div>
+                        <p className={`text-[11px] font-bold mt-0.5 ${meta.color}`}>{meta.label}</p>
+                      </div>
+                      {/* Time */}
+                      <span className="text-[9px] text-ink-soft font-bold shrink-0">
+                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* New Users List tab */
+        <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl animate-in fade-in slide-in-from-bottom-2 duration-250">
+          <div className="mb-6 flex justify-between items-center">
+            <h2 className="text-lg font-black text-ink flex items-center gap-2">
+              <UserPlus className="text-pink-400" size={20} />
+              New Users (Last 24h)
+            </h2>
+            <span className="text-xs bg-pink-500/10 text-pink-400 font-bold px-2.5 py-1 rounded-full border border-pink-500/20">
+              {stats.newUsersToday ?? 0} registered
+            </span>
+          </div>
           {!stats.newUsersList || stats.newUsersList.length === 0 ? (
-            <div className="text-center py-8 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+            <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
               No new users in the last 24 hours.
             </div>
           ) : (
@@ -171,112 +308,7 @@ export default function Dashboard() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Active Users & Live Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-10">
-        {/* Active Users List */}
-        <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-black text-ink flex items-center gap-2">
-              <Activity className="text-indigo-400 animate-pulse" size={20} />
-              Active Users
-            </h2>
-            <span className="text-xs bg-indigo-500/10 text-indigo-400 font-bold px-2.5 py-1 rounded-full border border-indigo-500/20">
-              {stats.activeUsersList?.length || 0} Online
-            </span>
-          </div>
-
-          <div className="overflow-y-auto space-y-2.5 flex-1 pr-1 custom-scrollbar">
-            {!stats.activeUsersList || stats.activeUsersList.length === 0 ? (
-              <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
-                No active users in the last 5 minutes.
-              </div>
-            ) : (
-              stats.activeUsersList.map((user, idx) => {
-                const meta = getActionBadge(user.lastAction);
-                const IconComp = meta.icon;
-                return (
-                  <div key={idx} className="bg-surface border border-border/60 hover:border-indigo-500/30 transition-all rounded-2xl p-3.5 flex items-center gap-3 shadow-sm">
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shrink-0 text-sm font-black">
-                      {(user.first_name || '?')[0].toUpperCase()}
-                    </div>
-                    {/* Name + handle */}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-ink text-sm leading-tight truncate">{user.first_name || 'No Name'}</p>
-                      <p className="text-[11px] text-ink-soft font-mono truncate">@{user.username || user.telegram_id}</p>
-                    </div>
-                    {/* Action badge */}
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <span className={`flex items-center gap-1 text-[10px] font-black uppercase tracking-wide px-2 py-1 rounded-lg border ${meta.bg} ${meta.color} ${meta.border}`}>
-                        <IconComp size={10} />
-                        {meta.label}
-                      </span>
-                      <span className="text-[10px] text-ink-soft font-bold">
-                        {Math.max(0, Math.round((Date.now() - user.timestamp) / 1000))}s ago
-                      </span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* Live Activity Logs */}
-        <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-black text-ink flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-              </span>
-              Live Activity
-            </h2>
-            <span className="text-[10px] text-emerald-400 font-black bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
-              Real-time
-            </span>
-          </div>
-
-          <div className="overflow-y-auto space-y-2 flex-1 pr-1 custom-scrollbar">
-            {!stats.recentLogsList || stats.recentLogsList.length === 0 ? (
-              <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
-                Listening for incoming requests...
-              </div>
-            ) : (
-              stats.recentLogsList.map((log, idx) => {
-                const meta = getActionMeta(log.action);
-                const IconComp = meta.icon;
-                return (
-                  <div key={idx} className={`bg-surface border border-border/60 rounded-2xl p-3 flex items-center gap-3 shadow-sm border-l-2`}
-                    style={{ borderLeftColor: meta.color.replace('text-', '').includes('indigo') ? '#818cf8' : undefined }}
-                  >
-                    {/* Action Icon */}
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${meta.bg} ${meta.color} border ${meta.border}`}>
-                      <IconComp size={14} />
-                    </div>
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1.5 flex-wrap">
-                        <span className="text-xs font-black text-ink leading-none">{log.first_name || 'User'}</span>
-                        {log.username && log.username !== log.telegram_id && (
-                          <span className="text-[10px] text-ink-soft font-mono">@{log.username}</span>
-                        )}
-                      </div>
-                      <p className={`text-[11px] font-bold mt-0.5 ${meta.color}`}>{meta.label}</p>
-                    </div>
-                    {/* Time */}
-                    <span className="text-[9px] text-ink-soft font-bold shrink-0">
-                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
