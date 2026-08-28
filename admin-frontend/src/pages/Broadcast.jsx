@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift } from 'lucide-react';
 
 export default function Broadcast() {
   const [message, setMessage] = useState('');
@@ -17,6 +17,24 @@ export default function Broadcast() {
   const [gramTarget, setGramTarget] = useState('admin'); // 'admin' or 'all'
   const [gramStatus, setGramStatus] = useState(null);
   const [isBroadcastingGram, setIsBroadcastingGram] = useState(false);
+
+  // Special Promo Broadcast State
+  const [isSendingSpecial, setIsSendingSpecial] = useState(false);
+
+  const handleSendSpecialPromo = async () => {
+    if (!window.confirm('Are you sure you want to send the special 1 USDT + 20K TASKY promo broadcast preview to Telegram Admin?')) {
+      return;
+    }
+    setIsSendingSpecial(true);
+    try {
+      const res = await api.post('/broadcast/special-promo');
+      toast.success(res.data.message || 'Broadcast preview sent successfully!');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to trigger promo broadcast');
+    } finally {
+      setIsSendingSpecial(false);
+    }
+  };
 
   useEffect(() => {
     // Check status on mount
@@ -196,7 +214,7 @@ export default function Broadcast() {
         <p className="text-ink-soft text-sm md:text-base">Push notifications and rewards directly to every active user's Telegram.</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
         
         {/* LEFT COLUMN: RAW MESSAGE BROADCAST */}
         <div className="flex flex-col gap-6">
@@ -528,6 +546,75 @@ export default function Broadcast() {
                   </button>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+
+        {/* FOURTH COLUMN: SPECIAL PROMO (1 USDT + 20K TASKY) BROADCAST */}
+        <div className="flex flex-col gap-6">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-5 flex gap-4 items-start shadow-sm shadow-emerald-500/5">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
+              <Gift size={20} />
+            </div>
+            <div>
+              <h3 className="text-emerald-500 font-bold mb-1 text-base leading-tight">Special Promo</h3>
+              <p className="text-emerald-500/80 text-xs">
+                Broadcasts the premium "1 USDT + 20,000 TASKY" 10-referral offer with an attached campaign image and inline claim button.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-surface-soft border border-border rounded-3xl p-6 md:p-8 shadow-xl shadow-black/20 relative overflow-hidden flex-1 animate-in fade-in duration-200">
+            <div className="absolute -top-32 -right-32 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="relative z-10 flex flex-col h-full justify-between">
+              <div className="flex flex-col gap-6">
+                <div>
+                  <label className="flex items-center gap-2 text-xs font-bold text-ink-soft uppercase tracking-wider mb-3 pl-1">
+                    Template Details
+                  </label>
+                  
+                  {/* Photo & Template Preview */}
+                  <div className="bg-[#0a0f1c] border border-border/40 rounded-2xl p-4 space-y-3">
+                    <p className="text-[10px] font-black uppercase text-ink-soft tracking-wider mb-1 border-b border-border/40 pb-1.5">Campaign Info</p>
+                    <div className="aspect-video w-full rounded-lg bg-surface border border-border/50 flex flex-col items-center justify-center text-ink-soft gap-2 p-4 text-center">
+                      <Gift size={24} className="text-emerald-400" />
+                      <span className="text-[10px] font-bold">Campaign Banner Attached</span>
+                    </div>
+                    <div className="text-xs font-medium text-ink-soft space-y-2 whitespace-pre-line leading-relaxed">
+                      🚨 <b>NEW 24H OFFER UNLOCKED!</b> 🚨
+                      {"\n\n"}
+                      You can now instantly claim a massive reward!
+                      🎁 <b>1 USDT + 20,000 TASKY!</b>
+                      {"\n\n"}
+                      All you need is <b>10 friends</b>! 🤯
+                    </div>
+                    <div className="pt-2 border-t border-border/40">
+                      <div className="w-full py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-xl text-center text-[10px] font-black tracking-wider uppercase">
+                        🎁 CLAIM 1 USDT + 20K TASKY 🚀
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSendSpecialPromo}
+                disabled={isSendingSpecial}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-slate-905 font-black text-base shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all mt-6"
+              >
+                {isSendingSpecial ? (
+                  <div className="flex items-center gap-2 animate-pulse">
+                    <RefreshCw size={18} className="animate-spin" />
+                    Sending Preview...
+                  </div>
+                ) : (
+                  <>
+                    <Send size={18} />
+                    1-Click Send Special Promo
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

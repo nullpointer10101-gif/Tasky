@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import LiveActivity from './pages/LiveActivity';
 import Ads from './pages/Ads';
 import DynamicSettings from './pages/DynamicSettings';
 import TaskManagement from './pages/TaskManagement';
@@ -56,6 +57,7 @@ function App() {
         {auth ? (
           <Route path="/" element={<Layout setAuth={setAuth} />}>
             <Route index element={<Dashboard />} />
+            <Route path="live-activity" element={<LiveActivity />} />
             <Route path="ads" element={<Ads />} />
             <Route path="settings" element={<DynamicSettings />} />
             <Route path="tasks" element={<TaskManagement />} />

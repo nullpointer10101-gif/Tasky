@@ -42,14 +42,18 @@ export default function GramClaims() {
 
   const handleReview = async (id, action) => {
     let reason = '';
+    let txHash = '';
     if (action === 'reject') {
       reason = prompt('Enter rejection reason:');
       if (reason === null) return;
+    } else if (action === 'approve') {
+      txHash = prompt('Enter transaction hash or Tonviewer link (optional):');
+      if (txHash === null) txHash = '';
     }
-
+ 
     setProcessingId(id);
     try {
-      await api.post('/gram/claims/review', { claim_id: id, action, rejection_reason: reason });
+      await api.post('/gram/claims/review', { claim_id: id, action, rejection_reason: reason, tx_hash: txHash });
       toast.success("Gram claim " + action + "d successfully");
       setClaims(claims.filter(c => c.claim_id !== id));
       fetchHistory();
@@ -198,6 +202,19 @@ export default function GramClaims() {
                   <div className="bg-[#0a0f1c] p-2 px-3 rounded-xl border border-border/50">
                     <code className="text-xs text-ink-soft font-mono truncate">{h.gram_wallet_address}</code>
                   </div>
+                  {h.tx_hash && (
+                    <div className="mt-2 text-xs font-medium text-emerald-400 flex items-center gap-1.5 pl-1">
+                      <span>🔗 Proof:</span>
+                      <a
+                        href={h.tx_hash.trim().startsWith('http') ? h.tx_hash.trim() : `https://tonviewer.com/transaction/${h.tx_hash.trim()}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="underline font-bold hover:text-emerald-300 transition-colors"
+                      >
+                        View Transaction
+                      </a>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex justify-between w-full md:w-auto md:gap-8 px-2 md:px-6 md:border-l border-border/50">

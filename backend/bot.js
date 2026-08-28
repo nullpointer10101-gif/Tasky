@@ -363,6 +363,49 @@ bot.on('callback_query', async (query) => {
             console.error('Error broadcasting global:', err);
             bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
         }
+    } else if (data.startsWith('broadcast_special_promo_')) {
+        const broadcastId = data.split('_')[3];
+        try {
+            await pool.query("UPDATE pending_broadcasts SET status = 'approved' WHERE id = $1", [broadcastId]);
+            
+            bot.editMessageText(`✅ *Special Promo Broadcast Started*`, {
+                chat_id: chatId,
+                message_id: query.message.message_id,
+                parse_mode: 'Markdown'
+            });
+            bot.answerCallbackQuery(query.id, { text: 'Broadcasting special promo to all users...' });
+
+            const caption = `🚨 <b>NEW 24H OFFER UNLOCKED!</b> 🚨\n\nYou can now instantly claim a massive reward!\n🎁 <b>1 USDT + 20,000 TASKY!</b>\n\nAll you need is <b>10 friends</b>! 🤯`;
+            const imagePath = "C:\\Users\\aleem\\.gemini\\antigravity-ide\\brain\\6afd19f2-8e50-494a-a2de-af4aa4958dfd\\.user_uploaded\\media_1787575868413.png";
+            
+            const options = {
+                parse_mode: "HTML",
+                reply_markup: { 
+                    inline_keyboard: [[{ text: "🎁 CLAIM 1 USDT + 20K TASKY 🚀", url: "https://t.me/TaskyAppbot/app" }]] 
+                }
+            };
+
+            const { rows } = await pool.query('SELECT telegram_id FROM users WHERE is_banned = FALSE');
+            let successCount = 0;
+            const fs = require('fs');
+
+            for (let user of rows) {
+                try {
+                    await bot.sendPhoto(user.telegram_id, fs.createReadStream(imagePath), {
+                        caption: caption,
+                        ...options
+                    });
+                    successCount++;
+                    await new Promise(r => setTimeout(r, 50));
+                } catch (err) {
+                    console.error(`Failed to send to ${user.telegram_id}`, err.message);
+                }
+            }
+            bot.sendMessage(chatId, `📢 Special Promo Broadcast completed: sent to ${successCount} users.`);
+        } catch (err) {
+            console.error('Error broadcasting special promo:', err);
+            bot.answerCallbackQuery(query.id, { text: 'Error processing request' });
+        }
     }
 });
 

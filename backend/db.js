@@ -368,6 +368,10 @@ const initDB = async () => {
 
       -- GRAM AD CLAIM REUSE MITIGATION
       ALTER TABLE ad_views ADD COLUMN IF NOT EXISTS claimed BOOLEAN DEFAULT FALSE;
+
+      -- GRAM TRANSACTION HASH SUPPORT
+      ALTER TABLE gram_claims ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
+      ALTER TABLE gram_withdrawals ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
     `;
 
     await client.query(initScript);

@@ -83,13 +83,13 @@ router.get('/stats', async (req, res) => {
     `);
     const newUsersToday = parseInt(newUsersCountRes.rows[0].count, 10) || 0;
 
-    // New users list (still limited to 200 for frontend rendering performance)
+    // New users list (increased limit to 2000)
     const newUsersRes = await pool.query(`
       SELECT telegram_id, username, first_name, created_at
       FROM users
       WHERE created_at >= NOW() - INTERVAL '24 hours'
       ORDER BY created_at DESC
-      LIMIT 200
+      LIMIT 2000
     `);
     const newUsersList = newUsersRes.rows;
 
@@ -784,6 +784,40 @@ router.post('/broadcast', async (req, res) => {
   }
 });
 
+router.post('/broadcast/special-promo', async (req, res) => {
+  try {
+    const caption = `🚨 <b>NEW 24H OFFER UNLOCKED!</b> 🚨\n\nYou can now instantly claim a massive reward!\n🎁 <b>1 USDT + 20,000 TASKY!</b>\n\nAll you need is <b>10 friends</b>! 🤯`;
+    
+    const insertRes = await pool.query(
+      "INSERT INTO pending_broadcasts (message) VALUES ($1) RETURNING id",
+      [caption]
+    );
+    const broadcastId = insertRes.rows[0].id;
+
+    if (bot && bot.sendMessage) {
+      try {
+        const adminId = '8823265955';
+        const msg = `📢 *Special Promo Broadcast Preview*\n\nDo you want to send the 1 USDT + 20K TASKY promo broadcast (with photo) to ALL users?`;
+        bot.sendMessage(adminId, msg, {
+          parse_mode: 'Markdown',
+          reply_markup: {
+            inline_keyboard: [
+              [{ text: '✅ Approve & Send to All', callback_data: `broadcast_special_promo_${broadcastId}` }]
+            ]
+          }
+        });
+      } catch (e) {
+        console.error('Failed to send special promo preview:', e.message);
+      }
+    }
+
+    res.json({ success: true, message: 'Special promo broadcast preview sent to your Telegram Admin Bot for approval!' });
+  } catch (error) {
+    console.error('Special Promo Broadcast Error:', error);
+    res.status(500).json({ error: 'Failed to start special promo broadcast' });
+  }
+});
+
 // ==========================================
 // 8. SYSTEM SETTINGS
 // ==========================================
@@ -1065,7 +1099,7 @@ router.get('/gram/claims/pending', async (req, res) => {
   try {
     const query = `
       SELECT 
-        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at,
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.tx_hash,
         u.telegram_id, u.username, u.first_name
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
@@ -1083,7 +1117,7 @@ router.get('/gram/claims/history', async (req, res) => {
   try {
     const query = `
       SELECT 
-        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.status, gc.rejection_reason, gc.processed_at,
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.status, gc.rejection_reason, gc.processed_at, gc.tx_hash,
         u.telegram_id, u.username, u.first_name
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
@@ -1099,7 +1133,7 @@ router.get('/gram/claims/history', async (req, res) => {
 });
 
 router.post('/gram/claims/review', async (req, res) => {
-  const { claim_id, action, rejection_reason } = req.body;
+  const { claim_id, action, rejection_reason, tx_hash } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1110,13 +1144,18 @@ router.post('/gram/claims/review', async (req, res) => {
     const { telegram_id, amount } = claimRes.rows[0];
 
     if (action === 'approve') {
-      await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW() WHERE id = $1`, [claim_id]);
+      await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [claim_id, tx_hash || null]);
       if (bot && bot.sendMessage) {
         try {
+          let txText = '';
+          if (tx_hash) {
+            const txLink = tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`;
+            txText = `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
+          }
           await bot.sendMessage(
             telegram_id,
-            `🎉 <b>Gram Reward Approved & Paid!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
-            { parse_mode: 'HTML', disable_web_page_preview: true }
+            `🎉 <b>Gram Reward Approved & Paid!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
+            { parse_mode: 'HTML', disable_web_page_preview: false }
           );
         } catch (e) {
           console.error('Failed to notify user of Gram claim approval:', e.message);
@@ -1323,6 +1362,7 @@ router.get('/gram-withdrawals', async (req, res) => {
 // POST /api/admin/gram-withdrawals/:id/approve
 router.post('/gram-withdrawals/:id/approve', async (req, res) => {
   const { id } = req.params;
+  const { tx_hash } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1336,17 +1376,22 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
     }
     const w = wRes.rows[0];
     await client.query(
-      `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`,
-      [id]
+      `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`,
+      [id, tx_hash || null]
     );
     await client.query('COMMIT');
     // Notify user
     if (bot && bot.sendMessage) {
       try {
+        let txText = '';
+        if (tx_hash) {
+          const txLink = tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`;
+          txText = `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
+        }
         bot.sendMessage(
           w.telegram_id,
-          `💎 <b>GRAM Withdrawal Approved!</b> 💎\n\n💰 <b>Amount:</b> <code>${w.amount} GRAM</code>\n🏦 <b>Address:</b> <code>${w.wallet_address}</code>\n\n🚀 Your GRAM withdrawal request has been successfully approved and is on the way!\n\n📢 <b>SHARE PROOF TO GET REWARDS:</b>\nShare a screenshot of your payment proof in our community to qualify for future bonus rewards:\n👉 <a href="https://t.me/TaskyOfficialCommunity">Join Tasky Official Community</a>\n\nThank you! 💎`,
-          { parse_mode: 'HTML', disable_web_page_preview: true }
+          `💎 <b>GRAM Withdrawal Approved!</b> 💎\n\n💰 <b>Amount:</b> <code>${w.amount} GRAM</code>\n🏦 <b>Address:</b> <code>${w.wallet_address}</code>\n\n🚀 Your GRAM withdrawal request has been successfully approved and is on the way!${txText}\n\n📢 <b>SHARE PROOF TO GET REWARDS:</b>\nShare a screenshot of your payment proof in our community to qualify for future bonus rewards:\n👉 <a href="https://t.me/TaskyOfficialCommunity">Join Tasky Official Community</a>\n\nThank you! 💎`,
+          { parse_mode: 'HTML', disable_web_page_preview: false }
         );
       } catch (e) {}
     }

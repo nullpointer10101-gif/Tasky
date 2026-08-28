@@ -30,7 +30,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await api.get(`/users?sortBy=${sortBy}&search=${encodeURIComponent(searchTerm)}`);
+      const res = await api.get(`/users?sortBy=${sortBy}&search=${encodeURIComponent(searchTerm.trim())}`);
       setUsers(res.data);
     } catch (error) {
       toast.error('Failed to load users');
@@ -244,10 +244,8 @@ export default function Users() {
 
   // --- Filtering & Sorting ---
   const filteredUsers = users.filter(u => {
-    const matchesSearch = (u.username && u.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                          (u.telegram_id && u.telegram_id.toString().includes(searchTerm));
     const matchesEligible = showEligible ? Number(u.balance || 0) >= 3000 : true;
-    return matchesSearch && matchesEligible;
+    return matchesEligible;
   }).sort((a, b) => {
     if (sortBy === 'balance') return Number(b.balance || 0) - Number(a.balance || 0);
     if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);

@@ -163,8 +163,8 @@ export default function Dashboard() {
       </div>
 
       {activeFeedTab === 'activity' ? (
-        /* Active Users & Live Activity Section */
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-2 duration-250">
+        /* Active Users Section taking full width */
+        <div className="animate-in fade-in slide-in-from-bottom-2 duration-250">
           {/* Active Users List */}
           <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
             <div className="flex justify-between items-center mb-6">
@@ -207,59 +207,6 @@ export default function Dashboard() {
                           {Math.max(0, Math.round((Date.now() - user.timestamp) / 1000))}s ago
                         </span>
                       </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          {/* Live Activity Logs */}
-          <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col max-h-[500px]">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-black text-ink flex items-center gap-2">
-                <span className="relative flex h-2.5 w-2.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span>
-                </span>
-                Live Activity
-              </h2>
-              <span className="text-[10px] text-emerald-400 font-black bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                Real-time
-              </span>
-            </div>
-
-            <div className="overflow-y-auto space-y-2 flex-1 pr-1 custom-scrollbar">
-              {!stats.recentLogsList || stats.recentLogsList.length === 0 ? (
-                <div className="text-center py-12 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
-                  Listening for incoming requests...
-                </div>
-              ) : (
-                stats.recentLogsList.map((log, idx) => {
-                  const meta = getActionMeta(log.action);
-                  const IconComp = meta.icon;
-                  return (
-                    <div key={idx} className={`bg-surface border border-border/60 rounded-2xl p-3 flex items-center gap-3 shadow-sm border-l-2`}
-                      style={{ borderLeftColor: meta.color.replace('text-', '').includes('indigo') ? '#818cf8' : undefined }}
-                    >
-                      {/* Action Icon */}
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${meta.bg} ${meta.color} border ${meta.border}`}>
-                        <IconComp size={14} />
-                      </div>
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-1.5 flex-wrap">
-                          <span className="text-xs font-black text-ink leading-none">{log.first_name || 'User'}</span>
-                          {log.username && log.username !== log.telegram_id && (
-                            <span className="text-[10px] text-ink-soft font-mono">@{log.username}</span>
-                          )}
-                        </div>
-                        <p className={`text-[11px] font-bold mt-0.5 ${meta.color}`}>{meta.label}</p>
-                      </div>
-                      {/* Time */}
-                      <span className="text-[9px] text-ink-soft font-bold shrink-0">
-                        {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
                     </div>
                   );
                 })

@@ -146,7 +146,15 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
   const handleSwap = async () => {
-    if (!isConnected) return showToast('Connect your wallet first', 'error');
+    if (!isConnected) {
+      try {
+        tonConnectUI.openModal();
+      } catch (e) {
+        console.error('Failed to open TON Connect modal:', e);
+        showToast('Connect your wallet first', 'error');
+      }
+      return;
+    }
     if (!swapAmount || Number(swapAmount) < minSwap) {
       return showToast(`Minimum swap is ${minSwap} TASKY`, 'error');
     }

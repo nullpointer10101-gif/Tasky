@@ -35,10 +35,13 @@ export default function GramWithdrawals() {
   }, [fetchWithdrawals]);
 
   const handleApprove = async (id) => {
+    let txHash = prompt('Enter transaction hash or Tonviewer link (optional):');
+    if (txHash === null) txHash = '';
+
     setProcessing(id);
     try {
-      await api.post(`/gram-withdrawals/${id}/approve`);
-      setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', processed_at: new Date().toISOString() } : w));
+      await api.post(`/gram-withdrawals/${id}/approve`, { tx_hash: txHash });
+      setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', processed_at: new Date().toISOString(), tx_hash: txHash } : w));
     } catch (err) {
       alert('Failed to approve: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -185,6 +188,20 @@ export default function GramWithdrawals() {
 
                     {w.status === 'rejected' && w.rejection_reason && (
                       <p className="text-[10px] text-red-400/70 mt-1">Reason: {w.rejection_reason}</p>
+                    )}
+
+                    {w.status === 'approved' && w.tx_hash && (
+                      <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-400">
+                        <span>🔗 Proof:</span>
+                        <a
+                          href={w.tx_hash.trim().startsWith('http') ? w.tx_hash.trim() : `https://tonviewer.com/transaction/${w.tx_hash.trim()}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline font-bold hover:text-emerald-300 transition-colors"
+                        >
+                          View Transaction
+                        </a>
+                      </div>
                     )}
                   </div>
 
