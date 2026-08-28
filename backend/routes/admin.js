@@ -77,6 +77,17 @@ router.get('/stats', async (req, res) => {
       pendingGramWithdrawals = parseInt(gwRes.rows[0].count, 10) || 0;
     } catch (_) {}
 
+    // New users who joined in the last 24 hours
+    const newUsersRes = await pool.query(`
+      SELECT telegram_id, username, first_name, created_at
+      FROM users
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
+    const newUsersList = newUsersRes.rows;
+    const newUsersToday = newUsersList.length;
+
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count),
       onlineUsers: global.onlineUsers ? global.onlineUsers.size : 0,
@@ -88,7 +99,9 @@ router.get('/stats', async (req, res) => {
       todayGramAds,
       yesterdayGramAds,
       activeUsersList,
-      recentLogsList
+      recentLogsList,
+      newUsersToday,
+      newUsersList
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

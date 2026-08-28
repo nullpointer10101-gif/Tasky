@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem, Zap, Wifi } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
@@ -12,6 +12,8 @@ import Card, { cardVariants } from '../components/Card';
 export default function Gram({ user, refreshUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
+  const [adLoadingStage, setAdLoadingStage] = useState(0); // 0=idle 1=preparing 2=loading 3=starting
+  const adStageTimerRef = useRef(null);
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -88,6 +90,12 @@ export default function Gram({ user, refreshUser }) {
     }
 
     setIsWatchingAd(true);
+    setAdLoadingStage(1);
+
+    // Progress through loading stages for UX feedback
+    adStageTimerRef.current = setTimeout(() => setAdLoadingStage(2), 1500);
+    adStageTimerRef.current = setTimeout(() => setAdLoadingStage(3), 4000);
+
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       const adResult = await showRewardedAd('main');
@@ -95,6 +103,7 @@ export default function Gram({ user, refreshUser }) {
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         setIsWatchingAd(false);
+        setAdLoadingStage(0);
         return;
       }
 
@@ -119,7 +128,9 @@ export default function Gram({ user, refreshUser }) {
       console.error('Ad watch error:', err);
       showToast('Failed to log ad completion', 'error');
     } finally {
+      clearTimeout(adStageTimerRef.current);
       setIsWatchingAd(false);
+      setAdLoadingStage(0);
     }
   };
 
@@ -421,23 +432,64 @@ export default function Gram({ user, refreshUser }) {
 
               {/* Action button for watching ad */}
               {status?.ads_watched_today < 60 && (
-                <button
-                  onClick={handleWatchAd}
-                  disabled={isWatchingAd}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-indigo-400/20"
-                >
-                  {isWatchingAd ? (
-                    <>
-                      <Loader2 size={18} className="animate-spin" />
-                      Loading Ad Video...
-                    </>
-                  ) : (
-                    <>
+                <>
+                  <AnimatePresence>
+                    {isWatchingAd && (
+                      <motion.div
+                        key="ad-loading-overlay"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="w-full bg-black/60 border border-indigo-500/30 rounded-2xl p-5 flex flex-col items-center gap-3 backdrop-blur-sm"
+                      >
+                        {/* Animated pulse ring */}
+                        <div className="relative">
+                          <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+                            <Play size={22} className="text-indigo-400" fill="currentColor" />
+                          </div>
+                          <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 animate-ping" />
+                        </div>
+
+                        <div className="text-center space-y-1">
+                          <p className="text-sm font-black text-white">
+                            {adLoadingStage === 1 && '⚡ Preparing your ad...'}
+                            {adLoadingStage === 2 && '📡 Connecting to ad network...'}
+                            {adLoadingStage >= 3 && '🎬 Starting video ad...'}
+                          </p>
+                          <p className="text-[11px] text-white/40 font-bold">
+                            Please keep the app open and watch the full ad
+                          </p>
+                        </div>
+
+                        {/* Animated loading bar */}
+                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                            initial={{ width: '0%' }}
+                            animate={{ width: adLoadingStage === 1 ? '25%' : adLoadingStage === 2 ? '60%' : '85%' }}
+                            transition={{ duration: 1.2, ease: 'easeInOut' }}
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">
+                          <Wifi size={10} />
+                          <span>Do not close or switch apps</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {!isWatchingAd && (
+                    <button
+                      onClick={handleWatchAd}
+                      disabled={isWatchingAd}
+                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50 disabled:active:scale-100 shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-indigo-400/20"
+                    >
                       <Play size={16} fill="currentColor" />
                       Watch Ad (+1 Progress)
-                    </>
+                    </button>
                   )}
-                </button>
+                </>
               )}
             </div>
           </Card>

@@ -28,19 +28,35 @@ export function initOnClickAAds() {
     }
   };
 
-  // If script is already loaded and initCdTma is available
+  // If script is already loaded and initCdTma is available, initialize immediately
   if (typeof window.initCdTma === 'function') {
     initCdTmaSafe();
     return;
   }
 
-  // If script element exists (e.g. from index.html) but not fully loaded yet
   const existingScript = document.getElementById(ONCLICKA_SCRIPT_ID);
   if (existingScript) {
-    existingScript.onload = () => {
+    // The preloaded script from index.html may have already fired its onload
+    // before this function was called. Poll for initCdTma to handle that race condition.
+    let pollElapsed = 0;
+    const pollInterval = setInterval(() => {
+      pollElapsed += 100;
+      if (typeof window.initCdTma === 'function') {
+        clearInterval(pollInterval);
+        console.log('[AdManager] initCdTma detected via poll, initializing OnClickA...');
+        initCdTmaSafe();
+      } else if (pollElapsed >= 8000) {
+        clearInterval(pollInterval);
+        console.warn('[AdManager] initCdTma never became available after 8s');
+      }
+    }, 100);
+
+    // Also hook onload in case it hasn't fired yet
+    existingScript.addEventListener('load', () => {
+      clearInterval(pollInterval);
       console.log('[AdManager] Preloaded OnClickA script onload event fired');
       initCdTmaSafe();
-    };
+    });
     return;
   }
 
@@ -238,42 +254,19 @@ export function waitForGiga(timeoutMs = 12000) {
 }
 
 /**
- * Helper to play an ad with strict watch time and visibility change tracking.
- * Prevents cheating by ensuring the user stays on the app and watches the ad to completion.
+ * Helper to play an ad with strict watch time tracking.
+ * Prevents cheating by ensuring the user watches the ad to completion.
  */
 async function playAdWithFocusProtection(playAdFn) {
-  let isInterrupted = false;
+  const startTime = Date.now();
+  const res = await playAdFn();
+  const elapsed = (Date.now() - startTime) / 1000;
 
-  const handleInterruption = () => {
-    if (document.hidden) {
-      console.log('[AdManager] Ad interrupted: WebApp backgrounded or hidden');
-      isInterrupted = true;
-    }
-  };
-
-  if (typeof window !== 'undefined') {
-    document.addEventListener('visibilitychange', handleInterruption);
+  if (elapsed < 12) {
+    throw new Error('Ad was closed too early.');
   }
 
-  try {
-    const startTime = Date.now();
-    const res = await playAdFn();
-    const elapsed = (Date.now() - startTime) / 1000;
-
-    if (isInterrupted) {
-      throw new Error('Ad playback was interrupted (navigated away or closed early).');
-    }
-
-    if (elapsed < 12) {
-      throw new Error('Ad was closed too early.');
-    }
-
-    return res;
-  } finally {
-    if (typeof window !== 'undefined') {
-      document.removeEventListener('visibilitychange', handleInterruption);
-    }
-  }
+  return res;
 }
 
 /**
@@ -339,21 +332,33 @@ export async function showRewardedAd(placement = 'main') {
     try {
       return await primaryTry();
     } catch (err) {
-      console.warn(`[AdManager] Primary ad network (${primaryName}) failed/not ready. trying secondary (${secondaryName})...`, err);
+      const errMsg = String(err?.message || err || '');
+      if (errMsg.includes('not available')) {
+        console.warn(`[AdManager] Primary ad network (${primaryName}) not available. trying secondary (${secondaryName})...`);
+      } else {
+        // The ad started playing but was closed early or failed. Do NOT play fallback ads!
+        throw err;
+      }
     }
 
     // 2. Try secondary network
     try {
       return await secondaryTry();
     } catch (err) {
-      console.warn(`[AdManager] Secondary ad network (${secondaryName}) failed/not ready. trying Monetag as critical fallback...`, err);
+      const errMsg = String(err?.message || err || '');
+      if (errMsg.includes('not available')) {
+        console.warn(`[AdManager] Secondary ad network (${secondaryName}) not available. trying Monetag as critical fallback...`);
+      } else {
+        throw err;
+      }
     }
 
     // 3. Try Monetag as a last resort
     try {
       return await tryMonetag();
     } catch (monetagErr) {
-      console.warn('[AdManager] Monetag fallback failed, waiting for ad load...', monetagErr);
+      console.warn('[AdManager] Monetag fallback failed', monetagErr);
+      throw monetagErr;
     }
 
     // 4. If all are not loaded, wait up to 4 seconds for OnClickA/GigaPub/Monetag
@@ -379,14 +384,24 @@ export async function showRewardedAd(placement = 'main') {
       try {
         return await primaryTry();
       } catch (e) {
-        try {
-          return await secondaryTry();
-        } catch (e2) {
+        const errMsg = String(e?.message || e || '');
+        if (errMsg.includes('not available')) {
           try {
-            return await tryMonetag();
-          } catch (e3) {
-            // fall through to error
+            return await secondaryTry();
+          } catch (e2) {
+            const errMsg2 = String(e2?.message || e2 || '');
+            if (errMsg2.includes('not available')) {
+              try {
+                return await tryMonetag();
+              } catch (e3) {
+                // fall through to error
+              }
+            } else {
+              throw e2;
+            }
           }
+        } else {
+          throw e;
         }
       }
     }
@@ -408,7 +423,7 @@ export async function showRewardedAd(placement = 'main') {
     ) {
       return {
         success: false,
-        error: 'You must watch the entire ad without clicking or leaving the app to receive credit.'
+        error: 'You must watch the entire ad to receive credit.'
       };
     }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, CheckSquare, ArrowDownToLine, Coins, Activity, Tv,
   LogIn, Calendar, RotateCcw, ListChecks, Pickaxe, Wallet,
-  Eye, Gift, Upload, Zap, Star, Image, UserCheck
+  Eye, Gift, Upload, Zap, Star, Image, UserCheck, UserPlus, Clock
 } from 'lucide-react';
 import api from '../api';
 
@@ -71,6 +71,7 @@ export default function Dashboard() {
     { title: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/5' },
     { title: 'Active Users (5m)', value: stats.onlineUsers || 0, icon: Activity, color: 'text-indigo-400', bg: 'bg-indigo-500/10', shadow: 'shadow-indigo-500/5' },
     { title: 'Circulating TASKY', value: stats.totalCirculatingTasky.toLocaleString(), icon: Coins, color: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/5' },
+    { title: 'New Users Today', value: stats.newUsersToday ?? 0, icon: UserPlus, color: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-pink-500/5' },
   ];
 
   const gramAdCards = [
@@ -85,7 +86,7 @@ export default function Dashboard() {
         <p className="text-ink-soft text-sm md:text-base">Real-time statistics for the Tasky platform infrastructure.</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {statCards.map((stat, i) => (
           <div key={i} className={`bg-surface-soft border border-border rounded-3xl p-6 flex flex-col justify-between shadow-xl ${stat.shadow} relative overflow-hidden group`}>
             <div className={`absolute -right-8 -top-8 w-32 h-32 ${stat.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
@@ -128,6 +129,47 @@ export default function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* New Users Today */}
+      <div className="mt-6">
+        <h2 className="text-lg font-black text-ink flex items-center gap-2 mb-4">
+          <UserPlus className="text-pink-400" size={20} />
+          New Users (Last 24h)
+          <span className="text-xs bg-pink-500/10 text-pink-400 font-bold px-2.5 py-1 rounded-full border border-pink-500/20 ml-1">
+            {stats.newUsersToday ?? 0} joined
+          </span>
+        </h2>
+        <div className="bg-surface-soft border border-border rounded-3xl p-4 shadow-xl">
+          {!stats.newUsersList || stats.newUsersList.length === 0 ? (
+            <div className="text-center py-8 text-ink-soft font-bold text-sm bg-surface rounded-2xl border border-border/50">
+              No new users in the last 24 hours.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {stats.newUsersList.map((u, idx) => (
+                <div key={idx} className="bg-surface border border-pink-500/10 hover:border-pink-500/30 transition-all rounded-2xl p-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-pink-500/10 text-pink-400 flex items-center justify-center border border-pink-500/20 shrink-0 text-sm font-black">
+                    {(u.first_name || '?')[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-ink text-sm leading-tight truncate">{u.first_name || 'No Name'}</p>
+                    <p className="text-[11px] text-ink-soft font-mono truncate">@{u.username || u.telegram_id}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-0.5 shrink-0">
+                    <div className="flex items-center gap-1 text-[10px] text-pink-400/80 font-bold">
+                      <Clock size={9} />
+                      {new Date(u.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <p className="text-[9px] text-ink-soft font-bold">
+                      {new Date(u.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
