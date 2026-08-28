@@ -249,6 +249,8 @@ export default function Users() {
     if (sortBy === 'balance') return Number(b.balance || 0) - Number(a.balance || 0);
     if (sortBy === 'newest') return new Date(b.created_at) - new Date(a.created_at);
     if (sortBy === 'ads') return Number(b.withdrawal_ads_watched || 0) - Number(a.withdrawal_ads_watched || 0);
+    if (sortBy === 'total_referrals') return Number(b.total_referrals || 0) - Number(a.total_referrals || 0);
+    if (sortBy === 'valid_referrals') return Number(b.valid_referrals || 0) - Number(a.valid_referrals || 0);
     return 0;
   });
 
@@ -331,6 +333,8 @@ export default function Users() {
           >
             <option value="balance">Sort by: Highest Balance</option>
             <option value="ads">Sort by: Highest Ads Watched</option>
+            <option value="total_referrals">Sort by: Most Referrals (Total)</option>
+            <option value="valid_referrals">Sort by: Most Referrals (Valid)</option>
             <option value="newest">Sort by: Newest Joined</option>
           </select>
         </div>
@@ -347,6 +351,7 @@ export default function Users() {
                   <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider">User</th>
                   <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider">Balance</th>
                   <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider">Ads Progress</th>
+                  <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider">Referrals</th>
                   <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider">Status</th>
                   <th className="p-4 text-xs font-bold text-ink-soft uppercase tracking-wider text-right">Actions</th>
                 </tr>
@@ -354,7 +359,7 @@ export default function Users() {
               <tbody>
                 {filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="p-8 text-center text-ink-soft">No users found.</td>
+                    <td colSpan="6" className="p-8 text-center text-ink-soft">No users found.</td>
                   </tr>
                 ) : (
                   filteredUsers.map(user => (
@@ -381,6 +386,14 @@ export default function Users() {
                             {user.withdrawal_ads_watched || 0}
                           </span>
                           <span className="text-ink-soft">/ 1000</span>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="flex items-center gap-1 text-sm font-bold">
+                          <span className="text-emerald-400">
+                            {user.valid_referrals || 0}
+                          </span>
+                          <span className="text-ink-soft">/ {user.total_referrals || 0}</span>
                         </div>
                       </td>
                       <td className="p-4">
