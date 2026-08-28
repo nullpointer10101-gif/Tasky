@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Gem, RefreshCw, CheckCircle, XCircle, Clock, Wallet, User, AlertCircle } from 'lucide-react';
+import { Gem, RefreshCw, CheckCircle, XCircle, Clock, Wallet, User, AlertCircle, ArrowUpRight, Copy } from 'lucide-react';
 import api from '../api';
 
 function timeSince(dateStr) {
@@ -153,9 +153,32 @@ export default function GramWithdrawals() {
                       <span className="text-base font-black text-emerald-300">{parseFloat(w.amount).toFixed(4)} GRAM</span>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-1">
-                      <Wallet size={11} className="text-white/30 shrink-0" />
-                      <span className="text-[10px] font-mono text-white/30 truncate">{w.wallet_address}</span>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Wallet size={11} className="text-white/30 shrink-0" />
+                        <span className="text-[10px] font-mono text-white/30 truncate max-w-[200px]" title={w.wallet_address}>{w.wallet_address}</span>
+                      </div>
+                      
+                      {w.status === 'pending' && (
+                        <div className="flex items-center gap-1.5">
+                          <a 
+                            href={`ton://transfer/${w.wallet_address}?amount=${Math.round(Number(w.amount) * 1000000000)}&text=${encodeURIComponent('Tasky Withdrawal 🎁')}`}
+                            className="px-2 py-0.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 rounded-md transition-all flex items-center gap-1 text-[9px] font-black"
+                            title="Pay with Tonkeeper"
+                          >
+                            Pay <ArrowUpRight size={10} />
+                          </a>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText(w.wallet_address);
+                            }} 
+                            className="p-1 text-white/30 hover:text-white hover:bg-white/5 rounded transition-all"
+                            title="Copy Address"
+                          >
+                            <Copy size={10} />
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     <p className="text-[10px] text-white/20">{timeSince(w.requested_at)}</p>
