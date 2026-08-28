@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Copy, Clock, History, Coins } from 'lucide-react';
+import { CheckCircle2, XCircle, Copy, Clock, History, Coins, ArrowUpRight } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -128,9 +128,18 @@ export default function GramClaims() {
                   
                   <div className="bg-[#0a0f1c] p-3 rounded-2xl border border-border/50 flex items-center justify-between group">
                     <code className="text-sm text-amber-400 font-mono truncate mr-4">{c.gram_wallet_address}</code>
-                    <button onClick={() => copyToClipboard(c.gram_wallet_address)} className="p-2 text-ink-soft hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all shrink-0">
-                      <Copy size={16} />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a 
+                        href={`ton://transfer/${c.gram_wallet_address}?amount=${Math.round(Number(c.amount) * 1000000000)}&text=${encodeURIComponent('Tasky Withdrawal 🎁')}`}
+                        className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 rounded-xl transition-all flex items-center gap-1 text-xs font-black"
+                        title="Pay with Tonkeeper"
+                      >
+                        Pay <ArrowUpRight size={12} />
+                      </a>
+                      <button onClick={() => copyToClipboard(c.gram_wallet_address)} className="p-2 text-ink-soft hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all">
+                        <Copy size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 

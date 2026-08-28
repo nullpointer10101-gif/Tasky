@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Copy, Clock, History, Search } from 'lucide-react';
+import { CheckCircle2, XCircle, Copy, Clock, History, Search, ArrowUpRight } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -200,9 +200,18 @@ export default function Withdrawals() {
                   
                   <div className="bg-[#0a0f1c] p-3 rounded-2xl border border-border/50 flex items-center justify-between group">
                     <code className="text-sm text-indigo-400 font-mono truncate mr-4">{w.wallet_address}</code>
-                    <button onClick={() => copyToClipboard(w.wallet_address)} className="p-2 text-ink-soft hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all shrink-0">
-                      <Copy size={16} />
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <a 
+                        href={`ton://transfer/${w.wallet_address}?amount=${Math.round(Number(w.usdt_amount) * 1000000000)}&text=${encodeURIComponent('Tasky Withdrawal 🎁')}`}
+                        className="px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 rounded-xl transition-all flex items-center gap-1 text-xs font-black"
+                        title="Pay with Tonkeeper"
+                      >
+                        Pay <ArrowUpRight size={12} />
+                      </a>
+                      <button onClick={() => copyToClipboard(w.wallet_address)} className="p-2 text-ink-soft hover:text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all">
+                        <Copy size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
