@@ -378,6 +378,75 @@ router.post('/special-offer/claim', async (req, res) => {
     }
 });
 
+// POST /api/users/verify-channels
+router.post('/verify-channels', async (req, res) => {
+    const { telegram_id } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        const userRes = await pool.query('SELECT has_verified_channels FROM users WHERE telegram_id = $1', [telegram_id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        
+        if (userRes.rows[0].has_verified_channels) {
+            return res.json({ success: true, message: 'Already verified' });
+        }
+
+        let joinedChannel = false;
+        try {
+            if (bot && bot.getChatMember) {
+                const member = await bot.getChatMember('@Tasky_Official', telegram_id);
+                joinedChannel = ['member', 'administrator', 'creator'].includes(member.status);
+            } else {
+                joinedChannel = true;
+            }
+        } catch (e) {
+            console.error('Error checking @Tasky_Official join:', e.message);
+            joinedChannel = true;
+        }
+
+        let joinedCommunity = false;
+        try {
+            if (bot && bot.getChatMember) {
+                const member = await bot.getChatMember('@TaskyOfficialCommunity', telegram_id);
+                joinedCommunity = ['member', 'administrator', 'creator'].includes(member.status);
+            } else {
+                joinedCommunity = true;
+            }
+        } catch (e) {
+            console.error('Error checking @TaskyOfficialCommunity join:', e.message);
+            joinedCommunity = true;
+        }
+
+        if (!joinedChannel || !joinedCommunity) {
+            return res.status(400).json({ error: 'Please join both the Channel and Community group first!' });
+        }
+
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            const updateRes = await client.query(`
+                UPDATE users 
+                SET balance = balance + 200, has_verified_channels = TRUE 
+                WHERE telegram_id = $1 
+                RETURNING balance
+            `, [telegram_id]);
+            
+            await client.query('COMMIT');
+            res.json({ success: true, new_balance: parseFloat(updateRes.rows[0].balance) });
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+
+    } catch (error) {
+        console.error('Error in /verify-channels:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 module.exports = router;
 
 

@@ -283,3 +283,9 @@ export const requestGramWithdrawal = withMock(
   { success: true, message: 'Withdrawal request submitted!' },
   (telegram_id, amount) => () => api.post('/api/gram-currency/withdraw', { telegram_id, amount })
 )
+
+// --- CHANNELS VERIFICATION ---
+export const verifyChannels = withMock(
+  { success: true, new_balance: 200 },
+  (telegram_id) => () => api.post('/api/users/verify-channels', { telegram_id })
+)

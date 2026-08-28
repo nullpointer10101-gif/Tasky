@@ -17,6 +17,7 @@ import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
 import { initGigaAds } from './adUtils'
 import { AdminProvider } from './AdminContext'
+import ChannelVerification from './components/ChannelVerification'
 
 export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
@@ -238,6 +239,19 @@ export default function App() {
         <h1 className="text-2xl font-black text-white mb-3">Account Banned</h1>
         <p className="text-ink-soft mb-8">Your account has been restricted by an administrator. You can no longer use this app.</p>
       </div>
+    );
+  }
+
+  if (!user.has_verified_channels) {
+    return (
+      <ToastContext.Provider value={{ showToast }}>
+        <div className="flex flex-col h-full overflow-hidden bg-bg">
+          <AnimatePresence>
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+          </AnimatePresence>
+          <ChannelVerification user={user} refreshUser={refreshUser} tgUser={tgUser} />
+        </div>
+      </ToastContext.Provider>
     );
   }
 
