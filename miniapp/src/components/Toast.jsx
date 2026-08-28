@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 
 export default function Toast({ message, type = 'success', onClose }) {
   useEffect(() => {
-    const timer = setTimeout(() => onClose(), 2200);
+    const timer = setTimeout(() => onClose(), 4500);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [message]);

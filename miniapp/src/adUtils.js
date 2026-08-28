@@ -219,6 +219,45 @@ export function waitForGiga(timeoutMs = 12000) {
 }
 
 /**
+ * Helper to play an ad with strict watch time and tab focus lost tracking.
+ * Prevents cheating by ensuring the user stays on the app and watches the ad to completion.
+ */
+async function playAdWithFocusProtection(playAdFn) {
+  let isInterrupted = false;
+
+  const handleInterruption = () => {
+    console.log('[AdManager] Focus lost or tab hidden during ad playback!');
+    isInterrupted = true;
+  };
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('blur', handleInterruption);
+    document.addEventListener('visibilitychange', handleInterruption);
+  }
+
+  try {
+    const startTime = Date.now();
+    const res = await playAdFn();
+    const elapsed = (Date.now() - startTime) / 1000;
+
+    if (isInterrupted) {
+      throw new Error('Ad playback was interrupted (navigated away or clicked the ad).');
+    }
+
+    if (elapsed < 12) {
+      throw new Error('Ad was closed too early.');
+    }
+
+    return res;
+  } finally {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('blur', handleInterruption);
+      document.removeEventListener('visibilitychange', handleInterruption);
+    }
+  }
+}
+
+/**
  * High-level helper to play a rewarded ad reliably.
  * @param {string} placement - Placement name (default: "main")
  * @returns {Promise<{ success: boolean, error?: string }>}
@@ -227,16 +266,12 @@ export async function showRewardedAd(placement = 'main') {
   const tryOnClickA = async () => {
     if (typeof window !== 'undefined' && typeof window.showOnClickA === 'function') {
       console.log('[AdManager] Trying OnClickA...');
-      const startTime = Date.now();
-      await Promise.race([
-        window.showOnClickA(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('OnClickA timeout')), 60000))
-      ]);
-      const elapsed = (Date.now() - startTime) / 1000;
-      console.log(`[AdManager] OnClickA completed in ${elapsed.toFixed(1)}s`);
-      if (elapsed < 12) {
-        throw new Error('Ad was closed early');
-      }
+      await playAdWithFocusProtection(async () => {
+        await Promise.race([
+          window.showOnClickA(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('OnClickA timeout')), 60000))
+        ]);
+      });
       return { success: true };
     }
     throw new Error('OnClickA not available');
@@ -245,15 +280,14 @@ export async function showRewardedAd(placement = 'main') {
   const tryMonetag = async () => {
     if (typeof window !== 'undefined' && typeof window.show_11395836 === 'function') {
       console.log('[AdManager] Trying Monetag fallback...');
-      const startTime = Date.now();
-      const res = await Promise.race([
-        window.show_11395836(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Monetag timeout')), 60000))
-      ]);
-      const elapsed = (Date.now() - startTime) / 1000;
-      console.log(`[AdManager] Monetag completed in ${elapsed.toFixed(1)}s. Result:`, res);
-      if (!res || res.reward_event_type !== 'valued' || elapsed < 12) {
-        throw new Error('Ad was closed early or not valued');
+      const res = await playAdWithFocusProtection(async () => {
+        return await Promise.race([
+          window.show_11395836(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Monetag timeout')), 60000))
+        ]);
+      });
+      if (!res || res.reward_event_type !== 'valued') {
+        throw new Error('Ad was not valued');
       }
       return { success: true };
     }
@@ -263,28 +297,37 @@ export async function showRewardedAd(placement = 'main') {
   const tryGiga = async () => {
     if (typeof window !== 'undefined' && typeof window.showGiga === 'function') {
       console.log('[AdManager] Trying GigaPub...');
-      await Promise.race([
-        window.showGiga(placement),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
-      ]);
+      await playAdWithFocusProtection(async () => {
+        await Promise.race([
+          window.showGiga(placement),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
+        ]);
+      });
       return { success: true };
     }
     throw new Error('GigaPub not available');
   };
 
+  // Determine primary/secondary ad network order with 50/50 probability
+  const preferOnClickA = Math.random() < 0.5;
+  const primaryTry = preferOnClickA ? tryOnClickA : tryGiga;
+  const primaryName = preferOnClickA ? 'OnClickA' : 'GigaPub';
+  const secondaryTry = preferOnClickA ? tryGiga : tryOnClickA;
+  const secondaryName = preferOnClickA ? 'GigaPub' : 'OnClickA';
+
   try {
-    // 1. Try OnClickA first (primary network)
+    // 1. Try primary network (OnClickA or GigaPub - 50% chance each)
     try {
-      return await tryOnClickA();
-    } catch (onClickAErr) {
-      console.warn('[AdManager] OnClickA failed/not ready, trying GigaPub...', onClickAErr);
+      return await primaryTry();
+    } catch (err) {
+      console.warn(`[AdManager] Primary ad network (${primaryName}) failed/not ready. trying secondary (${secondaryName})...`, err);
     }
 
-    // 2. Try GigaPub second
+    // 2. Try secondary network
     try {
-      return await tryGiga();
-    } catch (gigaErr) {
-      console.warn('[AdManager] GigaPub failed/not ready, trying Monetag as fallback...', gigaErr);
+      return await secondaryTry();
+    } catch (err) {
+      console.warn(`[AdManager] Secondary ad network (${secondaryName}) failed/not ready. trying Monetag as critical fallback...`, err);
     }
 
     // 3. Try Monetag as a last resort
@@ -294,15 +337,15 @@ export async function showRewardedAd(placement = 'main') {
       console.warn('[AdManager] Monetag fallback failed, waiting for ad load...', monetagErr);
     }
 
-    // 4. If all are not loaded, wait up to 4 seconds for OnClickA/Monetag/GigaPub
+    // 4. If all are not loaded, wait up to 4 seconds for OnClickA/GigaPub/Monetag
     let elapsed = 0;
     const isReady = await new Promise(resolve => {
       const interval = setInterval(() => {
         elapsed += 150;
         if (
           (typeof window !== 'undefined' && typeof window.showOnClickA === 'function') ||
-          (typeof window.show_11395836 === 'function') ||
-          (typeof window.showGiga === 'function')
+          (typeof window.showGiga === 'function') ||
+          (typeof window.show_11395836 === 'function')
         ) {
           clearInterval(interval);
           resolve(true);
@@ -315,10 +358,10 @@ export async function showRewardedAd(placement = 'main') {
 
     if (isReady) {
       try {
-        return await tryOnClickA();
+        return await primaryTry();
       } catch (e) {
         try {
-          return await tryGiga();
+          return await secondaryTry();
         } catch (e2) {
           try {
             return await tryMonetag();
@@ -338,10 +381,15 @@ export async function showRewardedAd(placement = 'main') {
     
     // Check if user skipped or closed early
     const errMsg = String(err?.message || err || '');
-    if (errMsg.toLowerCase().includes('closed') || errMsg.toLowerCase().includes('skip') || errMsg.toLowerCase().includes('cancel')) {
+    if (
+      errMsg.toLowerCase().includes('closed') || 
+      errMsg.toLowerCase().includes('skip') || 
+      errMsg.toLowerCase().includes('cancel') ||
+      errMsg.toLowerCase().includes('interrupted')
+    ) {
       return {
         success: false,
-        error: 'You must watch the entire ad to receive credit.'
+        error: 'You must watch the entire ad without clicking or leaving the app to receive credit.'
       };
     }
 
