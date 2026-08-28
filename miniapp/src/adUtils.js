@@ -227,10 +227,16 @@ export async function showRewardedAd(placement = 'main') {
   const tryOnClickA = async () => {
     if (typeof window !== 'undefined' && typeof window.showOnClickA === 'function') {
       console.log('[AdManager] Trying OnClickA...');
+      const startTime = Date.now();
       await Promise.race([
         window.showOnClickA(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('OnClickA timeout')), 60000))
       ]);
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.log(`[AdManager] OnClickA completed in ${elapsed.toFixed(1)}s`);
+      if (elapsed < 12) {
+        throw new Error('Ad was closed early');
+      }
       return { success: true };
     }
     throw new Error('OnClickA not available');
@@ -239,10 +245,16 @@ export async function showRewardedAd(placement = 'main') {
   const tryMonetag = async () => {
     if (typeof window !== 'undefined' && typeof window.show_11395836 === 'function') {
       console.log('[AdManager] Trying Monetag fallback...');
-      await Promise.race([
+      const startTime = Date.now();
+      const res = await Promise.race([
         window.show_11395836(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Monetag timeout')), 60000))
       ]);
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.log(`[AdManager] Monetag completed in ${elapsed.toFixed(1)}s. Result:`, res);
+      if (!res || res.reward_event_type !== 'valued' || elapsed < 12) {
+        throw new Error('Ad was closed early or not valued');
+      }
       return { success: true };
     }
     throw new Error('Monetag not available');
