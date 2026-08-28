@@ -118,24 +118,53 @@ router.get('/stats', async (req, res) => {
 // ==========================================
 router.get('/gram-watchers', async (req, res) => {
   try {
-    // Get all users who watched gram ads in the last 24 hours (rolling window, same as the app logic)
-    const watchersRes = await pool.query(`
+    // Get all users who watched gram ads in the last 48 hours or have pending claims
+    const query = `
+      WITH active_watchers AS (
+        SELECT 
+          av.telegram_id,
+          COUNT(*) FILTER (WHERE av.claimed = FALSE) as ads_watched,
+          MAX(av.created_at) as last_watch_time,
+          MIN(av.created_at) as first_watch_time
+        FROM ad_views av
+        WHERE av.ad_type = 'gram_ad'
+          AND av.created_at >= NOW() - INTERVAL '48 hours'
+        GROUP BY av.telegram_id
+      ),
+      pending_claims AS (
+        SELECT telegram_id FROM gram_claims WHERE status = 'pending'
+      ),
+      all_watchers AS (
+        SELECT telegram_id FROM active_watchers
+        UNION
+        SELECT telegram_id FROM pending_claims
+      )
       SELECT 
-        av.telegram_id,
+        aw.telegram_id,
         u.first_name,
         u.username,
         u.gram_wallet_address,
         u.wallet_address,
-        COUNT(*) FILTER (WHERE av.claimed = FALSE) as ads_watched,
-        MAX(av.created_at) as last_watch_time,
-        MIN(av.created_at) as first_watch_time
-      FROM ad_views av
-      LEFT JOIN users u ON u.telegram_id = av.telegram_id::bigint
-      WHERE av.ad_type = 'gram_ad'
-        AND av.created_at >= NOW() - INTERVAL '24 hours'
-      GROUP BY av.telegram_id, u.first_name, u.username, u.gram_wallet_address, u.wallet_address
-      ORDER BY COUNT(*) FILTER (WHERE av.claimed = FALSE) DESC
-    `);
+        COALESCE(aw_data.ads_watched, 0) as ads_watched,
+        aw_data.last_watch_time,
+        aw_data.first_watch_time,
+        EXISTS (
+          SELECT 1 FROM gram_claims gc 
+          WHERE gc.telegram_id = aw.telegram_id 
+            AND gc.status = 'pending'
+        ) as has_pending_claim
+      FROM all_watchers aw
+      LEFT JOIN active_watchers aw_data ON aw_data.telegram_id = aw.telegram_id
+      LEFT JOIN users u ON u.telegram_id = aw.telegram_id
+      ORDER BY 
+        EXISTS (
+          SELECT 1 FROM gram_claims gc 
+          WHERE gc.telegram_id = aw.telegram_id 
+            AND gc.status = 'pending'
+        ) DESC,
+        COALESCE(aw_data.ads_watched, 0) DESC
+    `;
+    const watchersRes = await pool.query(query);
 
     // For each watcher, also check if they claimed in last 24h
     const telegramIds = watchersRes.rows.map(r => r.telegram_id);
@@ -150,19 +179,27 @@ router.get('/gram-watchers', async (req, res) => {
       claimedIds = new Set(claimsRes.rows.map(r => r.telegram_id));
     }
 
-    const watchers = watchersRes.rows.map(r => ({
-      telegram_id: r.telegram_id,
-      first_name: r.first_name || 'Unknown',
-      username: r.username || null,
-      ads_watched: parseInt(r.ads_watched, 10),
-      last_watch_time: r.last_watch_time,
-      first_watch_time: r.first_watch_time,
-      wallet: r.gram_wallet_address || r.wallet_address || null,
-      has_wallet: !!(r.gram_wallet_address || r.wallet_address),
-      claimed_today: claimedIds.has(r.telegram_id),
-      can_claim: parseInt(r.ads_watched, 10) >= 60 && !claimedIds.has(r.telegram_id) && !!(r.gram_wallet_address || r.wallet_address),
-      isOnline: global.onlineUsers ? global.onlineUsers.has(r.telegram_id.toString()) : false,
-    }));
+    const watchers = watchersRes.rows.map(r => {
+      let adsWatched = parseInt(r.ads_watched, 10);
+      const hasClaimedToday = claimedIds.has(r.telegram_id.toString());
+      if (hasClaimedToday || r.has_pending_claim) {
+        adsWatched = 60; // Force 60/60 if already claimed or pending
+      }
+      return {
+        telegram_id: r.telegram_id,
+        first_name: r.first_name || 'Unknown',
+        username: r.username || null,
+        ads_watched: adsWatched,
+        last_watch_time: r.last_watch_time,
+        first_watch_time: r.first_watch_time,
+        wallet: r.gram_wallet_address || r.wallet_address || null,
+        has_wallet: !!(r.gram_wallet_address || r.wallet_address),
+        claimed_today: hasClaimedToday || r.has_pending_claim,
+        has_pending_claim: r.has_pending_claim,
+        can_claim: adsWatched >= 60 && !hasClaimedToday && !!(r.gram_wallet_address || r.wallet_address),
+        isOnline: global.onlineUsers ? global.onlineUsers.has(r.telegram_id.toString()) : false,
+      };
+    });
 
     res.json({ watchers, total: watchers.length, asOf: new Date().toISOString() });
   } catch (error) {
