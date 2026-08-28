@@ -73,6 +73,18 @@ router.post('/watch-ad', async (req, res) => {
         const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
+        // Check if user claimed reward in the last 24 hours
+        const claimCheckRes = await pool.query(`
+            SELECT COUNT(*) FROM gram_claims
+            WHERE telegram_id = $1
+              AND requested_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('pending', 'approved')
+        `, [telegram_id]);
+        
+        if (parseInt(claimCheckRes.rows[0].count, 10) > 0) {
+            return res.status(429).json({ error: 'You have already claimed your daily reward. Please wait 24 hours before watching ads again.' });
+        }
+
         // Check daily limit (60 per 24h)
         const countRes = await pool.query(`
             SELECT COUNT(*), MAX(created_at) as last_ad_time
