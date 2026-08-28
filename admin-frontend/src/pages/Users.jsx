@@ -10,8 +10,9 @@ export default function Users() {
   const [sortBy, setSortBy] = useState('balance');
   const [showEligible, setShowEligible] = useState(false);
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null);
-  const [userHistory, setUserHistory] = useState([]);
+  const [userHistory, setUserHistory] = useState({ tasks: [], ads: [] });
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [activeHistoryTab, setActiveHistoryTab] = useState('tasks'); // 'tasks' or 'ads'
   const [selectedUserForReferrals, setSelectedUserForReferrals] = useState(null);
   const [userReferrals, setUserReferrals] = useState([]);
   const [loadingReferrals, setLoadingReferrals] = useState(false);
@@ -212,10 +213,11 @@ export default function Users() {
   const handleViewHistory = async (user) => {
     setSelectedUserForHistory(user);
     setLoadingHistory(true);
-    setUserHistory([]);
+    setUserHistory({ tasks: [], ads: [] });
+    setActiveHistoryTab('tasks');
     try {
       const res = await api.get(`/users/${user.telegram_id}/history`);
-      setUserHistory(res.data);
+      setUserHistory(res.data || { tasks: [], ads: [] });
     } catch (error) {
       toast.error('Failed to load history');
     } finally {
@@ -562,33 +564,83 @@ export default function Users() {
           <div className="bg-surface rounded-3xl w-full max-w-2xl max-h-[80vh] flex flex-col border border-border shadow-2xl animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-border flex justify-between items-center bg-surface-soft/50 rounded-t-3xl">
               <div>
-                <h2 className="text-xl font-black text-ink">Task History</h2>
-                <p className="text-sm text-ink-soft">Showing latest 200 tasks for @{selectedUserForHistory.username || selectedUserForHistory.telegram_id}</p>
+                <h2 className="text-xl font-black text-ink">User History</h2>
+                <p className="text-sm text-ink-soft">Showing activity logs for @{selectedUserForHistory.username || selectedUserForHistory.telegram_id}</p>
               </div>
               <button onClick={() => setSelectedUserForHistory(null)} className="p-2 bg-surface hover:bg-border text-ink rounded-full transition-colors border border-border">
                 <X size={20} />
+              </button>
+            </div>
+
+            {/* Tab Selector */}
+            <div className="flex border-b border-border bg-surface-soft/30 px-6">
+              <button
+                onClick={() => setActiveHistoryTab('tasks')}
+                className={`py-3 px-4 text-sm font-bold border-b-2 transition-all ${
+                  activeHistoryTab === 'tasks'
+                    ? 'border-indigo-500 text-indigo-400 font-black'
+                    : 'border-transparent text-ink-soft hover:text-ink'
+                }`}
+              >
+                Completed Tasks ({userHistory.tasks?.length || 0})
+              </button>
+              <button
+                onClick={() => setActiveHistoryTab('ads')}
+                className={`py-3 px-4 text-sm font-bold border-b-2 transition-all ${
+                  activeHistoryTab === 'ads'
+                    ? 'border-indigo-500 text-indigo-400 font-black'
+                    : 'border-transparent text-ink-soft hover:text-ink'
+                }`}
+              >
+                Watched Ads ({userHistory.ads?.length || 0})
               </button>
             </div>
             
             <div className="p-6 overflow-y-auto flex-1">
               {loadingHistory ? (
                 <div className="text-center text-ink-soft animate-pulse font-bold p-8">Loading history...</div>
-              ) : userHistory.length === 0 ? (
-                <div className="text-center text-ink-soft p-8 bg-surface-soft rounded-2xl border border-border">No task history found.</div>
+              ) : activeHistoryTab === 'tasks' ? (
+                !userHistory.tasks || userHistory.tasks.length === 0 ? (
+                  <div className="text-center text-ink-soft p-8 bg-surface-soft rounded-2xl border border-border">No task history found.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {userHistory.tasks.map((task, idx) => (
+                      <div key={idx} className="bg-surface-soft border border-border rounded-2xl p-4 flex justify-between items-center hover:border-indigo-500/30 transition-colors">
+                        <div>
+                          <p className="font-bold text-ink text-sm mb-1">{task.title}</p>
+                          <p className="text-xs text-ink-soft font-mono">{formatDate(task.completed_at)}</p>
+                        </div>
+                        <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-black whitespace-nowrap">
+                          +{task.reward} TASKY
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )
               ) : (
-                <div className="space-y-3">
-                  {userHistory.map((task, idx) => (
-                    <div key={idx} className="bg-surface-soft border border-border rounded-2xl p-4 flex justify-between items-center hover:border-indigo-500/30 transition-colors">
-                      <div>
-                        <p className="font-bold text-ink text-sm mb-1">{task.title}</p>
-                        <p className="text-xs text-ink-soft font-mono">{formatDate(task.completed_at)}</p>
+                !userHistory.ads || userHistory.ads.length === 0 ? (
+                  <div className="text-center text-ink-soft p-8 bg-surface-soft rounded-2xl border border-border">No ad watch history found.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {userHistory.ads.map((ad, idx) => (
+                      <div key={idx} className="bg-surface-soft border border-border rounded-2xl p-4 flex justify-between items-center hover:border-indigo-500/30 transition-colors">
+                        <div>
+                          <p className="font-bold text-ink text-sm mb-1 capitalize">
+                            {ad.ad_type ? ad.ad_type.replace('_', ' ') : 'Video Ad'}
+                          </p>
+                          <p className="text-xs text-ink-soft font-mono">{formatDate(ad.created_at)}</p>
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border ${
+                          ad.claimed 
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' 
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}>
+                          {ad.claimed ? 'Claimed' : 'Active (Unclaimed)'}
+                        </span>
                       </div>
-                      <div className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg text-sm font-black whitespace-nowrap">
-                        +{task.reward} TASKY
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>

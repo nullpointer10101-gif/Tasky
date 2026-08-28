@@ -541,7 +541,7 @@ router.get('/users', async (req, res) => {
 router.get('/users/:id/history', async (req, res) => {
   const telegramId = req.params.id;
   try {
-    const query = `
+    const taskQuery = `
       SELECT t.title, t.reward_tasky as reward, ut.completed_at 
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
@@ -549,8 +549,20 @@ router.get('/users/:id/history', async (req, res) => {
       ORDER BY ut.completed_at DESC
       LIMIT 200
     `;
-    const { rows } = await pool.query(query, [telegramId]);
-    res.json(rows);
+    const tasksRes = await pool.query(taskQuery, [telegramId]);
+
+    const adsRes = await pool.query(`
+      SELECT id, ad_type, created_at, claimed
+      FROM ad_views
+      WHERE telegram_id = $1
+      ORDER BY created_at DESC
+      LIMIT 200
+    `, [telegramId]);
+
+    res.json({
+      tasks: tasksRes.rows,
+      ads: adsRes.rows
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
