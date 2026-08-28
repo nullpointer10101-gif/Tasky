@@ -251,6 +251,7 @@ export default function Users() {
     if (sortBy === 'ads') return Number(b.withdrawal_ads_watched || 0) - Number(a.withdrawal_ads_watched || 0);
     if (sortBy === 'total_referrals') return Number(b.total_referrals || 0) - Number(a.total_referrals || 0);
     if (sortBy === 'valid_referrals') return Number(b.valid_referrals || 0) - Number(a.valid_referrals || 0);
+    if (sortBy === 'referrals_today') return Number(b.referrals_today || 0) - Number(a.referrals_today || 0);
     return 0;
   });
 
@@ -335,6 +336,7 @@ export default function Users() {
             <option value="ads">Sort by: Highest Ads Watched</option>
             <option value="total_referrals">Sort by: Most Referrals (Total)</option>
             <option value="valid_referrals">Sort by: Most Referrals (Valid)</option>
+            <option value="referrals_today">Sort by: Today's Referrals</option>
             <option value="newest">Sort by: Newest Joined</option>
           </select>
         </div>
@@ -389,11 +391,18 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="p-4">
-                        <div className="flex items-center gap-1 text-sm font-bold">
-                          <span className="text-emerald-400">
-                            {user.valid_referrals || 0}
-                          </span>
-                          <span className="text-ink-soft">/ {user.total_referrals || 0}</span>
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-1 text-sm font-bold">
+                            <span className="text-emerald-400">
+                              {user.valid_referrals || 0}
+                            </span>
+                            <span className="text-ink-soft">/ {user.total_referrals || 0}</span>
+                          </div>
+                          {Number(user.referrals_today || 0) > 0 && (
+                            <span className="text-[10px] font-black text-pink-400">
+                              +{user.referrals_today} today
+                            </span>
+                          )}
                         </div>
                       </td>
                       <td className="p-4">

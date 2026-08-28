@@ -522,17 +522,21 @@ router.get('/ads/stats', async (req, res) => {
 // ==========================================
 router.get('/users', async (req, res) => {
   try {
-    let sortBy = 'balance DESC';
-    if (req.query.sortBy === 'newest') sortBy = 'created_at DESC';
-    else if (req.query.sortBy === 'total_referrals' || req.query.sortBy === 'referrals') sortBy = 'total_referrals DESC';
-    else if (req.query.sortBy === 'valid_referrals') sortBy = 'valid_referrals DESC';
+    let orderClause = 'u.balance DESC';
+    if (req.query.sortBy === 'newest') orderClause = 'u.created_at DESC';
+    else if (req.query.sortBy === 'total_referrals' || req.query.sortBy === 'referrals') orderClause = 'u.total_referrals DESC';
+    else if (req.query.sortBy === 'valid_referrals') orderClause = 'u.valid_referrals DESC';
+    else if (req.query.sortBy === 'referrals_today') {
+      orderClause = `(SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id AND created_at >= NOW() - INTERVAL '24 hours') DESC`;
+    }
 
     const query = `
       SELECT 
         u.id, u.telegram_id, u.username, u.first_name, u.balance, u.gram_balance, u.total_referrals, u.valid_referrals, u.streak_days, u.is_banned, u.created_at, u.spins_available, u.withdrawal_ads_watched, u.total_ads_watched, u.gram_wallet_address, u.referrals_paused,
-        (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched
+        (SELECT COUNT(*) FROM user_tasks ut JOIN tasks t ON ut.task_id = t.id WHERE ut.telegram_id = u.telegram_id AND t.verification_type = 'auto_ad' AND ut.status = 'approved') as task_ads_watched,
+        (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id AND created_at >= NOW() - INTERVAL '24 hours') as referrals_today
       FROM users u
-      ORDER BY u.${sortBy}
+      ORDER BY ${orderClause}
       LIMIT 1000
     `;
     const { rows } = await pool.query(query);
