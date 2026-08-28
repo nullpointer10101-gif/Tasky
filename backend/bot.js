@@ -256,7 +256,16 @@ bot.on('callback_query', async (query) => {
 
             const { rows } = await pool.query('SELECT telegram_id FROM users WHERE is_banned = FALSE');
             let successCount = 0;
-            const broadcastMsg = `🎁 <b>New Daily Gift Code!</b>\n\nUse code <b>${promo.code}</b> in the app to claim <b>${promo.reward_amount} TASKY</b>!\n\n<i>Hurry! Valid for a limited time/uses.</i>`;
+
+            let rewardText = `<b>${promo.reward_amount} TASKY</b>`;
+            if (parseFloat(promo.reward_gram || 0) > 0) {
+                rewardText += ` & <b>${promo.reward_gram} GRAM</b>`;
+            }
+            let broadcastMsg = `🎁 <b>New Daily Gift Code!</b>\n\nUse code <b>${promo.code}</b> in the app to claim <b>${rewardText}</b>!\n\n`;
+            if (promo.require_ref) {
+                broadcastMsg += `⚠️ <b>Note:</b> You must invite 1 new user to claim this code!\n\n`;
+            }
+            broadcastMsg += `<i>Hurry! Valid for a limited time/uses.</i>`;
 
             // Asynchronously send to all (don't block response)
             for (let user of rows) {

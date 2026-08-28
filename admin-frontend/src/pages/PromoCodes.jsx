@@ -14,7 +14,8 @@ export default function PromoCodes() {
     reward_amount: 1000,
     reward_gram: 0,
     max_uses: 100,
-    expires_at: ''
+    expires_at: '',
+    require_ref: false
   });
 
   const fetchPromos = async () => {
@@ -59,7 +60,7 @@ export default function PromoCodes() {
       await api.post('/promos', payload);
       toast.success('Promo code created successfully!');
       setShowCreateModal(false);
-      setNewPromo({ code: '', reward_amount: 1000, reward_gram: 0, max_uses: 100, expires_at: '' });
+      setNewPromo({ code: '', reward_amount: 1000, reward_gram: 0, max_uses: 100, expires_at: '', require_ref: false });
       fetchPromos();
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to create promo code');
@@ -155,6 +156,12 @@ export default function PromoCodes() {
                       {promo.current_uses} / {promo.max_uses}
                     </span>
                   </p>
+                  <p className="text-sm text-ink-soft flex items-center justify-between">
+                    <span>Requires Referral:</span> 
+                    <span className={`font-bold ${promo.require_ref ? 'text-indigo-400' : 'text-ink-soft'}`}>
+                      {promo.require_ref ? 'Yes (1 New)' : 'No'}
+                    </span>
+                  </p>
                   {promo.expires_at && (
                     <p className="text-sm text-ink-soft flex items-center justify-between">
                       <span>Expires:</span> <span className="font-medium text-ink">{new Date(promo.expires_at).toLocaleDateString()}</span>
@@ -248,6 +255,19 @@ export default function PromoCodes() {
                   onChange={e => setNewPromo({...newPromo, expires_at: e.target.value})}
                   className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3 text-ink font-medium focus:outline-none focus:border-indigo-500 transition-colors"
                 />
+              </div>
+
+              <div className="flex items-center gap-2 py-2">
+                <input 
+                  type="checkbox" 
+                  id="require_ref"
+                  checked={newPromo.require_ref}
+                  onChange={e => setNewPromo({...newPromo, require_ref: e.target.checked})}
+                  className="w-4 h-4 bg-surface-soft border border-border rounded focus:ring-indigo-500 text-indigo-600 focus:outline-none"
+                />
+                <label htmlFor="require_ref" className="text-sm font-bold text-ink cursor-pointer select-none">
+                  Requires 1 New Referral (invited after code creation)
+                </label>
               </div>
 
               <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl flex gap-3 text-sm text-indigo-400 font-medium">

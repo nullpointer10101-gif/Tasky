@@ -59,6 +59,26 @@ router.post('/redeem', async (req, res) => {
       return res.status(400).json({ success: false, error: 'You have already claimed this code' });
     }
 
+    // 3.5 Check referral requirement
+    if (promo.require_ref) {
+      const refCheck = await client.query(
+        `SELECT id FROM referrals 
+         WHERE referrer_telegram_id = $1::bigint 
+           AND created_at >= $2::timestamptz 
+           AND reward_paid = TRUE 
+         LIMIT 1`,
+        [telegram_id, promo.created_at]
+      );
+
+      if (refCheck.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ 
+          success: false, 
+          error: 'This code requires 1 valid new referral invited after the code was created. Have your new referral complete at least 3 tasks to become valid.' 
+        });
+      }
+    }
+
     // 4. Record claim
     await client.query(
       'INSERT INTO user_promo_claims (telegram_id, promo_id) VALUES ($1, $2)',
