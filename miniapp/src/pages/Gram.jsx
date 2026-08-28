@@ -572,7 +572,7 @@ export default function Gram({ user, refreshUser }) {
         <h4 className="text-xs font-black text-white/60 uppercase tracking-widest">Campaign Rules</h4>
         <ul className="text-xs text-white/40 space-y-1.5 leading-relaxed text-left list-disc list-inside">
           <li>Complete your daily quota of 60 ads in a 24-hour window.</li>
-          <li>Each claim is manually verified by the administrator.</li>
+          <li>Each claim is automatically processed and sent directly to your wallet.</li>
           <li>Do not use automation or scripts; this will trigger account suspension.</li>
         </ul>
       </Card>
@@ -586,7 +586,7 @@ export default function Gram({ user, refreshUser }) {
 
             <div className="space-y-1">
               <h3 className="text-xl font-black text-white uppercase tracking-tight">Claim Requested!</h3>
-              <p className="text-xs text-white/60">Your 0.02 GRAM daily reward has been submitted to the admin queue.</p>
+              <p className="text-xs text-white/60">Your 0.02 GRAM daily reward is processed automatically.</p>
             </div>
 
             <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-4 text-left space-y-1.5">
