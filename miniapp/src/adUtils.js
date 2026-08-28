@@ -14,9 +14,37 @@ let onclickaInjectionAttempts = 0;
 export function initOnClickAAds() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   if (typeof window.showOnClickA === 'function') return;
+
+  const initCdTmaSafe = () => {
+    if (typeof window.initCdTma === 'function') {
+      window.initCdTma({ id: ONCLICKA_SPOT_ID })
+        .then(show => {
+          window.showOnClickA = show;
+          console.log('[AdManager] OnClickA ad engine initialized successfully');
+        })
+        .catch(err => {
+          console.warn('[AdManager] OnClickA initialization failed:', err);
+        });
+    }
+  };
+
+  // If script is already loaded and initCdTma is available
+  if (typeof window.initCdTma === 'function') {
+    initCdTmaSafe();
+    return;
+  }
+
+  // If script element exists (e.g. from index.html) but not fully loaded yet
+  const existingScript = document.getElementById(ONCLICKA_SCRIPT_ID);
+  if (existingScript) {
+    existingScript.onload = () => {
+      console.log('[AdManager] Preloaded OnClickA script onload event fired');
+      initCdTmaSafe();
+    };
+    return;
+  }
+
   if (isInjectingOnClickA) return;
-  
-  if (document.getElementById(ONCLICKA_SCRIPT_ID)) return;
   if (onclickaInjectionAttempts >= MAX_INJECTION_ATTEMPTS) return;
 
   isInjectingOnClickA = true;
@@ -30,17 +58,8 @@ export function initOnClickAAds() {
 
     script.onload = () => {
       isInjectingOnClickA = false;
-      console.log('[AdManager] OnClickA script loaded successfully');
-      if (typeof window.initCdTma === 'function') {
-        window.initCdTma({ id: ONCLICKA_SPOT_ID })
-          .then(show => {
-            window.showOnClickA = show;
-            console.log('[AdManager] OnClickA ad engine initialized successfully');
-          })
-          .catch(err => {
-            console.warn('[AdManager] OnClickA initialization failed:', err);
-          });
-      }
+      console.log('[AdManager] Dynamically injected OnClickA script loaded');
+      initCdTmaSafe();
     };
 
     script.onerror = (err) => {
