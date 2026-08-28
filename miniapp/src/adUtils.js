@@ -4,7 +4,7 @@
 
 // --- OnClickA Config ---
 // ⚠️ REPLACE THIS WITH YOUR ONCLICKA SPOT ID (e.g. 504287)
-export const ONCLICKA_SPOT_ID = 504287; 
+export const ONCLICKA_SPOT_ID = 458471; 
 const ONCLICKA_SCRIPT_URL = 'https://js.onclckvd.com/in-stream-ad-admanager/tma.js';
 const ONCLICKA_SCRIPT_ID = 'onclicka-ad-sdk';
 
