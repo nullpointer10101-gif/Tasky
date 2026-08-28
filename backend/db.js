@@ -365,6 +365,9 @@ const initDB = async () => {
 
       -- REFERRAL GATE SUPPORT ON PROMOS
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS require_ref BOOLEAN DEFAULT FALSE;
+
+      -- GRAM AD CLAIM REUSE MITIGATION
+      ALTER TABLE ad_views ADD COLUMN IF NOT EXISTS claimed BOOLEAN DEFAULT FALSE;
     `;
 
     await client.query(initScript);

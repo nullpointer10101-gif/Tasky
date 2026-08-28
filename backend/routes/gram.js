@@ -20,6 +20,7 @@ router.get('/status/:telegram_id', async (req, res) => {
             FROM ad_views
             WHERE telegram_id = $1
               AND ad_type = 'gram_ad'
+              AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
@@ -78,6 +79,7 @@ router.post('/watch-ad', async (req, res) => {
             FROM ad_views
             WHERE telegram_id = $1
               AND ad_type = 'gram_ad'
+              AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const count = parseInt(countRes.rows[0].count, 10);
@@ -146,6 +148,7 @@ router.post('/claim', async (req, res) => {
             SELECT COUNT(*) FROM ad_views
             WHERE telegram_id = $1
               AND ad_type = 'gram_ad'
+              AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
@@ -179,6 +182,15 @@ router.post('/claim', async (req, res) => {
             INSERT INTO gram_claims (telegram_id, gram_wallet_address, amount, status)
             VALUES ($1, $2, 0.02, 'pending') RETURNING *
         `, [telegram_id, cleanAddress]);
+
+        // 6. Mark the used ad views as claimed
+        await client.query(`
+            UPDATE ad_views 
+            SET claimed = TRUE 
+            WHERE telegram_id = $1 
+              AND ad_type = 'gram_ad' 
+              AND claimed = FALSE
+        `, [telegram_id]);
 
         await client.query('COMMIT');
 

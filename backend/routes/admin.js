@@ -108,7 +108,7 @@ router.get('/gram-watchers', async (req, res) => {
         u.username,
         u.gram_wallet_address,
         u.wallet_address,
-        COUNT(*) as ads_watched,
+        COUNT(*) FILTER (WHERE av.claimed = FALSE) as ads_watched,
         MAX(av.created_at) as last_watch_time,
         MIN(av.created_at) as first_watch_time
       FROM ad_views av
@@ -116,7 +116,7 @@ router.get('/gram-watchers', async (req, res) => {
       WHERE av.ad_type = 'gram_ad'
         AND av.created_at >= NOW() - INTERVAL '24 hours'
       GROUP BY av.telegram_id, u.first_name, u.username, u.gram_wallet_address, u.wallet_address
-      ORDER BY COUNT(*) DESC
+      ORDER BY COUNT(*) FILTER (WHERE av.claimed = FALSE) DESC
     `);
 
     // For each watcher, also check if they claimed in last 24h
