@@ -1287,7 +1287,27 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
     if (target === 'admin') {
       targets = [adminId];
     } else {
-      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
+      const query = `
+        SELECT telegram_id FROM users 
+        WHERE is_banned = false 
+          AND telegram_id IS NOT NULL
+          AND telegram_id NOT IN (
+            SELECT telegram_id FROM gram_claims 
+            WHERE telegram_id IS NOT NULL
+              AND requested_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('pending', 'approved')
+          )
+          AND telegram_id NOT IN (
+            SELECT telegram_id FROM ad_views
+            WHERE telegram_id IS NOT NULL
+              AND ad_type = 'gram_ad'
+              AND claimed = FALSE
+              AND created_at >= NOW() - INTERVAL '24 hours'
+            GROUP BY telegram_id
+            HAVING COUNT(*) >= 60
+          )
+      `;
+      const usersRes = await pool.query(query);
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
