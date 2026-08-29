@@ -79,11 +79,11 @@ export default function Gram({ user, refreshUser }) {
   }, [status]);
 
   const handleWatchAd = async () => {
-    // Check 20-second cooldown from last ad time returned by status endpoint
+    // Check 10-second cooldown from last ad time returned by status endpoint
     if (status?.last_ad_time) {
       const secondsSinceLastAd = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
-      if (secondsSinceLastAd < 20) {
-        const timeLeft = Math.ceil(20 - secondsSinceLastAd);
+      if (secondsSinceLastAd < 10) {
+        const timeLeft = Math.ceil(10 - secondsSinceLastAd);
         showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
         return;
       }
