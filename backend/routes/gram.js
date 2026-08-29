@@ -101,11 +101,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: 'Daily ad limit reached (60 ads per 24 hours). Please wait.' });
         }
 
-        // Enforce 20-second cooldown
+        // Enforce 10-second cooldown
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 20) {
-                const timeLeft = Math.ceil(20 - secondsSinceLast);
+            if (secondsSinceLast < 10) {
+                const timeLeft = Math.ceil(10 - secondsSinceLast);
                 return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
             }
         }
