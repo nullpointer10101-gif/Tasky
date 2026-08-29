@@ -65,7 +65,6 @@ export default function Rig({ user, refreshUser }) {
   const { showToast } = useToast();
   const [tonConnectUI] = useTonConnectUI();
   const walletAddress = useTonAddress();
-  const isConnected = !!walletAddress;
 
   const fetchStatus = async (showLoad = true, isMounted = { current: true }) => {
     try {
