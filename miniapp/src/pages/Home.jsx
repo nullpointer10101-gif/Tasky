@@ -79,9 +79,9 @@ export default function Home({ user, refreshUser, navigate }) {
       <motion.div 
         whileTap={{ scale: 0.98 }}
         onClick={() => setShowListingModal(true)}
-        className="relative overflow-hidden bg-gradient-to-r from-[#181135] via-[#1a1441] to-[#120a2e] border border-indigo-500/40 p-4 rounded-3xl text-left mb-2 mt-2 cursor-pointer shadow-[0_0_20px_rgba(79,70,229,0.15)] group"
+        className="relative overflow-hidden bg-gradient-to-r from-[#181135] via-[#1a1441] to-[#120a2e] border border-indigo-500/40 p-4 rounded-3xl text-left mb-2 mt-2 cursor-pointer shadow-lg group"
       >
-        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full group-hover:bg-indigo-500/20 transition-all"></div>
         <div className="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
           <Rocket size={64} className="text-indigo-400 rotate-12" />
         </div>

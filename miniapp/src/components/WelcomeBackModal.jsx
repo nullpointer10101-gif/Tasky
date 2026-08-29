@@ -70,17 +70,17 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#05030f]/80 backdrop-blur-md"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#05030f]/95"
         >
           <motion.div
             initial={{ scale: 0.9, y: 30, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 30, opacity: 0 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="relative w-full max-w-sm bg-gradient-to-b from-[#181135] to-[#0d0924] border-2 border-indigo-500/40 rounded-[2rem] p-6 text-center overflow-hidden shadow-[0_0_50px_rgba(79,70,229,0.3)]"
+            className="relative w-full max-w-sm bg-gradient-to-b from-[#181135] to-[#0d0924] border-2 border-indigo-500/40 rounded-[2rem] p-6 text-center overflow-hidden shadow-2xl"
           >
-            {/* Ambient Background Grid / Tech overlay */}
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none mix-blend-overlay"></div>
+            {/* Ambient Background Grid / Tech overlay - removed mix-blend for performance */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none"></div>
             
             {/* Close Icon */}
             <button
@@ -91,8 +91,8 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
             </button>
 
             {/* Glowing Icon */}
-            <div className="relative inline-flex flex-col items-center justify-center w-24 h-24 rounded-full border border-indigo-500/50 bg-indigo-950/50 shadow-[0_0_30px_rgba(79,70,229,0.5)] mb-5 overflow-hidden">
-               <div className="absolute inset-0 bg-indigo-500/20 animate-pulse rounded-full blur-xl"></div>
+            <div className="relative inline-flex flex-col items-center justify-center w-24 h-24 rounded-full border border-indigo-500/50 bg-indigo-950/50 mb-5 overflow-hidden">
+               <div className="absolute inset-0 bg-indigo-500/20 animate-pulse rounded-full"></div>
                <Cpu size={36} className="text-cyan-400 mb-1 relative z-10" />
                <span className="text-[10px] font-bold text-cyan-200 tracking-widest relative z-10">CORE SECURE</span>
             </div>

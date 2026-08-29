@@ -10,17 +10,15 @@ export default function TokenListingModal({ isOpen, onClose }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#05030f]/95"
         >
           <motion.div
             initial={{ scale: 0.9, y: 20, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
             exit={{ scale: 0.9, y: 20, opacity: 0 }}
-            className="relative w-full max-w-sm bg-surface border border-indigo-500/30 rounded-[2rem] p-6 overflow-hidden shadow-2xl"
+            className="relative w-full max-w-sm bg-gradient-to-b from-[#181135] to-[#0d0924] border border-indigo-500/40 rounded-[2rem] p-6 overflow-hidden shadow-2xl"
           >
-            {/* Background Glow */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/20 blur-3xl rounded-full pointer-events-none"></div>
-            <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-fuchsia-500/20 blur-3xl rounded-full pointer-events-none"></div>
+            {/* Background Glow removed for performance */}
 
             <button
               onClick={onClose}
