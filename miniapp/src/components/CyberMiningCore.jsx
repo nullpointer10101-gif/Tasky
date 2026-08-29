@@ -27,7 +27,7 @@ export default function CyberMiningCore({
   const claimBtnRef = useRef(null);
 
   useEffect(() => {
-    if (!isConnected || !activeSession || activeSession.is_ready_to_claim) return;
+    if (!activeSession || activeSession.is_ready_to_claim) return;
 
     const rate = Number(activeSession.rate_used);
     const maxEarned = rate * 4;
@@ -69,12 +69,12 @@ export default function CyberMiningCore({
     animationFrameId = requestAnimationFrame(updateDisplay);
 
     return () => cancelAnimationFrame(animationFrameId);
-  }, [activeSession, isConnected]);
+  }, [activeSession]);
 
   const handleClaimClick = async () => {
     // Determine claim amount directly from DOM if session was active, else from baseMined
     let finalAmount = Number(baseMined) || 0;
-    if (isConnected && activeSession && intRef.current) {
+    if (activeSession && intRef.current) {
         const textVal = intRef.current.textContent.replace(/,/g, '');
         finalAmount = Number(textVal) || finalAmount;
     }
@@ -97,13 +97,11 @@ export default function CyberMiningCore({
   };
 
   let displayAmount = Number(baseMined) || 0;
-  if (isConnected && activeSession && !activeSession.is_ready_to_claim) {
+  if (activeSession && !activeSession.is_ready_to_claim) {
       const rate = Number(activeSession.rate_used);
       const maxEarned = rate * 4;
       const elapsedHours = (Date.now() - new Date(activeSession.started_at).getTime()) / (1000 * 60 * 60);
       displayAmount = Math.min(rate * elapsedHours, maxEarned);
-  } else if (!isConnected) {
-      displayAmount = 0;
   }
 
   return (
@@ -123,7 +121,7 @@ export default function CyberMiningCore({
           <div className="relative z-10 w-36 h-36 rounded-full bg-gradient-to-b from-[#2e1d68] to-[#120b2e] border-2 border-indigo-400/50 flex flex-col items-center justify-center ">
             <Cpu size={28} className="text-cyan-300 mb-1 " />
             <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">
-              {isConnected && activeSession ? 'OVERDRIVE ACTIVE' : 'REACTOR IDLE'}
+              {activeSession ? 'OVERDRIVE ACTIVE' : 'REACTOR IDLE'}
             </span>
             <span className="text-xs font-black text-cyan-300 flex items-center gap-1 mt-0.5">
               <Zap size={12} className="fill-cyan-300" />
@@ -174,14 +172,7 @@ export default function CyberMiningCore({
 
       {/* Action Claim / Start Buttons */}
       <div className="mt-2">
-        {!isConnected ? (
-          <button
-            onClick={onConnect}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all flex items-center justify-center gap-2 border border-white/20"
-          >
-            CONNECT WALLET TO MINE
-          </button>
-        ) : activeSession ? (
+        {activeSession ? (
           activeSession.is_ready_to_claim ? (
             <button
               onClick={handleClaimClick}
@@ -200,14 +191,21 @@ export default function CyberMiningCore({
             </button>
           )
         ) : (
-          <button
-            onClick={onStart}
-            disabled={starting}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-white/20"
-          >
-            <Zap size={18} className="fill-white" />
-            {starting ? 'ENGAGING CORE...' : 'START 4H MINING OVERDRIVE ⚡'}
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={onStart}
+              disabled={starting}
+              className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white font-black text-sm uppercase tracking-wider active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 border border-white/20"
+            >
+              <Zap size={18} className="fill-white" />
+              {starting ? 'ENGAGING CORE...' : 'START 4H MINING OVERDRIVE ⚡'}
+            </button>
+            {!isConnected && (
+              <p className="text-[10px] text-gray-400 font-bold text-center">
+                💡 Wallet connection is optional for mining, but required for swaps.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

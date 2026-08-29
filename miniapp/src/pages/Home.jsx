@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck } from 'lucide-react';
+import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck, Rocket } from 'lucide-react';
 import DopamineBalanceTicker from '../components/DopamineBalanceTicker';
 import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
 import SwapProgressCard from '../components/SwapProgressCard';
+import TokenListingModal from '../components/TokenListingModal';
 
 import { useTranslation } from '../i18n/I18nContext';
 import { getReferral, getSwapRates, getMiningStatus } from '../api';
@@ -30,6 +31,7 @@ export default function Home({ user, refreshUser, navigate }) {
   const [referralData, setReferralData] = useState(null);
   const [miningSpeed, setMiningSpeed] = useState(5.0);
   const [loading, setLoading] = useState(true);
+  const [showListingModal, setShowListingModal] = useState(false);
 
   const tgId = String(user?.telegram_id || user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
 
@@ -73,19 +75,43 @@ export default function Home({ user, refreshUser, navigate }) {
       
       
     >
-      {/* Launch Banner */}
-      <motion.div  className="relative overflow-hidden bg-gradient-to-r from-indigo-900/40 via-purple-900/40 to-fuchsia-900/40 border-[1.5px] border-indigo-500/30 p-4 rounded-3xl text-center  mb-2 mt-2">
+      {/* Launch Banner - Redesigned */}
+      <motion.div 
+        whileTap={{ scale: 0.98 }}
+        onClick={() => setShowListingModal(true)}
+        className="relative overflow-hidden bg-gradient-to-r from-[#181135] via-[#1a1441] to-[#120a2e] border border-indigo-500/40 p-4 rounded-3xl text-left mb-2 mt-2 cursor-pointer shadow-[0_0_20px_rgba(79,70,229,0.15)] group"
+      >
+        <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all"></div>
+        <div className="absolute bottom-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-all">
+          <Rocket size={64} className="text-indigo-400 rotate-12" />
+        </div>
         
-        <div className="relative z-10 flex flex-col items-center gap-1.5">
-          <div className="bg-indigo-500/20 p-2 rounded-full border border-indigo-500/30 mb-1 shadow-inner">
-            <Zap size={18} className="text-indigo-300 fill-indigo-300 " />
+        <div className="relative z-10 flex items-center justify-between">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2">
+              <div className="bg-indigo-500/20 p-1.5 rounded-lg border border-indigo-500/30">
+                <Rocket size={14} className="text-indigo-300" />
+              </div>
+              <span className="text-[10px] font-black text-indigo-300 uppercase tracking-widest">
+                Listing Roadmap
+              </span>
+            </div>
+            
+            <h2 className="text-lg font-black text-white uppercase tracking-wide leading-tight">
+              TASKY TOKEN <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400">LAUNCH</span>
+            </h2>
+            
+            <div className="flex items-center gap-2 mt-1">
+               <div className="w-24 h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/5">
+                 <div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 w-[87%] rounded-full shadow-[0_0_10px_rgba(56,189,248,0.8)]"></div>
+               </div>
+               <span className="text-[10px] font-bold text-cyan-300">Phase 1 (87%)</span>
+            </div>
           </div>
-          <h2 className="text-[15px] font-black text-white uppercase tracking-[0.2em] ">
-            Launching TASKY Token
-          </h2>
-          <p className="text-[11px] font-bold text-indigo-200 mt-0.5 max-w-[250px] leading-tight opacity-90">
-            When development dashboard completes
-          </p>
+          
+          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/20 border border-indigo-500/30 group-hover:bg-indigo-500/40 transition-all">
+            <ChevronRight size={16} className="text-indigo-300" />
+          </div>
         </div>
       </motion.div>
 
@@ -231,6 +257,10 @@ export default function Home({ user, refreshUser, navigate }) {
         }} 
       />
 
+      <TokenListingModal 
+        isOpen={showListingModal} 
+        onClose={() => setShowListingModal(false)} 
+      />
     </motion.div>
   );
 }
