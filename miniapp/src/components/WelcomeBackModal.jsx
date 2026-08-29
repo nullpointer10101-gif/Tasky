@@ -128,11 +128,11 @@ export default function WelcomeBackModal({ user, speedPerHour = 5, onClaim }) {
               <span className="text-[11px] font-black uppercase tracking-[0.15em] text-indigo-300 block mb-1">
                 Passive Yield Accrued
               </span>
-              <div className="flex items-center justify-center gap-2">
+              <div className="flex items-baseline justify-center gap-1.5 mt-2">
                 <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-300 to-emerald-300 font-mono tracking-tighter">
                   +{offlineEarned.toLocaleString()}
                 </span>
-                <span className="text-sm font-black text-cyan-500 uppercase rotate-[-90deg] -ml-2 origin-left">TASKY</span>
+                <span className="text-sm font-black text-cyan-500 uppercase">TASKY</span>
               </div>
             </div>
 
