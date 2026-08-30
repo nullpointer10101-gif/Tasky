@@ -4,7 +4,7 @@ import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Pla
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
-import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal } from '../api';
+import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal, startWatchGramAd } from '../api';
 import { showRewardedAd } from '../adUtils';
 import Card from '../components/Card';
 
@@ -140,6 +140,10 @@ export default function Gram({ user, refreshUser }) {
 
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
+      
+      // Ping backend that user is currently watching an ad (for analytics / active users)
+      await startWatchGramAd(user?.telegram_id);
+
       const adResult = await showRewardedAd('main');
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');

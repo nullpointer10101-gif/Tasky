@@ -65,6 +65,12 @@ router.get('/status/:telegram_id', async (req, res) => {
     }
 });
 
+// Ping that user started watching an ad (for analytics / active users tracking)
+router.post('/start-watch', async (req, res) => {
+    // We just return success, index.js middleware handles setting the 'Watching Gram Ad' status
+    res.json({ success: true });
+});
+
 // Record a Gram Ad Watch
 router.post('/watch-ad', async (req, res) => {
     const { telegram_id } = req.body;

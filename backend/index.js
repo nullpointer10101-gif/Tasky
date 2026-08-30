@@ -29,6 +29,7 @@ const mapPathToAction = (path, method) => {
   if (path.includes('/mining/start')) return 'Started Mining Session';
   if (path.includes('/mining/claim')) return 'Claimed Mining Rewards';
   if (path.includes('/wallet/bind')) return 'Bound Wallet Address';
+  if (path.includes('/gram/start-watch')) return 'Watching Gram Ad';
   if (path.includes('/gram/watch-ad')) return 'Watched Gram Ad';
   if (path.includes('/gram/claim')) return 'Claimed 0.02 GRAM Bounty';
   if (path.includes('/gram/save-address')) return 'Updated Gram Wallet';
