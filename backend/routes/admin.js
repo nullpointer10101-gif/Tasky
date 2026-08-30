@@ -235,14 +235,16 @@ router.post('/config', async (req, res) => {
       await client.query(`
         UPDATE withdrawal_settings 
         SET min_withdrawal_tasky = $1, fee_percent = $2, usdt_rate = $3,
-            adsgram_block_id = $4, adsgram_ratio = $5, gigapub_ratio = $6
+            adsgram_block_id = $4, adsgram_ratio = $5, gigapub_ratio = $6,
+            auto_payout_enabled = $7
       `, [
         withdrawal.min_withdrawal_tasky, 
         withdrawal.fee_percent, 
         withdrawal.usdt_rate,
         withdrawal.adsgram_block_id !== undefined ? withdrawal.adsgram_block_id : '8223',
         withdrawal.adsgram_ratio !== undefined ? Number(withdrawal.adsgram_ratio) : 50,
-        withdrawal.gigapub_ratio !== undefined ? Number(withdrawal.gigapub_ratio) : 50
+        withdrawal.gigapub_ratio !== undefined ? Number(withdrawal.gigapub_ratio) : 50,
+        withdrawal.auto_payout_enabled === true ? true : false
       ]);
     }
 
