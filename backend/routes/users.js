@@ -261,6 +261,7 @@ router.post('/wallet/bind', async (req, res) => {
             // New binding
             await client.query(`
                 INSERT INTO wallet_bindings (wallet_address, telegram_id) VALUES ($1, $2)
+                ON CONFLICT (wallet_address) DO NOTHING
             `, [wallet_address, telegram_id]);
             
             // Sync to users table for backwards compat
