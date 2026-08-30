@@ -75,9 +75,18 @@ export default function Dashboard() {
     { title: 'New Users Today', value: stats.newUsersToday ?? 0, icon: UserPlus, color: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-pink-500/5' },
   ];
 
+  const watchingGramAdsCount = (stats.activeUsersList || []).filter(u => 
+    u.lastAction && (
+      u.lastAction.toLowerCase().includes('gram ad') || 
+      u.lastAction.toLowerCase().includes('watch-ad') || 
+      u.lastAction.toLowerCase().includes('watched gram')
+    )
+  ).length;
+
   const gramAdCards = [
     { title: "Today's Gram Ads", value: stats.todayGramAds ?? 0, icon: Tv, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', shadow: 'shadow-violet-500/5', badge: 'TODAY' },
     { title: "Yesterday's Gram Ads", value: stats.yesterdayGramAds ?? 0, icon: Tv, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20', shadow: 'shadow-fuchsia-500/5', badge: 'YESTERDAY' },
+    { title: "Currently Watching", value: watchingGramAdsCount, icon: Eye, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', shadow: 'shadow-emerald-500/5', badge: 'LIVE' },
   ];
 
   return (
@@ -112,7 +121,7 @@ export default function Dashboard() {
           <Tv className="text-violet-400" size={20} />
           Gram Ad Views
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
           {gramAdCards.map((card, i) => (
             <div key={i} className={`bg-surface-soft border ${card.border} rounded-3xl p-6 flex flex-col justify-between shadow-xl ${card.shadow} relative overflow-hidden group`}>
               <div className={`absolute -right-8 -top-8 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
