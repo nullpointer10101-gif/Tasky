@@ -21,6 +21,47 @@ export default function Broadcast() {
   // Special Promo Broadcast State
   const [isSendingSpecial, setIsSendingSpecial] = useState(false);
 
+  const [gramTemplateIndex, setGramTemplateIndex] = useState(0);
+
+  const gramTemplates = [
+    {
+      label: 'Template 1 ⚠️',
+      text: (
+        <>
+          ⚠️ <b>You have not claimed your daily GRAM reward yet!</b>
+          {"\n\n"}
+          Go complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!
+          {"\n\n"}
+          💎 <b>Claim your GRAM now:</b>
+        </>
+      )
+    },
+    {
+      label: 'Template 2 🔥',
+      text: (
+        <>
+          🔥 <b>Free GRAM waiting to be claimed!</b>
+          {"\n\n"}
+          Don't miss out on your daily yield. Watch your 60 short ads now and unlock <b>0.02 GRAM</b> paid instantly to your wallet!
+          {"\n\n"}
+          ⚡️ <b>Get your free GRAM tokens here:</b>
+        </>
+      )
+    },
+    {
+      label: 'Template 3 🚀',
+      text: (
+        <>
+          🚀 <b>Ad slots refreshed! Ready for GRAM?</b>
+          {"\n\n"}
+          Watch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.
+          {"\n\n"}
+          👉 <b>Click below to start:</b>
+        </>
+      )
+    }
+  ];
+
   const handleSendSpecialPromo = async () => {
     if (!window.confirm('Are you sure you want to send the special 1 USDT + 20K TASKY promo broadcast preview to Telegram Admin?')) {
       return;
@@ -127,7 +168,7 @@ export default function Broadcast() {
         currentIdx: 0
       });
       setIsBroadcastingGram(true);
-      await api.post('/broadcast/gram-reminder', { target: gramTarget });
+      await api.post('/broadcast/gram-reminder', { target: gramTarget, templateIndex: gramTemplateIndex });
       toast.success('GRAM claim reminder broadcast started!');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to start broadcast');
@@ -523,15 +564,32 @@ export default function Broadcast() {
                       </button>
                     </div>
 
+                    {/* Template Selector */}
+                    <label className="flex items-center gap-2 text-xs font-bold text-ink-soft uppercase tracking-wider mb-3 pl-1">
+                      Choose Template
+                    </label>
+                    <div className="grid grid-cols-3 gap-2 mb-6">
+                      {gramTemplates.map((tmpl, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => setGramTemplateIndex(idx)}
+                          className={`py-2.5 rounded-xl border text-xs font-bold transition-all ${
+                            gramTemplateIndex === idx 
+                              ? 'bg-amber-500 text-slate-900 border-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.2)]' 
+                              : 'bg-surface border-border/50 text-ink-soft hover:text-ink hover:bg-white/5'
+                          }`}
+                        >
+                          {tmpl.label}
+                        </button>
+                      ))}
+                    </div>
+
                     {/* Predefined message template preview */}
                     <div className="bg-[#0a0f1c] border border-border/40 rounded-2xl p-4">
                       <p className="text-[10px] font-black uppercase text-ink-soft tracking-wider mb-2 border-b border-border/40 pb-1.5">Predefined Template Preview</p>
                       <div className="text-xs font-medium text-ink-soft space-y-2 whitespace-pre-line leading-relaxed">
-                        ⚠️ <b>You have not claimed your daily GRAM reward yet!</b>
-                        {"\n\n"}
-                        Go complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!
-                        {"\n\n"}
-                        💎 <b>Claim your GRAM now:</b>
+                        {gramTemplates[gramTemplateIndex].text}
                       </div>
                     </div>
                   </div>

@@ -1314,13 +1314,31 @@ router.get('/broadcast/gram-reminder-status', (req, res) => {
 });
 
 router.post('/broadcast/gram-reminder', async (req, res) => {
-  const { target } = req.body;
+  const { target, templateIndex } = req.body;
 
   if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running') {
     return res.status(400).json({ error: 'Another Gram reminder broadcast is currently in progress.' });
   }
 
-  const text = `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`;
+  const idx = parseInt(templateIndex, 10) || 0;
+  const templates = [
+    {
+      text: `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`,
+      button: "🎁 Claim GRAM 🚀"
+    },
+    {
+      text: `🔥 <b>Free GRAM waiting to be claimed!</b>\n\nDon't miss out on your daily yield. Watch your 60 short ads now and unlock <b>0.02 GRAM</b> paid instantly to your wallet!\n\n⚡️ <b>Get your free GRAM tokens here:</b>`,
+      button: "💎 Claim Free GRAM 🚀"
+    },
+    {
+      text: `🚀 <b>Ad slots refreshed! Ready for GRAM?</b>\n\nWatch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.\n\n👉 <b>Click below to start:</b>`,
+      button: "📲 Watch & Earn GRAM 🎁"
+    }
+  ];
+
+  const selectedTemplate = templates[idx] || templates[0];
+  const text = selectedTemplate.text;
+  const buttonText = selectedTemplate.button;
 
   try {
     const adminId = '8823265955';
@@ -1375,7 +1393,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
                 parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
-                    [{ text: "🎁 Claim GRAM 🚀", url: "https://t.me/TaskyAppbot/app" }]
+                    [{ text: buttonText, url: "https://t.me/TaskyAppbot/app" }]
                   ]
                 }
               });
