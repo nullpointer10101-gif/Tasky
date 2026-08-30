@@ -78,7 +78,7 @@ export default function GramClaims() {
       `— <i>Tasky Admin Team</i>`;
 
     try {
-      await api.post(`/admin/users/${c.telegram_id}/broadcast`, { message });
+      await api.post(`/users/${c.telegram_id}/broadcast`, { message });
       toast.success(`⚠️ Warning sent to ${name}`);
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to send warning');
