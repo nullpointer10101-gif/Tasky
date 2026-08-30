@@ -509,11 +509,7 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
             // ── Check referral validity ──
             if (ut.referred_by) {
-                                );
-                            } catch (e) {}
-                        }
-                    }
-                }
+                await checkReferralValidity(client, ut.telegram_id, ut.referred_by);
             }
 
             await client.query('COMMIT');
