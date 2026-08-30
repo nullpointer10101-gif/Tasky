@@ -5,7 +5,7 @@ import { Save, Settings, DollarSign, Users } from 'lucide-react';
 
 export default function DynamicSettings() {
   const [config, setConfig] = useState({
-    withdrawal: { min_withdrawal_tasky: 0, fee_percent: 0, usdt_rate: 0 },
+    withdrawal: { min_withdrawal_tasky: 0, fee_percent: 0, usdt_rate: 0, auto_payout_enabled: false },
     referral: { reward_per_referral: 0, tasks_required_for_valid: 0, spin_reward_per_referral: 0 }
   });
   const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export default function DynamicSettings() {
             <h2 className="text-2xl font-black text-ink tracking-tight">Withdrawal Engine</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 relative z-10">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Min. TASKY to Withdraw</label>
               <input
@@ -97,6 +97,21 @@ export default function DynamicSettings() {
                 onChange={e => setConfig({ ...config, withdrawal: { ...config.withdrawal, usdt_rate: Number(e.target.value) } })}
                 className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-indigo-400 font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
               />
+            </div>
+            <div className="space-y-2 flex flex-col justify-center mt-1">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Auto-Payout</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfig({ ...config, withdrawal: { ...config.withdrawal, auto_payout_enabled: !config.withdrawal.auto_payout_enabled } })}
+                  className={`w-14 h-7 rounded-full p-1 transition-colors duration-200 ease-in-out ${config.withdrawal.auto_payout_enabled ? 'bg-emerald-500' : 'bg-[#0a0f1c] border border-border/50'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ease-in-out ${config.withdrawal.auto_payout_enabled ? 'translate-x-7' : 'translate-x-0'}`}></div>
+                </button>
+                <span className={`text-sm font-bold ${config.withdrawal.auto_payout_enabled ? 'text-emerald-400' : 'text-ink-soft'}`}>
+                  {config.withdrawal.auto_payout_enabled ? 'Active' : 'Off'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
