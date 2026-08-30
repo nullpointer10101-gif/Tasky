@@ -255,15 +255,27 @@ export default function GramClaims() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-end justify-center w-full md:w-48 border-t md:border-t-0 md:border-l border-border/50 pt-5 md:pt-0 md:pl-6">
-                  {h.status === 'approved' ? (
-                    <span className="bg-emerald-500/10 text-emerald-400 font-bold px-4 py-2 rounded-lg text-sm w-full text-center">PAID</span>
-                  ) : (
-                    <div className="w-full text-center">
-                      <span className="bg-rose-500/10 text-rose-400 font-bold px-4 py-2 rounded-lg text-sm block mb-1">REJECTED</span>
-                      {h.rejection_reason && <span className="text-[10px] text-rose-400/70 truncate block max-w-full" title={h.rejection_reason}>{h.rejection_reason}</span>}
-                    </div>
-                  )}
+                <div className="flex items-center gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-border/50 pt-5 md:pt-0 md:pl-6">
+                  {/* Warn button — always visible in history */}
+                  <button
+                    onClick={() => handleWarn(h)}
+                    title="Warn: Not sharing proof in community"
+                    className="px-3 py-2.5 rounded-xl border border-amber-500/30 text-amber-400 font-bold text-xs hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors flex items-center gap-1.5 shrink-0"
+                  >
+                    <AlertTriangle size={15} />
+                    <span>Warn</span>
+                  </button>
+                  {/* Status badge */}
+                  <div className="flex flex-col items-end justify-center">
+                    {h.status === 'approved' ? (
+                      <span className="bg-emerald-500/10 text-emerald-400 font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap">PAID</span>
+                    ) : (
+                      <div className="text-center">
+                        <span className="bg-rose-500/10 text-rose-400 font-bold px-4 py-2 rounded-lg text-sm block mb-1">REJECTED</span>
+                        {h.rejection_reason && <span className="text-[10px] text-rose-400/70 truncate block max-w-full" title={h.rejection_reason}>{h.rejection_reason}</span>}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
