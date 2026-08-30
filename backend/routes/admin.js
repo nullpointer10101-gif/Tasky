@@ -1333,6 +1333,14 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
     {
       text: `🚀 <b>Ad slots refreshed! Ready for GRAM?</b>\n\nWatch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.\n\n👉 <b>Click below to start:</b>`,
       button: "📲 Watch & Earn GRAM 🎁"
+    },
+    {
+      text: `🚨 <b>URGENT: Gram rewards are filling up fast!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before it resets!\n\n💰 <b>Secure your payout here:</b>`,
+      button: "⚡️ Secure My GRAM Now 💵"
+    },
+    {
+      text: `🏆 <b>Boost your Tasky status with free GRAM!</b>\n\nDaily active miners are already claiming. Watch your 60 ads to unlock <b>0.02 GRAM</b> and increase your daily rank!\n\n💎 <b>Claim & Rank Up:</b>`,
+      button: "🚀 Claim My Daily Yield 🏆"
     }
   ];
 
@@ -1378,7 +1386,8 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
       success: 0,
       failed: 0,
       status: 'running',
-      currentIdx: 0
+      currentIdx: 0,
+      templateIndex: idx
     };
 
     // Process asynchronously in background

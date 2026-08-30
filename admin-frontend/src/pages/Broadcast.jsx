@@ -59,6 +59,30 @@ export default function Broadcast() {
           👉 <b>Click below to start:</b>
         </>
       )
+    },
+    {
+      label: 'Template 4 🚨',
+      text: (
+        <>
+          🚨 <b>URGENT: Gram rewards are filling up fast!</b>
+          {"\n\n"}
+          Daily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before it resets!
+          {"\n\n"}
+          💰 <b>Secure your payout here:</b>
+        </>
+      )
+    },
+    {
+      label: 'Template 5 🏆',
+      text: (
+        <>
+          🏆 <b>Boost your Tasky status with free GRAM!</b>
+          {"\n\n"}
+          Daily active miners are already claiming. Watch your 60 ads to unlock <b>0.02 GRAM</b> and increase your daily rank!
+          {"\n\n"}
+          💎 <b>Claim & Rank Up:</b>
+        </>
+      )
     }
   ];
 
@@ -507,6 +531,14 @@ export default function Broadcast() {
                       </div>
                     </div>
                   )}
+
+                  {/* Sent Template Preview */}
+                  <div className="bg-[#0a0f1c] border border-border/40 rounded-2xl p-4">
+                    <p className="text-[10px] font-black uppercase text-ink-soft tracking-wider mb-2 border-b border-border/40 pb-1.5">Sent Template Preview</p>
+                    <div className="text-xs font-medium text-ink-soft space-y-2 whitespace-pre-line leading-relaxed">
+                      {gramTemplates[gramStatus.templateIndex || 0]?.text}
+                    </div>
+                  </div>
 
                   {/* SUMMARY LOG */}
                   <div className="grid grid-cols-3 gap-4">
