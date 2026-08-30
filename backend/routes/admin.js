@@ -1511,5 +1511,30 @@ router.post('/gram-withdrawals/:id/reject', async (req, res) => {
   }
 });
 
-module.exports = router;
+// POST /api/admin/send-gram-reminder/:telegram_id
+router.post('/send-gram-reminder/:telegram_id', async (req, res) => {
+  const { telegram_id } = req.params;
+  
+  if (bot && bot.sendMessage) {
+    try {
+      const msg = `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`;
+      const opts = {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '💎 Claim your GRAM', web_app: { url: 'https://tasky-kohl-six.vercel.app' } }]
+          ]
+        }
+      };
+      bot.sendMessage(telegram_id, msg, opts).catch(e => console.error('Bot send error', e));
+      res.json({ success: true });
+    } catch (err) {
+      console.error('Error sending reminder:', err);
+      res.status(500).json({ error: 'Failed to send message' });
+    }
+  } else {
+    res.status(500).json({ error: 'Bot not configured' });
+  }
+});
 
+module.exports = router;

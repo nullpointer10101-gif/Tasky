@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tv, RefreshCw, Wifi, WifiOff, Trophy, Clock, Wallet, CheckCircle, AlertCircle, Zap, User } from 'lucide-react';
+import { Tv, RefreshCw, Wifi, WifiOff, Trophy, Clock, Wallet, CheckCircle, AlertCircle, Zap, User, Bell } from 'lucide-react';
+import toast from 'react-hot-toast';
 import api from '../api';
 
 const ADS_GOAL = 60;
@@ -20,7 +21,7 @@ function getProgressColor(count) {
   return { bar: 'bg-indigo-400', text: 'text-indigo-400', glow: 'shadow-indigo-500/20' };
 }
 
-function WatcherCard({ watcher }) {
+function WatcherCard({ watcher, onRemind }) {
   const pct = Math.min((watcher.ads_watched / ADS_GOAL) * 100, 100);
   const colors = getProgressColor(watcher.ads_watched);
   const isNearGoal = watcher.ads_watched >= 50 && watcher.ads_watched < 60;
@@ -92,9 +93,20 @@ function WatcherCard({ watcher }) {
           <Clock size={10} />
           {timeSince(watcher.last_watch_time)}
         </div>
-        <div className={`flex items-center gap-1 text-[10px] font-bold ${watcher.has_wallet ? 'text-emerald-400' : 'text-red-400/70'}`}>
-          <Wallet size={10} />
-          {watcher.has_wallet ? 'Wallet ✓' : 'No Wallet'}
+        <div className="flex items-center gap-2">
+          {!watcher.claimed_today && watcher.ads_watched < 60 && (
+            <button
+              onClick={() => onRemind(watcher.telegram_id)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/20 transition-all"
+              title="Send Reminder"
+            >
+              <Bell size={10} /> Remind
+            </button>
+          )}
+          <div className={`flex items-center gap-1 text-[10px] font-bold ${watcher.has_wallet ? 'text-emerald-400' : 'text-red-400/70'}`}>
+            <Wallet size={10} />
+            {watcher.has_wallet ? 'Wallet ✓' : 'No Wallet'}
+          </div>
         </div>
       </div>
     </div>
@@ -144,6 +156,20 @@ export default function GramWatchers() {
     ready: data.watchers.filter(w => w.ads_watched >= 60 && !w.claimed_today).length,
     claimed: data.watchers.filter(w => w.claimed_today).length,
   } : { total: 0, near: 0, ready: 0, claimed: 0 };
+
+  const handleRemind = async (telegramId) => {
+    try {
+      const promise = api.post(`/send-gram-reminder/${telegramId}`);
+      toast.promise(promise, {
+        loading: 'Sending reminder...',
+        success: 'Reminder sent successfully!',
+        error: 'Failed to send reminder',
+      });
+      await promise;
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const filterTabs = [
     { key: 'all', label: 'All', count: stats.total, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20' },
@@ -259,7 +285,7 @@ export default function GramWatchers() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {filtered.map(watcher => (
-            <WatcherCard key={watcher.telegram_id} watcher={watcher} />
+            <WatcherCard key={watcher.telegram_id} watcher={watcher} onRemind={handleRemind} />
           ))}
         </div>
       )}
