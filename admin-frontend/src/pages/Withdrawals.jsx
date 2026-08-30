@@ -11,6 +11,7 @@ export default function Withdrawals() {
   const [activeTab, setActiveTab] = useState('pending');
   const [searchTerm, setSearchTerm] = useState('');
   const [tokenFilter, setTokenFilter] = useState('all');
+  const [fraudFilter, setFraudFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
@@ -85,7 +86,8 @@ export default function Withdrawals() {
                           (w.telegram_id && w.telegram_id.toString().includes(searchTerm)) ||
                           (w.wallet_address && w.wallet_address.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesToken = tokenFilter === 'all' || (w.token || 'USDT').toUpperCase() === tokenFilter.toUpperCase();
-    return matchesSearch && matchesToken;
+    const matchesFraud = fraudFilter === 'all' || (fraudFilter === 'flagged' && w.is_flagged) || (fraudFilter === 'clean' && !w.is_flagged);
+    return matchesSearch && matchesToken && matchesFraud;
   }).sort((a, b) => {
     if (sortBy === 'newest') return new Date(b.requested_at) - new Date(a.requested_at);
     if (sortBy === 'oldest') return new Date(a.requested_at) - new Date(b.requested_at);
@@ -155,12 +157,24 @@ export default function Withdrawals() {
             <select
               value={tokenFilter}
               onChange={(e) => setTokenFilter(e.target.value)}
-              className="w-full md:w-40 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+              className="w-full md:w-32 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
             >
               <option value="all">All Tokens</option>
               <option value="USDT">USDT</option>
               <option value="TON">TON</option>
               <option value="GRAM">GRAM</option>
+            </select>
+          </div>
+
+          <div className="relative flex-1 md:flex-none">
+            <select
+              value={fraudFilter}
+              onChange={(e) => setFraudFilter(e.target.value)}
+              className="w-full md:w-32 px-4 py-2.5 bg-surface border border-border hover:border-indigo-500/30 focus:border-indigo-500 rounded-2xl text-ink font-bold text-xs outline-none transition-all cursor-pointer"
+            >
+              <option value="all">All Status</option>
+              <option value="clean">Clean</option>
+              <option value="flagged">Flagged 🚩</option>
             </select>
           </div>
           
@@ -194,7 +208,15 @@ export default function Withdrawals() {
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-ink text-lg truncate pr-2">@{w.username || w.first_name} <span className="text-ink-faint font-normal text-sm ml-1">(ID: {w.telegram_id})</span></h3>
+                    <h3 className="font-bold text-ink text-lg truncate pr-2 flex items-center gap-2">
+                      @{w.username || w.first_name} 
+                      <span className="text-ink-faint font-normal text-sm">(ID: {w.telegram_id})</span>
+                      {w.is_flagged && (
+                        <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                          🚩 Flagged: {w.flag_reason}
+                        </span>
+                      )}
+                    </h3>
                     <span className="text-[10px] text-ink-faint uppercase font-bold tracking-wider shrink-0">{new Date(w.requested_at).toLocaleString()}</span>
                   </div>
                   

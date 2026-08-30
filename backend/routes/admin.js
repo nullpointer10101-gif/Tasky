@@ -404,6 +404,7 @@ router.get('/withdrawals/pending', async (req, res) => {
     const query = `
       SELECT 
         s.id as withdrawal_id, s.tasky_amount, s.receive_amount as usdt_amount, s.receive_token as token, s.wallet_address, s.requested_at,
+        s.is_flagged, s.flag_reason,
         u.telegram_id, u.username, u.first_name, u.balance as current_balance
       FROM swaps s
       JOIN users u ON s.telegram_id = u.telegram_id
