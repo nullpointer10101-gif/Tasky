@@ -201,6 +201,10 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
     return;
   }
 
+  // SYSTEM PERMANENTLY DISABLED BY ADMIN
+  console.log(`[AutoPayout] System is completely disabled. Skipping auto-payout for ${tableName} #${recordId}.`);
+  return { success: false, reason: 'Auto-payout system is disabled globally.' };
+
   // Skip flagged payouts
   if (isFlagged) {
     console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: flagged (${flagReason})`);
