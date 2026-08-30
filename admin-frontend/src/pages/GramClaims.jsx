@@ -72,7 +72,7 @@ export default function GramClaims() {
       `Hi ${name},\n\n` +
       `We noticed that you claimed your <b>GRAM reward</b> but have <b>not shared proof</b> of your GRAM withdrawal in our community.\n\n` +
       `📌 <b>This is required to keep your claim valid.</b>\n\n` +
-      `Please post a screenshot of your GRAM transaction in our official community group and tag it with <b>#taskyproof</b>:\n` +
+      `Please post a screenshot of your GRAM transaction in our official community group and tag it with <b>#GramProof</b> <b>#taskyproof</b>:\n` +
       `👉 <a href="${communityLink}">${communityLink}</a>\n\n` +
       `Failure to do so may result in your future claims being <b>rejected</b>.\n\n` +
       `— <i>Tasky Admin Team</i>`;
