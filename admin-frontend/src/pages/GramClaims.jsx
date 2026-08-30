@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, Copy, Clock, History, Coins, ArrowUpRight } from 'lucide-react';
+import { CheckCircle2, XCircle, Copy, Clock, History, Coins, ArrowUpRight, AlertTriangle } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -61,6 +61,27 @@ export default function GramClaims() {
       toast.error(e.response?.data?.error || "Failed to " + action + " Gram claim");
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const handleWarn = async (c) => {
+    const communityLink = 'https://t.me/TaskyOfficialCommunity';
+    const name = c.username ? `@${c.username}` : (c.first_name || 'there');
+    const message =
+      `⚠️ <b>Warning — Proof Required</b>\n\n` +
+      `Hi ${name},\n\n` +
+      `We noticed that you claimed your <b>GRAM reward</b> but have <b>not shared proof</b> of your GRAM withdrawal in our community.\n\n` +
+      `📌 <b>This is required to keep your claim valid.</b>\n\n` +
+      `Please post a screenshot of your GRAM transaction in our official community group and tag it with <b>#GramProof</b>:\n` +
+      `👉 <a href="${communityLink}">${communityLink}</a>\n\n` +
+      `Failure to do so may result in your future claims being <b>rejected</b>.\n\n` +
+      `— <i>Tasky Admin Team</i>`;
+
+    try {
+      await api.post(`/admin/users/${c.telegram_id}/broadcast`, { message });
+      toast.success(`⚠️ Warning sent to ${name}`);
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to send warning');
     }
   };
 
@@ -154,7 +175,17 @@ export default function GramClaims() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 w-full md:w-48 border-t md:border-t-0 md:border-l border-border/50 pt-5 md:pt-0 md:pl-6">
+                <div className="flex gap-3 w-full md:w-auto border-t md:border-t-0 md:border-l border-border/50 pt-5 md:pt-0 md:pl-6">
+                  {/* Warn button */}
+                  <button
+                    onClick={() => handleWarn(c)}
+                    title="Warn: Not sharing proof in community"
+                    className="px-3 py-3 rounded-xl border border-amber-500/30 text-amber-400 font-bold text-sm hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <AlertTriangle size={16} />
+                    <span className="hidden lg:inline text-xs">Warn</span>
+                  </button>
+                  {/* Reject button */}
                   <button
                     onClick={() => handleReview(c.claim_id, 'reject')}
                     disabled={processingId === c.claim_id}
