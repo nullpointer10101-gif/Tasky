@@ -98,17 +98,32 @@ export default function DynamicSettings() {
                 className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-indigo-400 font-bold focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none"
               />
             </div>
+          </div>
+        </div>
+
+        {/* Gram Settings */}
+        <div className="bg-surface-soft p-6 md:p-8 rounded-3xl border border-border/80 shadow-xl shadow-black/20 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:bg-blue-500/10"></div>
+          
+          <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+              <DollarSign size={24} />
+            </div>
+            <h2 className="text-2xl font-black text-ink tracking-tight">Gram Engine</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
             <div className="space-y-2 flex flex-col justify-center mt-1">
               <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Gram Auto-Payout</label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => setConfig({ ...config, withdrawal: { ...config.withdrawal, auto_payout_enabled: !config.withdrawal.auto_payout_enabled } })}
-                  className={`w-14 h-7 rounded-full p-1 transition-colors duration-200 ease-in-out ${config.withdrawal.auto_payout_enabled ? 'bg-emerald-500' : 'bg-[#0a0f1c] border border-border/50'}`}
+                  className={`w-14 h-7 rounded-full p-1 transition-colors duration-200 ease-in-out ${config.withdrawal.auto_payout_enabled ? 'bg-blue-500' : 'bg-[#0a0f1c] border border-border/50'}`}
                 >
                   <div className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ease-in-out ${config.withdrawal.auto_payout_enabled ? 'translate-x-7' : 'translate-x-0'}`}></div>
                 </button>
-                <span className={`text-sm font-bold ${config.withdrawal.auto_payout_enabled ? 'text-emerald-400' : 'text-ink-soft'}`}>
+                <span className={`text-sm font-bold ${config.withdrawal.auto_payout_enabled ? 'text-blue-400' : 'text-ink-soft'}`}>
                   {config.withdrawal.auto_payout_enabled ? 'Active' : 'Off'}
                 </span>
               </div>

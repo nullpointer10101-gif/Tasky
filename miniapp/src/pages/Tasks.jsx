@@ -231,12 +231,12 @@ export default function Tasks({ user, refreshUser, navigate }) {
         } else {
           const updatedTask = {
             ...activeTask,
-            status: isAutoApproved ? 'approved' : 'pending',
+            status: res.data.status || (isAutoApproved ? 'approved' : 'pending'),
             submitted_at: new Date().toISOString()
           };
           setTasks(prev => prev.filter(t => t.id !== activeTask.id));
           setSubmissions(prev => [updatedTask, ...prev]);
-          if (isAutoApproved) {
+          if (res.data.status === 'approved' || isAutoApproved) {
             showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
           } else {
             setSubmittedTask(activeTask);

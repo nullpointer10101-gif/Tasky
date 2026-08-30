@@ -18,9 +18,24 @@ export default function TaskManagement() {
     verification_type: 'proof_screenshot',
     icon: 'Default',
     category: 'internal',
-    telegram_chat_id: ''
+    telegram_chat_id: '',
+    x_subtype: ''
   });
   const [loading, setLoading] = useState(false);
+
+  const handleTypeChange = (val) => {
+    let iconVal = formData.icon;
+    if (val === 'twitter') iconVal = 'Twitter';
+    else if (val === 'youtube') iconVal = 'Youtube';
+    else if (val === 'telegram_join') iconVal = 'Telegram';
+    
+    setFormData({
+      ...formData,
+      type: val,
+      icon: iconVal,
+      x_subtype: val === 'twitter' ? 'follow' : ''
+    });
+  };
 
   const fetchLiveTasks = async () => {
     setLoadingTasks(true);
@@ -46,7 +61,7 @@ export default function TaskManagement() {
     try {
       await api.post('/tasks/create', formData);
       toast.success('Task created successfully!');
-      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal', reward_tasky: 500, reward_gram: 0 });
+      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal', reward_tasky: 500, reward_gram: 0, x_subtype: '' });
     } catch (e) {
       toast.error('Failed to create task');
     } finally {
@@ -121,10 +136,11 @@ export default function TaskManagement() {
                 <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Category Type</label>
                 <select
                   value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value })}
+                  onChange={e => handleTypeChange(e.target.value)}
                   className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none appearance-none"
                 >
                   <option value="social">Social Media</option>
+                  <option value="twitter">X (Twitter)</option>
                   <option value="youtube">YouTube</option>
                   <option value="partner">Partner / App</option>
                   <option value="telegram_join">Telegram Join</option>
@@ -142,6 +158,21 @@ export default function TaskManagement() {
                   <option value="partner">Partner Promos (External)</option>
                 </select>
               </div>
+              
+              {formData.type === 'twitter' && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">X Subtype (Action)</label>
+                  <select
+                    value={formData.x_subtype}
+                    onChange={e => setFormData({ ...formData, x_subtype: e.target.value })}
+                    className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-ink focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all outline-none appearance-none"
+                  >
+                    <option value="follow">Follow Target Profile</option>
+                    <option value="like">Like Target Tweet</option>
+                    <option value="repost">Repost/Retweet Target Tweet</option>
+                  </select>
+                </div>
+              )}
               
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Reward (TASKY)</label>
@@ -265,7 +296,7 @@ export default function TaskManagement() {
                   <div className="bg-[#0a0f1c] p-3 rounded-2xl border border-border/50 text-xs text-ink-soft space-y-2">
                     <div className="flex justify-between">
                       <span className="uppercase font-bold tracking-wider text-ink-faint text-[10px]">Type</span>
-                      <span className="text-indigo-400 font-medium">{task.type}</span>
+                      <span className="text-indigo-400 font-medium">{task.type} {task.x_subtype ? `(${task.x_subtype})` : ''}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="uppercase font-bold tracking-wider text-ink-faint text-[10px]">Verification</span>
