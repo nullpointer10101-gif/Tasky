@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
+const { checkFraud } = require('../utils/fraud');
+const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 const MIN_WITHDRAWAL = 0.01;
 
@@ -103,10 +105,13 @@ router.post('/withdraw', async (req, res) => {
             [withdrawAmount, telegram_id]
         );
 
+        // Fraud check
+        const fraud = await checkFraud(telegram_id, activeWallet, client);
+
         const wRes = await client.query(
-            `INSERT INTO gram_withdrawals (telegram_id, wallet_address, amount, status)
-             VALUES ($1, $2, $3, 'pending') RETURNING *`,
-            [telegram_id, activeWallet, withdrawAmount]
+            `INSERT INTO gram_withdrawals (telegram_id, wallet_address, amount, status, is_flagged, flag_reason)
+             VALUES ($1, $2, $3, 'pending', $4, $5) RETURNING *`,
+            [telegram_id, activeWallet, withdrawAmount, fraud.flagged, fraud.reason]
         );
 
         await client.query('COMMIT');
@@ -118,7 +123,7 @@ router.post('/withdraw', async (req, res) => {
             if (bot && bot.sendMessage) {
                 bot.sendMessage(
                     adminId,
-                    `💎 *New GRAM Withdrawal Request!*\n\nID: \`${wRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: ${withdrawAmount} GRAM\n🏦 Wallet: \`${activeWallet}\`\n\n📋 Review in Admin Panel → GRAM Withdrawals.`,
+                    `💎 *New GRAM Withdrawal Request!*\n\nID: \`${wRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: ${withdrawAmount} GRAM\n🏦 Wallet: \`${activeWallet}\`${fraud.flagged ? `\n🚩 FLAGGED: ${fraud.reason}` : ''}\n\n📋 Review in Admin Panel → GRAM Withdrawals.`,
                     {
                         parse_mode: 'Markdown',
                         reply_markup: {
@@ -134,6 +139,9 @@ router.post('/withdraw', async (req, res) => {
         }
 
         res.json({ success: true, message: 'Withdrawal request submitted!', withdrawal: wRes.rows[0] });
+
+        // Attempt auto-payout
+        tryAutoPayoutGram(wRes.rows[0].id, 'gram_withdrawals', withdrawAmount, activeWallet, telegram_id, fraud.flagged, fraud.reason).catch(err => console.error(err));
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error creating gram withdrawal:', err);

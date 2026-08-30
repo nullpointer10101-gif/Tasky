@@ -3,49 +3,7 @@ const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
-const { tryAutoPayout } = require('../services/autoPayoutService');
-
-/**
- * Fraud detection — returns { flagged: boolean, reason: string }
- * Flagged swaps go to pending for manual review. Users are NOT notified.
- */
-async function checkFraud(telegram_id, walletAddress, client) {
-  const flags = [];
-
-  // 1. New account (created < 3 days ago)
-  const userAgeRes = await client.query(
-    `SELECT created_at FROM users WHERE telegram_id = $1`,
-    [telegram_id]
-  );
-  if (userAgeRes.rows.length > 0) {
-    const ageMs = Date.now() - new Date(userAgeRes.rows[0].created_at).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    if (ageDays < 3) flags.push('account_too_new');
-  }
-
-  // 2. Same wallet used by 2+ different telegram accounts
-  const walletDupRes = await client.query(
-    `SELECT COUNT(DISTINCT telegram_id) as cnt FROM users WHERE wallet_address = $1`,
-    [walletAddress]
-  );
-  if (parseInt(walletDupRes.rows[0]?.cnt || 0) > 1) flags.push('wallet_shared');
-
-  // 3. Referrals all joined in the same 24h window (referral farming)
-  const refFarmRes = await client.query(
-    `SELECT COUNT(*) as total,
-            SUM(CASE WHEN created_at >= NOW() - INTERVAL '24 hours' THEN 1 ELSE 0 END) as recent
-     FROM users WHERE referred_by = $1`,
-    [telegram_id]
-  );
-  const totalRefs = parseInt(refFarmRes.rows[0]?.total || 0);
-  const recentRefs = parseInt(refFarmRes.rows[0]?.recent || 0);
-  if (totalRefs > 0 && totalRefs === recentRefs && totalRefs >= 5) flags.push('referral_farm');
-
-  if (flags.length > 0) {
-    return { flagged: true, reason: flags.join(', ') };
-  }
-  return { flagged: false, reason: null };
-}
+const { checkFraud } = require('../utils/fraud');
 
 // Admin Middleware
 const isAdmin = (req, res, next) => {
@@ -203,9 +161,6 @@ router.post('/request', async (req, res) => {
         }
         
         res.json(swap);
-
-        // Attempt auto-payout in background (does not block response)
-        tryAutoPayout(swap, user).catch(err => console.error('[AutoPayout] Unhandled error:', err.message));
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(err);

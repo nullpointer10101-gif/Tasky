@@ -99,7 +99,7 @@ export default function DynamicSettings() {
               />
             </div>
             <div className="space-y-2 flex flex-col justify-center mt-1">
-              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Auto-Payout</label>
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Gram Auto-Payout</label>
               <div className="flex items-center gap-3">
                 <button
                   type="button"

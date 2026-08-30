@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
+const { checkFraud } = require('../utils/fraud');
+const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 // Get Gram Reward Status
 router.get('/status/:telegram_id', async (req, res) => {
@@ -189,13 +191,16 @@ router.post('/claim', async (req, res) => {
             await client.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegram_id]);
         }
 
-        // 5. Insert new claim
-        const claimRes = await client.query(`
-            INSERT INTO gram_claims (telegram_id, gram_wallet_address, amount, status)
-            VALUES ($1, $2, 0.02, 'pending') RETURNING *
-        `, [telegram_id, cleanAddress]);
+        // 5. Check fraud
+        const fraud = await checkFraud(telegram_id, cleanAddress, client);
 
-        // 6. Mark the used ad views as claimed
+        // 6. Insert new claim
+        const claimRes = await client.query(`
+            INSERT INTO gram_claims (telegram_id, gram_wallet_address, amount, status, is_flagged, flag_reason)
+            VALUES ($1, $2, 0.02, 'pending', $3, $4) RETURNING *
+        `, [telegram_id, cleanAddress, fraud.flagged, fraud.reason]);
+
+        // 7. Mark the used ad views as claimed
         await client.query(`
             UPDATE ad_views 
             SET claimed = TRUE 
@@ -210,7 +215,8 @@ router.post('/claim', async (req, res) => {
         try {
             const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
             const displayName = username ? `@${username}` : first_name;
-            const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`\n\n📋 Review in Admin Panel → Gram section.`;
+            const flagNote = fraud.flagged ? `\n🚩 FLAGGED: ${fraud.reason}` : '';
+            const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`${flagNote}\n\n📋 Review in Admin Panel → Gram section.`;
             if (bot && bot.sendMessage) {
                 bot.sendMessage(adminId, msg, { 
                     parse_mode: 'Markdown',
@@ -226,6 +232,9 @@ router.post('/claim', async (req, res) => {
         }
 
         res.json({ success: true, message: 'Claim request sent to admin!', claim: claimRes.rows[0] });
+
+        // Attempt auto-payout
+        tryAutoPayoutGram(claimRes.rows[0].id, 'gram_claims', 0.02, cleanAddress, telegram_id, fraud.flagged, fraud.reason).catch(err => console.error(err));
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error claiming Gram reward:', err);

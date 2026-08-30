@@ -112,6 +112,14 @@ async function tryAutoPayout(swap, user) {
     return;
   }
 
+  // Check if auto payout is globally enabled
+  const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
+  const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
+  if (!isAutoPayoutEnabled) {
+    console.log(`[AutoPayout] Skipping ${swap.id}: Auto-payout is globally disabled.`);
+    return;
+  }
+
   // Only auto-pay if amount is small enough
   if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
     console.log(`[AutoPayout] Skipping ${swap.id}: ${receiveAmount} TON > threshold ${AUTO_PAYOUT_MAX_TON}`);
@@ -165,4 +173,85 @@ async function tryAutoPayout(swap, user) {
   }
 }
 
-module.exports = { tryAutoPayout, hasTreasuryBalance };
+/**
+ * Main function — called from gram.js / gram_currency.js after a claim/withdrawal is inserted.
+ * Decides whether to auto-pay or leave in pending.
+ *
+ * @param {string} recordId - the id of the claim/withdrawal
+ * @param {string} tableName - 'gram_claims' or 'gram_withdrawals'
+ * @param {number} receiveAmount - amount of TON/GRAM to send
+ * @param {string} walletAddress - the destination wallet address
+ * @param {string} telegramId - user's telegram id
+ * @param {boolean} isFlagged - whether the request was flagged as fraud
+ * @param {string} flagReason - reason for flagging
+ */
+async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddress, telegramId, isFlagged, flagReason) {
+  // Check if auto payout is globally enabled
+  const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
+  const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
+  if (!isAutoPayoutEnabled) {
+    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is globally disabled.`);
+    return;
+  }
+
+  // Only auto-pay if amount is small enough
+  if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
+    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: ${receiveAmount} > threshold ${AUTO_PAYOUT_MAX_TON}`);
+    return;
+  }
+
+  // Skip flagged payouts
+  if (isFlagged) {
+    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: flagged (${flagReason})`);
+    return;
+  }
+
+  // Check treasury has enough
+  const hasBalance = await hasTreasuryBalance(receiveAmount);
+  if (!hasBalance) {
+    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: treasury balance too low`);
+    // Notify admin
+    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
+        `⚠️ Auto-payout skipped for ${tableName} #${recordId}: treasury balance too low. Please top up.`
+      ).catch(() => {});
+    }
+    return;
+  }
+
+  console.log(`[AutoPayout] Processing ${tableName} #${recordId}: ${receiveAmount} TON → ${walletAddress}`);
+
+  const result = await sendTon(walletAddress, receiveAmount);
+
+  if (result.success) {
+    // Mark record as done
+    if (tableName === 'gram_claims') {
+      await pool.query(`UPDATE gram_claims SET status = 'approved' WHERE id = $1`, [recordId]);
+    } else {
+      await pool.query(`UPDATE gram_withdrawals SET status = 'done' WHERE id = $1`, [recordId]);
+    }
+
+    // Notify user
+    if (bot?.sendMessage) {
+      bot.sendMessage(telegramId,
+        `✅ Your GRAM claim of ${receiveAmount} is complete! Sent to your wallet.`
+      ).catch(() => {});
+    }
+    console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed. TX: ${result.txHash}`);
+  } else {
+    console.error(`[AutoPayout] ❌ ${tableName} #${recordId} failed: ${result.error}`);
+    // Leave as pending, admin can process manually
+    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
+        `❌ Auto-payout FAILED for ${tableName} #${recordId} (${receiveAmount} → ${walletAddress})\nError: ${result.error}`
+      ).catch(() => {});
+    }
+  }
+}
+
+module.exports = {
+  tryAutoPayout,
+  tryAutoPayoutGram,
+  hasTreasuryBalance,
+  sendTon
+};
