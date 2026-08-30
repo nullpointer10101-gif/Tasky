@@ -269,67 +269,6 @@ router.post('/complete', async (req, res) => {
                 }
                 proof_data = proof_data.trim();
                 proof_data = proof_data.startsWith('@') ? proof_data : '@' + proof_data;
-                
-                // --- X AUTOMATED VERIFICATION ---
-                if (task.type === 'twitter' && process.env.TWITTER_BEARER_TOKEN) {
-                    const { verifyFollow, verifyLike, verifyRetweet } = require('../utils/twitter');
-                    let verificationResult = { fallback: true }; // Default to fallback
-                    
-                    if (task.x_subtype === 'follow') {
-                        verificationResult = await verifyFollow(proof_data, task.action_url);
-                    } else if (task.x_subtype === 'like') {
-                        verificationResult = await verifyLike(proof_data, task.action_url);
-                    } else if (task.x_subtype === 'repost' || task.x_subtype === 'retweet') {
-                        verificationResult = await verifyRetweet(proof_data, task.action_url);
-                    }
-                    
-                    if (!verificationResult.fallback) {
-                        if (verificationResult.verified) {
-                            // AUTO-APPROVE!
-                            const reward = parseFloat(task.reward_tasky);
-                            
-                            // Insert into user_tasks as approved
-                            if (existingTask) {
-                                await client.query(`
-                                    UPDATE user_tasks SET status = 'approved', proof_screenshot_url = $3, submitted_at = NOW(), reviewed_at = NOW(), approved_by = 'auto_x'
-                                    WHERE telegram_id = $1 AND task_id = $2
-                                `, [telegram_id, task_id, proof_data]);
-                            } else {
-                                await client.query(`
-                                    INSERT INTO user_tasks (telegram_id, task_id, status, proof_screenshot_url, submitted_at, reviewed_at, approved_by)
-                                    VALUES ($1, $2, 'approved', $3, NOW(), NOW(), 'auto_x')
-                                `, [telegram_id, task_id, proof_data]);
-                            }
-                            
-                            // Add balance
-                            const updatedUser = await client.query(
-                                'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance',
-                                [reward, telegram_id]
-                            );
-                            
-                            // Check referral validity
-                            if (user.referred_by) {
-                                await checkReferralValidity(client, telegram_id, user.referred_by);
-                            }
-                            
-                            await client.query('COMMIT');
-                            
-                            const newBalance = parseFloat(updatedUser.rows[0].balance);
-                            await recalculateTier(telegram_id);
-                            
-                            if (bot && bot.sendMessage) {
-                                try { bot.sendMessage(telegram_id, `🎉 X Task "${task.title}" verified automatically! +${reward} TASKY added.`); } catch (e) {}
-                            }
-                            
-                            return res.json({ status: 'approved', new_balance: newBalance, tokens_earned: reward, message: 'Verified successfully!' });
-                        } else {
-                            // REJECT instantly, do not save as pending
-                            await client.query('ROLLBACK');
-                            return res.status(400).json({ error: verificationResult.error || 'We could not verify this action on X. Make sure you completed it!' });
-                        }
-                    }
-                }
-                
                 adminMessage = `📋 New follow verification from @${user.username || user.first_name} for task: ${task.title}\nX Handle submitted: ${proof_data}`;
             }
 
