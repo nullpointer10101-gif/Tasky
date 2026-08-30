@@ -40,6 +40,7 @@ async function hasTreasuryBalance(requiredTon) {
     const balance = await contract.getBalance();
     const balanceTon = parseFloat(fromNano(balance));
     const needed = requiredTon + 0.01; // 0.01 TON buffer for gas
+    console.log(`[AutoPayout] Treasury Address (V4R2): ${wallet.address.toString({ bounceable: false })}`);
     console.log(`[AutoPayout] Treasury balance: ${balanceTon} TON, needed: ${needed} TON`);
     return balanceTon >= needed;
   } catch (err) {
