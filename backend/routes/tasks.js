@@ -3,6 +3,7 @@ const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
+const { checkReferralValidity } = require('../utils/referral');
 
 // Admin Middleware
 const isAdmin = (req, res, next) => {
@@ -237,32 +238,9 @@ router.post('/complete', async (req, res) => {
                 [reward, telegram_id]
             );
 
-            // ── Check referral validity (only admin-approved tasks count) ──
+            // ── Check referral validity (any approved tasks + spins count) ──
             if (user.referred_by) {
-                const approvedCountRes = await client.query(
-                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND approved_by = 'admin'`,
-                    [telegram_id]
-                );
-                const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
-                const rulesRes = await client.query('SELECT * FROM referral_rules LIMIT 1');
-                const rules = rulesRes.rows[0];
-
-                if (approvedCount >= rules.tasks_required_for_valid) {
-                    // Check if referrer has referrals paused
-                    const checkReferrer = await client.query('SELECT referrals_paused FROM users WHERE telegram_id = $1', [user.referred_by]);
-                    const isPaused = checkReferrer.rows[0]?.referrals_paused || false;
-
-                    const referrerRes = await client.query(
-                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
-                        [user.referred_by, telegram_id]
-                    );
-                    if (referrerRes.rowCount > 0 && !isPaused) {
-                        await client.query(`UPDATE users SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3 WHERE telegram_id = $2`, [rules.reward_per_referral, user.referred_by, rules.spin_reward_per_referral]);
-                        if (bot && bot.sendMessage) {
-                            try { bot.sendMessage(user.referred_by, `🎉 Your referral @${user.username || user.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
-                        }
-                    }
-                }
+                await checkReferralValidity(client, telegram_id, user.referred_by);
             }
 
             await client.query('COMMIT');
@@ -468,44 +446,8 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 [reward, ut.telegram_id]
             );
 
-            // ── Check referral validity (only admin-approved tasks count) ──
+            // ── Check referral validity ──
             if (ut.referred_by) {
-                // Count only admin-approved tasks
-                const approvedCountRes = await client.query(
-                    `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved' AND approved_by = 'admin'`,
-                    [ut.telegram_id]
-                );
-                const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
-
-                // Get referral rules
-                const rulesRes = await client.query('SELECT * FROM referral_rules LIMIT 1');
-                const rules = rulesRes.rows[0];
-
-                // Mark referral as valid if threshold just crossed and not yet counted
-                if (approvedCount >= rules.tasks_required_for_valid) {
-                    // Check if referrer has referrals paused
-                    const checkReferrer = await client.query('SELECT referrals_paused FROM users WHERE telegram_id = $1', [ut.referred_by]);
-                    const isPaused = checkReferrer.rows[0]?.referrals_paused || false;
-
-                    // Check referrer hasn't already been credited for this user
-                    const referrerRes = await client.query(
-                        'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
-                        [ut.referred_by, ut.telegram_id]
-                    );
-
-                    if (referrerRes.rowCount > 0 && !isPaused) {
-                        // Credit referrer
-                        await client.query(`
-                            UPDATE users
-                            SET balance = balance + $1, valid_referrals = valid_referrals + 1, spins_available = spins_available + $3
-                            WHERE telegram_id = $2
-                        `, [rules.reward_per_referral, ut.referred_by, rules.spin_reward_per_referral]);
-
-                        // Notify referrer
-                        if (bot && bot.sendMessage) {
-                            try {
-                                bot.sendMessage(ut.referred_by,
-                                    `🎉 Your referral @${ut.username || ut.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`
                                 );
                             } catch (e) {}
                         }
@@ -525,6 +467,10 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 } catch (e) {
                     console.error('Error sending hype message:', e);
                 }
+            }
+            // ── Check referral validity ──
+            if (ut.referred_by) {
+                await checkReferralValidity(client, ut.telegram_id, ut.referred_by);
             }
 
             // Recalculate tier instantly after balance payout

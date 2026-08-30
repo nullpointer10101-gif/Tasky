@@ -306,7 +306,7 @@ function Profile({ user }) {
                 {[
                   {
                     q: 'What does a "valid referral" mean?',
-                    a: 'A referral is only considered valid when the user you invited signs up using your link and successfully completes at least 3 tasks on the platform. Once they do, you will automatically receive your TASKY referral reward and a free spin on the wheel!'
+                    a: 'A referral is only considered valid when the user you invited signs up using your link and successfully completes at least 1 task on the platform. Once they do, you will automatically receive your TASKY referral reward and a free spin on the wheel!'
                   },
                   {
                     q: 'How do I earn TASKY tokens?',

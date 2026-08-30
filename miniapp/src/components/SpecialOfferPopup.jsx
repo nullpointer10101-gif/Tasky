@@ -339,7 +339,7 @@ export default function SpecialOfferPopup({ user }) {
 
                     <div className="rounded-2xl p-4 mb-4 space-y-3"
                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                      {['Share your referral link with friends', 'Each friend must complete at least 3 tasks'].map((s, i) => (
+                      {['Share your referral link with friends', 'Each friend must complete at least 1 task'].map((s, i) => (
                         <div key={i} className="flex items-center gap-3">
                           <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 text-white"
                             style={{ background: 'linear-gradient(135deg, #7c3aed, #a855f7)' }}>{i + 1}</div>
