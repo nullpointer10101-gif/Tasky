@@ -1,95 +1,6 @@
 /**
- * Comprehensive & Resilient Ad Network Manager (OnClickA + Monetag + GigaPub Fallbacks)
+ * Ad Network Manager (GigaPub primary + Monetag fallback)
  */
-
-// --- OnClickA Config ---
-// ⚠️ REPLACE THIS WITH YOUR ONCLICKA SPOT ID (e.g. 504287)
-export const ONCLICKA_SPOT_ID = 458471; 
-const ONCLICKA_SCRIPT_URL = 'https://js.onclckvd.com/in-stream-ad-admanager/tma.js';
-const ONCLICKA_SCRIPT_ID = 'onclicka-ad-sdk';
-
-let isInjectingOnClickA = false;
-let onclickaInjectionAttempts = 0;
-
-export function initOnClickAAds() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (typeof window.showOnClickA === 'function') return;
-
-  const initCdTmaSafe = () => {
-    if (typeof window.initCdTma === 'function') {
-      window.initCdTma({ id: ONCLICKA_SPOT_ID })
-        .then(show => {
-          window.showOnClickA = show;
-          console.log('[AdManager] OnClickA ad engine initialized successfully');
-        })
-        .catch(err => {
-          console.warn('[AdManager] OnClickA initialization failed:', err);
-        });
-    }
-  };
-
-  // If script is already loaded and initCdTma is available, initialize immediately
-  if (typeof window.initCdTma === 'function') {
-    initCdTmaSafe();
-    return;
-  }
-
-  const existingScript = document.getElementById(ONCLICKA_SCRIPT_ID);
-  if (existingScript) {
-    // The preloaded script from index.html may have already fired its onload
-    // before this function was called. Poll for initCdTma to handle that race condition.
-    let pollElapsed = 0;
-    const pollInterval = setInterval(() => {
-      pollElapsed += 100;
-      if (typeof window.initCdTma === 'function') {
-        clearInterval(pollInterval);
-        console.log('[AdManager] initCdTma detected via poll, initializing OnClickA...');
-        initCdTmaSafe();
-      } else if (pollElapsed >= 8000) {
-        clearInterval(pollInterval);
-        console.warn('[AdManager] initCdTma never became available after 8s');
-      }
-    }, 100);
-
-    // Also hook onload in case it hasn't fired yet
-    existingScript.addEventListener('load', () => {
-      clearInterval(pollInterval);
-      console.log('[AdManager] Preloaded OnClickA script onload event fired');
-      initCdTmaSafe();
-    });
-    return;
-  }
-
-  if (isInjectingOnClickA) return;
-  if (onclickaInjectionAttempts >= MAX_INJECTION_ATTEMPTS) return;
-
-  isInjectingOnClickA = true;
-  onclickaInjectionAttempts++;
-
-  try {
-    const script = document.createElement('script');
-    script.id = ONCLICKA_SCRIPT_ID;
-    script.src = ONCLICKA_SCRIPT_URL;
-    script.async = true;
-
-    script.onload = () => {
-      isInjectingOnClickA = false;
-      console.log('[AdManager] Dynamically injected OnClickA script loaded');
-      initCdTmaSafe();
-    };
-
-    script.onerror = (err) => {
-      isInjectingOnClickA = false;
-      console.warn('[AdManager] OnClickA script load error:', err);
-    };
-
-    document.head.appendChild(script);
-  } catch (err) {
-    isInjectingOnClickA = false;
-    console.error('[AdManager] Failed to inject OnClickA script:', err);
-  }
-}
-// -----------------------
 
 const GIGA_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=7451';
 const SCRIPT_ID = 'gigapub-ad-sdk';
@@ -275,18 +186,18 @@ async function playAdWithFocusProtection(playAdFn) {
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
-  const tryOnClickA = async () => {
-    if (typeof window !== 'undefined' && typeof window.showOnClickA === 'function') {
-      console.log('[AdManager] Trying OnClickA...');
+  const tryGiga = async () => {
+    if (typeof window !== 'undefined' && typeof window.showGiga === 'function') {
+      console.log('[AdManager] Trying GigaPub...');
       await playAdWithFocusProtection(async () => {
         await Promise.race([
-          window.showOnClickA(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('OnClickA timeout')), 60000))
+          window.showGiga(placement),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
         ]);
       });
       return { success: true };
     }
-    throw new Error('OnClickA not available');
+    throw new Error('GigaPub not available');
   };
 
   const tryMonetag = async () => {
@@ -306,69 +217,38 @@ export async function showRewardedAd(placement = 'main') {
     throw new Error('Monetag not available');
   };
 
-  const tryGiga = async () => {
-    if (typeof window !== 'undefined' && typeof window.showGiga === 'function') {
-      console.log('[AdManager] Trying GigaPub...');
-      await playAdWithFocusProtection(async () => {
-        await Promise.race([
-          window.showGiga(placement),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Ad network timeout')), 60000))
-        ]);
-      });
-      return { success: true };
-    }
-    throw new Error('GigaPub not available');
-  };
-
-  // Determine primary/secondary ad network order with 50/50 probability
-  const preferOnClickA = Math.random() < 0.5;
-  const primaryTry = preferOnClickA ? tryOnClickA : tryGiga;
-  const primaryName = preferOnClickA ? 'OnClickA' : 'GigaPub';
-  const secondaryTry = preferOnClickA ? tryGiga : tryOnClickA;
-  const secondaryName = preferOnClickA ? 'GigaPub' : 'OnClickA';
-
   try {
-    // 1. Try primary network (OnClickA or GigaPub - 50% chance each)
+    // 1. Try GigaPub (primary)
     try {
-      return await primaryTry();
+      return await tryGiga();
     } catch (err) {
       const errMsg = String(err?.message || err || '');
       if (errMsg.includes('not available')) {
-        console.warn(`[AdManager] Primary ad network (${primaryName}) not available. trying secondary (${secondaryName})...`);
+        console.warn('[AdManager] GigaPub not available, trying Monetag fallback...');
       } else {
-        // The ad started playing but was closed early or failed. Do NOT play fallback ads!
+        // Ad started playing but was closed early — do NOT fall through
         throw err;
       }
     }
 
-    // 2. Try secondary network
-    try {
-      return await secondaryTry();
-    } catch (err) {
-      const errMsg = String(err?.message || err || '');
-      if (errMsg.includes('not available')) {
-        console.warn(`[AdManager] Secondary ad network (${secondaryName}) not available. trying Monetag as critical fallback...`);
-      } else {
-        throw err;
-      }
-    }
-
-    // 3. Try Monetag as a last resort
+    // 2. Try Monetag as fallback
     try {
       return await tryMonetag();
     } catch (monetagErr) {
-      console.warn('[AdManager] Monetag fallback failed', monetagErr);
-      throw monetagErr;
+      const errMsg = String(monetagErr?.message || monetagErr || '');
+      if (!errMsg.includes('not available')) {
+        throw monetagErr;
+      }
+      console.warn('[AdManager] Monetag not available either.');
     }
 
-    // 4. If all are not loaded, wait up to 4 seconds for OnClickA/GigaPub/Monetag
+    // 3. Wait up to 4 seconds for GigaPub or Monetag to load
     let elapsed = 0;
     const isReady = await new Promise(resolve => {
       const interval = setInterval(() => {
         elapsed += 150;
         if (
-          (typeof window !== 'undefined' && typeof window.showOnClickA === 'function') ||
-          (typeof window.showGiga === 'function') ||
+          (typeof window !== 'undefined' && typeof window.showGiga === 'function') ||
           (typeof window.show_11395836 === 'function')
         ) {
           clearInterval(interval);
@@ -382,23 +262,14 @@ export async function showRewardedAd(placement = 'main') {
 
     if (isReady) {
       try {
-        return await primaryTry();
+        return await tryGiga();
       } catch (e) {
         const errMsg = String(e?.message || e || '');
         if (errMsg.includes('not available')) {
           try {
-            return await secondaryTry();
+            return await tryMonetag();
           } catch (e2) {
-            const errMsg2 = String(e2?.message || e2 || '');
-            if (errMsg2.includes('not available')) {
-              try {
-                return await tryMonetag();
-              } catch (e3) {
-                // fall through to error
-              }
-            } else {
-              throw e2;
-            }
+            // fall through
           }
         } else {
           throw e;
@@ -412,12 +283,10 @@ export async function showRewardedAd(placement = 'main') {
     };
   } catch (err) {
     console.error('[AdManager] Ad playback error:', err);
-    
-    // Check if user skipped or closed early
     const errMsg = String(err?.message || err || '');
     if (
-      errMsg.toLowerCase().includes('closed') || 
-      errMsg.toLowerCase().includes('skip') || 
+      errMsg.toLowerCase().includes('closed') ||
+      errMsg.toLowerCase().includes('skip') ||
       errMsg.toLowerCase().includes('cancel') ||
       errMsg.toLowerCase().includes('interrupted')
     ) {
@@ -426,7 +295,6 @@ export async function showRewardedAd(placement = 'main') {
         error: 'You must watch the entire ad to receive credit.'
       };
     }
-
     return {
       success: false,
       error: 'You must watch the entire ad to get the reward.'
@@ -436,7 +304,6 @@ export async function showRewardedAd(placement = 'main') {
 
 // Automatically initiate preloading when this module is imported
 if (typeof window !== 'undefined') {
-  initOnClickAAds();
   initGigaAds();
   initMonetagAds();
 }
