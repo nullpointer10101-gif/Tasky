@@ -31,8 +31,8 @@ router.post('/register', async (req, res) => {
         const count = parseInt(countRes.rows[0].count, 10);
         const genesis_member = count < 1000;
         
-        // generate ref code
-        const refCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000); // 6 digits
+        // generate ref code (TASKY + random 6 digits + last 3 digits of timestamp to prevent collisions)
+        const refCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
         
         let referred_by = null;
         if (ref && ref !== telegram_id.toString()) {
