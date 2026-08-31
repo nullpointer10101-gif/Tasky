@@ -234,12 +234,23 @@ export default function TaskReviews() {
         </div>
         {tasks.length > 0 && (
           <div className="flex flex-wrap items-center gap-2.5">
+            {nonYtCount > 0 && (
+              <button
+                onClick={() => handleReviewAll('reject', true)}
+                disabled={processingId !== null}
+                className="py-2.5 px-3.5 rounded-xl border border-red-500/20 text-red-400 font-bold text-xs hover:bg-red-500/10 hover:border-red-500/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+                title="Reject all non-YouTube tasks across all users"
+              >
+                <XCircle size={15} /> Reject All (Skip YT) ({nonYtCount})
+              </button>
+            )}
+
             <button
               onClick={() => handleReviewAll('reject', false)}
               disabled={processingId !== null}
-              className="py-2.5 px-4 rounded-xl border border-red-500/20 text-red-400 font-bold text-xs hover:bg-red-500/10 hover:border-red-500/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
+              className="py-2.5 px-3.5 rounded-xl border border-red-500/20 text-red-400/80 font-bold text-xs hover:bg-red-500/10 hover:border-red-500/30 transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
-              <XCircle size={15} /> Reject All
+              <XCircle size={15} /> Reject All ({tasks.length})
             </button>
             
             {nonYtCount > 0 && (
@@ -421,21 +432,21 @@ export default function TaskReviews() {
 
                         <div className="flex gap-2">
                           <button
+                            onClick={() => handleReviewUser(task.telegram_id, 'reject', true, task.username || task.first_name)}
+                            disabled={processingId === `user-${task.telegram_id}` || userNonYt.length === 0}
+                            className="flex-1 py-2 px-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-[11px] font-black tracking-tight transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
+                            title="Reject all tasks for this profile except YouTube tasks"
+                          >
+                            <XCircle size={12} /> Reject All (No YT) {userNonYt.length > 0 && `(${userNonYt.length})`}
+                          </button>
+
+                          <button
                             onClick={() => handleReviewUser(task.telegram_id, 'approve', true, task.username || task.first_name)}
                             disabled={processingId === `user-${task.telegram_id}` || userNonYt.length === 0}
                             className="flex-1 py-2 px-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white text-[11px] font-black tracking-tight transition-all flex items-center justify-center gap-1 shadow-sm disabled:opacity-40"
                             title="Approve all tasks for this profile except YouTube tasks"
                           >
-                            <Zap size={12} /> Accept All Profile (No YT) {userNonYt.length > 0 && `(${userNonYt.length})`}
-                          </button>
-                          
-                          <button
-                            onClick={() => handleReviewUser(task.telegram_id, 'reject', false, task.username || task.first_name)}
-                            disabled={processingId === `user-${task.telegram_id}`}
-                            className="py-2 px-2 rounded-xl border border-red-500/20 hover:bg-red-500/10 text-red-400 text-[11px] font-bold transition-all disabled:opacity-40"
-                            title="Reject all tasks for this profile"
-                          >
-                            <XCircle size={14} />
+                            <Zap size={12} /> Accept All (No YT) {userNonYt.length > 0 && `(${userNonYt.length})`}
                           </button>
                         </div>
                       </div>
