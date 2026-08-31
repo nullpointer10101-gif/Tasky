@@ -274,7 +274,8 @@ router.get('/tasks/pending', async (req, res) => {
     const query = `
       SELECT 
         ut.id as user_task_id, ut.submitted_at, ut.proof_screenshot_url,
-        t.id as task_id, t.title, t.reward_tasky, t.verification_type,
+        t.id as task_id, t.title, t.reward_tasky, COALESCE(t.reward_gram, 0) as reward_gram,
+        t.verification_type, t.type as task_type, t.category,
         u.telegram_id, u.username, u.first_name
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
@@ -355,44 +356,166 @@ router.post('/tasks/review', async (req, res) => {
   }
 });
 
+// Review ALL tasks (with optional exclude_youtube flag)
 router.post('/tasks/review-all', async (req, res) => {
-  const { action, rejection_reason } = req.body;
+  const { action, rejection_reason, exclude_youtube } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
+    const ytFilter = exclude_youtube ? "AND t.type != 'youtube'" : "";
+
     if (action === 'approve') {
       const pendingRes = await client.query(`
-        SELECT ut.telegram_id, SUM(t.reward_tasky) as total_reward, SUM(COALESCE(t.reward_gram, 0)) as total_gram_reward
+        SELECT ut.id as user_task_id, ut.telegram_id, t.reward_tasky, COALESCE(t.reward_gram, 0) as reward_gram
         FROM user_tasks ut
         JOIN tasks t ON ut.task_id = t.id
-        WHERE ut.status = 'pending'
-        GROUP BY ut.telegram_id
+        WHERE ut.status = 'pending' ${ytFilter}
       `);
 
       if (pendingRes.rows.length > 0) {
-        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE status = 'pending'`);
+        const ids = pendingRes.rows.map(r => r.user_task_id);
+        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = ANY($1::int[])`, [ids]);
+        
+        // Group rewards by user
+        const userTotals = {};
         for (const row of pendingRes.rows) {
+          if (!userTotals[row.telegram_id]) {
+            userTotals[row.telegram_id] = { tasky: 0, gram: 0 };
+          }
+          userTotals[row.telegram_id].tasky += parseFloat(row.reward_tasky || 0);
+          userTotals[row.telegram_id].gram += parseFloat(row.reward_gram || 0);
+        }
+
+        for (const [tid, rewards] of Object.entries(userTotals)) {
           await client.query(
             `UPDATE users 
              SET balance = balance + $1, 
                  gram_balance = COALESCE(gram_balance, 0) + $2 
              WHERE telegram_id = $3`, 
-            [row.total_reward, row.total_gram_reward || 0, row.telegram_id]
+            [rewards.tasky, rewards.gram, tid]
           );
         }
       }
+      await client.query('COMMIT');
+      res.json({ success: true, message: `Approved ${pendingRes.rows.length} pending tasks successfully` });
     } else if (action === 'reject') {
-      await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW() WHERE status = 'pending'`, [rejection_reason]);
+      const pendingRes = await client.query(`
+        SELECT ut.id as user_task_id
+        FROM user_tasks ut
+        JOIN tasks t ON ut.task_id = t.id
+        WHERE ut.status = 'pending' ${ytFilter}
+      `);
+      if (pendingRes.rows.length > 0) {
+        const ids = pendingRes.rows.map(r => r.user_task_id);
+        await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW() WHERE id = ANY($2::int[])`, [rejection_reason || 'Did not meet requirements', ids]);
+      }
+      await client.query('COMMIT');
+      res.json({ success: true, message: `Rejected ${pendingRes.rows.length} pending tasks successfully` });
     } else {
       throw new Error('Invalid action');
     }
-
-    await client.query('COMMIT');
-    res.json({ success: true, message: `All pending tasks ${action}d successfully` });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// Review ALL tasks for a specific user (profile) with optional exclude_youtube flag
+router.post('/tasks/review-user', async (req, res) => {
+  const { telegram_id, action, rejection_reason, exclude_youtube } = req.body;
+  if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const ytFilter = exclude_youtube ? "AND t.type != 'youtube'" : "";
+
+    const pendingRes = await client.query(`
+      SELECT ut.id as user_task_id, t.reward_tasky, COALESCE(t.reward_gram, 0) as reward_gram, t.title
+      FROM user_tasks ut
+      JOIN tasks t ON ut.task_id = t.id
+      WHERE ut.telegram_id = $1 AND ut.status = 'pending' ${ytFilter}
+    `, [telegram_id]);
+
+    if (pendingRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.json({ success: true, message: 'No pending tasks match criteria for this user', count: 0 });
+    }
+
+    const ids = pendingRes.rows.map(r => r.user_task_id);
+
+    if (action === 'approve') {
+      let totalReward = 0;
+      let totalGram = 0;
+      for (const row of pendingRes.rows) {
+        totalReward += parseFloat(row.reward_tasky || 0);
+        totalGram += parseFloat(row.reward_gram || 0);
+      }
+
+      await client.query(`
+        UPDATE user_tasks 
+        SET status = 'approved', reviewed_at = NOW() 
+        WHERE id = ANY($1::int[])
+      `, [ids]);
+
+      await client.query(
+        `UPDATE users 
+         SET balance = balance + $1, 
+             gram_balance = COALESCE(gram_balance, 0) + $2 
+         WHERE telegram_id = $3`,
+        [totalReward, totalGram, telegram_id]
+      );
+
+      if (bot && bot.sendMessage) {
+        try {
+          const gramNote = totalGram > 0 ? `\n<b>+${totalGram} GRAM</b> also credited! 💎` : '';
+          await bot.sendMessage(
+            telegram_id,
+            `🎉 <b>HOORAY! ${ids.length} Task(s) Approved!</b> 🎉\n\n<b>+${totalReward} TASKY</b> added to your balance. 🚀${gramNote}\n\nKeep completing tasks to earn more! 💸`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user:', e.message);
+        }
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: `Approved ${ids.length} tasks for user`, count: ids.length, ids });
+    } else if (action === 'reject') {
+      await client.query(`
+        UPDATE user_tasks 
+        SET status = 'rejected', rejection_reason = $2, reviewed_at = NOW() 
+        WHERE id = ANY($1::int[])
+      `, [ids, rejection_reason || 'Did not meet requirements']);
+
+      if (bot && bot.sendMessage) {
+        try {
+          await bot.sendMessage(
+            telegram_id,
+            `❌ <b>${ids.length} Task(s) Rejected</b>\n\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\nPlease ensure you follow all instructions carefully next time.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('Failed to notify user:', e.message);
+        }
+      }
+
+      await client.query('COMMIT');
+      res.json({ success: true, message: `Rejected ${ids.length} tasks for user`, count: ids.length, ids });
+    } else {
+      throw new Error('Invalid action');
+    }
+  } catch (error) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
   } finally {
     client.release();
   }

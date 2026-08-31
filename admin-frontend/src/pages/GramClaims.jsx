@@ -62,8 +62,11 @@ export default function GramClaims() {
     let reason = '';
     let txHash = '';
     if (action === 'reject') {
-      reason = prompt('Enter rejection reason:');
+      reason = prompt('Enter rejection reason:', "Kindly add | Tasky 🐾 to your Telegram profile name.");
       if (reason === null) return;
+      if (!reason.trim()) {
+        reason = "Kindly add | Tasky 🐾 to your Telegram profile name.";
+      }
     } else if (action === 'approve') {
       txHash = prompt('Enter transaction hash or Tonviewer link (optional):');
       if (txHash === null) txHash = '';

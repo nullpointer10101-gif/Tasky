@@ -51,10 +51,11 @@ export default function GramWithdrawals() {
 
   const handleReject = async () => {
     if (!rejectModal) return;
+    const finalReason = rejectReason.trim() || "Kindly add | Tasky 🐾 to your Telegram profile name.";
     setProcessing(rejectModal.id);
     try {
-      await api.post(`/gram-withdrawals/${rejectModal.id}/reject`, { rejection_reason: rejectReason });
-      setWithdrawals(prev => prev.map(w => w.id === rejectModal.id ? { ...w, status: 'rejected', rejection_reason: rejectReason } : w));
+      await api.post(`/gram-withdrawals/${rejectModal.id}/reject`, { rejection_reason: finalReason });
+      setWithdrawals(prev => prev.map(w => w.id === rejectModal.id ? { ...w, status: 'rejected', rejection_reason: finalReason } : w));
       setRejectModal(null);
       setRejectReason('');
     } catch (err) {
@@ -218,7 +219,7 @@ export default function GramWithdrawals() {
                           Approve
                         </button>
                         <button
-                          onClick={() => { setRejectModal(w); setRejectReason(''); }}
+                          onClick={() => { setRejectModal(w); setRejectReason("Kindly add | Tasky 🐾 to your Telegram profile name."); }}
                           disabled={processing === w.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/30 text-xs font-black hover:bg-red-500/30 transition-colors disabled:opacity-50"
                         >
