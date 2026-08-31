@@ -1,12 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem, Wifi, Trophy } from 'lucide-react';
+import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem, Wifi, Trophy, Copy, RefreshCw, ShieldCheck } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
-import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal, startWatchGramAd } from '../api';
+import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal, startWatchGramAd, verifyGramSuffix } from '../api';
 import { showRewardedAd } from '../adUtils';
 import Card from '../components/Card';
+
+const SUFFIX = '| Tasky 🐾';
+
+function hasSuffix(lastName) {
+  if (!lastName) return false;
+  const lower = lastName.toLowerCase();
+  return lower.includes('| tasky') || lower.includes('|tasky');
+}
 
 const TOTAL_ADS = 60;
 
@@ -44,7 +52,7 @@ function getProgressColor(count) {
   return 'from-indigo-400 to-purple-500';
 }
 
-export default function Gram({ user, refreshUser }) {
+export default function Gram({ user, refreshUser, tgUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [adLoadingStage, setAdLoadingStage] = useState(0);
@@ -61,6 +69,55 @@ export default function Gram({ user, refreshUser }) {
   const [lastMilestoneShown, setLastMilestoneShown] = useState(0);
   const [adPulse, setAdPulse] = useState(false);
   const { showToast } = useToast();
+
+  // ── NAME SUFFIX STATE (backend-verified via bot.getChat, NOT cached WebApp data) ──
+  const [suffixOk, setSuffixOk] = useState(false);
+  const [suffixChecking, setSuffixChecking] = useState(false);
+  const [suffixCopied, setSuffixCopied] = useState(false);
+  const [suffixError, setSuffixError] = useState('');
+
+  // Async check against backend which calls bot.getChat live
+  const checkSuffix = useCallback(async (silent = false) => {
+    if (!user?.telegram_id) return false;
+    setSuffixChecking(true);
+    if (!silent) setSuffixError('');
+    try {
+      const { data, error } = await verifyGramSuffix(user.telegram_id);
+      if (error) {
+        setSuffixOk(false);
+        if (!silent) setSuffixError(error);
+        return false;
+      }
+      const ok = !!data?.has_suffix;
+      setSuffixOk(ok);
+      if (!silent) {
+        if (ok) {
+          showToast('✅ Name suffix confirmed! You can now proceed.', 'success');
+        } else {
+          setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your Last Name.");
+        }
+      }
+      return ok;
+    } catch (e) {
+      setSuffixOk(false);
+      if (!silent) setSuffixError('Could not verify name. Check your connection and try again.');
+      return false;
+    } finally {
+      setSuffixChecking(false);
+    }
+  }, [user?.telegram_id]);
+
+  // Run silent check on page load
+  useEffect(() => { checkSuffix(true); }, [checkSuffix]);
+
+  const recheckName = useCallback(() => checkSuffix(false), [checkSuffix]);
+
+  const copySuffix = () => {
+    navigator.clipboard.writeText(SUFFIX).then(() => {
+      setSuffixCopied(true);
+      setTimeout(() => setSuffixCopied(false), 2500);
+    }).catch(() => showToast('Copy failed – paste manually: | Tasky 🐾', 'error'));
+  };
 
   const tonAddress = useTonAddress();
   const [tonConnectUI] = useTonConnectUI();
@@ -172,8 +229,14 @@ export default function Gram({ user, refreshUser }) {
   };
 
   const handleClaim = async () => {
+    // Verify suffix live via backend before submitting
     setIsSubmitting(true);
     try {
+      const ok = await checkSuffix(false);
+      if (!ok) {
+        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
+        return;
+      }
       const { data, error } = await claimGramReward(user?.telegram_id || '123456');
       if (error) {
         showToast(error, 'error');
@@ -186,14 +249,27 @@ export default function Gram({ user, refreshUser }) {
         fetchStatus();
       }
     } catch (err) {
-      showToast('Connection error', 'error');
+      showToast('Connection error. Please try again.', 'error');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleWithdrawClick = () => {
+  const [showSuffixErrorModal, setShowSuffixErrorModal] = useState(false);
+
+  const handleWithdrawClick = async () => {
     if (!isWalletConnected) { try { tonConnectUI.openModal(); } catch(e){} return; }
+    
+    // Verify suffix live via backend
+    setSuffixError('');
+    const ok = await checkSuffix(true);
+    if (!ok) {
+      setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your Last Name.");
+      setShowSuffixErrorModal(true);
+      try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
+      return;
+    }
+    
     handleWithdrawGram();
   };
 
@@ -285,12 +361,22 @@ export default function Gram({ user, refreshUser }) {
             className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
             {!isWalletConnected ? <><Wallet size={16}/>Connect Wallet First</> : isWithdrawing ? <><Loader2 size={16} className="animate-spin"/>Processing...</> : gramInfo?.has_pending_withdrawal ? <><Clock size={16}/>Withdrawal Pending</> : <><ArrowUpRight size={16}/>Withdraw GRAM</>}
           </button>
-          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">
-            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5 animate-pulse" />
-            <p className="text-[11px] text-white/80 font-bold leading-normal">
-              ⚠️ <span className="text-red-400 font-extrabold">Name Suffix Required:</span> You must add <strong className="text-white">| Tasky</strong> at the end of your Telegram profile name (First or Last name) before withdrawing, and keep it active until approved. Requests without the suffix will be rejected!
-            </p>
-          </div>
+          {/* ── NAME SUFFIX LIVE CHECKER (Withdrawal section) ── */}
+          {suffixOk ? (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 flex gap-2 items-start">
+              <ShieldCheck size={16} className="text-emerald-400 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-emerald-300 font-bold leading-normal">
+                ✅ <span className="font-extrabold">Name Suffix Confirmed:</span> Your Telegram name contains <strong className="text-white">| Tasky</strong>. Keep it active until your withdrawal is approved!
+              </p>
+            </div>
+          ) : (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2 items-start">
+              <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5 animate-pulse" />
+              <p className="text-[11px] text-white/80 font-bold leading-normal">
+                ⚠️ <span className="text-red-400 font-extrabold">Name Suffix Required:</span> You must add <strong className="text-white">| Tasky</strong> at the end of your Telegram profile name (First or Last name) before withdrawing, and keep it active until approved. Requests without the suffix will be rejected!
+              </p>
+            </div>
+          )}
         </div>
         {gramInfo?.history?.length > 0 && (
           <div className="mt-4 space-y-2">
@@ -551,19 +637,81 @@ export default function Gram({ user, refreshUser }) {
           <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
             <div className="space-y-4">
               {count >= TOTAL_ADS ? (
-                <motion.button
-                  onClick={handleClaim}
-                  disabled={status?.claimed_in_last_24h || !status?.gram_wallet_address || isSubmitting}
-                  whileTap={{ scale: 0.96 }}
-                  animate={!status?.claimed_in_last_24h && status?.gram_wallet_address ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
-                  transition={{ repeat: Infinity, duration: 1.8 }}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:active:scale-100 border border-emerald-400/20"
-                >
-                  {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Rewards...</> :
-                   status?.claimed_in_last_24h ? <>Already Claimed Today</> :
-                   !status?.gram_wallet_address ? <>Connect Wallet to Receive</> :
-                   <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}
-                </motion.button>
+                <div className="space-y-3">
+                  {/* ── NAME SUFFIX GATE ── */}
+                  {!status?.claimed_in_last_24h && !suffixOk && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 space-y-3"
+                    >
+                      <div className="flex items-start gap-2">
+                        <AlertCircle size={18} className="text-amber-400 shrink-0 mt-0.5 animate-pulse" />
+                        <div>
+                          <p className="text-xs font-black text-amber-400 uppercase tracking-wider">Step Required Before Claiming</p>
+                          <p className="text-[11px] text-white/80 font-bold leading-relaxed mt-1">
+                            Add <strong className="text-white">| Tasky 🐾</strong> to the end of your Telegram <strong>Last Name</strong>. Copy it below, paste it in Telegram Settings → Edit Name, then tap <em>Recheck</em>.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Copy Row */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 flex items-center justify-between">
+                          <span className="font-mono font-black text-white text-sm tracking-wide">| Tasky 🐾</span>
+                          <button
+                            onClick={copySuffix}
+                            className={`ml-2 flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-lg transition-all ${
+                              suffixCopied
+                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                : 'bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 active:scale-95'
+                            }`}
+                          >
+                            {suffixCopied ? <><CheckCircle2 size={12}/>Copied!</> : <><Copy size={12}/>Copy</>}
+                          </button>
+                        </div>
+                        <button
+                          onClick={recheckName}
+                          disabled={suffixChecking}
+                          className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-black hover:bg-white/10 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60"
+                        >
+                          {suffixChecking ? <Loader2 size={12} className="animate-spin"/> : <RefreshCw size={12} />} Recheck
+                        </button>
+                      </div>
+
+                      <p className="text-[10px] text-amber-400/60 font-bold text-center">
+                        ⚠️ Add <code>| Tasky 🐾</code> to your <strong>Last Name</strong> in Telegram Settings, then tap Recheck.
+                      </p>
+                    </motion.div>
+                  )}
+
+                  {/* Confirmed suffix badge */}
+                  {!status?.claimed_in_last_24h && suffixOk && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2"
+                    >
+                      <ShieldCheck size={16} className="text-emerald-400" />
+                      <p className="text-xs font-black text-emerald-400">Name suffix confirmed ✓ — You're ready to claim!</p>
+                    </motion.div>
+                  )}
+
+                  <motion.button
+                    onClick={handleClaim}
+                    disabled={status?.claimed_in_last_24h || !status?.gram_wallet_address || isSubmitting || (!suffixOk && !status?.claimed_in_last_24h)}
+                    whileTap={{ scale: 0.96 }}
+                    animate={!status?.claimed_in_last_24h && status?.gram_wallet_address && suffixOk ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
+                    transition={{ repeat: Infinity, duration: 1.8 }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:active:scale-100 border border-emerald-400/20"
+                  >
+                    {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Rewards...</> :
+                     status?.claimed_in_last_24h ? <>Already Claimed Today</> :
+                     !status?.gram_wallet_address ? <>Connect Wallet to Receive</> :
+                     !suffixOk ? <>Add | Tasky to Name First ↑</> :
+                     <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}
+                  </motion.button>
+                </div>
               ) : (
                 <button disabled className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50">
                   <Sparkles size={18} />
@@ -619,6 +767,75 @@ export default function Gram({ user, refreshUser }) {
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-sm uppercase tracking-wide active:scale-95 transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)]">
               I Understand & Agree
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Suffix Error Modal */}
+      {showSuffixErrorModal && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-[2px]">
+          <div className="bg-[#12082b] border-2 border-amber-500/40 rounded-3xl p-6 w-full max-w-sm text-center space-y-5 shadow-[0_0_50px_rgba(245,158,11,0.2)]">
+            <div className="w-16 h-16 rounded-full bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/30 animate-pulse">
+              <AlertCircle size={36} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-white uppercase tracking-tight">Name Suffix Required!</h3>
+              <p className="text-xs text-white/60">You must add the suffix to your Telegram profile Last Name before making a withdrawal.</p>
+            </div>
+
+            {suffixError && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-xs font-bold leading-normal text-left">
+                ⚠️ {suffixError}
+              </div>
+            )}
+            
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 text-left space-y-3">
+              <div>
+                <p className="text-xs font-black text-amber-400 uppercase tracking-wider">How to fix this:</p>
+                <p className="text-[11px] text-white/80 font-bold leading-normal mt-1">
+                  1. Copy the suffix block below.<br/>
+                  2. Open Telegram Settings &rarr; Edit Name.<br/>
+                  3. Paste it at the end of your <strong>Last name</strong> (e.g. <code>YourName | Tasky 🐾</code>).<br/>
+                  4. Save and return here to click <strong>Recheck Name</strong>.
+                </p>
+              </div>
+
+              {/* Copy Box */}
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2 flex items-center justify-between">
+                  <span className="font-mono font-black text-white text-sm">| Tasky 🐾</span>
+                  <button
+                    onClick={copySuffix}
+                    className={`flex items-center gap-1 text-xs font-black px-2.5 py-1 rounded-lg transition-all ${
+                      suffixCopied
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 active:scale-95'
+                    }`}
+                  >
+                    {suffixCopied ? <><CheckCircle2 size={12}/>Copied!</> : <><Copy size={12}/>Copy</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowSuffixErrorModal(false); setSuffixError(''); }}
+                className="flex-1 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 font-bold text-sm transition-all border border-white/10">
+                Cancel
+              </button>
+              <button
+                disabled={suffixChecking}
+                onClick={async () => {
+                  const ok = await checkSuffix(false);
+                  if (ok) {
+                    setShowSuffixErrorModal(false);
+                    handleWithdrawGram();
+                  }
+                }}
+                className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-slate-950 font-black text-sm uppercase tracking-wide active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-60 flex items-center justify-center gap-2">
+                {suffixChecking ? <><Loader2 size={14} className="animate-spin"/>Checking...</> : <>Recheck Name</>}
+              </button>
+            </div>
           </div>
         </div>
       )}

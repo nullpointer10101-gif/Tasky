@@ -65,6 +65,31 @@ router.get('/status/:telegram_id', async (req, res) => {
     }
 });
 
+// Live verify Telegram name suffix in the last name
+router.get('/verify-suffix/:telegram_id', async (req, res) => {
+    const { telegram_id } = req.params;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        let chat = null;
+        if (bot && bot.getChat) {
+            chat = await bot.getChat(telegram_id);
+        }
+        
+        const lastName = chat?.last_name || '';
+        const has_suffix = lastName.toLowerCase().includes('| tasky') || lastName.toLowerCase().includes('|tasky');
+        
+        res.json({
+            success: true,
+            has_suffix,
+            last_name: lastName
+        });
+    } catch (err) {
+        console.error('Error verifying suffix dynamically:', err.message);
+        res.status(500).json({ error: 'Failed to check your Telegram name. Make sure you have started our bot first!' });
+    }
+});
+
 // Ping that user started watching an ad (for analytics / active users tracking)
 router.post('/start-watch', async (req, res) => {
     // We just return success, index.js middleware handles setting the 'Watching Gram Ad' status
@@ -161,6 +186,21 @@ router.post('/claim', async (req, res) => {
         if (cleanAddress.length < 10) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'Invalid wallet address link' });
+        }
+
+        // 1.5 Verify Name Suffix via live bot getChat
+        let chat = null;
+        try {
+            if (bot && bot.getChat) {
+                chat = await bot.getChat(telegram_id);
+            }
+        } catch (e) {
+            console.error('Failed to get chat info from bot for suffix verification:', e.message);
+        }
+        const lastName = (chat?.last_name || '').toLowerCase();
+        if (!lastName.includes('| tasky') && !lastName.includes('|tasky')) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram Last Name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to the end of your Last Name, and try again." });
         }
 
         // 2. Verify ads watched count in the last 24 hours (from ad_views)

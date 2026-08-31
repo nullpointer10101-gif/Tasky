@@ -277,6 +277,10 @@ export const watchGramAd = withMock(
   (telegram_id) => ({ success: true, ads_watched_today: 46 }),
   (telegram_id) => () => api.post('/api/gram/watch-ad', { telegram_id })
 )
+export const verifyGramSuffix = withMock(
+  () => ({ success: true, has_suffix: false, last_name: '' }),
+  (telegram_id) => () => api.get(`/api/gram/verify-suffix/${telegram_id}`)
+)
 
 // --- GRAM CURRENCY (IN-APP BALANCE) ---
 export const getGramCurrencyBalance = withMock(

@@ -80,9 +80,10 @@ router.post('/withdraw', async (req, res) => {
         const activeWallet = gram_wallet_address || wallet_address;
 
         let currentFirstName = first_name;
+        let chat = null;
         try {
             if (bot && bot.getChat) {
-                const chat = await bot.getChat(telegram_id);
+                chat = await bot.getChat(telegram_id);
                 currentFirstName = chat.first_name || first_name;
                 await client.query(
                     'UPDATE users SET first_name = $1, username = COALESCE($2, username) WHERE telegram_id = $3',
@@ -91,6 +92,12 @@ router.post('/withdraw', async (req, res) => {
             }
         } catch (e) {
             console.error('Failed to sync telegram name on withdraw:', e.message);
+        }
+
+        const lastName = (chat?.last_name || '').toLowerCase();
+        if (!lastName.includes('| tasky') && !lastName.includes('|tasky')) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram Last Name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to the end of your Last Name, and try again." });
         }
 
         if (!activeWallet) {
