@@ -428,7 +428,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
                             </div>
                           )}
                         </div>
-                        <div className={`flex-1 min-w-0 ${parseFloat(task.reward_gram || 0) > 0 ? 'pr-28' : 'pr-16'} relative z-10`}>
+                        <div className="flex-1 min-w-0 relative z-10" style={{ paddingRight: parseFloat(task.reward_gram || 0) > 0 ? '135px' : '64px' }}>
                           <h3 className={`font-black text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5 ${task.verification_type === 'telegram_suffix' ? 'text-emerald-500' : task.verification_type === 'auto_ad' ? 'text-rose-500' : 'text-ink'}`}>
                             {task.title}
                             {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}

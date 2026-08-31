@@ -375,14 +375,15 @@ const initDB = async () => {
       ALTER TABLE gram_withdrawals ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
 
       -- SEED NAME SUFFIX TASK FOR ADMIN TESTING
-      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, category, reward_gram, admin_only, is_active)
-      SELECT 'Support Tasky Name Suffix 🐾', 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!', 'social', 0, '', 'telegram_suffix', 'Telegram', 'internal', 0.0001, FALSE, TRUE
+      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, category, reward_gram, admin_only, is_active, is_featured)
+      SELECT 'Support Tasky Name Suffix 🐾', 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!', 'social', 0, '', 'telegram_suffix', 'Telegram', 'internal', 0.0001, FALSE, TRUE, TRUE
       WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE verification_type = 'telegram_suffix');
 
       UPDATE tasks SET 
         title = 'Support Tasky Name Suffix 🐾',
         subtitle = 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!',
-        admin_only = FALSE
+        admin_only = FALSE,
+        is_featured = TRUE
       WHERE verification_type = 'telegram_suffix';
     `;
 
