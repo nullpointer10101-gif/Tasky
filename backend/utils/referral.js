@@ -12,23 +12,27 @@ async function checkReferralValidity(client, telegram_id, referred_by) {
         const refCheck = await client.query('SELECT reward_paid FROM referrals WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint', [referred_by, telegram_id]);
         if (refCheck.rowCount === 0 || refCheck.rows[0].reward_paid) return;
 
-        // Count approved tasks (any approved task, auto or admin or ai)
-        const approvedCountRes = await client.query(
-            `SELECT COUNT(*) FROM user_tasks WHERE telegram_id = $1 AND status = 'approved'`,
+        // Count approved Gram claims
+        const claimsCountRes = await client.query(
+            `SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status = 'approved'`,
             [telegram_id]
         );
-        const approvedCount = parseInt(approvedCountRes.rows[0].count, 10);
+        const claimsCount = parseInt(claimsCountRes.rows[0].count, 10);
 
-        // Check if user has spun
-        const hasSpunRes = await client.query('SELECT last_spin_date FROM users WHERE telegram_id = $1', [telegram_id]);
-        const hasSpun = (hasSpunRes.rows.length > 0 && hasSpunRes.rows[0].last_spin_date) ? 1 : 0;
+        // Count approved Gram withdrawals
+        const withdrawalsCountRes = await client.query(
+            `SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = $1 AND status = 'approved'`,
+            [telegram_id]
+        );
+        const withdrawalsCount = parseInt(withdrawalsCountRes.rows[0].count, 10);
 
-        const totalValidActions = approvedCount + hasSpun;
+        const totalValidActions = claimsCount + withdrawalsCount;
 
         const rulesRes = await client.query('SELECT * FROM referral_rules LIMIT 1');
         const rules = rulesRes.rows[0] || { reward_per_referral: 300, tasks_required_for_valid: 1, spin_reward_per_referral: 1 };
 
-        if (totalValidActions >= rules.tasks_required_for_valid) {
+        // Referral is valid if they completed at least 1 withdrawal (either Gram claim or Gram withdrawal)
+        if (totalValidActions >= 1) {
             const referrerRes = await client.query(
                 'UPDATE referrals SET reward_paid = TRUE WHERE referrer_telegram_id = $1::bigint AND referred_telegram_id = $2::bigint AND reward_paid = FALSE RETURNING *',
                 [referred_by, telegram_id]

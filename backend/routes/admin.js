@@ -1216,6 +1216,15 @@ router.post('/gram/claims/review', async (req, res) => {
 
     if (action === 'approve') {
       await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [claim_id, tx_hash || null]);
+      
+      // Check referral validity for the user who claimed
+      const userRes = await client.query('SELECT referred_by FROM users WHERE telegram_id = $1', [telegram_id]);
+      const referred_by = userRes.rows[0]?.referred_by;
+      if (referred_by) {
+        const { checkReferralValidity } = require('../utils/referral');
+        await checkReferralValidity(client, telegram_id, referred_by);
+      }
+
       if (bot && bot.sendMessage) {
         try {
           let txText = '';
@@ -1497,6 +1506,15 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`,
       [id, tx_hash || null]
     );
+
+    // Check referral validity for the user who withdrew
+    const userRes = await client.query('SELECT referred_by FROM users WHERE telegram_id = $1', [w.telegram_id]);
+    const referred_by = userRes.rows[0]?.referred_by;
+    if (referred_by) {
+      const { checkReferralValidity } = require('../utils/referral');
+      await checkReferralValidity(client, w.telegram_id, referred_by);
+    }
+
     await client.query('COMMIT');
     // Notify user
     if (bot && bot.sendMessage) {

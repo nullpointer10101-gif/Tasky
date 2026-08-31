@@ -256,6 +256,15 @@ bot.on('callback_query', async (query) => {
                 `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW() WHERE id = $1`,
                 [withdrawalId]
             );
+
+            // Check referral validity for the user who withdrew
+            const userRes = await client.query('SELECT referred_by FROM users WHERE telegram_id = $1', [w.telegram_id]);
+            const referred_by = userRes.rows[0]?.referred_by;
+            if (referred_by) {
+                const { checkReferralValidity } = require('./utils/referral');
+                await checkReferralValidity(client, w.telegram_id, referred_by);
+            }
+
             await client.query('COMMIT');
 
             bot.editMessageText(`✅ Approved by admin\n\n` + query.message.text, {
