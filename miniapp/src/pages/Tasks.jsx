@@ -680,25 +680,48 @@ export default function Tasks({ user, refreshUser, navigate }) {
                       />
                     )}
 
-                    <Button 
-                      onClick={handleSubmitProof}
-                      disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData) || ((selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram') && (!timerStarted || countdown > 0))}
-                      className={`w-full font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-500' : 'bg-gradient-primary hover:opacity-90'}`}
-                    >
-                      {isSubmitting 
-                        ? 'Submitting...' 
-                        : selectedTask.verification_type === 'auto_referral' 
-                          ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
-                          : selectedTask.verification_type === 'auto_ad'
-                            ? 'Watch Ad'
-                          : selectedTask.verification_type === 'telegram_suffix'
-                            ? 'Verify Suffix'
-                          : (selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram')
-                            ? (countdown > 0 ? `Wait ${countdown}s...` : (!timerStarted ? 'Click "Go to Task" first' : 'Claim Reward'))
-                          : selectedTask.verification_type === 'none'
-                            ? 'Complete Task' 
-                            : 'Submit Proof'}
-                    </Button>
+                    {selectedTask.verification_type === 'telegram_suffix' ? (
+                      <div className="flex gap-3">
+                        <Button 
+                          onClick={() => {
+                            if (window.Telegram?.WebApp?.openTelegramLink) {
+                              window.Telegram.WebApp.openTelegramLink('https://t.me/settings');
+                            } else {
+                              window.open('https://t.me/settings', '_blank');
+                            }
+                          }}
+                          variant="secondary"
+                          className="flex-1 font-bold text-ink border border-border"
+                        >
+                          Add Suffix
+                        </Button>
+                        <Button 
+                          onClick={handleSubmitProof}
+                          disabled={isSubmitting}
+                          className={`flex-1 font-bold text-white shadow-lg bg-gradient-primary ${isSubmitting ? 'opacity-50' : 'hover:opacity-90'}`}
+                        >
+                          {isSubmitting ? 'Verifying...' : 'Verify Suffix'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button 
+                        onClick={handleSubmitProof}
+                        disabled={isSubmitting || (selectedTask.verification_type === 'auto_referral' && (user?.valid_referrals || 0) < 5) || (selectedTask.verification_type === 'proof_screenshot' && !proofData && !hasVisited) || ((selectedTask.verification_type === 'proof_url' || selectedTask.verification_type === 'proof_username') && !proofData) || ((selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram') && (!timerStarted || countdown > 0))}
+                        className={`w-full font-bold text-white shadow-lg ${isSubmitting ? 'bg-gray-500' : 'bg-gradient-primary hover:opacity-90'}`}
+                      >
+                        {isSubmitting 
+                          ? 'Submitting...' 
+                          : selectedTask.verification_type === 'auto_referral' 
+                            ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
+                            : selectedTask.verification_type === 'auto_ad'
+                              ? 'Watch Ad'
+                            : (selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram')
+                              ? (countdown > 0 ? `Wait ${countdown}s...` : (!timerStarted ? 'Click "Go to Task" first' : 'Claim Reward'))
+                            : selectedTask.verification_type === 'none'
+                              ? 'Complete Task' 
+                              : 'Submit Proof'}
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
