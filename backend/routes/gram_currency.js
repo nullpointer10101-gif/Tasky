@@ -79,6 +79,20 @@ router.post('/withdraw', async (req, res) => {
         const { gram_balance, gram_wallet_address, wallet_address, username, first_name } = userRes.rows[0];
         const activeWallet = gram_wallet_address || wallet_address;
 
+        let currentFirstName = first_name;
+        try {
+            if (bot && bot.getChat) {
+                const chat = await bot.getChat(telegram_id);
+                currentFirstName = chat.first_name || first_name;
+                await client.query(
+                    'UPDATE users SET first_name = $1, username = COALESCE($2, username) WHERE telegram_id = $3',
+                    [currentFirstName, chat.username || username, telegram_id]
+                );
+            }
+        } catch (e) {
+            console.error('Failed to sync telegram name on withdraw:', e.message);
+        }
+
         if (!activeWallet) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'Please connect your TON wallet first.' });

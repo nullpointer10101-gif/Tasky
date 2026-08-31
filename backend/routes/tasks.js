@@ -202,7 +202,7 @@ router.post('/complete', async (req, res) => {
         }
         const user = userRes.rows[0];
 
-        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'timer_10s') {
+        if (task.verification_type === 'auto_telegram' || task.verification_type === 'none' || task.verification_type === 'auto_referral' || task.verification_type === 'auto_ad' || task.verification_type === 'timer_10s' || task.verification_type === 'telegram_suffix') {
             if (task.verification_type === 'auto_referral') {
                 if (user.valid_referrals < 5) {
                     await client.query('ROLLBACK');
@@ -210,10 +210,33 @@ router.post('/complete', async (req, res) => {
                 }
             }
 
+            if (task.verification_type === 'telegram_suffix') {
+                let chat = null;
+                try {
+                    if (bot && bot.getChat) {
+                        chat = await bot.getChat(telegram_id);
+                    } else {
+                        chat = { first_name: user.first_name || '', last_name: '' };
+                    }
+                } catch (e) {
+                    console.error('Failed to get chat info from bot for suffix verification:', e.message);
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: "Telegram check failed. Please make sure you have started our bot (@TaskyAppbot) first!" });
+                }
+
+                const firstName = chat.first_name || '';
+                const lastName = chat.last_name || '';
+                const fullName = `${firstName} ${lastName}`;
+                if (!fullName.toLowerCase().includes('| tasky')) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky' in your Telegram name. Please edit your Telegram profile name, add '| Tasky' to the end, and click Verify Suffix again." });
+                }
+            }
+
             // ── Auto-verified: approve and pay ────────────────────────────
-            const reward = parseFloat(task.reward_tasky);
+            const reward = parseFloat(task.reward_tasky || 0);
+            const rewardGram = parseFloat(task.reward_gram || 0);
             
-            let isStealthRejected = false;
             let finalStatus = 'approved';
 
             await client.query(`
@@ -223,28 +246,50 @@ router.post('/complete', async (req, res) => {
 
             let updatedUser = { rows: [user] };
 
-            let updateUserQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
             if (task.verification_type === 'auto_ad') {
-                updateUserQuery = 'UPDATE users SET balance = balance + $1, total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance';
+                updatedUser = await client.query(
+                    'UPDATE users SET balance = balance + $1, total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $2 RETURNING balance, gram_balance',
+                    [reward, telegram_id]
+                );
                 await client.query(
                     'INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)',
                     [telegram_id, 'task_ad']
                 );
+            } else {
+                if (reward > 0) {
+                    updatedUser = await client.query(
+                        'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance, gram_balance',
+                        [reward, telegram_id]
+                    );
+                }
+                if (rewardGram > 0) {
+                    const gramUpdate = await client.query(
+                        'UPDATE users SET gram_balance = COALESCE(gram_balance, 0) + $1 WHERE telegram_id = $2 RETURNING balance, gram_balance',
+                        [rewardGram, telegram_id]
+                    );
+                    if (reward <= 0) updatedUser = gramUpdate;
+                }
             }
 
-            updatedUser = await client.query(
-                updateUserQuery,
-                [reward, telegram_id]
-            );
-
             await client.query('COMMIT');
-            const newBalance = parseFloat(updatedUser.rows[0].balance);
+            const newBalance = parseFloat(updatedUser.rows[0].balance || 0);
             if (bot && bot.sendMessage && task.verification_type !== 'auto_ad') {
-                try { bot.sendMessage(telegram_id, `🎉 You completed "${task.title}" and earned ${reward} TASKY!`); } catch (e) {}
+                try { 
+                    const msgText = rewardGram > 0 
+                        ? `🎉 You completed "${task.title}" and earned ${rewardGram} GRAM! 💎`
+                        : `🎉 You completed "${task.title}" and earned ${reward} TASKY!`;
+                    bot.sendMessage(telegram_id, msgText); 
+                } catch (e) {}
             }
             // Recalculate tier instantly now that balance changed
             await recalculateTier(telegram_id);
-            return res.json({ status: 'approved', new_balance: newBalance, tokens_earned: reward });
+            return res.json({ 
+                status: 'approved', 
+                new_balance: newBalance, 
+                tokens_earned: reward,
+                gram_balance: parseFloat(updatedUser.rows[0].gram_balance || 0),
+                reward_gram: rewardGram
+            });
 
         } else if (task.verification_type === 'proof_url' || task.verification_type === 'proof_username') {
             let proof_data = req.body.proof_url;

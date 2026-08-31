@@ -213,7 +213,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
       const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url);
       setIsSubmitting(false);
       if (res.data) {
-        const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s'].includes(activeTask.verification_type);
+        const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s', 'telegram_suffix'].includes(activeTask.verification_type);
 
         if (activeTask.verification_type === 'auto_ad') {
           // Optimistically increment the counter in the task subtitle immediately
@@ -237,7 +237,11 @@ export default function Tasks({ user, refreshUser, navigate }) {
           setTasks(prev => prev.filter(t => t.id !== activeTask.id));
           setSubmissions(prev => [updatedTask, ...prev]);
           if (res.data.status === 'approved' || isAutoApproved) {
-            showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
+            if (parseFloat(activeTask.reward_gram || 0) > 0) {
+              showToast(`Task Verified! +${activeTask.reward_gram} GRAM 💎`, 'success');
+            } else {
+              showToast(`Task Verified! +${activeTask.reward_tasky} TASKY`, 'success');
+            }
           } else {
             setSubmittedTask(activeTask);
           }
@@ -425,7 +429,9 @@ export default function Tasks({ user, refreshUser, navigate }) {
                           <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-orange-500 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
                         <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 animate-pulse' : 'bg-surface-soft border border-border'}`}>
-                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white' : 'text-ink'}`}>+{task.reward_tasky}</span>
+                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white' : 'text-ink'}`}>
+                            {parseFloat(task.reward_gram || 0) > 0 ? `+${task.reward_gram} GRAM` : `+${task.reward_tasky}`}
+                          </span>
                         </div>
                       </motion.div>
                     ))
@@ -509,7 +515,11 @@ export default function Tasks({ user, refreshUser, navigate }) {
               <div className="flex justify-between items-start mb-6">
                 <h2 className="text-[22px] font-black text-ink leading-tight pr-4">{selectedTask.title}</h2>
                 <div className={`px-4 py-2 rounded-[1.25rem] shadow-sm flex-shrink-0 ${selectedTask.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-cyan-500  bg-[length:200%_200%] ' : 'bg-gradient-primary '}`}>
-                  <span className="text-[15px] font-black text-white">+{selectedTask.reward_tasky} TASKY</span>
+                  <span className="text-[15px] font-black text-white">
+                    {parseFloat(selectedTask.reward_gram || 0) > 0 
+                      ? `+${selectedTask.reward_gram} GRAM` 
+                      : `+${selectedTask.reward_tasky} TASKY`}
+                  </span>
                 </div>
               </div>
               
@@ -590,6 +600,34 @@ export default function Tasks({ user, refreshUser, navigate }) {
                   </div>
                 ) : (
                   <div className="space-y-3">
+                    {selectedTask.verification_type === 'telegram_suffix' && (
+                      <div className="bg-surface-soft border border-border rounded-[1.5rem] p-5 space-y-4">
+                        <p className="text-[13px] font-black text-ink mb-2 uppercase tracking-wider flex items-center gap-2">
+                          <Bot size={18} className="text-indigo-500" />
+                          Instructions
+                        </p>
+                        <p className="text-sm text-ink-soft leading-relaxed">
+                          1. Click below to copy the suffix:<br/>
+                          <button 
+                            onClick={() => {
+                              navigator.clipboard.writeText('| Tasky');
+                              showToast('Suffix copied to clipboard!');
+                            }}
+                            className="mt-1 px-4 py-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-bold active:scale-95 transition-transform flex items-center gap-1.5"
+                          >
+                            <span>| Tasky</span>
+                            <span className="text-xs text-indigo-400/60">(Click to copy)</span>
+                          </button>
+                        </p>
+                        <p className="text-sm text-ink-soft leading-relaxed">
+                          2. Open Telegram Settings.<br/>
+                          3. Edit your profile name.<br/>
+                          4. Paste <strong>| Tasky</strong> at the end of your First or Last Name.<br/>
+                          5. Click <strong>Verify Suffix</strong> below!
+                        </p>
+                      </div>
+                    )}
+
                     {selectedTask.verification_type === 'proof_screenshot' && (
                       <label className="block border-2 border-dashed border-border rounded-2xl p-4 text-center cursor-pointer hover:bg-surface-soft transition-colors">
                         {proofData ? (
@@ -606,17 +644,17 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
                     {selectedTask.verification_type === 'proof_url' && (
                       <input 
-                        type="url" 
-                        placeholder={
-                          (selectedTask.title.toLowerCase().includes('retweet') || selectedTask.title.toLowerCase().includes('repost') || selectedTask.action_url.toLowerCase().includes('x.com') || selectedTask.action_url.toLowerCase().includes('twitter.com')) 
-                            ? "Paste your Retweet/Repost link here" 
-                            : (selectedTask.title.toLowerCase().includes('youtube') || selectedTask.action_url.toLowerCase().includes('youtube.com'))
-                              ? "Paste your YouTube Video link here"
-                              : "Paste your proof link here"
-                        }
-                        value={proofData}
-                        onChange={e => setProofData(e.target.value)}
-                        className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3 text-ink focus:outline-none focus:border-ink-faint transition-colors"
+                         type="url" 
+                         placeholder={
+                           (selectedTask.title.toLowerCase().includes('retweet') || selectedTask.title.toLowerCase().includes('repost') || selectedTask.action_url.toLowerCase().includes('x.com') || selectedTask.action_url.toLowerCase().includes('twitter.com')) 
+                             ? "Paste your Retweet/Repost link here" 
+                             : (selectedTask.title.toLowerCase().includes('youtube') || selectedTask.action_url.toLowerCase().includes('youtube.com'))
+                               ? "Paste your YouTube Video link here"
+                               : "Paste your proof link here"
+                         }
+                         value={proofData}
+                         onChange={e => setProofData(e.target.value)}
+                         className="w-full bg-surface-soft border border-border rounded-xl px-4 py-3 text-ink focus:outline-none focus:border-ink-faint transition-colors"
                       />
                     )}
 
@@ -641,6 +679,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
                           ? (user?.valid_referrals >= 5 ? 'Claim Reward' : `${user?.valid_referrals || 0} / 5 Friends Invited`)
                           : selectedTask.verification_type === 'auto_ad'
                             ? 'Watch Ad'
+                          : selectedTask.verification_type === 'telegram_suffix'
+                            ? 'Verify Suffix'
                           : (selectedTask.verification_type === 'timer_10s' || selectedTask.verification_type === 'auto_telegram')
                             ? (countdown > 0 ? `Wait ${countdown}s...` : (!timerStarted ? 'Click "Go to Task" first' : 'Claim Reward'))
                           : selectedTask.verification_type === 'none'

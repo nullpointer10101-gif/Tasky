@@ -285,6 +285,12 @@ export default function Gram({ user, refreshUser }) {
             className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
             {!isWalletConnected ? <><Wallet size={16}/>Connect Wallet First</> : isWithdrawing ? <><Loader2 size={16} className="animate-spin"/>Processing...</> : gramInfo?.has_pending_withdrawal ? <><Clock size={16}/>Withdrawal Pending</> : <><ArrowUpRight size={16}/>Withdraw GRAM</>}
           </button>
+          <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">
+            <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5 animate-pulse" />
+            <p className="text-[11px] text-white/80 font-bold leading-normal">
+              ⚠️ <span className="text-red-400 font-extrabold">Name Suffix Required:</span> You must add <strong className="text-white">| Tasky</strong> at the end of your Telegram profile name (First or Last name) before withdrawing, and keep it active until approved. Requests without the suffix will be rejected!
+            </p>
+          </div>
         </div>
         {gramInfo?.history?.length > 0 && (
           <div className="mt-4 space-y-2">
