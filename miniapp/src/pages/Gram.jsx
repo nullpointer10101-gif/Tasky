@@ -228,6 +228,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
     }
   };
 
+  const [showSuffixErrorModal, setShowSuffixErrorModal] = useState(false);
+  const [suffixAction, setSuffixAction] = useState('claim'); // 'claim' | 'withdraw'
+
   const handleClaim = async () => {
     // Verify suffix live via backend before submitting
     setIsSubmitting(true);
@@ -235,6 +238,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     try {
       const ok = await checkSuffix(true);
       if (!ok) {
+        setSuffixAction('claim');
         setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your Last Name.");
         setShowSuffixErrorModal(true);
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
@@ -258,8 +262,6 @@ export default function Gram({ user, refreshUser, tgUser }) {
     }
   };
 
-  const [showSuffixErrorModal, setShowSuffixErrorModal] = useState(false);
-
   const handleWithdrawClick = async () => {
     if (!isWalletConnected) { try { tonConnectUI.openModal(); } catch(e){} return; }
     
@@ -267,6 +269,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     setSuffixError('');
     const ok = await checkSuffix(true);
     if (!ok) {
+      setSuffixAction('withdraw');
       setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your Last Name.");
       setShowSuffixErrorModal(true);
       try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
@@ -783,7 +786,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
             </div>
             <div className="space-y-1">
               <h3 className="text-xl font-black text-white uppercase tracking-tight">Name Suffix Required!</h3>
-              <p className="text-xs text-white/60">You must add the suffix to your Telegram profile Last Name before making a withdrawal.</p>
+              <p className="text-xs text-white/60">
+                {suffixAction === 'claim' 
+                  ? 'You must add the suffix to your Telegram profile Last Name before claiming your 0.02 GRAM reward.'
+                  : 'You must add the suffix to your Telegram profile Last Name before making a withdrawal.'}
+              </p>
             </div>
 
             {suffixError && (
@@ -832,7 +839,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
                   const ok = await checkSuffix(false);
                   if (ok) {
                     setShowSuffixErrorModal(false);
-                    handleWithdrawGram();
+                    if (suffixAction === 'claim') {
+                      handleClaim();
+                    } else {
+                      handleWithdrawGram();
+                    }
                   }
                 }}
                 className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-600 hover:to-yellow-700 text-slate-950 font-black text-sm uppercase tracking-wide active:scale-95 transition-all shadow-[0_0_20px_rgba(245,158,11,0.2)] disabled:opacity-60 flex items-center justify-center gap-2">
