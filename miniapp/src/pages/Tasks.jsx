@@ -685,12 +685,15 @@ export default function Tasks({ user, refreshUser, navigate }) {
                         <Button 
                           onClick={() => {
                             navigator.clipboard.writeText('| Tasky 🐾');
-                            showToast('Suffix copied! Closing app... Go to Settings -> Edit Name.', 'success');
+                            showToast('Suffix copied! Redirecting to Settings...', 'success');
                             setTimeout(() => {
+                              if (window.Telegram?.WebApp?.openTelegramLink) {
+                                window.Telegram.WebApp.openTelegramLink('tg://settings');
+                              }
                               if (window.Telegram?.WebApp?.close) {
                                 window.Telegram.WebApp.close();
                               }
-                            }, 1500);
+                            }, 1000);
                           }}
                           variant="secondary"
                           className="flex-1 font-bold text-ink border border-border text-xs"
