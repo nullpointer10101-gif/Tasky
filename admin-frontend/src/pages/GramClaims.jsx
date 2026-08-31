@@ -10,6 +10,24 @@ export default function GramClaims() {
   const [processingId, setProcessingId] = useState(null);
   const [activeTab, setActiveTab] = useState('pending');
 
+  const [selectedUserAds, setSelectedUserAds] = useState(null);
+  const [adsList, setAdsList] = useState([]);
+  const [loadingAds, setLoadingAds] = useState(false);
+
+  const handleViewAds = async (telegram_id, username, first_name, isHistory = false, requested_at = null) => {
+    setSelectedUserAds({ telegram_id, name: username ? `@${username}` : (first_name || 'User'), isHistory, requested_at });
+    setLoadingAds(true);
+    setAdsList([]);
+    try {
+      const { data } = await api.get(`/users/${telegram_id}/ad-views`, { params: { ad_type: 'gram_ad' } });
+      setAdsList(data);
+    } catch (e) {
+      toast.error('Failed to load ad view list');
+    } finally {
+      setLoadingAds(false);
+    }
+  };
+
   useEffect(() => {
     fetchClaims(true);
     fetchHistory();
@@ -176,7 +194,7 @@ export default function GramClaims() {
                   </div>
 
                   {/* User Verification Metrics */}
-                  <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
                       <span className="text-ink font-semibold">{c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -185,15 +203,26 @@ export default function GramClaims() {
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Referrals (Valid/Total)</span>
                       <span className="text-ink font-semibold">{c.valid_referrals || 0} / {c.total_referrals || 0}</span>
                     </div>
-                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
-                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Total Ads Watched</span>
-                      <span className="text-ink font-semibold">{c.total_ads_watched || 0} ads</span>
+                    <div 
+                      onClick={() => handleViewAds(c.telegram_id, c.username, c.first_name, false, c.requested_at)}
+                      className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 cursor-pointer hover:border-amber-500/40 hover:bg-amber-500/5 transition-all group"
+                      title="Click to view detailed ad logs"
+                    >
+                      <span className="text-ink-soft group-hover:text-amber-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5 transition-colors">Today's Ads (24h)</span>
+                      <span className="text-ink font-semibold flex items-center gap-1 group-hover:text-amber-400 transition-colors">
+                        {c.today_gram_ads_watched || 0} ads <span className="text-[10px] text-ink-faint font-normal group-hover:text-amber-400/70">(Click to view)</span>
+                      </span>
                     </div>
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Claim Attempt</span>
+                      <span className="text-ink font-semibold text-amber-400">#{c.claim_seq || 1} Claim</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 col-span-2 sm:col-span-1 lg:col-span-1">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
                       <span className="text-ink font-semibold text-[10.5px]" title="USDT Swaps / GRAM Claims / GRAM Withdrawals">
                         {Number(c.approved_swaps_count || 0) + Number(c.approved_withdrawals_count || 0)} Swaps • {Number(c.approved_gram_claims_count || 0) + Number(c.approved_gram_withdrawals_count || 0)} Gram
                       </span>
+                      <span className="text-ink-faint block text-[8px] uppercase font-bold tracking-wider mt-0.5">Lifetime: {c.total_ads_watched || 0} Ads</span>
                     </div>
                   </div>
                 </div>
@@ -272,7 +301,7 @@ export default function GramClaims() {
                   </div>
 
                   {/* User Verification Metrics */}
-                  <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
                       <span className="text-ink font-semibold">{h.created_at ? new Date(h.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -281,15 +310,26 @@ export default function GramClaims() {
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Referrals (Valid/Total)</span>
                       <span className="text-ink font-semibold">{h.valid_referrals || 0} / {h.total_referrals || 0}</span>
                     </div>
-                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
-                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Total Ads Watched</span>
-                      <span className="text-ink font-semibold">{h.total_ads_watched || 0} ads</span>
+                    <div 
+                      onClick={() => handleViewAds(h.telegram_id, h.username, h.first_name, true, h.requested_at)}
+                      className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 cursor-pointer hover:border-amber-500/40 hover:bg-amber-500/5 transition-all group"
+                      title="Click to view detailed ad logs"
+                    >
+                      <span className="text-ink-soft group-hover:text-amber-400 block text-[9px] uppercase font-bold tracking-wider mb-0.5 transition-colors">Claim Ads (24h)</span>
+                      <span className="text-ink font-semibold flex items-center gap-1 group-hover:text-amber-400 transition-colors">
+                        {h.today_gram_ads_watched || 0} ads <span className="text-[10px] text-ink-faint font-normal group-hover:text-amber-400/70">(Click to view)</span>
+                      </span>
                     </div>
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Claim Attempt</span>
+                      <span className="text-ink font-semibold text-amber-400">#{h.claim_seq || 1} Claim</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 col-span-2 sm:col-span-1 lg:col-span-1">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
                       <span className="text-ink font-semibold text-[10.5px]" title="USDT Swaps / GRAM Claims / GRAM Withdrawals">
                         {Number(h.approved_swaps_count || 0) + Number(h.approved_withdrawals_count || 0)} Swaps • {Number(h.approved_gram_claims_count || 0) + Number(h.approved_gram_withdrawals_count || 0)} Gram
                       </span>
+                      <span className="text-ink-faint block text-[8px] uppercase font-bold tracking-wider mt-0.5">Lifetime: {h.total_ads_watched || 0} Ads</span>
                     </div>
                   </div>
                   {h.tx_hash && (
@@ -340,6 +380,86 @@ export default function GramClaims() {
             ))}
           </div>
         )
+      )}
+
+      {selectedUserAds && (
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#0b1329] border border-border w-full max-w-lg rounded-3xl p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+            <button 
+              onClick={() => setSelectedUserAds(null)} 
+              className="absolute top-4 right-4 text-ink-soft hover:text-rose-400 p-2 hover:bg-rose-500/10 rounded-xl transition-all"
+              title="Close Dialog"
+            >
+              <XCircle size={20} />
+            </button>
+            
+            <h3 className="text-xl font-black text-ink mb-1 flex items-center gap-2">
+              <Coins className="text-amber-400" size={20} /> Gram Ads Logs
+            </h3>
+            <p className="text-xs text-ink-soft mb-4">
+              Viewing ad view history for <span className="text-amber-400 font-bold">{selectedUserAds.name}</span>
+            </p>
+            
+            <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-border/50">
+              {loadingAds ? (
+                <div className="py-12 flex flex-col items-center justify-center text-amber-500 gap-3">
+                  <div className="w-8 h-8 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin"></div>
+                  <span className="text-xs font-bold tracking-wider uppercase">Fetching ad views...</span>
+                </div>
+              ) : adsList.length === 0 ? (
+                <div className="py-12 text-center text-ink-soft text-sm">
+                  No Gram ads found in database logs.
+                </div>
+              ) : (
+                <div className="divide-y divide-border/20 border-t border-b border-border/20">
+                  {adsList.map((ad, idx) => {
+                    const adTime = new Date(ad.created_at).getTime();
+                    let inWindow = false;
+                    if (selectedUserAds.isHistory && selectedUserAds.requested_at) {
+                      const reqTime = new Date(selectedUserAds.requested_at).getTime();
+                      inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
+                    } else {
+                      const reqTime = selectedUserAds.requested_at ? new Date(selectedUserAds.requested_at).getTime() : Date.now();
+                      inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
+                    }
+                    
+                    return (
+                      <div key={ad.id} className="py-3 flex items-center justify-between text-xs hover:bg-[#0a0f1c]/30 px-2 rounded-lg transition-colors">
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-ink-faint font-bold w-6">#{idx + 1}</span>
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-ink">{new Date(ad.created_at).toLocaleString()}</span>
+                            <span className="text-[9px] text-ink-faint font-mono mt-0.5">ID: {ad.id}</span>
+                          </div>
+                        </div>
+                        <div>
+                          {inWindow ? (
+                            <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-black uppercase px-2 py-0.5 rounded">
+                              Claim Window
+                            </span>
+                          ) : (
+                            <span className="bg-slate-500/10 text-ink-faint border border-slate-500/10 text-[9px] font-black uppercase px-2 py-0.5 rounded">
+                              Outside Window
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+            <div className="mt-6 flex justify-end">
+              <button 
+                onClick={() => setSelectedUserAds(null)}
+                className="px-5 py-2.5 rounded-xl bg-surface-soft hover:bg-border text-ink font-bold text-sm transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

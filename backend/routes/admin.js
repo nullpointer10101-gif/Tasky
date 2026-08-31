@@ -619,6 +619,24 @@ router.get('/users', async (req, res) => {
   }
 });
 
+router.get('/users/:id/ad-views', async (req, res) => {
+  const telegramId = req.params.id;
+  const { ad_type } = req.query;
+  try {
+    const query = `
+      SELECT id, created_at, claimed
+      FROM ad_views
+      WHERE telegram_id = $1 AND ad_type = $2
+      ORDER BY created_at DESC
+      LIMIT 200
+    `;
+    const { rows } = await pool.query(query, [telegramId, ad_type || 'gram_ad']);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/users/:id/history', async (req, res) => {
   const telegramId = req.params.id;
   try {
@@ -1145,7 +1163,9 @@ router.get('/gram/claims/pending', async (req, res) => {
         (SELECT COUNT(*) FROM swaps WHERE telegram_id = gc.telegram_id AND status = 'done') as approved_swaps_count,
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
-        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count
+        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type = 'gram_ad' AND created_at >= NOW() - INTERVAL '24 hours') as today_gram_ads_watched,
+        (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
       WHERE gc.status = 'pending'
@@ -1167,7 +1187,9 @@ router.get('/gram/claims/history', async (req, res) => {
         (SELECT COUNT(*) FROM swaps WHERE telegram_id = gc.telegram_id AND status = 'done') as approved_swaps_count,
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
-        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count
+        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type = 'gram_ad' AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_gram_ads_watched,
+        (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
       WHERE gc.status IN ('approved', 'rejected')
