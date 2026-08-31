@@ -8,7 +8,6 @@ import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
 import { getTasks, getMySubmissions, completeTask, getGramStatus } from '../api';
 import { useToast } from '../App';
-import TaskDopamineHub from '../components/TaskDopamineHub';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
 import { useIsAdmin } from '../AdminContext';
@@ -274,11 +273,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
         </div>
       </div>
 
-      <TaskDopamineHub
-        completedCount={submissions?.filter(s => s.status === 'approved').length || 3}
-        targetCount={5}
-        multiplierBonus="2.0x Boost"
-      />
+
 
       {/* Redeem Bounty Code Banner */}
       <motion.div 
