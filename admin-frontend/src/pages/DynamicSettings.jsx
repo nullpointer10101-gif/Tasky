@@ -142,7 +142,7 @@ export default function DynamicSettings() {
             <h2 className="text-2xl font-black text-ink tracking-tight">Referral Matrix</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Reward per Valid Invite</label>
               <input
@@ -150,15 +150,6 @@ export default function DynamicSettings() {
                 value={config.referral.reward_per_referral}
                 onChange={e => setConfig({ ...config, referral: { ...config.referral, reward_per_referral: Number(e.target.value) } })}
                 className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-emerald-400 font-bold focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all outline-none"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Tasks Reqd. for Validity</label>
-              <input
-                type="number"
-                value={config.referral.tasks_required_for_valid}
-                onChange={e => setConfig({ ...config, referral: { ...config.referral, tasks_required_for_valid: Number(e.target.value) } })}
-                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-amber-400 font-bold focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
               />
             </div>
             <div className="space-y-1.5">

@@ -670,28 +670,17 @@ router.get('/users/:id/history', async (req, res) => {
 router.get('/users/:id/referrals', async (req, res) => {
   const telegramId = req.params.id;
   try {
-    const rulesRes = await pool.query('SELECT tasks_required_for_valid FROM referral_rules LIMIT 1');
-    const tasksRequired = rulesRes.rows[0]?.tasks_required_for_valid || 3;
-
     const query = `
       SELECT 
         u.telegram_id, u.username, u.first_name, u.balance, u.created_at,
-        COUNT(ut.id) FILTER (WHERE ut.status = 'approved' AND ut.approved_by = 'admin') as approved_admin_tasks
+        r.reward_paid as is_valid
       FROM users u
-      LEFT JOIN user_tasks ut ON u.telegram_id = ut.telegram_id
+      JOIN referrals r ON u.telegram_id = r.referred_telegram_id
       WHERE u.referred_by = $1
-      GROUP BY u.id, u.telegram_id, u.username, u.first_name, u.balance, u.created_at
       ORDER BY u.created_at DESC
     `;
     const { rows } = await pool.query(query, [telegramId]);
-    
-    const referrals = rows.map(r => ({
-      ...r,
-      is_valid: parseInt(r.approved_admin_tasks, 10) >= tasksRequired,
-      tasks_required: tasksRequired
-    }));
-
-    res.json(referrals);
+    res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
