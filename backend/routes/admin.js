@@ -363,7 +363,7 @@ router.post('/tasks/review-all', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const ytFilter = exclude_youtube ? "AND t.type != 'youtube'" : "";
+    const ytFilter = exclude_youtube ? "AND (t.type IS NULL OR LOWER(t.type) != 'youtube')" : "";
 
     if (action === 'approve') {
       const pendingRes = await client.query(`
@@ -374,17 +374,19 @@ router.post('/tasks/review-all', async (req, res) => {
       `);
 
       if (pendingRes.rows.length > 0) {
-        const ids = pendingRes.rows.map(r => r.user_task_id);
-        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = ANY($1::int[])`, [ids]);
+        const ids = pendingRes.rows.map(r => parseInt(r.user_task_id, 10));
+        await client.query(`UPDATE user_tasks SET status = 'approved', reviewed_at = NOW() WHERE id = ANY($1)`, [ids]);
         
         // Group rewards by user
         const userTotals = {};
         for (const row of pendingRes.rows) {
-          if (!userTotals[row.telegram_id]) {
-            userTotals[row.telegram_id] = { tasky: 0, gram: 0 };
+          const tid = row.telegram_id ? row.telegram_id.toString() : null;
+          if (!tid) continue;
+          if (!userTotals[tid]) {
+            userTotals[tid] = { tasky: 0, gram: 0 };
           }
-          userTotals[row.telegram_id].tasky += parseFloat(row.reward_tasky || 0);
-          userTotals[row.telegram_id].gram += parseFloat(row.reward_gram || 0);
+          userTotals[tid].tasky += parseFloat(row.reward_tasky || 0);
+          userTotals[tid].gram += parseFloat(row.reward_gram || 0);
         }
 
         for (const [tid, rewards] of Object.entries(userTotals)) {
@@ -392,7 +394,7 @@ router.post('/tasks/review-all', async (req, res) => {
             `UPDATE users 
              SET balance = balance + $1, 
                  gram_balance = COALESCE(gram_balance, 0) + $2 
-             WHERE telegram_id = $3`, 
+             WHERE telegram_id::text = $3::text`, 
             [rewards.tasky, rewards.gram, tid]
           );
         }
@@ -407,8 +409,8 @@ router.post('/tasks/review-all', async (req, res) => {
         WHERE ut.status = 'pending' ${ytFilter}
       `);
       if (pendingRes.rows.length > 0) {
-        const ids = pendingRes.rows.map(r => r.user_task_id);
-        await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW() WHERE id = ANY($2::int[])`, [rejection_reason || 'Did not meet requirements', ids]);
+        const ids = pendingRes.rows.map(r => parseInt(r.user_task_id, 10));
+        await client.query(`UPDATE user_tasks SET status = 'rejected', rejection_reason = $1, reviewed_at = NOW() WHERE id = ANY($2)`, [rejection_reason || 'Did not meet requirements', ids]);
       }
       await client.query('COMMIT');
       res.json({ success: true, message: `Rejected ${pendingRes.rows.length} pending tasks successfully` });
@@ -417,6 +419,7 @@ router.post('/tasks/review-all', async (req, res) => {
     }
   } catch (error) {
     await client.query('ROLLBACK');
+    console.error('Error in /tasks/review-all:', error);
     res.status(500).json({ error: error.message });
   } finally {
     client.release();
@@ -432,21 +435,21 @@ router.post('/tasks/review-user', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const ytFilter = exclude_youtube ? "AND t.type != 'youtube'" : "";
+    const ytFilter = exclude_youtube ? "AND (t.type IS NULL OR LOWER(t.type) != 'youtube')" : "";
 
     const pendingRes = await client.query(`
       SELECT ut.id as user_task_id, t.reward_tasky, COALESCE(t.reward_gram, 0) as reward_gram, t.title
       FROM user_tasks ut
       JOIN tasks t ON ut.task_id = t.id
-      WHERE ut.telegram_id = $1 AND ut.status = 'pending' ${ytFilter}
-    `, [telegram_id]);
+      WHERE ut.telegram_id::text = $1::text AND ut.status = 'pending' ${ytFilter}
+    `, [telegram_id.toString()]);
 
     if (pendingRes.rows.length === 0) {
       await client.query('ROLLBACK');
-      return res.json({ success: true, message: 'No pending tasks match criteria for this user', count: 0 });
+      return res.json({ success: true, message: 'No matching pending tasks found for this profile', count: 0 });
     }
 
-    const ids = pendingRes.rows.map(r => r.user_task_id);
+    const ids = pendingRes.rows.map(r => parseInt(r.user_task_id, 10));
 
     if (action === 'approve') {
       let totalReward = 0;
@@ -459,15 +462,15 @@ router.post('/tasks/review-user', async (req, res) => {
       await client.query(`
         UPDATE user_tasks 
         SET status = 'approved', reviewed_at = NOW() 
-        WHERE id = ANY($1::int[])
+        WHERE id = ANY($1)
       `, [ids]);
 
       await client.query(
         `UPDATE users 
          SET balance = balance + $1, 
              gram_balance = COALESCE(gram_balance, 0) + $2 
-         WHERE telegram_id = $3`,
-        [totalReward, totalGram, telegram_id]
+         WHERE telegram_id::text = $3::text`,
+        [totalReward, totalGram, telegram_id.toString()]
       );
 
       if (bot && bot.sendMessage) {
@@ -479,7 +482,7 @@ router.post('/tasks/review-user', async (req, res) => {
             { parse_mode: 'HTML' }
           );
         } catch (e) {
-          console.error('Failed to notify user:', e.message);
+          console.error('Failed to notify user of approval:', e.message);
         }
       }
 
@@ -489,7 +492,7 @@ router.post('/tasks/review-user', async (req, res) => {
       await client.query(`
         UPDATE user_tasks 
         SET status = 'rejected', rejection_reason = $2, reviewed_at = NOW() 
-        WHERE id = ANY($1::int[])
+        WHERE id = ANY($1)
       `, [ids, rejection_reason || 'Did not meet requirements']);
 
       if (bot && bot.sendMessage) {
@@ -500,7 +503,7 @@ router.post('/tasks/review-user', async (req, res) => {
             { parse_mode: 'HTML' }
           );
         } catch (e) {
-          console.error('Failed to notify user:', e.message);
+          console.error('Failed to notify user of rejection:', e.message);
         }
       }
 
@@ -511,6 +514,7 @@ router.post('/tasks/review-user', async (req, res) => {
     }
   } catch (error) {
     await client.query('ROLLBACK');
+    console.error('Error in /tasks/review-user:', error);
     res.status(500).json({ error: error.message });
   } finally {
     client.release();
