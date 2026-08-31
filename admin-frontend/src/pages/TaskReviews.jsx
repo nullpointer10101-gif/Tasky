@@ -117,7 +117,9 @@ export default function TaskReviews() {
         return false;
       }));
     } catch (e) {
-      toast.error(e.response?.data?.error || `Failed to ${action} user tasks`);
+      console.error('Failed to review user tasks:', e);
+      const errMsg = e.response?.data?.error || e.response?.data?.message || e.message || `Failed to ${action} user tasks`;
+      toast.error(errMsg);
     } finally {
       setProcessingId(null);
     }
