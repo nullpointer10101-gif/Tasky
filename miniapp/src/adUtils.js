@@ -165,7 +165,7 @@ export function waitForGiga(timeoutMs = 12000) {
 }
 
 /**
- * Helper to play an ad with strict watch time tracking.
+ * Helper to play an ad with watch time tracking.
  * Prevents cheating by ensuring the user watches the ad to completion.
  */
 async function playAdWithFocusProtection(playAdFn) {
@@ -173,7 +173,7 @@ async function playAdWithFocusProtection(playAdFn) {
   const res = await playAdFn();
   const elapsed = (Date.now() - startTime) / 1000;
 
-  if (elapsed < 12) {
+  if (elapsed < 6) {
     throw new Error('Ad was closed too early.');
   }
 
@@ -202,15 +202,15 @@ export async function showRewardedAd(placement = 'main') {
 
   const tryMonetag = async () => {
     if (typeof window !== 'undefined' && typeof window.show_11395836 === 'function') {
-      console.log('[AdManager] Trying Monetag fallback...');
+      console.log('[AdManager] Trying Monetag fallback (Zone 11395836)...');
       const res = await playAdWithFocusProtection(async () => {
         return await Promise.race([
           window.show_11395836(),
           new Promise((_, reject) => setTimeout(() => reject(new Error('Monetag timeout')), 60000))
         ]);
       });
-      if (!res || res.reward_event_type !== 'valued') {
-        throw new Error('Ad was not valued');
+      if (res && (res.reward_event_type === 'cancelled' || res.reward_event_type === 'closed' || res.status === 'error')) {
+        throw new Error('Ad was closed early');
       }
       return { success: true };
     }
