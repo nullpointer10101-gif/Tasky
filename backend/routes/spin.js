@@ -3,7 +3,6 @@ const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
-const { checkReferralValidity } = require('../utils/referral');
 
 // Play spin wheel
 router.post('/play', async (req, res) => {
@@ -78,10 +77,6 @@ router.post('/play', async (req, res) => {
         `, [reward, spinsUsedToday, telegram_id]);
         
         await client.query('COMMIT');
-        
-        if (user.referred_by) {
-            await checkReferralValidity(client, telegram_id, user.referred_by);
-        }
 
         await recalculateTier(telegram_id);
         

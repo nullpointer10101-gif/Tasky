@@ -3,7 +3,6 @@ const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
-const { checkReferralValidity } = require('../utils/referral');
 
 // Admin Middleware
 const isAdmin = (req, res, next) => {
@@ -238,11 +237,6 @@ router.post('/complete', async (req, res) => {
                 [reward, telegram_id]
             );
 
-            // ── Check referral validity (any approved tasks + spins count) ──
-            if (user.referred_by) {
-                await checkReferralValidity(client, telegram_id, user.referred_by);
-            }
-
             await client.query('COMMIT');
             const newBalance = parseFloat(updatedUser.rows[0].balance);
             if (bot && bot.sendMessage && task.verification_type !== 'auto_ad') {
@@ -446,11 +440,6 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                 [reward, ut.telegram_id]
             );
 
-            // ── Check referral validity ──
-            if (ut.referred_by) {
-                await checkReferralValidity(client, ut.telegram_id, ut.referred_by);
-            }
-
             await client.query('COMMIT');
 
             if (bot && bot.sendMessage) {
@@ -464,10 +453,7 @@ router.post('/admin/review', isAdmin, async (req, res) => {
                     console.error('Error sending hype message:', e);
                 }
             }
-            // ── Check referral validity ──
-            if (ut.referred_by) {
-                await checkReferralValidity(client, ut.telegram_id, ut.referred_by);
-            }
+
 
             // Recalculate tier instantly after balance payout
             await recalculateTier(ut.telegram_id);
