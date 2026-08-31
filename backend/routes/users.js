@@ -58,7 +58,7 @@ router.post('/register', async (req, res) => {
                     const name = username ? `@${username}` : (first_name || 'Someone');
                     const message = `🎉 <b>New Referral Joined!</b>\n\n` +
                                     `👤 <b>${name}</b> has joined Tasky using your link!\n\n` +
-                                    `⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete at least 1 task or play the spin wheel!</i>\n\n` +
+                                    `⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete their first withdrawal (Gram Claim/Withdrawal)!</i>\n\n` +
                                     `🔗 Keep sharing your link to earn more!`;
                     bot.sendMessage(referred_by, message, { parse_mode: 'HTML' });
                 } catch (e) {
@@ -410,6 +410,19 @@ router.post('/verify-channels', async (req, res) => {
             joinedChannel = true;
         }
 
+        let joinedAlphaDrop = false;
+        try {
+            if (bot && bot.getChatMember) {
+                const member = await bot.getChatMember('@AlphaDropDaily', telegram_id);
+                joinedAlphaDrop = ['member', 'administrator', 'creator'].includes(member.status);
+            } else {
+                joinedAlphaDrop = true;
+            }
+        } catch (e) {
+            console.error('Error checking @AlphaDropDaily join:', e.message);
+            joinedAlphaDrop = true;
+        }
+
         let joinedCommunity = false;
         try {
             if (bot && bot.getChatMember) {
@@ -423,8 +436,8 @@ router.post('/verify-channels', async (req, res) => {
             joinedCommunity = true;
         }
 
-        if (!joinedChannel || !joinedCommunity) {
-            return res.status(400).json({ error: 'Please join both the Channel and Community group first!' });
+        if (!joinedChannel || !joinedCommunity || !joinedAlphaDrop) {
+            return res.status(400).json({ error: 'Please join the Channel, AlphaDropDaily channel, and Community group first!' });
         }
 
         const client = await pool.connect();

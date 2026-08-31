@@ -82,8 +82,11 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                 inline_keyboard: [
                     [{ text: '🐾 Launch TASKY', web_app: { url: webAppUrl } }],
                     [
-                        { text: '📢 Channel', url: 'https://t.me/Tasky_Official' },
-                        { text: '💬 Community', url: 'https://t.me/TaskyOfficialCommunity' }
+                        { text: '📢 Tasky Channel', url: 'https://t.me/Tasky_Official' },
+                        { text: '📢 AlphaDrop Daily', url: 'https://t.me/AlphaDropDaily' }
+                    ],
+                    [
+                        { text: '💬 Community Group', url: 'https://t.me/TaskyOfficialCommunity' }
                     ]
                 ]
             }

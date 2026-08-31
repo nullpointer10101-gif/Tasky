@@ -7,6 +7,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
   const [loading, setLoading] = useState(false);
   const [clickedChannel, setClickedChannel] = useState(false);
   const [clickedCommunity, setClickedCommunity] = useState(false);
+  const [clickedAlphaDrop, setClickedAlphaDrop] = useState(false);
   const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
 
   const handleVerify = async () => {
@@ -52,7 +53,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
             Join Our Telegram Communities
           </h1>
           <p className="text-xs text-white/50 leading-relaxed px-4">
-            To unlock the app and claim your welcome bonus, join the channel and community group.
+            To unlock the app and claim your welcome bonus, join the channels and community group.
           </p>
         </div>
 
@@ -81,6 +82,32 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
                 : 'bg-white/10 text-white border border-white/10 group-hover:bg-white/20'
             }`}>
               {clickedChannel ? 'Visited ✓' : 'Join'}
+            </div>
+          </a>
+
+          {/* AlphaDrop Channel Card */}
+          <a
+            href="https://t.me/AlphaDropDaily"
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => setClickedAlphaDrop(true)}
+            className="flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl transition-all group"
+          >
+            <div className="flex items-center gap-3 text-left">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <Send size={18} />
+              </div>
+              <div>
+                <p className="text-sm font-black text-white leading-tight">AlphaDrop Daily</p>
+                <p className="text-[10px] text-white/40">Exclusive crypto airdrops & news</p>
+              </div>
+            </div>
+            <div className={`px-3 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+              clickedAlphaDrop 
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-white/10 text-white border border-white/10 group-hover:bg-white/20'
+            }`}>
+              {clickedAlphaDrop ? 'Visited ✓' : 'Join'}
             </div>
           </a>
 
@@ -144,7 +171,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         {/* Help Tip */}
         <p className="text-[10px] text-white/30 flex items-center justify-center gap-1">
           <AlertCircle size={10} />
-          <span>Click both "Join" links before claiming.</span>
+          <span>Click all "Join" links before claiming.</span>
         </p>
       </div>
     </div>
