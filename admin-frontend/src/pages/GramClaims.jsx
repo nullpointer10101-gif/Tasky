@@ -147,7 +147,15 @@ export default function GramClaims() {
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-ink text-lg truncate pr-2">@{c.username || c.first_name} <span className="text-ink-faint font-normal text-sm ml-1">(ID: {c.telegram_id})</span></h3>
+                    <h3 className="font-bold text-ink text-lg truncate pr-2 flex items-center gap-2 flex-wrap">
+                      @{c.username || c.first_name} 
+                      <span className="text-ink-faint font-normal text-sm">(ID: {c.telegram_id})</span>
+                      {c.is_flagged && (
+                        <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          🚩 Flagged: {c.flag_reason}
+                        </span>
+                      )}
+                    </h3>
                     <span className="text-[10px] text-ink-faint uppercase font-bold tracking-wider shrink-0">{new Date(c.requested_at).toLocaleString()}</span>
                   </div>
                   
@@ -164,6 +172,28 @@ export default function GramClaims() {
                       <button onClick={() => copyToClipboard(c.gram_wallet_address)} className="p-2 text-ink-soft hover:text-amber-400 hover:bg-amber-500/10 rounded-xl transition-all">
                         <Copy size={16} />
                       </button>
+                    </div>
+                  </div>
+
+                  {/* User Verification Metrics */}
+                  <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
+                      <span className="text-ink font-semibold">{c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Referrals (Valid/Total)</span>
+                      <span className="text-ink font-semibold">{c.valid_referrals || 0} / {c.total_referrals || 0}</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Total Ads Watched</span>
+                      <span className="text-ink font-semibold">{c.total_ads_watched || 0} ads</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
+                      <span className="text-ink font-semibold text-[10.5px]" title="USDT Swaps / GRAM Claims / GRAM Withdrawals">
+                        {Number(c.approved_swaps_count || 0) + Number(c.approved_withdrawals_count || 0)} Swaps • {Number(c.approved_gram_claims_count || 0) + Number(c.approved_gram_withdrawals_count || 0)} Gram
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -219,19 +249,48 @@ export default function GramClaims() {
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {h.status === 'approved' ? (
                         <CheckCircle2 size={18} className="text-emerald-400" />
                       ) : (
                         <XCircle size={18} className="text-rose-400" />
                       )}
-                      <h3 className="font-bold text-ink text-lg truncate pr-2">@{h.username || h.first_name}</h3>
+                      <h3 className="font-bold text-ink text-lg truncate pr-2 flex items-center gap-2 flex-wrap">
+                        @{h.username || h.first_name}
+                        {h.is_flagged && (
+                          <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                            🚩 Flagged: {h.flag_reason}
+                          </span>
+                        )}
+                      </h3>
                     </div>
                     <span className="text-[10px] text-ink-faint uppercase font-bold tracking-wider shrink-0">{new Date(h.requested_at).toLocaleString()}</span>
                   </div>
                   
                   <div className="bg-[#0a0f1c] p-2 px-3 rounded-xl border border-border/50">
                     <code className="text-xs text-ink-soft font-mono truncate">{h.gram_wallet_address}</code>
+                  </div>
+
+                  {/* User Verification Metrics */}
+                  <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
+                      <span className="text-ink font-semibold">{h.created_at ? new Date(h.created_at).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Referrals (Valid/Total)</span>
+                      <span className="text-ink font-semibold">{h.valid_referrals || 0} / {h.total_referrals || 0}</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Total Ads Watched</span>
+                      <span className="text-ink font-semibold">{h.total_ads_watched || 0} ads</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
+                      <span className="text-ink font-semibold text-[10.5px]" title="USDT Swaps / GRAM Claims / GRAM Withdrawals">
+                        {Number(h.approved_swaps_count || 0) + Number(h.approved_withdrawals_count || 0)} Swaps • {Number(h.approved_gram_claims_count || 0) + Number(h.approved_gram_withdrawals_count || 0)} Gram
+                      </span>
+                    </div>
                   </div>
                   {h.tx_hash && (
                     <div className="mt-2 text-xs font-medium text-emerald-400 flex items-center gap-1.5 pl-1">

@@ -1140,8 +1140,12 @@ router.get('/gram/claims/pending', async (req, res) => {
   try {
     const query = `
       SELECT 
-        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.tx_hash,
-        u.telegram_id, u.username, u.first_name
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.tx_hash, gc.is_flagged, gc.flag_reason,
+        u.telegram_id, u.username, u.first_name, u.created_at, u.total_referrals, u.valid_referrals, u.total_ads_watched,
+        (SELECT COUNT(*) FROM swaps WHERE telegram_id = gc.telegram_id AND status = 'done') as approved_swaps_count,
+        (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
+        (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
+        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
       WHERE gc.status = 'pending'
@@ -1158,8 +1162,12 @@ router.get('/gram/claims/history', async (req, res) => {
   try {
     const query = `
       SELECT 
-        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.status, gc.rejection_reason, gc.processed_at, gc.tx_hash,
-        u.telegram_id, u.username, u.first_name
+        gc.id as claim_id, gc.gram_wallet_address, gc.amount, gc.requested_at, gc.status, gc.rejection_reason, gc.processed_at, gc.tx_hash, gc.is_flagged, gc.flag_reason,
+        u.telegram_id, u.username, u.first_name, u.created_at, u.total_referrals, u.valid_referrals, u.total_ads_watched,
+        (SELECT COUNT(*) FROM swaps WHERE telegram_id = gc.telegram_id AND status = 'done') as approved_swaps_count,
+        (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
+        (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
+        (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
       WHERE gc.status IN ('approved', 'rejected')
