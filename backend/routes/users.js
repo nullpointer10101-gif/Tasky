@@ -55,7 +55,12 @@ router.post('/register', async (req, res) => {
             // notify referrer
             if (bot && bot.sendMessage) {
                 try {
-                    bot.sendMessage(referred_by, `ðŸŽ‰ You have a new referral! @${username || first_name} joined using your link.`);
+                    const name = username ? `@${username}` : (first_name || 'Someone');
+                    const message = `🎉 <b>New Referral Joined!</b>\n\n` +
+                                    `👤 <b>${name}</b> has joined Tasky using your link!\n\n` +
+                                    `⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete at least 1 task or play the spin wheel!</i>\n\n` +
+                                    `🔗 Keep sharing your link to earn more!`;
+                    bot.sendMessage(referred_by, message, { parse_mode: 'HTML' });
                 } catch (e) {
                     console.error('Failed to notify referrer', e);
                 }

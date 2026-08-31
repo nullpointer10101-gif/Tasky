@@ -38,7 +38,14 @@ async function checkReferralValidity(client, telegram_id, referred_by) {
                 if (bot && bot.sendMessage) {
                     const userRes = await client.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [telegram_id]);
                     const u = userRes.rows[0] || {};
-                    try { bot.sendMessage(referred_by, `🎉 Your referral @${u.username || u.first_name} is now valid! +${rules.reward_per_referral} TASKY and +${rules.spin_reward_per_referral} Spin added.`); } catch (e) {}
+                    const name = u.username ? `@${u.username}` : (u.first_name || 'Your referral');
+                    const message = `💰 <b>Referral Reward Unlocked!</b>\n\n` +
+                                    `👤 <b>${name}</b> is now active!\n\n` +
+                                    `🎁 <b>You received:</b>\n` +
+                                    `➕ <b>+${rules.reward_per_referral} TASKY</b>\n` +
+                                    `➕ <b>+${rules.spin_reward_per_referral} Spin Wheel Ticket${rules.spin_reward_per_referral > 1 ? 's' : ''}</b>\n\n` +
+                                    `Let's keep the streak going! Invite more friends to climb the leaderboard! 🚀`;
+                    try { bot.sendMessage(referred_by, message, { parse_mode: 'HTML' }); } catch (e) {}
                 }
             }
         }
