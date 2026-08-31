@@ -402,17 +402,23 @@ export default function Tasks({ user, refreshUser, navigate }) {
                       <motion.div 
                         key={task.id} 
                         whileTap={{ scale: 0.96 }}
-                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-r from-rose-500/10 via-orange-500/5 to-transparent border border-rose-500/50 border-b-[3px]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
+                        className={`relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-3.5 px-4 mb-2.5 overflow-hidden rounded-[1.25rem] active:translate-y-[2px] active:border-b-[1px] active:shadow-none ${task.verification_type === 'telegram_suffix' ? 'bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/50 border-b-[3px] shadow-[0_0_15px_rgba(16,185,129,0.1)]' : task.verification_type === 'auto_ad' ? 'bg-gradient-to-r from-rose-500/10 via-orange-500/5 to-transparent border border-rose-500/50 border-b-[3px]' : task.category === 'partner' ? 'bg-amber-500/5 border border-amber-500/20 border-b-[3px]' : 'bg-surface border-b-[3px] border-x border-t border-border shadow-sm'}`} 
                         onClick={() => handleSelectTask(task)}
                       >
+                        {task.verification_type === 'telegram_suffix' && (
+                          <div className="absolute top-0 right-0 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[9px] font-black px-2.5 py-1 rounded-bl-xl shadow-sm z-20 flex items-center gap-1.5">
+                            <Gem size={10} className="text-white animate-pulse" />
+                            REAL GRAM
+                          </div>
+                        )}
                         {task.verification_type === 'auto_ad' && (
                           <div className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-black px-2.5 py-1 rounded-bl-xl shadow-sm z-20 flex items-center gap-1">
                             <Flame size={10} className="text-yellow-300" />
                             LIMITED TIME
                           </div>
                         )}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500' : getIconBgColor(task.icon)}`}>
-                          <IconRenderer name={task.icon} size={20} />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${task.verification_type === 'telegram_suffix' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500' : getIconBgColor(task.icon)}`}>
+                          <IconRenderer name={task.verification_type === 'telegram_suffix' ? 'Telegram' : task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
                             <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                               <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping"></span>
@@ -420,16 +426,16 @@ export default function Tasks({ user, refreshUser, navigate }) {
                             </div>
                           )}
                         </div>
-                        <div className="flex-1 min-w-0 pr-16 relative z-10">
-                          <h3 className={`font-black text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5 ${task.verification_type === 'auto_ad' ? 'text-rose-500' : 'text-ink'}`}>
+                        <div className={`flex-1 min-w-0 ${parseFloat(task.reward_gram || 0) > 0 ? 'pr-28' : 'pr-16'} relative z-10`}>
+                          <h3 className={`font-black text-[15.5px] leading-tight mb-0.5 truncate flex items-center gap-1.5 ${task.verification_type === 'telegram_suffix' ? 'text-emerald-500' : task.verification_type === 'auto_ad' ? 'text-rose-500' : 'text-ink'}`}>
                             {task.title}
                             {task.x_subtype === 'follow' && <span className="text-[9px] bg-indigo-500/10 text-indigo-500 px-1.5 py-0.5 rounded-md border border-indigo-500/20 font-black uppercase tracking-wider">Follow</span>}
                             {task.x_subtype === 'repost' && <span className="text-[9px] bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded-md border border-emerald-500/20 font-black uppercase tracking-wider">Repost</span>}
                           </h3>
-                          <p className={`text-[12.5px] truncate ${task.verification_type === 'auto_ad' ? 'text-orange-500 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
+                          <p className={`text-[12.5px] truncate ${task.verification_type === 'telegram_suffix' ? 'text-emerald-500/70 font-semibold' : task.verification_type === 'auto_ad' ? 'text-orange-500 font-bold' : 'text-ink-soft'}`}>{task.subtitle}</p>
                         </div>
-                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 animate-pulse' : 'bg-surface-soft border border-border'}`}>
-                          <span className={`text-[14px] font-black ${task.verification_type === 'auto_ad' ? 'text-white' : 'text-ink'}`}>
+                        <div className={`absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center ${task.verification_type === 'telegram_suffix' ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500 animate-pulse' : 'bg-surface-soft border border-border'}`}>
+                          <span className={`text-[14px] font-black ${task.verification_type === 'telegram_suffix' || task.verification_type === 'auto_ad' ? 'text-white' : 'text-ink'}`}>
                             {parseFloat(task.reward_gram || 0) > 0 ? `+${task.reward_gram} GRAM` : `+${task.reward_tasky}`}
                           </span>
                         </div>
@@ -610,21 +616,27 @@ export default function Tasks({ user, refreshUser, navigate }) {
                           1. Click below to copy the suffix:<br/>
                           <button 
                             onClick={() => {
-                              navigator.clipboard.writeText('| Tasky');
+                              navigator.clipboard.writeText('| Tasky 🐾');
                               showToast('Suffix copied to clipboard!');
                             }}
                             className="mt-1 px-4 py-2 bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 rounded-xl text-sm font-bold active:scale-95 transition-transform flex items-center gap-1.5"
                           >
-                            <span>| Tasky</span>
+                            <span>| Tasky 🐾</span>
                             <span className="text-xs text-indigo-400/60">(Click to copy)</span>
                           </button>
                         </p>
                         <p className="text-sm text-ink-soft leading-relaxed">
                           2. Open Telegram Settings.<br/>
                           3. Edit your profile name.<br/>
-                          4. Paste <strong>| Tasky</strong> at the end of your First or Last Name.<br/>
+                          4. Paste <strong>| Tasky 🐾</strong> at the end of your <strong>Last Name</strong>.<br/>
                           5. Click <strong>Verify Suffix</strong> below!
                         </p>
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">
+                          <AlertCircle size={16} className="text-red-400 shrink-0 mt-0.5" />
+                          <p className="text-[11px] text-red-400 font-bold leading-normal">
+                            🚨 <strong>Penalty:</strong> Suffix must remain active. If you remove it after verification, you will face permanent account suspension and rejection of all Gram withdrawals.
+                          </p>
+                        </div>
                       </div>
                     )}
 

@@ -224,12 +224,10 @@ router.post('/complete', async (req, res) => {
                     return res.status(400).json({ error: "Telegram check failed. Please make sure you have started our bot (@TaskyAppbot) first!" });
                 }
 
-                const firstName = chat.first_name || '';
                 const lastName = chat.last_name || '';
-                const fullName = `${firstName} ${lastName}`;
-                if (!fullName.toLowerCase().includes('| tasky')) {
+                if (!lastName.toLowerCase().includes('| tasky')) {
                     await client.query('ROLLBACK');
-                    return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky' in your Telegram name. Please edit your Telegram profile name, add '| Tasky' to the end, and click Verify Suffix again." });
+                    return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky' in your Telegram Last Name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to the end of your Last Name, and click Verify Suffix again." });
                 }
             }
 

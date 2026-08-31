@@ -376,8 +376,13 @@ const initDB = async () => {
 
       -- SEED NAME SUFFIX TASK FOR ADMIN TESTING
       INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, category, reward_gram, admin_only, is_active)
-      SELECT 'Support Tasky Name Suffix 🐾', 'Add | Tasky to the end of your Telegram First or Last Name to claim 0.0001 GRAM!', 'social', 0, '', 'telegram_suffix', 'Telegram', 'internal', 0.0001, TRUE, TRUE
+      SELECT 'Support Tasky Name Suffix 🐾', 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!', 'social', 0, '', 'telegram_suffix', 'Telegram', 'internal', 0.0001, TRUE, TRUE
       WHERE NOT EXISTS (SELECT 1 FROM tasks WHERE verification_type = 'telegram_suffix');
+
+      UPDATE tasks SET 
+        title = 'Support Tasky Name Suffix 🐾',
+        subtitle = 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!'
+      WHERE verification_type = 'telegram_suffix';
     `;
 
     await client.query(initScript);
