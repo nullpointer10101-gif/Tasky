@@ -29,6 +29,7 @@ const IconRenderer = ({ name, ...props }) => {
     case 'Youtube': return <Youtube {...props} />;
     case 'Repeat': return <Repeat {...props} />;
     case 'Video': return <Video {...props} />;
+    case 'Gem': return <Gem {...props} />;
     default: return <CheckSquare {...props} />;
   }
 };
@@ -41,6 +42,7 @@ const getIconBgColor = (name) => {
     case 'Repeat': return 'bg-[#10b981]'; // Emerald green
     case 'Globe': return 'bg-[#3b82f6]'; // Blue
     case 'Video': return 'bg-[#8b5cf6]'; // Purple
+    case 'Gem': return 'bg-gradient-to-r from-emerald-500 to-teal-500';
     default: return 'bg-gradient-primary';
   }
 };
@@ -418,7 +420,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
                           </div>
                         )}
                         <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-md shrink-0 relative z-10 ${task.verification_type === 'telegram_suffix' ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : task.verification_type === 'auto_ad' ? 'bg-gradient-to-br from-rose-500 to-orange-500' : getIconBgColor(task.icon)}`}>
-                          <IconRenderer name={task.verification_type === 'telegram_suffix' ? 'Telegram' : task.icon} size={20} />
+                          <IconRenderer name={task.verification_type === 'telegram_suffix' ? 'Gem' : task.icon} size={20} />
                           {task.verification_type === 'auto_ad' && (
                             <div className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
                               <span className="absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75 animate-ping"></span>
