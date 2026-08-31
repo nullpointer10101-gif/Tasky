@@ -312,10 +312,21 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
     const { telegram_id } = req.params;
     try {
         const userRes = await pool.query(
-            'SELECT valid_referrals FROM users WHERE telegram_id = $1',
+            'SELECT telegram_id FROM users WHERE telegram_id = $1',
             [telegram_id]
         );
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+        // Count real valid referrals using new condition: referred user must have an approved gram claim or gram withdrawal
+        const realReferralsRes = await pool.query(`
+            SELECT COUNT(*) as count FROM users u
+            WHERE u.referred_by = $1
+            AND (
+                EXISTS (SELECT 1 FROM gram_claims gc WHERE gc.telegram_id = u.telegram_id AND gc.status = 'approved')
+                OR
+                EXISTS (SELECT 1 FROM gram_withdrawals gw WHERE gw.telegram_id = u.telegram_id AND gw.status = 'approved')
+            )
+        `, [telegram_id]);
 
         const claimRes = await pool.query(
             'SELECT status, claimed_at, rejection_reason FROM special_offer_claims WHERE telegram_id = $1 AND offer_id = \'invite_20_get_20k_v2\'',
@@ -323,7 +334,7 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
         );
 
         res.json({
-            valid_referrals: userRes.rows[0].valid_referrals || 0,
+            valid_referrals: parseInt(realReferralsRes.rows[0].count) || 0,
             claim: claimRes.rows[0] || null
         });
     } catch (err) {
@@ -351,17 +362,18 @@ router.post('/special-offer/claim', async (req, res) => {
             return res.json({ success: false, error: 'already_claimed', status: existingClaim.rows[0].status });
         }
 
-        // Get user's valid referral count
-        const userRes = await client.query(
-            'SELECT valid_referrals FROM users WHERE telegram_id = $1',
-            [telegram_id]
-        );
-        if (userRes.rows.length === 0) {
-            await client.query('ROLLBACK');
-            return res.status(404).json({ error: 'User not found' });
-        }
+        // Count real valid referrals using new condition: referred user must have approved gram claim or gram withdrawal
+        const realReferralsRes = await client.query(`
+            SELECT COUNT(*) as count FROM users u
+            WHERE u.referred_by = $1
+            AND (
+                EXISTS (SELECT 1 FROM gram_claims gc WHERE gc.telegram_id = u.telegram_id AND gc.status = 'approved')
+                OR
+                EXISTS (SELECT 1 FROM gram_withdrawals gw WHERE gw.telegram_id = u.telegram_id AND gw.status = 'approved')
+            )
+        `, [telegram_id]);
 
-        const validReferrals = userRes.rows[0].valid_referrals || 0;
+        const validReferrals = parseInt(realReferralsRes.rows[0].count) || 0;
         if (validReferrals < 10) {
             await client.query('ROLLBACK');
             return res.json({ success: false, error: 'not_enough_referrals', valid_referrals: validReferrals });
