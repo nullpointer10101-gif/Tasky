@@ -67,18 +67,47 @@ export default function TaskReviews() {
       if (!window.confirm(`Are you sure you want to approve ${label}?`)) return;
     }
 
+    const targetTasks = excludeYouTube ? tasks.filter(t => t.task_type !== 'youtube') : [...tasks];
+    if (targetTasks.length === 0) {
+      toast.error('No pending tasks match criteria');
+      return;
+    }
+
     setProcessingId(excludeYouTube ? 'all-no-yt' : 'all');
     try {
-      const { data } = await api.post('/tasks/review-all', { 
-        action, 
-        rejection_reason: reason,
-        exclude_youtube: excludeYouTube 
-      });
-      toast.success(data?.message || `Tasks ${action}d successfully`);
-      if (excludeYouTube) {
-        setTasks(prev => prev.filter(t => t.task_type === 'youtube'));
-      } else {
-        setTasks([]);
+      let success = false;
+      try {
+        const { data } = await api.post('/tasks/review-all', { 
+          action, 
+          rejection_reason: reason,
+          exclude_youtube: excludeYouTube 
+        });
+        if (data?.success) {
+          toast.success(data?.message || `Tasks ${action}d successfully`);
+          success = true;
+        }
+      } catch (err) {
+        if (err.response && err.response.status === 404) {
+          // Parallel fallback via standard review route
+          await Promise.all(
+            targetTasks.map(t =>
+              api.post('/tasks/review', {
+                user_task_id: t.user_task_id,
+                action,
+                rejection_reason: reason
+              })
+            )
+          );
+          toast.success(`Successfully ${action}d ${targetTasks.length} task(s)`);
+          success = true;
+        } else {
+          throw err;
+        }
+      }
+
+      if (success) {
+        const reviewedIds = targetTasks.map(t => t.user_task_id);
+        setTasks(prev => prev.filter(t => !reviewedIds.includes(t.user_task_id)));
       }
     } catch (e) {
       toast.error(e.response?.data?.error || `Failed to ${action} tasks`);
@@ -100,22 +129,54 @@ export default function TaskReviews() {
       if (!window.confirm(`Approve ${scopeLabel} submitted by ${nameLabel}?`)) return;
     }
 
+    const matchingTasks = tasks.filter(t => {
+      if (t.telegram_id.toString() !== telegramId.toString()) return false;
+      if (excludeYouTube && t.task_type === 'youtube') return false;
+      return true;
+    });
+
+    if (matchingTasks.length === 0) {
+      toast.error('No matching pending tasks found for this profile');
+      return;
+    }
+
     setProcessingId(`user-${telegramId}`);
     try {
-      const { data } = await api.post('/tasks/review-user', {
-        telegram_id: telegramId,
-        action,
-        rejection_reason: reason,
-        exclude_youtube: excludeYouTube
-      });
-      toast.success(data?.message || `${action}d profile tasks successfully`);
-      
-      // Remove reviewed tasks from local state
-      setTasks(prev => prev.filter(t => {
-        if (t.telegram_id.toString() !== telegramId.toString()) return true;
-        if (excludeYouTube && t.task_type === 'youtube') return true;
-        return false;
-      }));
+      let success = false;
+      try {
+        const { data } = await api.post('/tasks/review-user', {
+          telegram_id: telegramId,
+          action,
+          rejection_reason: reason,
+          exclude_youtube: excludeYouTube
+        });
+        if (data?.success) {
+          toast.success(data?.message || `${action}d profile tasks successfully`);
+          success = true;
+        }
+      } catch (err) {
+        // Fallback to parallel single review if /review-user is not available on server
+        if (err.response && err.response.status === 404) {
+          await Promise.all(
+            matchingTasks.map(t =>
+              api.post('/tasks/review', {
+                user_task_id: t.user_task_id,
+                action,
+                rejection_reason: reason
+              })
+            )
+          );
+          toast.success(`Successfully ${action}d ${matchingTasks.length} task(s) for ${nameLabel}`);
+          success = true;
+        } else {
+          throw err;
+        }
+      }
+
+      if (success) {
+        const reviewedIds = matchingTasks.map(t => t.user_task_id);
+        setTasks(prev => prev.filter(t => !reviewedIds.includes(t.user_task_id)));
+      }
     } catch (e) {
       console.error('Failed to review user tasks:', e);
       const errMsg = e.response?.data?.error || e.response?.data?.message || e.message || `Failed to ${action} user tasks`;
