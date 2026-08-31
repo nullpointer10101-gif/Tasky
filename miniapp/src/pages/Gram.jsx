@@ -788,8 +788,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
               <h3 className="text-xl font-black text-white uppercase tracking-tight">Name Suffix Required!</h3>
               <p className="text-xs text-white/60">
                 {suffixAction === 'claim' 
-                  ? 'You must add the suffix to your Telegram profile Last Name before claiming your 0.02 GRAM reward.'
-                  : 'You must add the suffix to your Telegram profile Last Name before making a withdrawal.'}
+                  ? 'You must add the suffix to your Telegram profile Name before claiming your 0.02 GRAM reward.'
+                  : 'You must add the suffix to your Telegram profile Name before making a withdrawal.'}
               </p>
             </div>
 
@@ -805,7 +805,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
                 <p className="text-[11px] text-white/80 font-bold leading-normal mt-1">
                   1. Copy the suffix block below.<br/>
                   2. Open Telegram Settings &rarr; Edit Name.<br/>
-                  3. Paste it at the end of your <strong>Last name</strong> (e.g. <code>YourName | Tasky 🐾</code>).<br/>
+                  3. Paste it at the end of your <strong>Name</strong> (e.g. <code>YourName | Tasky 🐾</code>).<br/>
                   4. Save and return here to click <strong>Recheck Name</strong>.
                 </p>
               </div>

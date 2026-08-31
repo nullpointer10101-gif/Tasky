@@ -627,7 +627,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
                         <p className="text-sm text-ink-soft leading-relaxed">
                           2. Open Telegram Settings.<br/>
                           3. Edit your profile name.<br/>
-                          4. Paste <strong>| Tasky 🐾</strong> at the end of your <strong>Last Name</strong>.<br/>
+                          4. Paste <strong>| Tasky 🐾</strong> at the end of your <strong>Name</strong> (First or Last Name).<br/>
                           5. Click <strong>Verify Suffix</strong> below!
                         </p>
                         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3 flex gap-2">

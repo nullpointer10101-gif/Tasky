@@ -65,7 +65,7 @@ router.get('/status/:telegram_id', async (req, res) => {
     }
 });
 
-// Live verify Telegram name suffix in the last name
+// Live verify Telegram name suffix in the profile name
 router.get('/verify-suffix/:telegram_id', async (req, res) => {
     const { telegram_id } = req.params;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
@@ -76,13 +76,17 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
             chat = await bot.getChat(telegram_id);
         }
         
-        const lastName = chat?.last_name || '';
-        const has_suffix = lastName.toLowerCase().includes('| tasky') || lastName.toLowerCase().includes('|tasky');
+        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
+        const has_suffix = fullName.includes('| tasky') || 
+                           fullName.includes('|tasky') || 
+                           fullName.includes('tasky 🐾') || 
+                           fullName.includes('tasky🐾') || 
+                           fullName.includes('tasky');
         
         res.json({
             success: true,
             has_suffix,
-            last_name: lastName
+            name: `${chat?.first_name || ''} ${chat?.last_name || ''}`.trim()
         });
     } catch (err) {
         console.error('Error verifying suffix dynamically:', err.message);
@@ -197,10 +201,15 @@ router.post('/claim', async (req, res) => {
         } catch (e) {
             console.error('Failed to get chat info from bot for suffix verification:', e.message);
         }
-        const lastName = (chat?.last_name || '').toLowerCase();
-        if (!lastName.includes('| tasky') && !lastName.includes('|tasky')) {
+        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
+        const has_suffix = fullName.includes('| tasky') || 
+                           fullName.includes('|tasky') || 
+                           fullName.includes('tasky 🐾') || 
+                           fullName.includes('tasky🐾') || 
+                           fullName.includes('tasky');
+        if (!has_suffix) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram Last Name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to the end of your Last Name, and try again." });
+            return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram Name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your Name, and try again." });
         }
 
         // 2. Verify ads watched count in the last 24 hours (from ad_views)
