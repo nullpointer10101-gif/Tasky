@@ -227,7 +227,7 @@ export default function Referral({ user }) {
                 </li>
                 <li className="flex gap-2">
                   <span className="text-success mt-0.5">•</span>
-                  <span>When they join and complete at least <strong className="text-ink">{refData?.tasks_required_for_valid || 0} tasks</strong>, they become a valid referral.</span>
+                  <span>When they join and complete their <strong className="text-ink">first withdrawal</strong> (either a Gram Claim or a Gram Withdrawal), they become a valid referral.</span>
                 </li>
                 <li className="flex gap-2">
                   <span className="text-success mt-0.5">•</span>
