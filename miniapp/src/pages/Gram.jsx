@@ -231,9 +231,12 @@ export default function Gram({ user, refreshUser, tgUser }) {
   const handleClaim = async () => {
     // Verify suffix live via backend before submitting
     setIsSubmitting(true);
+    setSuffixError('');
     try {
-      const ok = await checkSuffix(false);
+      const ok = await checkSuffix(true);
       if (!ok) {
+        setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your Last Name.");
+        setShowSuffixErrorModal(true);
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
         return;
       }
