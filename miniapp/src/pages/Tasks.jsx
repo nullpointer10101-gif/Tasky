@@ -468,12 +468,14 @@ export default function Tasks({ user, refreshUser, navigate }) {
               {submissions.map(sub => (
                 <Card key={sub.id} className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-full bg-surface-soft flex items-center justify-center text-ink-soft shrink-0">
-                    <IconRenderer name={sub.icon} size={18} />
+                    <IconRenderer name={sub.verification_type === 'telegram_suffix' ? 'Gem' : sub.icon} size={18} />
                   </div>
                   <div className="flex-1">
                     <div className="flex justify-between items-start mb-1">
                       <h3 className="font-bold text-ink">{sub.title}</h3>
-                      <span className="text-sm font-bold">+{sub.reward_tasky}</span>
+                      <span className="text-sm font-bold">
+                        {parseFloat(sub.reward_gram || 0) > 0 ? `+${sub.reward_gram} GRAM` : `+${sub.reward_tasky}`}
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {sub.status === 'pending' && <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 bg-warning-soft text-warning rounded-pill uppercase font-bold tracking-wide"><Clock size={10}/> Pending Review</span>}

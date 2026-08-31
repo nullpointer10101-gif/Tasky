@@ -402,7 +402,7 @@ router.get('/my-submissions/:telegram_id', async (req, res) => {
         const { rows } = await pool.query(`
             SELECT ut.id, ut.task_id, ut.status, ut.proof_screenshot_url,
                    ut.submitted_at, ut.reviewed_at, ut.rejection_reason, ut.approved_by,
-                   t.title, t.reward_tasky, t.type, t.x_subtype
+                   t.title, t.reward_tasky, t.reward_gram, t.icon, t.type, t.x_subtype, t.verification_type
             FROM user_tasks ut
             JOIN tasks t ON ut.task_id = t.id
             WHERE ut.telegram_id = $1
