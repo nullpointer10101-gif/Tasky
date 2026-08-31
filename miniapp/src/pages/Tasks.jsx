@@ -684,16 +684,18 @@ export default function Tasks({ user, refreshUser, navigate }) {
                       <div className="flex gap-3">
                         <Button 
                           onClick={() => {
-                            if (window.Telegram?.WebApp?.openTelegramLink) {
-                              window.Telegram.WebApp.openTelegramLink('https://t.me/settings');
-                            } else {
-                              window.open('https://t.me/settings', '_blank');
-                            }
+                            navigator.clipboard.writeText('| Tasky 🐾');
+                            showToast('Suffix copied! Closing app... Go to Settings -> Edit Name.', 'success');
+                            setTimeout(() => {
+                              if (window.Telegram?.WebApp?.close) {
+                                window.Telegram.WebApp.close();
+                              }
+                            }, 1500);
                           }}
                           variant="secondary"
-                          className="flex-1 font-bold text-ink border border-border"
+                          className="flex-1 font-bold text-ink border border-border text-xs"
                         >
-                          Add Suffix
+                          Copy & Close
                         </Button>
                         <Button 
                           onClick={handleSubmitProof}
