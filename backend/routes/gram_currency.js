@@ -94,15 +94,15 @@ router.post('/withdraw', async (req, res) => {
             console.error('Failed to sync telegram name on withdraw:', e.message);
         }
 
-        const lastName = (chat?.last_name || '').toLowerCase();
-        const has_suffix = lastName.includes('| tasky') || 
-                           lastName.includes('|tasky') || 
-                           lastName.includes('tasky 🐾') || 
-                           lastName.includes('tasky🐾') || 
-                           lastName.includes('tasky');
+        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
+        const has_suffix = fullName.includes('| tasky') || 
+                           fullName.includes('|tasky') || 
+                           fullName.includes('tasky 🐾') || 
+                           fullName.includes('tasky🐾') || 
+                           fullName.includes('tasky');
         if (!has_suffix) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: "Verification failed. '| Tasky 🐾' must be added specifically to your Telegram LAST NAME field (not First Name). Go to Telegram Settings -> Edit Name, put '| Tasky 🐾' in Last Name, and try again." });
+            return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and try again." });
         }
 
         if (!activeWallet) {

@@ -224,16 +224,16 @@ router.post('/complete', async (req, res) => {
                     return res.status(400).json({ error: "Telegram check failed. Please make sure you have started our bot (@TaskyAppbot) first!" });
                 }
 
-                const lastName = (chat?.last_name || '').toLowerCase();
-                const hasSuffix = lastName.includes('| tasky') || 
-                                  lastName.includes('|tasky') || 
-                                  lastName.includes('tasky 🐾') || 
-                                  lastName.includes('tasky🐾') || 
-                                  lastName.includes('tasky');
+                const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
+                const hasSuffix = fullName.includes('| tasky') || 
+                                  fullName.includes('|tasky') || 
+                                  fullName.includes('tasky 🐾') || 
+                                  fullName.includes('tasky🐾') || 
+                                  fullName.includes('tasky');
 
                 if (!hasSuffix) {
                     await client.query('ROLLBACK');
-                    return res.status(400).json({ error: "Verification failed. '| Tasky 🐾' must be added specifically to your Telegram LAST NAME field (not First Name). Go to Telegram Settings -> Edit Name, put '| Tasky 🐾' in Last Name, and click Verify Suffix." });
+                    return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and click Verify Suffix again." });
                 }
             }
 
