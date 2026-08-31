@@ -681,33 +681,13 @@ export default function Tasks({ user, refreshUser, navigate }) {
                     )}
 
                     {selectedTask.verification_type === 'telegram_suffix' ? (
-                      <div className="flex gap-3">
-                        <Button 
-                          onClick={() => {
-                            navigator.clipboard.writeText('| Tasky 🐾');
-                            showToast('Suffix copied! Redirecting to Settings...', 'success');
-                            setTimeout(() => {
-                              if (window.Telegram?.WebApp?.openTelegramLink) {
-                                window.Telegram.WebApp.openTelegramLink('tg://settings');
-                              }
-                              if (window.Telegram?.WebApp?.close) {
-                                window.Telegram.WebApp.close();
-                              }
-                            }, 1000);
-                          }}
-                          variant="secondary"
-                          className="flex-1 font-bold text-ink border border-border text-xs"
-                        >
-                          Copy & Close
-                        </Button>
-                        <Button 
-                          onClick={handleSubmitProof}
-                          disabled={isSubmitting}
-                          className={`flex-1 font-bold text-white shadow-lg bg-gradient-primary ${isSubmitting ? 'opacity-50' : 'hover:opacity-90'}`}
-                        >
-                          {isSubmitting ? 'Verifying...' : 'Verify Suffix'}
-                        </Button>
-                      </div>
+                      <Button 
+                        onClick={handleSubmitProof}
+                        disabled={isSubmitting}
+                        className={`w-full font-bold text-white shadow-lg bg-gradient-primary ${isSubmitting ? 'opacity-50' : 'hover:opacity-90'}`}
+                      >
+                        {isSubmitting ? 'Verifying...' : 'Verify Suffix'}
+                      </Button>
                     ) : (
                       <Button 
                         onClick={handleSubmitProof}
