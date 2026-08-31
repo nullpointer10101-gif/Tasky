@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { CheckCircle2, XCircle, ExternalLink, Search, Zap, Filter, Video, Twitter, Send, Layers } from 'lucide-react';
+import { CheckCircle2, XCircle, ExternalLink, Search, Zap, Filter, Video, Send, Layers } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
+
+const TwitterIcon = ({ size = 11, className = "" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
+    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+  </svg>
+);
 
 export default function TaskReviews() {
   const [tasks, setTasks] = useState([]);
@@ -283,7 +289,7 @@ export default function TaskReviews() {
                       </span>
                     ) : task.task_type === 'twitter' || task.verification_type === 'proof_username' ? (
                       <span className="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                        <Twitter size={11} /> X / Twitter
+                        <TwitterIcon size={11} /> X / Twitter
                       </span>
                     ) : (
                       <span className="bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
