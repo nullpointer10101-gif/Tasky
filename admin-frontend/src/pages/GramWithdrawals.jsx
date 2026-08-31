@@ -142,13 +142,27 @@ export default function GramWithdrawals() {
                 <div className="flex items-start justify-between gap-3">
                   {/* Left info */}
                   <div className="space-y-1 flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center shrink-0">
                         <User size={13} className="text-white/50" />
                       </div>
-                      <div>
-                        <p className="text-sm font-black text-white">{displayName}</p>
-                        <p className="text-[10px] text-white/30 font-mono">{w.telegram_id}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-black text-white">{w.live_name || w.first_name || 'User'}</p>
+                        {(w.username || w.live_username) && (
+                          <span className="bg-indigo-500/15 text-indigo-400 font-bold px-1.5 py-0.5 rounded text-[10px] border border-indigo-500/30">
+                            @{w.live_username || w.username}
+                          </span>
+                        )}
+                        {w.has_suffix ? (
+                          <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            🐾 Suffix Active
+                          </span>
+                        ) : (
+                          <span className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                            ⚠️ No Suffix
+                          </span>
+                        )}
+                        <p className="text-[10px] text-white/30 font-mono">(ID: {w.telegram_id})</p>
                       </div>
                     </div>
 

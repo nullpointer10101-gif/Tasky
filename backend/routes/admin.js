@@ -520,10 +520,6 @@ router.post('/tasks/review-user', async (req, res) => {
     client.release();
   }
 });
-  } finally {
-    client.release();
-  }
-});
 
 // ==========================================
 // 4. WITHDRAWALS (MAPPED TO SWAPS)
@@ -1288,7 +1284,35 @@ router.get('/gram/claims/pending', async (req, res) => {
       ORDER BY gc.requested_at ASC
     `;
     const { rows } = await pool.query(query);
-    res.json(rows);
+
+    // Fetch live Telegram chat info to provide the latest real Telegram name
+    const enrichedRows = await Promise.all(rows.map(async (row) => {
+      let liveName = row.first_name || '';
+      let liveUsername = row.username || '';
+      let hasSuffix = false;
+      try {
+        if (bot && bot.getChat) {
+          const chat = await bot.getChat(row.telegram_id);
+          const fName = chat?.first_name || '';
+          const lName = chat?.last_name || '';
+          liveName = `${fName} ${lName}`.trim() || row.first_name || '';
+          if (chat?.username) liveUsername = chat.username;
+          
+          const fullNameLower = `${fName} ${lName}`.toLowerCase();
+          hasSuffix = fullNameLower.includes('tasky');
+        }
+      } catch (e) {
+        // ignore bot errors
+      }
+      return {
+        ...row,
+        live_name: liveName,
+        live_username: liveUsername,
+        has_suffix: hasSuffix
+      };
+    }));
+
+    res.json(enrichedRows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1595,7 +1619,31 @@ router.get('/gram-withdrawals', async (req, res) => {
       ORDER BY gw.requested_at DESC
       LIMIT 200
     `);
-    res.json(rows);
+
+    const enriched = await Promise.all(rows.map(async (r) => {
+      let liveName = r.first_name || '';
+      let liveUsername = r.username || '';
+      let hasSuffix = false;
+      try {
+        if (bot && bot.getChat) {
+          const chat = await bot.getChat(r.telegram_id);
+          const fName = chat?.first_name || '';
+          const lName = chat?.last_name || '';
+          liveName = `${fName} ${lName}`.trim() || r.first_name || '';
+          if (chat?.username) liveUsername = chat.username;
+          const fullNameLower = `${fName} ${lName}`.toLowerCase();
+          hasSuffix = fullNameLower.includes('tasky');
+        }
+      } catch (e) {}
+      return {
+        ...r,
+        live_name: liveName,
+        live_username: liveUsername,
+        has_suffix: hasSuffix
+      };
+    }));
+
+    res.json(enriched);
   } catch (err) {
     console.error('Error fetching gram withdrawals:', err);
     res.status(500).json({ error: 'Internal server error' });

@@ -168,15 +168,31 @@ export default function GramClaims() {
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-ink text-lg truncate pr-2 flex items-center gap-2 flex-wrap">
-                      @{c.username || c.first_name} 
-                      <span className="text-ink-faint font-normal text-sm">(ID: {c.telegram_id})</span>
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="font-black text-white text-lg tracking-tight">
+                        {c.live_name || c.first_name || 'User'}
+                      </span>
+                      {(c.username || c.live_username) && (
+                        <span className="bg-indigo-500/15 text-indigo-400 font-bold px-2 py-0.5 rounded-lg text-xs border border-indigo-500/30">
+                          @{c.live_username || c.username}
+                        </span>
+                      )}
+                      {c.has_suffix ? (
+                        <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[11px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          🐾 Suffix Active
+                        </span>
+                      ) : (
+                        <span className="bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          ⚠️ No Suffix
+                        </span>
+                      )}
+                      <span className="text-ink-faint font-mono text-xs">(ID: {c.telegram_id})</span>
                       {c.is_flagged && (
                         <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
                           🚩 Flagged: {c.flag_reason}
                         </span>
                       )}
-                    </h3>
+                    </div>
                     <span className="text-[10px] text-ink-faint uppercase font-bold tracking-wider shrink-0">{new Date(c.requested_at).toLocaleString()}</span>
                   </div>
                   
@@ -281,20 +297,26 @@ export default function GramClaims() {
                 
                 <div className="flex-1 w-full">
                   <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2.5 flex-wrap">
                       {h.status === 'approved' ? (
                         <CheckCircle2 size={18} className="text-emerald-400" />
                       ) : (
                         <XCircle size={18} className="text-rose-400" />
                       )}
-                      <h3 className="font-bold text-ink text-lg truncate pr-2 flex items-center gap-2 flex-wrap">
-                        @{h.username || h.first_name}
-                        {h.is_flagged && (
-                          <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            🚩 Flagged: {h.flag_reason}
-                          </span>
-                        )}
-                      </h3>
+                      <span className="font-black text-white text-lg tracking-tight">
+                        {h.first_name || 'User'}
+                      </span>
+                      {h.username && (
+                        <span className="bg-indigo-500/15 text-indigo-400 font-bold px-2 py-0.5 rounded-lg text-xs border border-indigo-500/30">
+                          @{h.username}
+                        </span>
+                      )}
+                      <span className="text-ink-faint font-mono text-xs">(ID: {h.telegram_id})</span>
+                      {h.is_flagged && (
+                        <span className="bg-rose-500/10 text-rose-500 border border-rose-500/20 text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          🚩 Flagged: {h.flag_reason}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[10px] text-ink-faint uppercase font-bold tracking-wider shrink-0">{new Date(h.requested_at).toLocaleString()}</span>
                   </div>
