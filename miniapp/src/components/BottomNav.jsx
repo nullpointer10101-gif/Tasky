@@ -45,6 +45,7 @@ export default function BottomNav({ active, onChange, user }) {
         {NAV_ITEMS.map(({ id, key, Icon }) => {
           const isActive = active === id;
           const showDot = id === 'gram' && gramStatus && !gramStatus.claimed_in_last_24h;
+          const label = key.startsWith('nav.') ? t(key) : key;
 
           return (
             <motion.button
@@ -52,33 +53,33 @@ export default function BottomNav({ active, onChange, user }) {
               onClick={() => onChange(id)}
               whileTap={{ scale: 0.93 }}
               transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className="flex-1 flex flex-col items-center justify-center gap-1 focus:outline-none relative"
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 focus:outline-none relative py-1"
             >
               {isActive && (
                 <motion.span
                   layoutId="nav-indicator"
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-pill bg-brand"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-0.5 rounded-pill bg-brand"
                   transition={{ type: 'spring', stiffness: 500, damping: 40 }}
                 />
               )}
               
               <div className="relative">
                 <Icon
-                  size={22}
+                  size={20}
                   strokeWidth={isActive ? 2.2 : 1.8}
                   className={isActive ? 'text-brand' : 'text-ink-faint'}
                 />
                 {showDot && (
-                  <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border border-surface shadow-sm animate-pulse" />
+                  <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-surface shadow-sm animate-pulse" />
                 )}
               </div>
 
               <span 
-                className={`text-[10px] font-bold mt-1 tracking-wide transition-colors ${
+                className={`text-[9px] font-bold tracking-tight transition-colors truncate max-w-full ${
                   isActive ? 'text-indigo-400' : 'text-ink-faint'
                 }`}
               >
-                {t(key)}
+                {label}
               </span>
             </motion.button>
           )

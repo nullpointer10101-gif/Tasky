@@ -149,8 +149,38 @@ export default function Home({ user, refreshUser, navigate }) {
           balance={user.balance} 
           taskyPerUsdt={taskyPerUsdt} 
           targetUsd={1.00} 
-          onNavigate={navigate}
         />
+      </motion.div>
+
+      {/* NFT Miners Banner Card */}
+      <motion.div
+        whileTap={{ scale: 0.98 }}
+        onClick={() => navigate && navigate('nft')}
+        className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/40 text-white cursor-pointer shadow-lg hover:border-purple-500/60 transition-all flex items-center justify-between"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-600 to-amber-500 p-0.5 shadow-md shrink-0">
+            <div className="w-full h-full bg-[#0F0D24] rounded-2xl flex items-center justify-center text-amber-300">
+              <Sparkles size={22} />
+            </div>
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full">
+                High Yield
+              </span>
+              <span className="text-xs font-black text-white">NFT Digital Miners</span>
+            </div>
+            <p className="text-[11px] text-purple-200/80 font-medium leading-tight">
+              Earn guaranteed daily GRAM returns for 10 days!
+            </p>
+          </div>
+        </div>
+        <div className="shrink-0 pl-2">
+          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-purple-300">
+            <ChevronRight size={18} />
+          </div>
+        </div>
       </motion.div>
 
       {/* 2x2 Stats Grid - Gamified 3D Buttons */}
