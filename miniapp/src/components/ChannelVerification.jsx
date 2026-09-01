@@ -21,7 +21,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
 
   const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
 
-  const checkLiveStatus = useCallback(async (silent = false) => {
+  const checkLiveStatus = useCallback(async (silent = false, retries = 2) => {
     if (!telegramId) return;
     if (!silent) setCheckingStatus(true);
     try {
@@ -31,12 +31,21 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         if (data.all_joined) {
           await refreshUser();
         }
+      } else if (retries > 0) {
+        // Backend might be spinning up on Render (cold start) - retry after 2s
+        setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
+        return;
       } else if (error && !silent) {
-        showToast('Could not sync channel status. Please tap refresh button!', 'error');
+        showToast('Server connecting... Tap refresh in a moment!', 'error');
       }
     } catch (e) {
       console.error('Channel status check error:', e);
-      if (!silent) showToast('Failed to check membership status. Tap refresh to retry.', 'error');
+      if (retries > 0) {
+        setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
+        return;
+      } else if (!silent) {
+        showToast('Server connecting... Tap refresh in a moment!', 'error');
+      }
     } finally {
       setCheckingStatus(false);
     }
