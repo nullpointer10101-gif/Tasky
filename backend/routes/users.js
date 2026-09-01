@@ -404,8 +404,9 @@ router.post('/special-offer/claim', async (req, res) => {
 
 // GET /api/users/channel-status
 router.get('/channel-status', async (req, res) => {
-    const { telegram_id } = req.query;
-    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+    const rawId = req.query.telegram_id || req.body?.telegram_id;
+    if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
+    const telegram_id = Number(rawId) || rawId;
 
     try {
         const checkMembership = async (handle) => {
@@ -414,8 +415,9 @@ router.get('/channel-status', async (req, res) => {
                     const member = await bot.getChatMember(handle, telegram_id);
                     return ['member', 'administrator', 'creator'].includes(member.status);
                 }
-                return true;
+                return false;
             } catch (e) {
+                console.log(`[ChatMember] ${handle} for ${telegram_id}:`, e.message);
                 return false;
             }
         };
@@ -429,7 +431,7 @@ router.get('/channel-status', async (req, res) => {
 
         const allJoined = joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity;
 
-        // If user already verified in DB and all 4 joined, mark true
+        // If user joined all 4, auto mark verified in DB
         if (allJoined) {
             await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
         }
@@ -449,8 +451,9 @@ router.get('/channel-status', async (req, res) => {
 
 // POST /api/users/verify-channels
 router.post('/verify-channels', async (req, res) => {
-    const { telegram_id } = req.body;
-    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+    const rawId = req.body?.telegram_id || req.query?.telegram_id;
+    if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
+    const telegram_id = Number(rawId) || rawId;
 
     try {
         const userRes = await pool.query('SELECT has_verified_channels, balance FROM users WHERE telegram_id = $1', [telegram_id]);
@@ -462,9 +465,9 @@ router.post('/verify-channels', async (req, res) => {
                     const member = await bot.getChatMember(handle, telegram_id);
                     return ['member', 'administrator', 'creator'].includes(member.status);
                 }
-                return true;
+                return false;
             } catch (e) {
-                console.error(`Error checking ${handle} join:`, e.message);
+                console.log(`[Verify] ${handle} for ${telegram_id}:`, e.message);
                 return false;
             }
         };

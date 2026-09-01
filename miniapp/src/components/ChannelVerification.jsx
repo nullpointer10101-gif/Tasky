@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { verifyChannels, getChannelStatus } from '../api';
-import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Gem, Users, ExternalLink } from 'lucide-react';
+import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Gem, Users, ExternalLink, RefreshCw } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 
 export default function ChannelVerification({ user, refreshUser, tgUser }) {
+  const telegramId = user?.telegram_id || tgUser?.id || tgUser?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(true);
   
@@ -17,21 +19,13 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     all_joined: false
   });
 
-  // Client click tracking fallback
-  const [clicked, setClicked] = useState({
-    tasky_official: false,
-    tasky_payouts: false,
-    alphadrop: false,
-    community: false
-  });
-
   const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
 
   const checkLiveStatus = useCallback(async (silent = false) => {
-    if (!tgUser?.id) return;
+    if (!telegramId) return;
     if (!silent) setCheckingStatus(true);
     try {
-      const { data, error } = await getChannelStatus(tgUser.id);
+      const { data, error } = await getChannelStatus(telegramId);
       if (data && !error) {
         setChannelStatus(data);
         if (data.all_joined) {
@@ -43,7 +37,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } finally {
       setCheckingStatus(false);
     }
-  }, [tgUser?.id, refreshUser]);
+  }, [telegramId, refreshUser]);
 
   useEffect(() => {
     checkLiveStatus(false);
@@ -54,10 +48,24 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     return () => window.removeEventListener('focus', onFocus);
   }, [checkLiveStatus]);
 
+  const openChannelLink = (url) => {
+    try {
+      if (window.Telegram?.WebApp?.openTelegramLink) {
+        window.Telegram.WebApp.openTelegramLink(url);
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch (_) {
+      window.open(url, '_blank');
+    }
+    setTimeout(() => checkLiveStatus(true), 2500);
+    setTimeout(() => checkLiveStatus(true), 5000);
+  };
+
   const handleVerify = async () => {
     setLoading(true);
     try {
-      const { data, error } = await verifyChannels(tgUser.id);
+      const { data, error } = await verifyChannels(telegramId);
       if (error) {
         showToast(error, 'error');
         await checkLiveStatus(true);
@@ -85,8 +93,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       url: 'https://t.me/Tasky_Official',
       icon: Send,
       color: 'indigo',
-      isJoined: channelStatus.tasky_official,
-      isClicked: clicked.tasky_official
+      isJoined: Boolean(channelStatus.tasky_official)
     },
     {
       id: 'tasky_payouts',
@@ -95,8 +102,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       url: 'https://t.me/TaskyPayouts',
       icon: Gem,
       color: 'amber',
-      isJoined: channelStatus.tasky_payouts,
-      isClicked: clicked.tasky_payouts
+      isJoined: Boolean(channelStatus.tasky_payouts)
     },
     {
       id: 'alphadrop',
@@ -105,8 +111,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       url: 'https://t.me/AlphaDropDaily',
       icon: Send,
       color: 'cyan',
-      isJoined: channelStatus.alphadrop,
-      isClicked: clicked.alphadrop
+      isJoined: Boolean(channelStatus.alphadrop)
     },
     {
       id: 'community',
@@ -115,24 +120,23 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       url: 'https://t.me/TaskyOfficialCommunity',
       icon: Users,
       color: 'violet',
-      isJoined: channelStatus.community,
-      isClicked: clicked.community
+      isJoined: Boolean(channelStatus.community)
     }
   ];
 
   const joinedCount = channels.filter(c => c.isJoined).length;
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-bg px-5 py-8 text-center relative overflow-y-auto hide-scrollbar">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-bg px-5 py-6 text-center relative overflow-y-auto hide-scrollbar">
       {/* Background ambient lighting */}
       <div className="absolute top-[-10%] left-[-20%] w-[80%] h-[50%] bg-[#3F00E7]/10 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-20%] w-[80%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none" />
 
       {/* Main Container */}
-      <div className="z-10 max-w-sm w-full space-y-5 my-auto">
+      <div className="z-10 max-w-sm w-full space-y-4 my-auto">
         
         {/* Top Header */}
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-1">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#3F00E7] via-indigo-600 to-amber-500 flex items-center justify-center mx-auto shadow-[0_0_30px_rgba(99,102,241,0.3)] border border-white/20">
             <Send size={30} className="text-white transform -rotate-12 translate-x-0.5" />
           </div>
@@ -151,11 +155,21 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
           </p>
 
           {/* Progress bar */}
-          <div className="bg-white/5 border border-white/10 rounded-xl p-2 flex items-center justify-between text-xs font-bold text-white/70">
-            <span>Channels Joined:</span>
-            <span className={joinedCount === 4 ? 'text-emerald-400 font-black' : 'text-amber-400 font-black'}>
-              {checkingStatus ? 'Checking...' : `${joinedCount} / 4 Completed`}
-            </span>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between text-xs font-bold text-white/70">
+            <div className="flex items-center gap-2">
+              <span>Status:</span>
+              <span className={joinedCount === 4 ? 'text-emerald-400 font-black' : 'text-amber-400 font-black'}>
+                {checkingStatus ? 'Checking live membership...' : `${joinedCount} / 4 Joined`}
+              </span>
+            </div>
+            <button
+              onClick={() => checkLiveStatus(false)}
+              disabled={checkingStatus}
+              className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"
+              title="Refresh status"
+            >
+              <RefreshCw size={13} className={checkingStatus ? 'animate-spin' : ''} />
+            </button>
           </div>
         </div>
 
@@ -166,19 +180,13 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
             const isDone = ch.isJoined;
 
             return (
-              <a
+              <div
                 key={ch.id}
-                href={ch.url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={() => {
-                  setClicked(prev => ({ ...prev, [ch.id]: true }));
-                  setTimeout(() => checkLiveStatus(true), 2500);
-                }}
-                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all group text-left ${
+                onClick={() => !isDone && openChannelLink(ch.url)}
+                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left cursor-pointer ${
                   isDone
                     ? 'bg-emerald-500/10 border-emerald-500/30'
-                    : 'bg-white/5 hover:bg-white/10 border-white/10'
+                    : 'bg-white/5 hover:bg-white/10 active:bg-white/15 border-white/10'
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 pr-2">
@@ -205,12 +213,18 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
                       <CheckCircle2 size={12} /> Joined ✓
                     </span>
                   ) : (
-                    <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500 text-white shadow-sm flex items-center gap-1 group-hover:bg-indigo-600 transition-colors">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openChannelLink(ch.url);
+                      }}
+                      className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm flex items-center gap-1 transition-all active:scale-95"
+                    >
                       Join <ExternalLink size={10} />
-                    </span>
+                    </button>
                   )}
                 </div>
-              </a>
+              </div>
             );
           })}
         </div>
@@ -255,9 +269,9 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         </button>
 
         {/* Quick helper */}
-        <p className="text-[10.5px] text-white/40 flex items-center justify-center gap-1 pb-2">
+        <p className="text-[10.5px] text-white/40 flex items-center justify-center gap-1 pb-1">
           <AlertCircle size={11} />
-          <span>Tap all 4 links above, then tap Verify.</span>
+          <span>Tap Join on unjoined channels, then tap Verify.</span>
         </p>
       </div>
     </div>
