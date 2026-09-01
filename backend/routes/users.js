@@ -2,7 +2,39 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot'); // for notifications
+const https = require('https');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
+
+// Direct Telegram Bot API call — no polling conflicts, works in production
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const checkTelegramMembership = (handle, telegramId) => new Promise((resolve) => {
+    if (!BOT_TOKEN) return resolve(false);
+    const chatId = handle.startsWith('@') ? handle : `@${handle}`;
+    const userId = Number(telegramId) || telegramId;
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${userId}`;
+    https.get(url, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+            try {
+                const json = JSON.parse(data);
+                if (json.ok && json.result) {
+                    const status = json.result.status;
+                    resolve(['member', 'administrator', 'creator'].includes(status));
+                } else {
+                    console.log(`[TgCheck] ${handle} for ${telegramId}: not ok ->`, json.description);
+                    resolve(false);
+                }
+            } catch (e) {
+                console.log(`[TgCheck] ${handle} parse error:`, e.message);
+                resolve(false);
+            }
+        });
+    }).on('error', (e) => {
+        console.log(`[TgCheck] ${handle} request error:`, e.message);
+        resolve(false);
+    });
+});
 
 router.post('/register', async (req, res) => {
     const { telegram_id, username, first_name, ref } = req.body;
@@ -406,27 +438,14 @@ router.post('/special-offer/claim', async (req, res) => {
 router.get('/channel-status', async (req, res) => {
     const rawId = req.query.telegram_id || req.body?.telegram_id;
     if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
-    const telegram_id = Number(rawId) || rawId;
+    const telegram_id = rawId;
 
     try {
-        const checkMembership = async (handle) => {
-            try {
-                if (bot && bot.getChatMember) {
-                    const member = await bot.getChatMember(handle, telegram_id);
-                    return ['member', 'administrator', 'creator'].includes(member.status);
-                }
-                return false;
-            } catch (e) {
-                console.log(`[ChatMember] ${handle} for ${telegram_id}:`, e.message);
-                return false;
-            }
-        };
-
         const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
-            checkMembership('@Tasky_Official'),
-            checkMembership('@TaskyPayouts'),
-            checkMembership('@AlphaDropDaily'),
-            checkMembership('@TaskyOfficialCommunity')
+            checkTelegramMembership('@Tasky_Official', telegram_id),
+            checkTelegramMembership('@TaskyPayouts', telegram_id),
+            checkTelegramMembership('@AlphaDropDaily', telegram_id),
+            checkTelegramMembership('@TaskyOfficialCommunity', telegram_id)
         ]);
 
         const allJoined = Boolean(joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity);
@@ -454,42 +473,29 @@ router.get('/channel-status', async (req, res) => {
 router.post('/verify-channels', async (req, res) => {
     const rawId = req.body?.telegram_id || req.query?.telegram_id;
     if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
-    const telegram_id = Number(rawId) || rawId;
+    const telegram_id = rawId;
 
     try {
         const userRes = await pool.query('SELECT has_verified_channels, balance FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        const checkMembership = async (handle) => {
-            try {
-                if (bot && bot.getChatMember) {
-                    const member = await bot.getChatMember(handle, telegram_id);
-                    return ['member', 'administrator', 'creator'].includes(member.status);
-                }
-                return false;
-            } catch (e) {
-                console.log(`[Verify] ${handle} for ${telegram_id}:`, e.message);
-                return false;
-            }
-        };
-
         const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
-            checkMembership('@Tasky_Official'),
-            checkMembership('@TaskyPayouts'),
-            checkMembership('@AlphaDropDaily'),
-            checkMembership('@TaskyOfficialCommunity')
+            checkTelegramMembership('@Tasky_Official', telegram_id),
+            checkTelegramMembership('@TaskyPayouts', telegram_id),
+            checkTelegramMembership('@AlphaDropDaily', telegram_id),
+            checkTelegramMembership('@TaskyOfficialCommunity', telegram_id)
         ]);
 
         const notJoined = [];
-        if (!joinedChannel) notJoined.push('Tasky Official Channel');
-        if (!joinedPayouts) notJoined.push('Tasky Payouts 💎');
-        if (!joinedAlphaDrop) notJoined.push('AlphaDrop Daily');
-        if (!joinedCommunity) notJoined.push('Official Community Group');
+        if (!joinedChannel) notJoined.push('Tasky Official Channel (@Tasky_Official)');
+        if (!joinedPayouts) notJoined.push('Tasky Payouts 💎 (@TaskyPayouts)');
+        if (!joinedAlphaDrop) notJoined.push('AlphaDrop Daily (@AlphaDropDaily)');
+        if (!joinedCommunity) notJoined.push('Official Community Group (@TaskyOfficialCommunity)');
 
         if (notJoined.length > 0) {
             await pool.query('UPDATE users SET has_verified_channels = FALSE WHERE telegram_id = $1', [telegram_id]);
             return res.status(400).json({ 
-                error: `Missing required communities: ${notJoined.join(', ')}. Please join them first!`,
+                error: `Not joined: ${notJoined.join(', ')}. Please join and try again!`,
                 status: {
                     tasky_official: Boolean(joinedChannel),
                     tasky_payouts: Boolean(joinedPayouts),
@@ -503,8 +509,6 @@ router.post('/verify-channels', async (req, res) => {
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
-            
-            // Check if welcome reward was already credited
             const wasVerified = userRes.rows[0].has_verified_channels;
             let updateRes;
             if (!wasVerified) {
@@ -522,7 +526,6 @@ router.post('/verify-channels', async (req, res) => {
                     RETURNING balance
                 `, [telegram_id]);
             }
-            
             await client.query('COMMIT');
             res.json({ 
                 success: true, 
@@ -543,5 +546,3 @@ router.post('/verify-channels', async (req, res) => {
 });
 
 module.exports = router;
-
-
