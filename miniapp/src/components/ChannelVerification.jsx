@@ -31,19 +31,24 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         if (data.all_joined) {
           await refreshUser();
         }
+      } else if (error && !silent) {
+        showToast('Could not sync channel status. Please tap refresh button!', 'error');
       }
     } catch (e) {
       console.error('Channel status check error:', e);
+      if (!silent) showToast('Failed to check membership status. Tap refresh to retry.', 'error');
     } finally {
       setCheckingStatus(false);
     }
-  }, [telegramId, refreshUser]);
+  }, [telegramId, refreshUser, showToast]);
 
   useEffect(() => {
     checkLiveStatus(false);
 
     // Recheck whenever user comes back to window after opening Telegram links
-    const onFocus = () => checkLiveStatus(true);
+    const onFocus = () => {
+      setTimeout(() => checkLiveStatus(true), 1000);
+    };
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [checkLiveStatus]);
@@ -58,8 +63,8 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } catch (_) {
       window.open(url, '_blank');
     }
-    setTimeout(() => checkLiveStatus(true), 2500);
-    setTimeout(() => checkLiveStatus(true), 5000);
+    setTimeout(() => checkLiveStatus(true), 1500);
+    setTimeout(() => checkLiveStatus(true), 4000);
   };
 
   const handleVerify = async () => {
