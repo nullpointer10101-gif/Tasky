@@ -456,10 +456,14 @@ router.get('/channel-status', async (req, res) => {
 
         const allJoined = Boolean(joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity);
 
-        if (allJoined) {
-            await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
-        } else {
-            await pool.query('UPDATE users SET has_verified_channels = FALSE WHERE telegram_id = $1', [telegram_id]);
+        try {
+            if (allJoined) {
+                await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
+            } else {
+                await pool.query('UPDATE users SET has_verified_channels = FALSE WHERE telegram_id = $1', [telegram_id]);
+            }
+        } catch (dbErr) {
+            console.log('[ChannelStatus] DB update warning:', dbErr.message);
         }
 
         res.json({

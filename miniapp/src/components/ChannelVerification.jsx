@@ -32,24 +32,20 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
           await refreshUser();
         }
       } else if (retries > 0) {
-        // Backend might be spinning up on Render (cold start) - retry after 2s
+        // Backend spinning up / busy - silent retry after 2s
         setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
         return;
-      } else if (error && !silent) {
-        showToast('Server connecting... Tap refresh in a moment!', 'error');
       }
     } catch (e) {
       console.error('Channel status check error:', e);
       if (retries > 0) {
         setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
         return;
-      } else if (!silent) {
-        showToast('Server connecting... Tap refresh in a moment!', 'error');
       }
     } finally {
       setCheckingStatus(false);
     }
-  }, [telegramId, refreshUser, showToast]);
+  }, [telegramId, refreshUser]);
 
   useEffect(() => {
     checkLiveStatus(false);
