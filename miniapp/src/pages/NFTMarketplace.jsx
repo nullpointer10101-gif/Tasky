@@ -455,11 +455,11 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               </div>
             </Card>
 
-            {/* Step 1: Deposit Wallet Address */}
+            {/* Step 1: Tasky Official Deposit Wallet Address */}
             <Card>
               <p className="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Wallet size={14} className="text-amber-400" />
-                Step 1: Admin Deposit Wallet Address
+                Step 1: Tasky Official Deposit Wallet Address
               </p>
               <div className="flex items-center justify-between bg-black/30 p-3 rounded-2xl border border-white/10 gap-2 mb-2">
                 <p className="text-xs font-mono text-white truncate flex-1">{depositWallet}</p>
