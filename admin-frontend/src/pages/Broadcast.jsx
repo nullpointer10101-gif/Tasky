@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift, Rocket, Zap } from 'lucide-react';
+import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift, Rocket, Zap, Image as ImageIcon } from 'lucide-react';
 
 export default function Broadcast() {
   const [message, setMessage] = useState('');
@@ -13,20 +13,31 @@ export default function Broadcast() {
   const [promoStatus, setPromoStatus] = useState(null);
   const [isBroadcastingPromo, setIsBroadcastingPromo] = useState(false);
 
-  // GRAM Claim Reminder State
-  const [gramTarget, setGramTarget] = useState('admin'); // 'admin' or 'all'
-  const [gramStatus, setGramStatus] = useState(null);
-  const [isBroadcastingGram, setIsBroadcastingGram] = useState(false);
-  const [gramTemplateIndex, setGramTemplateIndex] = useState(0);
-
-  // Special Promo Broadcast State
-  const [isSendingSpecial, setIsSendingSpecial] = useState(false);
-
   // NFT Miners Launch Broadcast State
   const [nftTarget, setNftTarget] = useState('admin'); // 'admin' or 'all'
   const [nftStatus, setNftStatus] = useState(null);
   const [isBroadcastingNft, setIsBroadcastingNft] = useState(false);
   const [nftTemplateIndex, setNftTemplateIndex] = useState(0);
+
+  const bannerOptions = [
+    {
+      id: 'banner1',
+      label: '🖼️ Banner 1 (App Mockups)',
+      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_1.png'
+    },
+    {
+      id: 'banner2',
+      label: '🖼️ Banner 2 (Neon Cyberpunk)',
+      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_2.png'
+    },
+    {
+      id: 'none',
+      label: '🚫 No Image (Text Only)',
+      url: null
+    }
+  ];
+
+  const [selectedImageUrl, setSelectedImageUrl] = useState(bannerOptions[0].url);
 
   const nftTemplates = [
     {
@@ -44,21 +55,6 @@ export default function Broadcast() {
   ];
 
   const [nftCustomText, setNftCustomText] = useState(nftTemplates[0].text);
-
-  const gramTemplates = [
-    {
-      label: 'Template 1 ⚠️',
-      text: `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`
-    },
-    {
-      label: 'Template 2 🔥',
-      text: `🔥 <b>Free GRAM waiting to be claimed!</b>\n\nDon't miss out on your daily yield. Watch your 60 short ads now and unlock <b>0.02 GRAM</b> paid instantly to your wallet!\n\n⚡️ <b>Get your free GRAM tokens here:</b>`
-    },
-    {
-      label: 'Template 3 🚀',
-      text: `🚀 <b>Ad slots refreshed! Ready for GRAM?</b>\n\nWatch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.\n\n👉 <b>Click below to start:</b>`
-    }
-  ];
 
   // Poll Promo Status
   useEffect(() => {
@@ -178,7 +174,11 @@ export default function Broadcast() {
         currentIdx: 0
       });
       setIsBroadcastingNft(true);
-      await api.post('/broadcast/nft', { message: nftCustomText, target: nftTarget });
+      await api.post('/broadcast/nft', { 
+        message: nftCustomText, 
+        target: nftTarget,
+        image_url: selectedImageUrl
+      });
       toast.success('NFT Miners broadcast started!');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to start NFT broadcast');
@@ -215,7 +215,7 @@ export default function Broadcast() {
             <div>
               <h3 className="text-purple-400 font-bold mb-1 text-base leading-tight">✨ NFT Miners Broadcaster</h3>
               <p className="text-purple-400/80 text-xs">
-                Announce new NFT Digital Miners and Tonkeeper Deposit features with 3 pre-formatted message variants.
+                Announce new NFT Digital Miners with attached high-resolution promo banners and direct deposit links.
               </p>
             </div>
           </div>
@@ -254,10 +254,41 @@ export default function Broadcast() {
                 </div>
               </div>
 
+              {/* Banner Image Selector */}
+              <div>
+                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                  <ImageIcon size={14} className="text-amber-400" />
+                  2. Select Attached Banner Image
+                </label>
+                <div className="space-y-2">
+                  {bannerOptions.map((opt) => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setSelectedImageUrl(opt.url)}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                        selectedImageUrl === opt.url
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
+                          : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
+                      }`}
+                    >
+                      <span>{opt.label}</span>
+                      {opt.url && (
+                        <img
+                          src={opt.url}
+                          alt="preview"
+                          className="w-12 h-8 rounded-lg object-cover border border-white/20"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Variant Selector */}
               <div>
                 <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
-                  2. Message Variant
+                  3. Message Text Variant
                 </label>
                 <div className="space-y-1.5">
                   {nftTemplates.map((t, idx) => (
@@ -280,12 +311,12 @@ export default function Broadcast() {
               {/* Message Editor */}
               <div>
                 <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
-                  3. Edit Message (HTML Format)
+                  4. Custom Caption Editor (HTML Format)
                 </label>
                 <textarea
                   value={nftCustomText}
                   onChange={(e) => setNftCustomText(e.target.value)}
-                  rows={6}
+                  rows={5}
                   className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl p-3.5 text-ink text-xs font-mono focus:outline-none focus:border-purple-500 resize-none"
                 />
               </div>
@@ -295,14 +326,14 @@ export default function Broadcast() {
                 <div className="bg-black/40 border border-purple-500/30 rounded-2xl p-4 space-y-3">
                   <div className="flex items-center justify-between text-xs font-bold">
                     <span className="text-purple-300 uppercase tracking-wider">
-                      {nftStatus.status === 'running' ? '🚀 Broadcasting NFT Announcement...' : '✅ NFT Broadcast Completed'}
+                      {nftStatus.status === 'running' ? '🚀 Broadcasting Photo Announcement...' : '✅ Photo Broadcast Completed'}
                     </span>
                     <span className="font-mono text-purple-400">{nftProgressPct}%</span>
                   </div>
 
                   <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/10">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-indigo-400 rounded-full transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-purple-500 to-amber-400 rounded-full transition-all duration-300"
                       style={{ width: `${nftProgressPct}%` }}
                     />
                   </div>
@@ -331,7 +362,7 @@ export default function Broadcast() {
                 className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
               >
                 {isBroadcastingNft ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
-                <span>{nftTarget === 'admin' ? 'Test NFT Broadcast (Admin Only)' : 'Broadcast NFT Announcement to ALL'}</span>
+                <span>{nftTarget === 'admin' ? 'Test NFT Broadcast with Image (Admin)' : 'Broadcast Photo Announcement to ALL'}</span>
               </button>
             </div>
           </div>

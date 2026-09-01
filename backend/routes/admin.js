@@ -1517,7 +1517,7 @@ router.get('/broadcast/nft-status', (req, res) => {
 });
 
 router.post('/broadcast/nft', async (req, res) => {
-  const { message, target } = req.body;
+  const { message, target, image_url } = req.body;
   if (!message) return res.status(400).json({ error: 'Message content is required' });
 
   if (global.nftBroadcast && global.nftBroadcast.status === 'running') {
@@ -1534,10 +1534,11 @@ router.post('/broadcast/nft', async (req, res) => {
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[NFT BROADCAST] Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
+    console.log(`[NFT BROADCAST] Target: ${target}, Image: ${image_url || 'None'}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
 
     global.nftBroadcast = {
       target,
+      image_url: image_url || null,
       total: targets.length,
       success: 0,
       failed: 0,
@@ -1552,20 +1553,31 @@ router.post('/broadcast/nft', async (req, res) => {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            if (bot && bot.sendMessage) {
-              await bot.sendMessage(tid, message, {
-                parse_mode: 'HTML',
-                reply_markup: {
-                  inline_keyboard: [
-                    [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
-                  ]
-                }
-              });
+            if (bot) {
+              const replyMarkup = {
+                inline_keyboard: [
+                  [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
+                ]
+              };
+
+              if (image_url && bot.sendPhoto) {
+                await bot.sendPhoto(tid, image_url, {
+                  caption: message,
+                  parse_mode: 'HTML',
+                  reply_markup: replyMarkup
+                });
+              } else if (bot.sendMessage) {
+                await bot.sendMessage(tid, message, {
+                  parse_mode: 'HTML',
+                  reply_markup: replyMarkup
+                });
+              }
               global.nftBroadcast.success++;
             } else {
               global.nftBroadcast.failed++;
             }
           } catch (e) {
+            console.error(`Send error for user ${tid}:`, e.message);
             global.nftBroadcast.failed++;
           }
         }));
