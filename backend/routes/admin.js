@@ -133,7 +133,7 @@ router.get('/gram-watchers', async (req, res) => {
         GROUP BY av.telegram_id
       ),
       pending_claims AS (
-        SELECT telegram_id FROM gram_claims WHERE status = 'pending'
+        SELECT telegram_id FROM gram_claims WHERE requested_at >= NOW() - INTERVAL '48 hours'
       ),
       all_watchers AS (
         SELECT telegram_id FROM active_watchers
