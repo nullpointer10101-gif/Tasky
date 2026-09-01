@@ -195,9 +195,9 @@ router.get('/gram-watchers', async (req, res) => {
         first_watch_time: r.first_watch_time,
         wallet: r.gram_wallet_address || r.wallet_address || null,
         has_wallet: !!(r.gram_wallet_address || r.wallet_address),
-        claimed_today: hasClaimedToday || r.has_pending_claim,
-        has_pending_claim: r.has_pending_claim,
-    `);
+        has_pending_claim: r.has_pending_claim
+      };
+    });
 
     res.json({
       totalUsers: parseInt(usersRes.rows[0].count) || 0,
