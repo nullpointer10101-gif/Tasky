@@ -43,7 +43,7 @@ const getTelegramUser = () => {
   return { id: 123456, first_name: 'Test', username: 'testuser' }
 }
 
-const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile, play: Play, gram: Gram }
+const PAGES = { home: Home, tasks: Tasks, referral: Referral, rig: Rig, wallet: Wallet, profile: Profile, play: Play, gram: Gram, nft: NFTMarketplace }
 
 export default function App() {
   const [activePage, setActivePage] = useState('home')

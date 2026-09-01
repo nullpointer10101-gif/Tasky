@@ -143,6 +143,16 @@ export const requestSwap = withMock({ id: 999, status: 'pending' }, (body) => ()
 export const getSwapHistory = withMock(() => mockData.getSwapHistory, (telegram_id) => () => api.get(`/api/swap/history/${telegram_id}`))
 export const watchWithdrawalAd = withMock({ success: true }, (telegram_id) => () => api.post('/api/withdrawal/watch_ad', { telegram_id }))
 
+// --- NFT & AUTOMATIC DEPOSIT ---
+export const getNftMarketplace = withMock(
+  { success: true, cards: [{ id: 1, name: 'Gram Mini Miner #01', price_gram: 0.5, daily_yield_gram: 0.10, duration_days: 10, total_yield_gram: 1.0, rarity: 'rare', icon_key: 'bolt' }, { id: 2, name: 'Gram Turbo Miner #02', price_gram: 1.0, daily_yield_gram: 0.15, duration_days: 10, total_yield_gram: 1.5, rarity: 'legendary', icon_key: 'rocket' }], deposit_wallet: 'UQD1_WjEGr_9GM901K9MrnqpMVsJXAN2YNmLNPZoFRJfFxM8' },
+  () => () => api.get('/api/nft/marketplace')
+)
+export const buyNft = withMock({ success: true, message: 'Purchased successfully' }, (telegram_id, nft_id) => () => api.post('/api/nft/buy', { telegram_id, nft_id }))
+export const getMyNftCards = withMock({ success: true, cards: [] }, (telegram_id) => () => api.get(`/api/nft/my-cards?telegram_id=${telegram_id}`))
+export const claimNftYield = withMock({ success: true, message: 'Claimed successfully' }, (telegram_id, instance_id) => () => api.post('/api/nft/claim-yield', { telegram_id, instance_id }))
+export const autoVerifyDeposit = withMock({ success: true, message: 'Deposit verified' }, (telegram_id, tx_hash) => () => api.post('/api/nft/deposit/auto-verify', { telegram_id, tx_hash }))
+
 export const getMySubmissions = withMock(mockData.getMySubmissions, (id) => () => api.get(`/api/tasks/my-submissions/${id}`))
 export const getWithdrawalSettings = withMock(mockData.getWithdrawalSettings, () => () => api.get('/api/withdrawal/settings'))
 export const requestWithdrawal = withMock({ success: true }, (body) => async () => {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Home, ListChecks, Users, Wallet, Gamepad2, Gem, Coins } from 'lucide-react'
+import { Home, ListChecks, Users, Wallet, Gamepad2, Gem, Coins, Sparkles } from 'lucide-react'
 import { useTranslation } from '../i18n/I18nContext'
 import { getGramStatus } from '../api'
 
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { id: 'play',     key: 'Play',         Icon: Gamepad2 },
   { id: 'tasks',    key: 'nav.tasks',    Icon: ListChecks },
   { id: 'gram',     key: 'Gram',         Icon: Coins },
+  { id: 'nft',      key: 'NFTs',         Icon: Sparkles },
   { id: 'referral', key: 'nav.referral', Icon: Users },
   { id: 'wallet',   key: 'nav.wallet',   Icon: Wallet },
 ]
