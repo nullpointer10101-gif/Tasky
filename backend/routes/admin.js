@@ -1551,30 +1551,31 @@ router.post('/broadcast/promo', async (req, res) => {
 
     // Process asynchronously in background
     (async () => {
-      for (let i = 0; i < targets.length; i++) {
-        const tid = targets[i];
-        try {
-          if (bot && bot.sendMessage) {
-            console.log(`[PROMO BROADCAST] Sending message to ${tid}...`);
-            await bot.sendMessage(tid, text, { 
-              parse_mode: 'HTML',
-              reply_markup: {
-                inline_keyboard: [
-                  [{ text: '🎁 Open App & Claim Reward 🚀', web_app: { url: 'https://tasky-kohl-six.vercel.app' } }]
-                ]
-              }
-            });
-            console.log(`[PROMO BROADCAST] Sent successfully to ${tid}`);
-            global.promoBroadcast.success++;
-          } else {
-            throw new Error('Telegram Bot is not initialized');
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            if (bot && bot.sendMessage) {
+              await bot.sendMessage(tid, text, { 
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: '🎁 Open App & Claim Reward 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+                  ]
+                }
+              });
+              global.promoBroadcast.success++;
+            } else {
+              throw new Error('Telegram Bot is not initialized');
+            }
+          } catch (err) {
+            console.error(`[PROMO BROADCAST] Failed to send to ${tid}:`, err.message);
+            global.promoBroadcast.failed++;
           }
-        } catch (err) {
-          console.error(`[PROMO BROADCAST] Failed to send to ${tid}:`, err.message);
-          global.promoBroadcast.failed++;
-        }
-        global.promoBroadcast.currentIdx = i + 1;
-        await new Promise(resolve => setTimeout(resolve, 50));
+        }));
+        global.promoBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       global.promoBroadcast.status = 'done';
       console.log(`[PROMO BROADCAST] Finished! Success: ${global.promoBroadcast.success}, Failed: ${global.promoBroadcast.failed}`);
