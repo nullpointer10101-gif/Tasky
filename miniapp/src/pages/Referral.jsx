@@ -298,7 +298,7 @@ export default function Referral({ user }) {
             </div>
           </motion.div>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }
