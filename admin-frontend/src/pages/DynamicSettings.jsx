@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Save, Settings, DollarSign, Users } from 'lucide-react';
+import { Save, Settings, DollarSign, Users, Send } from 'lucide-react';
 
 export default function DynamicSettings() {
   const [config, setConfig] = useState({
-    withdrawal: { min_withdrawal_tasky: 0, fee_percent: 0, usdt_rate: 0, auto_payout_enabled: false },
+    withdrawal: { min_withdrawal_tasky: 0, fee_percent: 0, usdt_rate: 0, auto_payout_enabled: false, payout_channel_id: '', payout_channel_enabled: true },
     referral: { reward_per_referral: 0, tasks_required_for_valid: 0, spin_reward_per_referral: 0 }
   });
   const [loading, setLoading] = useState(true);
+  const [isTestingBroadcast, setIsTestingBroadcast] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -35,6 +36,28 @@ export default function DynamicSettings() {
       toast.success('Global settings updated instantly!');
     } catch (e) {
       toast.error('Failed to save settings');
+    }
+  };
+
+  const handleTestBroadcast = async () => {
+    if (!config.withdrawal.payout_channel_id) {
+      toast.error('Please enter a Telegram Channel handle (@YourChannel) first and save!');
+      return;
+    }
+    setIsTestingBroadcast(true);
+    try {
+      // Save settings first to ensure backend has latest channel id
+      await api.post('/config', config);
+      const res = await api.post('/payout-channel/test', { channel_id: config.withdrawal.payout_channel_id });
+      if (res.data?.success) {
+        toast.success(`🎉 Test proof broadcast sent successfully to ${config.withdrawal.payout_channel_id}!`);
+      } else {
+        toast.error(res.data?.error || 'Test broadcast failed');
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to send test broadcast. Ensure @TaskyAppbot is an admin in your channel with post permissions!');
+    } finally {
+      setIsTestingBroadcast(false);
     }
   };
 
@@ -125,6 +148,64 @@ export default function DynamicSettings() {
                 </button>
                 <span className={`text-sm font-bold ${config.withdrawal.auto_payout_enabled ? 'text-blue-400' : 'text-ink-soft'}`}>
                   {config.withdrawal.auto_payout_enabled ? 'Active' : 'Off'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Telegram Payout Channel Settings */}
+        <div className="bg-surface-soft p-6 md:p-8 rounded-3xl border border-border/80 shadow-xl shadow-black/20 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl pointer-events-none transition-opacity group-hover:bg-amber-500/10"></div>
+          
+          <div className="flex items-center justify-between mb-6 relative z-10 flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                <Send size={24} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-black text-ink tracking-tight">Payout Proof Channel</h2>
+                <p className="text-xs text-ink-soft mt-0.5">Automated public payout receipts for AdsGram compliance & community trust.</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTestBroadcast}
+              disabled={isTestingBroadcast}
+              className="px-4 py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-xl transition-all font-bold text-xs flex items-center gap-2 disabled:opacity-50"
+            >
+              {isTestingBroadcast ? 'Sending Test...' : '⚡ Send Test Proof to Channel'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Telegram Channel (@handle or ID)</label>
+              <input
+                type="text"
+                placeholder="@TaskyPayouts or -1002233445566"
+                value={config.withdrawal.payout_channel_id || ''}
+                onChange={e => setConfig({ ...config, withdrawal: { ...config.withdrawal, payout_channel_id: e.target.value } })}
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl px-5 py-3.5 text-amber-300 font-bold focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all outline-none"
+              />
+              <p className="text-[11px] text-ink-faint pl-1">
+                Make sure to add <strong className="text-amber-400">@TaskyAppbot</strong> as an <strong>Admin</strong> in this channel with <em>Post Messages</em> permission.
+              </p>
+            </div>
+
+            <div className="space-y-2 flex flex-col justify-center">
+              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">Broadcast Status</label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfig({ ...config, withdrawal: { ...config.withdrawal, payout_channel_enabled: config.withdrawal.payout_channel_enabled === false ? true : false } })}
+                  className={`w-14 h-7 rounded-full p-1 transition-colors duration-200 ease-in-out ${config.withdrawal.payout_channel_enabled !== false ? 'bg-amber-500' : 'bg-[#0a0f1c] border border-border/50'}`}
+                >
+                  <div className={`w-5 h-5 rounded-full bg-white transition-transform duration-200 ease-in-out ${config.withdrawal.payout_channel_enabled !== false ? 'translate-x-7' : 'translate-x-0'}`}></div>
+                </button>
+                <span className={`text-sm font-bold ${config.withdrawal.payout_channel_enabled !== false ? 'text-amber-400' : 'text-ink-soft'}`}>
+                  {config.withdrawal.payout_channel_enabled !== false ? 'Active' : 'Disabled'}
                 </span>
               </div>
             </div>

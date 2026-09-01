@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
+const { broadcastPayoutProof } = require('../utils/payoutChannel');
 
 // --- Simple Admin Auth Middleware ---
 // Expects an 'x-admin-password' header to match the .env ADMIN_PASSWORD
@@ -196,17 +197,48 @@ router.get('/gram-watchers', async (req, res) => {
         has_wallet: !!(r.gram_wallet_address || r.wallet_address),
         claimed_today: hasClaimedToday || r.has_pending_claim,
         has_pending_claim: r.has_pending_claim,
-        can_claim: adsWatched >= 60 && !hasClaimedToday && !!(r.gram_wallet_address || r.wallet_address),
-        isOnline: global.onlineUsers ? global.onlineUsers.has(r.telegram_id.toString()) : false,
-      };
-    });
+    `);
 
-    res.json({ watchers, total: watchers.length, asOf: new Date().toISOString() });
+    res.json({
+      totalUsers: parseInt(usersRes.rows[0].count) || 0,
+      activeUsersToday: parseInt(todayUsersRes.rows[0]?.count) || 0,
+      pendingTasks: parseInt(tasksRes.rows[0].count) || 0,
+      pendingTasksToday: parseInt(pendingTasksTodayRes.rows[0]?.count) || 0,
+      pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count) || 0,
+      totalDistributedTasky: parseFloat(rewardsRes.rows[0].sum) || 0,
+      totalSwapsUsdt: parseFloat(swapsRes.rows[0].sum) || 0,
+      totalBalance: parseFloat(balanceRes.rows[0].sum) || 0,
+      activeTasks: parseInt(activeTasksRes.rows[0].count) || 0,
+      completedTasks: parseInt(completedTasksRes.rows[0].count) || 0,
+      totalReferrals: parseInt(referralsRes.rows[0].sum) || 0
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
+// ==========================================
+// 2. DETAILED LEADERBOARD & USER ANALYTICS
+// ==========================================
+router.get('/leaderboard/detailed', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        u.telegram_id, u.username, u.first_name, u.balance, u.total_referrals, u.valid_referrals,
+        u.created_at, u.last_active, u.mining_rate, u.is_banned,
+        (SELECT COUNT(*) FROM user_tasks WHERE telegram_id = u.telegram_id AND status = 'approved') as tasks_completed,
+        (SELECT COUNT(*) FROM swaps WHERE telegram_id = u.telegram_id AND status = 'done') as swaps_done,
+        (SELECT COALESCE(SUM(receive_amount), 0) FROM swaps WHERE telegram_id = u.telegram_id AND status = 'done') as total_withdrawn_usdt
+      FROM users u
+      ORDER BY u.balance DESC
+      LIMIT 100
+    `;
+    const { rows } = await pool.query(query);
+    res.json(rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // ==========================================
 // 3. CONFIGURATION (GLOBAL SETTINGS)
@@ -236,7 +268,9 @@ router.post('/config', async (req, res) => {
         UPDATE withdrawal_settings 
         SET min_withdrawal_tasky = $1, fee_percent = $2, usdt_rate = $3,
             adsgram_block_id = $4, adsgram_ratio = $5, gigapub_ratio = $6,
-            auto_payout_enabled = $7
+            auto_payout_enabled = $7,
+            payout_channel_id = $8,
+            payout_channel_enabled = $9
       `, [
         withdrawal.min_withdrawal_tasky, 
         withdrawal.fee_percent, 
@@ -244,7 +278,9 @@ router.post('/config', async (req, res) => {
         withdrawal.adsgram_block_id !== undefined ? withdrawal.adsgram_block_id : '8223',
         withdrawal.adsgram_ratio !== undefined ? Number(withdrawal.adsgram_ratio) : 50,
         withdrawal.gigapub_ratio !== undefined ? Number(withdrawal.gigapub_ratio) : 50,
-        withdrawal.auto_payout_enabled === true ? true : false
+        withdrawal.auto_payout_enabled === true ? true : false,
+        withdrawal.payout_channel_id !== undefined ? (withdrawal.payout_channel_id ? withdrawal.payout_channel_id.trim() : null) : null,
+        withdrawal.payout_channel_enabled === false ? false : true
       ]);
     }
 
@@ -262,6 +298,34 @@ router.post('/config', async (req, res) => {
     res.status(500).json({ error: error.message });
   } finally {
     client.release();
+  }
+});
+
+// Test Telegram Payout Channel broadcast
+router.post('/payout-channel/test', async (req, res) => {
+  const { channel_id } = req.body;
+  try {
+    const result = await broadcastPayoutProof(bot, {
+      type: 'Demo / Test Payout Proof',
+      amount: '0.02',
+      token: 'GRAM',
+      wallet: 'UQD1_WjEGr_9GM901K9MrnqpMVsJXAN2YNmLNPZoFRJfFxM8',
+      tx_hash: 'c5c8ff5c265e3170df6504a39b3628e8188173541dfa7051412fb1da1b827e85',
+      telegram_id: '8433403003',
+      username: 'TaskyOfficial',
+      first_name: 'Test Admin'
+    });
+
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+    if (result.skipped) {
+      return res.status(400).json({ error: `Broadcast skipped: ${result.reason}. Make sure Payout Channel handle or ID is saved.` });
+    }
+
+    res.json({ success: true, message_id: result.message_id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -563,19 +627,33 @@ router.get('/withdrawals/history', async (req, res) => {
 });
 
 router.post('/withdrawals/review', async (req, res) => {
-  const { withdrawal_id, action, rejection_reason } = req.body;
+  const { withdrawal_id, action, rejection_reason, tx_hash } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    const wRes = await client.query('SELECT telegram_id, tasky_amount FROM swaps WHERE id = $1 AND status = \'pending\'', [withdrawal_id]);
+    const wRes = await client.query('SELECT telegram_id, tasky_amount, receive_amount, receive_token, wallet_address, tx_hash FROM swaps WHERE id = $1 AND status = \'pending\'', [withdrawal_id]);
     if (wRes.rows.length === 0) throw new Error('Swap not found or already processed');
 
-    const { telegram_id, tasky_amount } = wRes.rows[0];
+    const { telegram_id, tasky_amount, receive_amount, receive_token, wallet_address } = wRes.rows[0];
+    const finalTxHash = tx_hash || wRes.rows[0].tx_hash || null;
 
     if (action === 'approve') {
-      await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW() WHERE id = $1`, [withdrawal_id]);
+      await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [withdrawal_id, finalTxHash]);
       await client.query(`UPDATE users SET has_unseen_approved_withdrawal = TRUE, withdrawal_popup_views = 0 WHERE telegram_id = $1`, [telegram_id]);
+      
+      // Fetch user profile for broadcast
+      const userRes = await client.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [telegram_id]);
+      broadcastPayoutProof(bot, {
+        type: 'Token Swap Payout',
+        amount: receive_amount,
+        token: receive_token || 'USDT',
+        wallet: wallet_address,
+        tx_hash: finalTxHash,
+        telegram_id: telegram_id,
+        username: userRes.rows[0]?.username,
+        first_name: userRes.rows[0]?.first_name
+      }).catch(e => console.error('[PayoutProof] Swap payout error:', e.message));
     } else if (action === 'reject') {
       await client.query(`UPDATE swaps SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [withdrawal_id, rejection_reason]);
       // Refund the user's TASKY balance since it was rejected
@@ -1351,16 +1429,16 @@ router.post('/gram/claims/review', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const claimRes = await client.query('SELECT telegram_id, amount FROM gram_claims WHERE id = $1 AND status = \'pending\'', [claim_id]);
+    const claimRes = await client.query('SELECT telegram_id, amount, gram_wallet_address FROM gram_claims WHERE id = $1 AND status = \'pending\'', [claim_id]);
     if (claimRes.rows.length === 0) throw new Error('Claim not found or already processed');
 
-    const { telegram_id, amount } = claimRes.rows[0];
+    const { telegram_id, amount, gram_wallet_address } = claimRes.rows[0];
 
     if (action === 'approve') {
       await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [claim_id, tx_hash || null]);
       
       // Check referral validity for the user who claimed
-      const userRes = await client.query('SELECT referred_by FROM users WHERE telegram_id = $1', [telegram_id]);
+      const userRes = await client.query('SELECT referred_by, username, first_name FROM users WHERE telegram_id = $1', [telegram_id]);
       const referred_by = userRes.rows[0]?.referred_by;
       if (referred_by) {
         const { checkReferralValidity } = require('../utils/referral');
@@ -1383,6 +1461,20 @@ router.post('/gram/claims/review', async (req, res) => {
           console.error('Failed to notify user of Gram claim approval:', e.message);
         }
       }
+
+      // Broadcast verified payout proof to official Telegram Payout Channel
+      const userFull = userRes.rows[0];
+      broadcastPayoutProof(bot, {
+        type: 'Daily Quest 0.02 GRAM',
+        amount: amount || '0.02',
+        token: 'GRAM',
+        wallet: gram_wallet_address,
+        tx_hash: tx_hash || null,
+        telegram_id: telegram_id,
+        username: userFull?.username,
+        first_name: userFull?.first_name
+      }).catch(e => console.error('[PayoutProof] Gram claim error:', e.message));
+
     } else if (action === 'reject') {
       await client.query(`UPDATE gram_claims SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [claim_id, rejection_reason]);
       if (bot && bot.sendMessage) {
@@ -1674,7 +1766,7 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
     );
 
     // Check referral validity for the user who withdrew
-    const userRes = await client.query('SELECT referred_by FROM users WHERE telegram_id = $1', [w.telegram_id]);
+    const userRes = await client.query('SELECT referred_by, username, first_name FROM users WHERE telegram_id = $1', [w.telegram_id]);
     const referred_by = userRes.rows[0]?.referred_by;
     if (referred_by) {
       const { checkReferralValidity } = require('../utils/referral');
@@ -1697,6 +1789,19 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
         );
       } catch (e) {}
     }
+
+    // Broadcast to official Telegram Payout Channel
+    broadcastPayoutProof(bot, {
+      type: 'Gram Balance Withdrawal',
+      amount: w.amount,
+      token: 'GRAM',
+      wallet: w.wallet_address,
+      tx_hash: tx_hash || null,
+      telegram_id: w.telegram_id,
+      username: userRes.rows[0]?.username,
+      first_name: userRes.rows[0]?.first_name
+    }).catch(e => console.error('[PayoutProof] Gram withdrawal error:', e.message));
+
     res.json({ success: true });
   } catch (err) {
     await client.query('ROLLBACK');

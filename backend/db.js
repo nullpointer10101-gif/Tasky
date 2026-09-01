@@ -363,6 +363,8 @@ const initDB = async () => {
       ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS adsgram_block_id VARCHAR(50) DEFAULT '8223';
       ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS adsgram_ratio INT DEFAULT 50;
       ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS gigapub_ratio INT DEFAULT 50;
+      ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS payout_channel_id VARCHAR(100);
+      ALTER TABLE withdrawal_settings ADD COLUMN IF NOT EXISTS payout_channel_enabled BOOLEAN DEFAULT TRUE;
 
       -- REFERRAL GATE SUPPORT ON PROMOS
       ALTER TABLE promo_codes ADD COLUMN IF NOT EXISTS require_ref BOOLEAN DEFAULT FALSE;
