@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw } from 'lucide-react';
+import { Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, ExternalLink } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -61,8 +61,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
     }
     const price = parseFloat(nft.price_gram);
     if (gramBalance < price) {
-      showToast(`Insufficient GRAM! Price is ${price} GRAM. Top up in Deposit tab!`, 'error');
-      setActiveTab('deposit');
+      showToast(`Insufficient GRAM! Price is ${price} GRAM. Pay directly with Tonkeeper or Top Up!`, 'error');
       return;
     }
 
@@ -82,6 +81,26 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
     } finally {
       setBuyingId(null);
     }
+  };
+
+  const handlePayViaWallet = (amountGram, walletType = 'tonkeeper') => {
+    const nanoAmount = Math.round(parseFloat(amountGram) * 1e9);
+    const comment = encodeURIComponent(memoText);
+
+    let url = '';
+    if (walletType === 'tonkeeper') {
+      url = `https://app.tonkeeper.com/transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
+    } else {
+      url = `ton://transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
+    }
+
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
+
+    showToast(`Opening ${walletType === 'tonkeeper' ? 'Tonkeeper' : 'TON Wallet'} with pre-filled deposit payload...`, 'success');
   };
 
   const handleClaim = async (instanceId) => {
@@ -224,7 +243,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
             <div className="grid grid-cols-1 gap-4">
               {cards.map((nft) => {
                 const isTurbo = nft.id === 2;
-                const canAfford = gramBalance >= parseFloat(nft.price_gram);
+                const price = parseFloat(nft.price_gram);
 
                 return (
                   <motion.div
@@ -280,18 +299,31 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                       </div>
                     </div>
 
-                    {/* Purchase Action Button */}
-                    <Button
-                      onClick={() => handleBuy(nft)}
-                      loading={buyingId === nft.id}
-                      className={`w-full py-3 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border-0 shadow-lg ${
-                        isTurbo
-                          ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black hover:opacity-95'
-                          : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-95'
-                      }`}
-                    >
-                      <span>Buy NFT ({nft.price_gram} GRAM)</span>
-                    </Button>
+                    {/* Dual Action Buttons */}
+                    <div className="space-y-2">
+                      {/* Option 1: Buy with Vault Balance */}
+                      <Button
+                        onClick={() => handleBuy(nft)}
+                        loading={buyingId === nft.id}
+                        className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border-0 shadow-lg ${
+                          isTurbo
+                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black hover:opacity-95'
+                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-95'
+                        }`}
+                      >
+                        <Zap size={14} />
+                        <span>Buy with Vault ({nft.price_gram} GRAM)</span>
+                      </Button>
+
+                      {/* Option 2: Pay Directly via Tonkeeper */}
+                      <button
+                        onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
+                        className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-blue-600/30 hover:bg-blue-600/40 text-blue-300 border border-blue-500/40 transition-all active:scale-98"
+                      >
+                        <ExternalLink size={14} />
+                        <span>Pay {nft.price_gram} GRAM via Tonkeeper 💎</span>
+                      </button>
+                    </div>
                   </motion.div>
                 );
               })}
@@ -395,9 +427,33 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               </div>
               <h3 className="text-lg font-black text-white mb-1">Instant GRAM / TON Deposit</h3>
               <p className="text-xs text-purple-200/80 max-w-xs mx-auto">
-                Transfer GRAM or TON directly to Tasky's deposit wallet. The system automatically verifies your transaction on the blockchain with zero admin wait time!
+                Transfer GRAM or TON directly using Tonkeeper or any TON wallet. The system automatically verifies your deposit on the blockchain with zero admin wait time!
               </p>
             </div>
+
+            {/* Direct Pay Button Options */}
+            <Card className="bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30 border-blue-500/40">
+              <p className="text-xs font-black text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <ExternalLink size={14} className="text-blue-400" />
+                Option A: Direct Wallet Payment
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handlePayViaWallet(0.5, 'tonkeeper')}
+                  className="py-3 px-3 bg-blue-600/30 hover:bg-blue-600/40 text-white rounded-2xl border border-blue-500/40 text-xs font-black flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-md"
+                >
+                  <span className="text-[11px] text-blue-300">Pay 0.5 GRAM</span>
+                  <span className="flex items-center gap-1 text-amber-300">Tonkeeper 💎</span>
+                </button>
+                <button
+                  onClick={() => handlePayViaWallet(1.0, 'tonkeeper')}
+                  className="py-3 px-3 bg-purple-600/30 hover:bg-purple-600/40 text-white rounded-2xl border border-purple-500/40 text-xs font-black flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-md"
+                >
+                  <span className="text-[11px] text-purple-300">Pay 1.0 GRAM</span>
+                  <span className="flex items-center gap-1 text-amber-300">Tonkeeper 💎</span>
+                </button>
+              </div>
+            </Card>
 
             {/* Step 1: Deposit Wallet Address */}
             <Card>
