@@ -11,7 +11,7 @@ if (!token) {
 
 const bot = new TelegramBot(token);
 const adminId = '8823265955';
-const imagePath = path.join(__dirname, 'public/uploads/nft_banner_2.jpg');
+const imagePath = path.join(__dirname, 'public/uploads/nft_banner_official.jpg');
 
 const caption = `🚨 <b>HIGH YIELD LAUNCH: NFT MINERS & INSTANT DEPOSIT ARE LIVE!</b> 💎⚡️\n\nTasky Family, earn <b>guaranteed daily GRAM returns</b> directly into your vault balance! 🎁\n\n⚡️ <b>GRAM Mini Miner #01:</b> 0.5 GRAM ➔ <b>0.7 GRAM Total</b> (+0.07 GRAM/day / 10 Days)\n🚀 <b>GRAM Turbo Miner #02:</b> 1.0 GRAM ➔ <b>1.5 GRAM Total</b> (+0.15 GRAM/day / 10 Days)\n\n💎 <b>1-Tap Tonkeeper Pay & Instant Deposit:</b> Zero admin wait time — on-chain verified in seconds!\n\n👉 <b>Tap below to secure your NFT Miner now:</b>`;
 

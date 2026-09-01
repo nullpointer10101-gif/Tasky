@@ -1562,14 +1562,11 @@ router.post('/broadcast/nft', async (req, res) => {
 
               if (image_url && bot.sendPhoto) {
                 let photoPayload = image_url;
-                if (image_url.includes('nft_banner_1')) {
-                  const p1Jpg = path.join(__dirname, '../public/uploads/nft_banner_1.jpg');
-                  const p1Png = path.join(__dirname, '../public/uploads/nft_banner_1.png');
-                  photoPayload = fs.createReadStream(fs.existsSync(p1Jpg) ? p1Jpg : p1Png);
-                } else if (image_url.includes('nft_banner_2')) {
-                  const p2Jpg = path.join(__dirname, '../public/uploads/nft_banner_2.jpg');
-                  const p2Png = path.join(__dirname, '../public/uploads/nft_banner_2.png');
-                  photoPayload = fs.createReadStream(fs.existsSync(p2Jpg) ? p2Jpg : p2Png);
+                if (image_url.includes('nft_banner')) {
+                  const officialPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+                  if (fs.existsSync(officialPath)) {
+                    photoPayload = fs.createReadStream(officialPath);
+                  }
                 }
 
                 await bot.sendPhoto(tid, photoPayload, {

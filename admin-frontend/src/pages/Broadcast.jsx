@@ -21,14 +21,9 @@ export default function Broadcast() {
 
   const bannerOptions = [
     {
-      id: 'banner1',
-      label: '🖼️ Banner 1 (Full HD NFT Miners Launch)',
-      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_1.jpg'
-    },
-    {
-      id: 'banner2',
-      label: '🖼️ Banner 2 (Full HD Neon Cyberpunk)',
-      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_2.jpg'
+      id: 'official',
+      label: '🖼️ Official NFT Miners Promo Banner (0.7 & 1.5 GRAM)',
+      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_official.jpg'
     },
     {
       id: 'none',
