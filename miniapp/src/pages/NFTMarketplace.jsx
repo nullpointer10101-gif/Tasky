@@ -336,9 +336,9 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
           <motion.div key="inventory" variants={cardVariants} initial="initial" animate="animate" className="space-y-4">
             {myCards.length === 0 ? (
               <EmptyState
-                icon={<Zap size={32} className="text-purple-400" />}
+                icon={Zap}
                 title="No NFT Miners Owned Yet"
-                description="Purchase your first NFT Miner in the Marketplace to start earning daily GRAM passive returns!"
+                message="Purchase your first NFT Miner in the Marketplace to start earning daily GRAM passive returns!"
               />
             ) : (
               myCards.map((card) => {
