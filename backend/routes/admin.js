@@ -195,22 +195,14 @@ router.get('/gram-watchers', async (req, res) => {
         first_watch_time: r.first_watch_time,
         wallet: r.gram_wallet_address || r.wallet_address || null,
         has_wallet: !!(r.gram_wallet_address || r.wallet_address),
+        claimed_today: hasClaimedToday,
         has_pending_claim: r.has_pending_claim
       };
     });
 
     res.json({
-      totalUsers: parseInt(usersRes.rows[0].count) || 0,
-      activeUsersToday: parseInt(todayUsersRes.rows[0]?.count) || 0,
-      pendingTasks: parseInt(tasksRes.rows[0].count) || 0,
-      pendingTasksToday: parseInt(pendingTasksTodayRes.rows[0]?.count) || 0,
-      pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count) || 0,
-      totalDistributedTasky: parseFloat(rewardsRes.rows[0].sum) || 0,
-      totalSwapsUsdt: parseFloat(swapsRes.rows[0].sum) || 0,
-      totalBalance: parseFloat(balanceRes.rows[0].sum) || 0,
-      activeTasks: parseInt(activeTasksRes.rows[0].count) || 0,
-      completedTasks: parseInt(completedTasksRes.rows[0].count) || 0,
-      totalReferrals: parseInt(referralsRes.rows[0].sum) || 0
+      total: watchers.length,
+      watchers: watchers
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
