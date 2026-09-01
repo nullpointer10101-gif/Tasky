@@ -106,8 +106,8 @@ async function broadcastPayoutProof(bot, {
     // 3. Format Transaction Explorer Link
     const explorerLink = getExplorerLink(tx_hash);
     const txLine = explorerLink
-      ? `🔗 <b>Blockchain Transaction Proof:</b>\n<a href="${explorerLink}">👉 View On-Chain Explorer (Tonviewer)</a>\n\n`
-      : `🔗 <b>Blockchain Status:</b> <code>Direct TON Transfer Confirmed</code>\n\n`;
+      ? `🔗 <b>Tonviewer Transaction Link:</b>\n<a href="${explorerLink}">${explorerLink}</a>\n\n`
+      : (wallet ? `🔗 <b>Tonviewer Explorer:</b>\n<a href="https://tonviewer.com/${wallet}">https://tonviewer.com/${maskWallet(wallet)}</a>\n\n` : '');
 
     const dateStr = new Date().toUTCString().replace('GMT', 'UTC');
 
@@ -134,7 +134,9 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
     ];
 
     if (explorerLink) {
-      inline_keyboard[0].push({ text: '🔍 Verify On-Chain', url: explorerLink });
+      inline_keyboard[0].push({ text: '🌐 View on Tonviewer', url: explorerLink });
+    } else if (wallet) {
+      inline_keyboard[0].push({ text: '🌐 View Wallet', url: `https://tonviewer.com/${wallet}` });
     }
 
     // 6. Send to Channel
