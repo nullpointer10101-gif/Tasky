@@ -431,13 +431,13 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               </p>
             </div>
 
-            {/* Direct Pay Button Options */}
+            {/* Direct Pay Button Options (OPTION A) */}
             <Card className="bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30 border-blue-500/40">
               <p className="text-xs font-black text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
                 <ExternalLink size={14} className="text-blue-400" />
-                Option A: Direct Wallet Payment
+                ⚡ OPTION A: 1-TAP INSTANT WALLET PAYMENT
               </p>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 <button
                   onClick={() => handlePayViaWallet(0.5, 'tonkeeper')}
                   className="py-3 px-3 bg-blue-600/30 hover:bg-blue-600/40 text-white rounded-2xl border border-blue-500/40 text-xs font-black flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-md"
@@ -453,7 +453,15 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                   <span className="flex items-center gap-1 text-amber-300">Tonkeeper 💎</span>
                 </button>
               </div>
+              <p className="text-[10px] text-blue-200/70 text-center font-medium">Auto-fills recipient address, amount & memo comment!</p>
             </Card>
+
+            {/* Manual Transfer Options (OPTION B) */}
+            <div className="pt-2 pb-1 text-center">
+              <span className="text-xs font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+                OR OPTION B: MANUAL TRANSFER
+              </span>
+            </div>
 
             {/* Step 1: Tasky Official Deposit Wallet Address */}
             <Card>
@@ -470,7 +478,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                   {copiedWallet ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
                 </button>
               </div>
-              <p className="text-[11px] text-ink-soft">Send any amount of GRAM or TON to the wallet address above.</p>
+              <p className="text-[11px] text-ink-soft">Send any amount of GRAM or TON to the official Tasky address above.</p>
             </Card>
 
             {/* Step 2: Deposit Comment / Memo */}
