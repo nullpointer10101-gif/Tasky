@@ -12,7 +12,7 @@ const checkTelegramMembership = (handle, telegramId) => new Promise((resolve) =>
     const chatId = handle.startsWith('@') ? handle : `@${handle}`;
     const userId = Number(telegramId) || telegramId;
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${userId}`;
-    https.get(url, (res) => {
+    const req = https.get(url, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
@@ -30,8 +30,14 @@ const checkTelegramMembership = (handle, telegramId) => new Promise((resolve) =>
                 resolve(false);
             }
         });
-    }).on('error', (e) => {
+    });
+    req.on('error', (e) => {
         console.log(`[TgCheck] ${handle} request error:`, e.message);
+        resolve(false);
+    });
+    req.setTimeout(5000, () => {
+        req.destroy();
+        console.log(`[TgCheck] ${handle} request timeout`);
         resolve(false);
     });
 });
