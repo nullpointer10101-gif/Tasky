@@ -167,9 +167,19 @@ app.use('/api/nft', require('./routes/nft'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI
+// Serve Admin Panel Static Build directly from Backend (No Vercel deployment limit!)
+const adminDistPath = path.join(__dirname, '../admin-frontend/dist');
+if (fs.existsSync(adminDistPath)) {
+  app.use('/admin', express.static(adminDistPath));
+  app.get('/admin/*', (req, res) => {
+    res.sendFile(path.join(adminDistPath, 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Test UI: http://localhost:${PORT}/test.html`);
+  console.log(`Admin Panel Live: http://localhost:${PORT}/admin`);
 });
 
 // Try DB init separately so crash doesn't kill the Express server
