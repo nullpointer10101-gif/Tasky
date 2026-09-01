@@ -1504,11 +1504,83 @@ router.post('/gram/claims/review', async (req, res) => {
   }
 });
 
-// Global tracking variables for promo broadcasts
+// Global tracking variables for promo & nft broadcasts
 global.promoBroadcast = null;
+global.nftBroadcast = null;
 
 router.get('/broadcast/promo-status', (req, res) => {
   res.json(global.promoBroadcast);
+});
+
+router.get('/broadcast/nft-status', (req, res) => {
+  res.json(global.nftBroadcast);
+});
+
+router.post('/broadcast/nft', async (req, res) => {
+  const { message, target } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message content is required' });
+
+  if (global.nftBroadcast && global.nftBroadcast.status === 'running') {
+    return res.status(400).json({ error: 'Another NFT broadcast is currently in progress.' });
+  }
+
+  try {
+    const adminId = '8823265955';
+    let targets = [];
+    if (target === 'admin') {
+      targets = [adminId];
+    } else {
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
+      targets = usersRes.rows.map(r => r.telegram_id);
+    }
+
+    console.log(`[NFT BROADCAST] Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
+
+    global.nftBroadcast = {
+      target,
+      total: targets.length,
+      success: 0,
+      failed: 0,
+      status: 'running',
+      currentIdx: 0
+    };
+
+    // Process asynchronously in background
+    (async () => {
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            if (bot && bot.sendMessage) {
+              await bot.sendMessage(tid, message, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [
+                    [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
+                  ]
+                }
+              });
+              global.nftBroadcast.success++;
+            } else {
+              global.nftBroadcast.failed++;
+            }
+          } catch (e) {
+            global.nftBroadcast.failed++;
+          }
+        }));
+
+        global.nftBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      global.nftBroadcast.status = 'completed';
+    })();
+
+    res.json({ success: true, message: `NFT Broadcast started for ${targets.length} target(s).` });
+  } catch (err) {
+    console.error('Error starting NFT broadcast:', err);
+    res.status(500).json({ error: 'Failed to start NFT broadcast' });
+  }
 });
 
 router.post('/broadcast/promo', async (req, res) => {
