@@ -22,10 +22,11 @@ function getProgressColor(count) {
 }
 
 function WatcherCard({ watcher, onRemind }) {
-  const pct = Math.min((watcher.ads_watched / ADS_GOAL) * 100, 100);
-  const colors = getProgressColor(watcher.ads_watched);
-  const isNearGoal = watcher.ads_watched >= 50 && watcher.ads_watched < 60;
-  const isComplete = watcher.ads_watched >= 60;
+  const adsWatchedCount = Math.min(watcher.ads_watched, ADS_GOAL);
+  const pct = Math.min((adsWatchedCount / ADS_GOAL) * 100, 100);
+  const colors = getProgressColor(adsWatchedCount);
+  const isNearGoal = adsWatchedCount >= 50 && adsWatchedCount < 60;
+  const isComplete = adsWatchedCount >= 60;
   const displayName = watcher.username ? `@${watcher.username}` : watcher.first_name;
 
   return (
@@ -76,7 +77,7 @@ function WatcherCard({ watcher, onRemind }) {
       {/* Progress bar */}
       <div className="mb-2">
         <div className="flex justify-between items-center mb-1">
-          <span className={`text-xs font-black ${colors.text}`}>{watcher.ads_watched} / {ADS_GOAL} ads</span>
+          <span className={`text-xs font-black ${colors.text}`}>{adsWatchedCount} / {ADS_GOAL} ads</span>
           <span className="text-[10px] text-ink-soft font-bold">{Math.round(pct)}%</span>
         </div>
         <div className="w-full h-2 bg-surface rounded-full overflow-hidden">

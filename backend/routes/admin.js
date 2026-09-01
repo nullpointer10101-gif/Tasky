@@ -185,6 +185,8 @@ router.get('/gram-watchers', async (req, res) => {
       const hasClaimedToday = claimedIds.has(r.telegram_id.toString());
       if (hasClaimedToday || r.has_pending_claim) {
         adsWatched = 60; // Force 60/60 if already claimed or pending
+      } else {
+        adsWatched = Math.min(adsWatched, 60); // Cap at 60 max
       }
       return {
         telegram_id: r.telegram_id,
