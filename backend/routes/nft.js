@@ -276,8 +276,8 @@ router.post('/deposit/auto-verify', async (req, res) => {
       }
     }
 
-    // 2. Query TON API for recent transactions on Admin Wallet
-    const tonApiUrl = `https://tonapi.io/v2/blockchain/accounts/${encodeURIComponent(ADMIN_WALLET)}/transactions?limit=25`;
+    // 2. Query TON API for recent events on Admin Wallet (Events API decodes comments reliably)
+    const tonApiUrl = `https://tonapi.io/v2/accounts/${encodeURIComponent(ADMIN_WALLET)}/events?limit=50`;
     
     https.get(tonApiUrl, (apiRes) => {
       let body = '';
@@ -285,37 +285,39 @@ router.post('/deposit/auto-verify', async (req, res) => {
       apiRes.on('end', async () => {
         try {
           const json = JSON.parse(body);
-          const transactions = json.transactions || [];
+          const events = json.events || [];
 
-          let matchedTx = null;
+          let matchedEvent = null;
           let depositedGram = 0;
           let matchedHash = cleanTxHash;
 
-          for (const tx of transactions) {
-            const inMsg = tx.in_msg;
-            if (!inMsg) continue;
+          for (const ev of events) {
+            const eventId = ev.event_id;
+            for (const action of (ev.actions || [])) {
+              if (action.type === 'TonTransfer') {
+                const transfer = action.TonTransfer;
+                const comment = transfer.comment || '';
+                
+                // Check if comment matches TASKY_<TELEGRAM_ID> OR tx hash matches cleanTxHash
+                const isMemoMatch = comment.includes(userMemo) || comment.includes(String(telegram_id));
+                const isHashMatch = cleanTxHash && (eventId === cleanTxHash || eventId.toLowerCase() === cleanTxHash.toLowerCase());
 
-            const comment = inMsg.decoded_body?.text || inMsg.message || '';
-            const hash = tx.hash;
+                if (isMemoMatch || isHashMatch) {
+                  const nanoAmount = BigInt(transfer.amount || 0);
+                  depositedGram = Number(nanoAmount) / 1e9;
 
-            // Check if comment matches TASKY_<TELEGRAM_ID> OR tx hash matches cleanTxHash
-            const isMemoMatch = comment.includes(userMemo) || comment.includes(String(telegram_id));
-            const isHashMatch = cleanTxHash && (hash === cleanTxHash || hash.toLowerCase() === cleanTxHash.toLowerCase());
-
-            if (isMemoMatch || isHashMatch) {
-              // Convert nanoTON/nanoGRAM to GRAM (1 GRAM = 10^9 nano)
-              const nanoAmount = BigInt(inMsg.value || 0);
-              depositedGram = Number(nanoAmount) / 1e9;
-
-              if (depositedGram > 0) {
-                matchedTx = tx;
-                matchedHash = hash;
-                break;
+                  if (depositedGram > 0) {
+                    matchedEvent = ev;
+                    matchedHash = eventId;
+                    break;
+                  }
+                }
               }
             }
+            if (matchedEvent) break;
           }
 
-          if (!matchedTx || depositedGram <= 0) {
+          if (!matchedEvent || depositedGram <= 0) {
             return res.status(404).json({
               error: `No uncredited incoming deposit found for memo "${userMemo}". Make sure you transferred to ${ADMIN_WALLET} with comment "${userMemo}" and try again!`
             });
