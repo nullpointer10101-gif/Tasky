@@ -68,8 +68,13 @@ export default function GramClaims() {
         reason = "Kindly add | Tasky 🐾 to your Telegram profile name.";
       }
     } else if (action === 'approve') {
-      txHash = prompt('Enter transaction hash or Tonviewer link (optional):');
-      if (txHash === null) txHash = '';
+      txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
+      if (txHash === null) return; // User cancelled
+      if (!txHash.trim()) {
+        toast.error('Transaction hash or Tonviewer link is compulsory to mark as Paid!');
+        return;
+      }
+      txHash = txHash.trim();
     }
  
     setProcessingId(id);

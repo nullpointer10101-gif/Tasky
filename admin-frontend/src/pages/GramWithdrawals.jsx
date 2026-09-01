@@ -35,8 +35,13 @@ export default function GramWithdrawals() {
   }, [fetchWithdrawals]);
 
   const handleApprove = async (id) => {
-    let txHash = prompt('Enter transaction hash or Tonviewer link (optional):');
-    if (txHash === null) txHash = '';
+    let txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
+    if (txHash === null) return; // User cancelled
+    if (!txHash.trim()) {
+      alert('Transaction hash or Tonviewer link is compulsory to approve this withdrawal!');
+      return;
+    }
+    txHash = txHash.trim();
 
     setProcessing(id);
     try {

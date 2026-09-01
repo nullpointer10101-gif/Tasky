@@ -46,14 +46,23 @@ export default function Withdrawals() {
 
   const handleReview = async (id, action) => {
     let reason = '';
+    let txHash = '';
     if (action === 'reject') {
       reason = prompt('Enter rejection reason (User will be refunded):');
       if (reason === null) return;
+    } else if (action === 'approve') {
+      txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
+      if (txHash === null) return; // User cancelled
+      if (!txHash.trim()) {
+        toast.error('Transaction hash or Tonviewer link is compulsory to approve this withdrawal!');
+        return;
+      }
+      txHash = txHash.trim();
     }
 
     setProcessingId(id);
     try {
-      await api.post('/withdrawals/review', { withdrawal_id: id, action, rejection_reason: reason });
+      await api.post('/withdrawals/review', { withdrawal_id: id, action, rejection_reason: reason, tx_hash: txHash });
       toast.success("Withdrawal " + action + "d successfully");
       setWithdrawals(withdrawals.filter(w => w.withdrawal_id !== id));
       fetchHistory();

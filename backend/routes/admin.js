@@ -639,7 +639,11 @@ router.post('/withdrawals/review', async (req, res) => {
     const finalTxHash = tx_hash || wRes.rows[0].tx_hash || null;
 
     if (action === 'approve') {
-      await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [withdrawal_id, finalTxHash]);
+      if (!finalTxHash || !finalTxHash.trim()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Transaction hash or Tonviewer link is mandatory to approve this payout.' });
+      }
+      await client.query(`UPDATE swaps SET status = 'done', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [withdrawal_id, finalTxHash.trim()]);
       await client.query(`UPDATE users SET has_unseen_approved_withdrawal = TRUE, withdrawal_popup_views = 0 WHERE telegram_id = $1`, [telegram_id]);
       
       // Fetch user profile for broadcast
@@ -1435,7 +1439,11 @@ router.post('/gram/claims/review', async (req, res) => {
     const { telegram_id, amount, gram_wallet_address } = claimRes.rows[0];
 
     if (action === 'approve') {
-      await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [claim_id, tx_hash || null]);
+      if (!tx_hash || !tx_hash.trim()) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Transaction hash or Tonviewer link is mandatory to approve this Gram claim.' });
+      }
+      await client.query(`UPDATE gram_claims SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`, [claim_id, tx_hash.trim()]);
       
       // Check referral validity for the user who claimed
       const userRes = await client.query('SELECT referred_by, username, first_name FROM users WHERE telegram_id = $1', [telegram_id]);
@@ -1759,10 +1767,13 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Withdrawal not found or already processed' });
     }
-    const w = wRes.rows[0];
+    if (!tx_hash || !tx_hash.trim()) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Transaction hash or Tonviewer link is mandatory to approve this GRAM withdrawal.' });
+    }
     await client.query(
       `UPDATE gram_withdrawals SET status = 'approved', processed_at = NOW(), tx_hash = $2 WHERE id = $1`,
-      [id, tx_hash || null]
+      [id, tx_hash.trim()]
     );
 
     // Check referral validity for the user who withdrew
