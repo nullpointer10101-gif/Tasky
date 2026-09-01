@@ -42,11 +42,11 @@ export default function Broadcast() {
   const nftTemplates = [
     {
       label: 'Variant 1: High Yield Launch ⚡️',
-      text: `🚀 <b>NEW FEATURE LAUNCH: NFT DIGITAL MINERS!</b> 💎\n\nTasky family, buy limited <b>NFT Digital Miners</b> and earn guaranteed daily GRAM returns!\n\n⚡️ <b>Gram Mini Miner #01:</b> 0.5 GRAM ➔ 1.0 GRAM Total Return (10 Days)\n🚀 <b>Gram Turbo Miner #02:</b> 1.0 GRAM ➔ 1.5 GRAM Total Return (10 Days)\n\n💎 <b>Instant Pay via Tonkeeper:</b> Direct 1-tap TON/GRAM deposit & instant on-chain verification!\n\n👉 <b>Tap below to claim your NFT Miner now:</b>`
+      text: `🚀 <b>NEW FEATURE LAUNCH: NFT DIGITAL MINERS!</b> 💎\n\nTasky family, buy limited <b>NFT Digital Miners</b> and earn guaranteed daily GRAM returns!\n\n⚡️ <b>Gram Mini Miner #01:</b> 0.5 GRAM ➔ 0.7 GRAM Total Return (10 Days)\n🚀 <b>Gram Turbo Miner #02:</b> 1.0 GRAM ➔ 1.5 GRAM Total Return (10 Days)\n\n💎 <b>Instant Pay via Tonkeeper:</b> Direct 1-tap TON/GRAM deposit & instant on-chain verification!\n\n👉 <b>Tap below to claim your NFT Miner now:</b>`
     },
     {
       label: 'Variant 2: Passive Daily Income 📈',
-      text: `🔥 <b>EARN PASSIVE GRAM EVERY DAY FOR 10 DAYS!</b> 🎁\n\nUnlock your personal NFT Miner and start mining daily GRAM rewards automatically!\n\n• <b>0.5 GRAM Miner:</b> Pays <b>+0.10 GRAM/day</b> for 10 Days (2x Return!)\n• <b>1.0 GRAM Miner:</b> Pays <b>+0.15 GRAM/day</b> for 10 Days (1.5x Return!)\n\n⚡️ Transfer via Tonkeeper with zero admin wait time!\n\n💎 <b>Start Mining Today:</b>`
+      text: `🔥 <b>EARN PASSIVE GRAM EVERY DAY FOR 10 DAYS!</b> 🎁\n\nUnlock your personal NFT Miner and start mining daily GRAM rewards automatically!\n\n• <b>0.5 GRAM Miner:</b> Pays <b>+0.07 GRAM/day</b> for 10 Days (0.7 GRAM Total!)\n• <b>1.0 GRAM Miner:</b> Pays <b>+0.15 GRAM/day</b> for 10 Days (1.5 GRAM Total!)\n\n⚡️ Transfer via Tonkeeper with zero admin wait time!\n\n💎 <b>Start Mining Today:</b>`
     },
     {
       label: 'Variant 3: Limited Stock Urgency 🚨',

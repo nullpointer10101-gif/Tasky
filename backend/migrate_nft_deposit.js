@@ -28,7 +28,7 @@ async function migrate() {
   await pool.query(`
     INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
     VALUES 
-      (1, 'Gram Mini Miner #01', 'Entry-level digital miner. Earn 0.10 GRAM daily for 10 days.', 0.5, 0.10, 10, 1.0, 'rare', 'bolt', 1000, true),
+      (1, 'Gram Mini Miner #01', 'Entry-level digital miner. Earn 0.07 GRAM daily for 10 days.', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, true),
       (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true)
     ON CONFLICT (id) DO UPDATE SET
       name = EXCLUDED.name,
