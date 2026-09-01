@@ -402,75 +402,127 @@ router.post('/special-offer/claim', async (req, res) => {
     }
 });
 
+// GET /api/users/channel-status
+router.get('/channel-status', async (req, res) => {
+    const { telegram_id } = req.query;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        const checkMembership = async (handle) => {
+            try {
+                if (bot && bot.getChatMember) {
+                    const member = await bot.getChatMember(handle, telegram_id);
+                    return ['member', 'administrator', 'creator'].includes(member.status);
+                }
+                return true;
+            } catch (e) {
+                return false;
+            }
+        };
+
+        const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
+            checkMembership('@Tasky_Official'),
+            checkMembership('@TaskyPayouts'),
+            checkMembership('@AlphaDropDaily'),
+            checkMembership('@TaskyOfficialCommunity')
+        ]);
+
+        const allJoined = joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity;
+
+        // If user already verified in DB and all 4 joined, mark true
+        if (allJoined) {
+            await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
+        }
+
+        res.json({
+            tasky_official: joinedChannel,
+            tasky_payouts: joinedPayouts,
+            alphadrop: joinedAlphaDrop,
+            community: joinedCommunity,
+            all_joined: allJoined
+        });
+    } catch (error) {
+        console.error('Error in /channel-status:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // POST /api/users/verify-channels
 router.post('/verify-channels', async (req, res) => {
     const { telegram_id } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     try {
-        const userRes = await pool.query('SELECT has_verified_channels FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await pool.query('SELECT has_verified_channels, balance FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
-        
-        if (userRes.rows[0].has_verified_channels) {
-            return res.json({ success: true, message: 'Already verified' });
-        }
 
-        let joinedChannel = false;
-        try {
-            if (bot && bot.getChatMember) {
-                const member = await bot.getChatMember('@Tasky_Official', telegram_id);
-                joinedChannel = ['member', 'administrator', 'creator'].includes(member.status);
-            } else {
-                joinedChannel = true;
+        const checkMembership = async (handle) => {
+            try {
+                if (bot && bot.getChatMember) {
+                    const member = await bot.getChatMember(handle, telegram_id);
+                    return ['member', 'administrator', 'creator'].includes(member.status);
+                }
+                return true;
+            } catch (e) {
+                console.error(`Error checking ${handle} join:`, e.message);
+                return false;
             }
-        } catch (e) {
-            console.error('Error checking @Tasky_Official join:', e.message);
-            joinedChannel = true;
-        }
+        };
 
-        let joinedAlphaDrop = false;
-        try {
-            if (bot && bot.getChatMember) {
-                const member = await bot.getChatMember('@AlphaDropDaily', telegram_id);
-                joinedAlphaDrop = ['member', 'administrator', 'creator'].includes(member.status);
-            } else {
-                joinedAlphaDrop = true;
-            }
-        } catch (e) {
-            console.error('Error checking @AlphaDropDaily join:', e.message);
-            joinedAlphaDrop = true;
-        }
+        const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
+            checkMembership('@Tasky_Official'),
+            checkMembership('@TaskyPayouts'),
+            checkMembership('@AlphaDropDaily'),
+            checkMembership('@TaskyOfficialCommunity')
+        ]);
 
-        let joinedCommunity = false;
-        try {
-            if (bot && bot.getChatMember) {
-                const member = await bot.getChatMember('@TaskyOfficialCommunity', telegram_id);
-                joinedCommunity = ['member', 'administrator', 'creator'].includes(member.status);
-            } else {
-                joinedCommunity = true;
-            }
-        } catch (e) {
-            console.error('Error checking @TaskyOfficialCommunity join:', e.message);
-            joinedCommunity = true;
-        }
+        const notJoined = [];
+        if (!joinedChannel) notJoined.push('Official Channel');
+        if (!joinedPayouts) notJoined.push('Tasky Payouts');
+        if (!joinedAlphaDrop) notJoined.push('AlphaDrop Daily');
+        if (!joinedCommunity) notJoined.push('Community Group');
 
-        if (!joinedChannel || !joinedCommunity || !joinedAlphaDrop) {
-            return res.status(400).json({ error: 'Please join the Channel, AlphaDropDaily channel, and Community group first!' });
+        if (notJoined.length > 0) {
+            return res.status(400).json({ 
+                error: `Please join the remaining communities: ${notJoined.join(', ')}`,
+                status: {
+                    tasky_official: joinedChannel,
+                    tasky_payouts: joinedPayouts,
+                    alphadrop: joinedAlphaDrop,
+                    community: joinedCommunity
+                }
+            });
         }
 
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
             
-            const updateRes = await client.query(`
-                UPDATE users 
-                SET balance = balance + 200, has_verified_channels = TRUE 
-                WHERE telegram_id = $1 
-                RETURNING balance
-            `, [telegram_id]);
+            // Check if welcome reward was already credited
+            const wasVerified = userRes.rows[0].has_verified_channels;
+            let updateRes;
+            if (!wasVerified) {
+                updateRes = await client.query(`
+                    UPDATE users 
+                    SET balance = balance + 200, has_verified_channels = TRUE 
+                    WHERE telegram_id = $1 
+                    RETURNING balance
+                `, [telegram_id]);
+            } else {
+                updateRes = await client.query(`
+                    UPDATE users 
+                    SET has_verified_channels = TRUE 
+                    WHERE telegram_id = $1 
+                    RETURNING balance
+                `, [telegram_id]);
+            }
             
             await client.query('COMMIT');
-            res.json({ success: true, new_balance: parseFloat(updateRes.rows[0].balance) });
+            res.json({ 
+                success: true, 
+                new_balance: parseFloat(updateRes.rows[0].balance),
+                reward_granted: !wasVerified
+            });
         } catch (err) {
             await client.query('ROLLBACK');
             throw err;

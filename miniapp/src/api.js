@@ -293,6 +293,11 @@ export const requestGramWithdrawal = withMock(
 )
 
 // --- CHANNELS VERIFICATION ---
+export const getChannelStatus = withMock(
+  { tasky_official: false, tasky_payouts: false, alphadrop: false, community: false, all_joined: false },
+  (telegram_id) => () => api.get(`/api/users/channel-status?telegram_id=${telegram_id}`)
+)
+
 export const verifyChannels = withMock(
   { success: true, new_balance: 200 },
   (telegram_id) => () => api.post('/api/users/verify-channels', { telegram_id })
