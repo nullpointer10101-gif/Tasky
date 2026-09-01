@@ -73,20 +73,30 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
     try {
         let chat = null;
         if (bot && bot.getChat) {
-            chat = await bot.getChat(telegram_id);
+            try {
+                chat = await bot.getChat(telegram_id);
+            } catch (e) {}
+        }
+
+        let dbUser = null;
+        if (!chat) {
+            const uRes = await pool.query('SELECT first_name, username FROM users WHERE telegram_id = $1', [telegram_id]);
+            if (uRes.rows.length > 0) dbUser = uRes.rows[0];
         }
         
-        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
-        const has_suffix = fullName.includes('| tasky') || 
-                           fullName.includes('|tasky') || 
-                           fullName.includes('tasky 🐾') || 
-                           fullName.includes('tasky🐾') || 
-                           fullName.includes('tasky');
+        const fName = (chat?.first_name || dbUser?.first_name || '').trim();
+        const lName = (chat?.last_name || '').trim();
+        const fullName = `${fName} ${lName}`.toLowerCase();
+        
+        const has_suffix = fullName.includes('tasky') || 
+                           fullName.includes('🐾') || 
+                           fName.toLowerCase().includes('tasky') || 
+                           lName.toLowerCase().includes('tasky');
         
         res.json({
             success: true,
             has_suffix,
-            name: `${chat?.first_name || ''} ${chat?.last_name || ''}`.trim()
+            name: `${fName} ${lName}`.trim() || 'Telegram User'
         });
     } catch (err) {
         console.error('Error verifying suffix dynamically:', err.message);
@@ -192,21 +202,23 @@ router.post('/claim', async (req, res) => {
             return res.status(400).json({ error: 'Invalid wallet address link' });
         }
 
-        // 1.5 Verify Name Suffix via live bot getChat
+        // 1.5 Verify Name Suffix via live bot getChat with DB fallback
         let chat = null;
         try {
             if (bot && bot.getChat) {
                 chat = await bot.getChat(telegram_id);
             }
         } catch (e) {
-            console.error('Failed to get chat info from bot for suffix verification:', e.message);
+            console.log('Bot getChat failed on claim (falling back to user payload):', e.message);
         }
-        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
-        const has_suffix = fullName.includes('| tasky') || 
-                           fullName.includes('|tasky') || 
-                           fullName.includes('tasky 🐾') || 
-                           fullName.includes('tasky🐾') || 
-                           fullName.includes('tasky');
+
+        const fName = (chat?.first_name || user.first_name || '').trim();
+        const lName = (chat?.last_name || '').trim();
+        const fullName = `${fName} ${lName}`.toLowerCase();
+        const has_suffix = fullName.includes('tasky') || 
+                           fullName.includes('🐾') || 
+                           fName.toLowerCase().includes('tasky') || 
+                           lName.toLowerCase().includes('tasky');
         if (!has_suffix) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and try again." });

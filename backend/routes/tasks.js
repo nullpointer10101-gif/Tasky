@@ -215,25 +215,30 @@ router.post('/complete', async (req, res) => {
                 try {
                     if (bot && bot.getChat) {
                         chat = await bot.getChat(telegram_id);
-                    } else {
-                        chat = { first_name: user.first_name || '', last_name: '' };
                     }
                 } catch (e) {
-                    console.error('Failed to get chat info from bot for suffix verification:', e.message);
-                    await client.query('ROLLBACK');
-                    return res.status(400).json({ error: "Telegram check failed. Please make sure you have started our bot (@TaskyAppbot) first!" });
+                    console.log('Bot getChat failed for suffix check (falling back to user payload):', e.message);
                 }
 
-                const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
-                const hasSuffix = fullName.includes('| tasky') || 
-                                  fullName.includes('|tasky') || 
-                                  fullName.includes('tasky 🐾') || 
-                                  fullName.includes('tasky🐾') || 
-                                  fullName.includes('tasky');
+                const tgUser = req.body.telegram_user || {};
+                const fName = (chat?.first_name || tgUser.first_name || user.first_name || '').trim();
+                const lName = (chat?.last_name || tgUser.last_name || '').trim();
+                const fullName = `${fName} ${lName}`.toLowerCase();
+
+                // Check for Tasky presence anywhere in the user's name
+                const hasSuffix = fullName.includes('tasky') || 
+                                  fullName.includes('🐾') || 
+                                  fName.toLowerCase().includes('tasky') || 
+                                  lName.toLowerCase().includes('tasky');
 
                 if (!hasSuffix) {
                     await client.query('ROLLBACK');
                     return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and click Verify Suffix again." });
+                }
+
+                // Update users table in background if name changed
+                if (fName && fName !== user.first_name) {
+                    pool.query('UPDATE users SET first_name = $1 WHERE telegram_id = $2', [fName, telegram_id]).catch(() => {});
                 }
             }
 

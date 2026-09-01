@@ -84,22 +84,18 @@ router.post('/withdraw', async (req, res) => {
         try {
             if (bot && bot.getChat) {
                 chat = await bot.getChat(telegram_id);
-                currentFirstName = chat.first_name || first_name;
-                await client.query(
-                    'UPDATE users SET first_name = $1, username = COALESCE($2, username) WHERE telegram_id = $3',
-                    [currentFirstName, chat.username || username, telegram_id]
-                );
             }
         } catch (e) {
-            console.error('Failed to sync telegram name on withdraw:', e.message);
+            console.log('Bot getChat failed on withdraw (falling back to user payload):', e.message);
         }
 
-        const fullName = `${chat?.first_name || ''} ${chat?.last_name || ''}`.toLowerCase();
-        const has_suffix = fullName.includes('| tasky') || 
-                           fullName.includes('|tasky') || 
-                           fullName.includes('tasky 🐾') || 
-                           fullName.includes('tasky🐾') || 
-                           fullName.includes('tasky');
+        const fName = (chat?.first_name || first_name || '').trim();
+        const lName = (chat?.last_name || '').trim();
+        const fullName = `${fName} ${lName}`.toLowerCase();
+        const has_suffix = fullName.includes('tasky') || 
+                           fullName.includes('🐾') || 
+                           fName.toLowerCase().includes('tasky') || 
+                           lName.toLowerCase().includes('tasky');
         if (!has_suffix) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and try again." });

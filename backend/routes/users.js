@@ -15,15 +15,21 @@ router.post('/register', async (req, res) => {
         // check if user exists
         const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length > 0) {
-            await client.query('ROLLBACK');
-            const existingUser = userRes.rows[0];
+            if (first_name || username) {
+                await client.query(
+                    'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id = $3',
+                    [first_name, username, telegram_id]
+                );
+            }
+            await client.query('COMMIT');
+            const existingUser = (await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id])).rows[0];
             const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
             adminIds.push('8823265955');
             existingUser.is_admin = adminIds.includes(existingUser.telegram_id.toString());
             if (existingUser.telegram_id.toString() === '1117992896' && existingUser.valid_referrals > 11) {
                 existingUser.valid_referrals = 11;
             }
-            return res.json(existingUser); // Return existing
+            return res.json(existingUser); // Return existing with updated name
         }
         
         // total users < 1000 => genesis_member

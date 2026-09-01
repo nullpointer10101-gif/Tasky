@@ -133,7 +133,7 @@ export const playSpin       = withMock(() => {
   return { reward_earned: 250, tier: 'medium' };
 }, (telegram_id) => () => api.post('/api/spin/play', { telegram_id }))
 export const getTasks       = withMock(mockData.getTasks, (telegram_id) => () => api.get('/api/tasks', { params: { telegram_id } }))
-export const completeTask   = withMock({ success: true }, (telegram_id, task_id, proof_screenshot_url, proof_url) => () => api.post('/api/tasks/complete', { telegram_id, task_id, proof_screenshot_url, proof_url }))
+export const completeTask   = withMock({ success: true }, (telegram_id, task_id, proof_screenshot_url, proof_url, telegram_user) => () => api.post('/api/tasks/complete', { telegram_id, task_id, proof_screenshot_url, proof_url, telegram_user }))
 export const getReferral    = withMock(mockData.getReferral, (id) => () => api.get(`/api/referral/${id}`))
 export const getReferralLeaderboard = withMock(() => mockData.getReferralLeaderboard, () => () => api.get('/api/referral/leaderboard'))
 

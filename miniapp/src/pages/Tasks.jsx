@@ -211,7 +211,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
       // Submit task completion to backend
       const activeTask = selectedTask;
-      const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url);
+      const tgUser = window?.Telegram?.WebApp?.initDataUnsafe?.user || { first_name: user?.first_name, username: user?.username };
+      const res = await completeTask(user?.telegram_id, activeTask.id, proof_screenshot_url, proof_url, tgUser);
       setIsSubmitting(false);
       if (res.data) {
         const isAutoApproved = ['auto_telegram', 'auto_referral', 'none', 'auto_ad', 'timer_10s', 'telegram_suffix'].includes(activeTask.verification_type);
