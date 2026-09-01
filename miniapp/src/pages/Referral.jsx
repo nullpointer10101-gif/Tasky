@@ -240,119 +240,62 @@ export default function Referral({ user }) {
             </Card>
           </motion.div>
         ) : (
-            <motion.div    className="space-y-3 pb-8">
-            <div className="mb-6 relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border border-purple-500/50  flex flex-col items-center justify-center text-center transform hover:scale-[1.02] transition-transform duration-300">
+          <motion.div className="space-y-4 pb-8" variants={cardVariants}>
+            <div className="relative overflow-hidden rounded-3xl p-6 md:p-8 bg-gradient-to-br from-[#1E1B4B] via-[#311042] to-[#0F0D24] border border-purple-500/40 text-center flex flex-col items-center justify-center shadow-2xl">
               
-              <div className="relative z-10 flex flex-col items-center gap-2 w-full">
-                <div className="inline-flex items-center gap-2 bg-white/10 px-4 py-1.5 rounded-full border border-white/20 shadow-inner ">
-                  <Trophy size={14} className="text-fuchsia-300 " />
-                  <span className="text-[11px] font-black text-fuchsia-100 uppercase tracking-widest ">Weekly Leaderboard W2</span>
+              {/* Background ambient glow */}
+              <div className="absolute -top-12 -left-12 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl" />
+              <div className="absolute -bottom-12 -right-12 w-40 h-40 bg-fuchsia-500/20 rounded-full blur-3xl" />
+
+              {/* Glowing Lock Icon */}
+              <div className="relative z-10 w-20 h-20 rounded-2xl bg-gradient-to-tr from-purple-600 to-pink-500 p-0.5 mb-5 shadow-xl shadow-purple-500/30 animate-pulse">
+                <div className="w-full h-full rounded-2xl bg-[#0F0D24] flex items-center justify-center">
+                  <Lock className="w-9 h-9 text-purple-300" />
                 </div>
-                
-                <h2 className="text-[28px] font-black text-white  tracking-tight flex items-center justify-center gap-3 mt-1 mb-1 w-full">
-                  <Clock className="text-fuchsia-400   shrink-0" size={26} />
-                  <span className="bg-clip-text text-transparent bg-gradient-to-b from-white via-fuchsia-100 to-fuchsia-300 tabular-nums">
-                    {timeLeft}
-                  </span>
-                </h2>
-                
-                <p className="text-[13px] font-medium text-fuchsia-200/90 leading-tight">
-                  Top 10 players win <strong className="text-fuchsia-300 font-bold ">USDT & TASKY</strong> every Wednesday!
-                </p>
               </div>
+
+              {/* Badge */}
+              <div className="relative z-10 inline-flex items-center gap-2 bg-purple-500/15 px-4 py-1.5 rounded-full border border-purple-500/30 text-purple-300 text-xs font-black uppercase tracking-widest mb-3">
+                <Sparkles size={14} className="text-amber-400" />
+                SEASON 2 • COMING SOON
+              </div>
+
+              {/* Heading */}
+              <h2 className="relative z-10 text-2xl md:text-3xl font-black text-white tracking-tight mb-2">
+                Leaderboard Rewards Locked
+              </h2>
+
+              {/* Description */}
+              <p className="relative z-10 text-xs md:text-sm font-medium text-purple-200/80 max-w-xs mx-auto mb-6 leading-relaxed">
+                Season 1 leaderboard rewards have concluded! Season 2 mega prize pool is being configured and will launch soon.
+              </p>
+
+              {/* Info Cards */}
+              <div className="relative z-10 grid grid-cols-2 gap-3 w-full max-w-sm mb-6">
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 text-center">
+                  <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Next Event</p>
+                  <p className="text-sm font-black text-amber-400">Season 2 Launch</p>
+                </div>
+                <div className="p-3 bg-white/5 rounded-2xl border border-white/10 text-center">
+                  <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Prize Pool</p>
+                  <p className="text-sm font-black text-emerald-400">1,000+ USDT</p>
+                </div>
+              </div>
+
+              {/* Community Announcement Banner */}
+              <a
+                href="https://t.me/TaskyOfficialCommunity"
+                target="_blank"
+                rel="noreferrer"
+                className="relative z-10 inline-flex items-center gap-2 text-xs font-bold text-purple-200 bg-purple-500/20 hover:bg-purple-500/30 px-4 py-2.5 rounded-2xl border border-purple-500/30 transition-all active:scale-95"
+              >
+                <Trophy size={14} className="text-amber-400 shrink-0" />
+                <span>Join Official Community for Season 2 Announcement</span>
+              </a>
             </div>
-            
-            {leaderboard.length === 0 && !loading && (
-              <EmptyState icon={<Medal />} title="No data" description="The leaderboard is empty." />
-            )}
-
-            {leaderboard.map((user, index) => {
-              const rank = index + 1;
-              let bgClass = "bg-surface border border-border/50 hover:bg-surface-soft hover:border-primary/40 hover: transition-all duration-300";
-              let rankTextClass = "text-ink-faint font-black text-lg";
-              let icon = null;
-              let prizeText = "10k TASKY";
-              if (rank === 4) prizeText = "50k TASKY";
-              else if (rank === 5) prizeText = "40k TASKY";
-              else if (rank === 6) prizeText = "30k TASKY";
-              else if (rank === 7) prizeText = "20k TASKY";
-
-              let prizeClass = "bg-primary/10 text-primary border border-primary/20  font-bold text-[10px] px-2 py-1";
-              let nameClass = "text-ink font-bold text-[15px]";
-              let statClass = "text-ink-soft";
-
-              if (rank === 1) {
-                bgClass = "bg-gradient-to-r from-[#FFB703] via-[#FF8F00] to-[#E65100]  border border-[#FFE082]  scale-[1.02] transform z-20 relative";
-                rankTextClass = "text-[#FFF8E1] font-black text-xl ";
-                icon = <Trophy size={24} className="text-[#FFF8E1] " />;
-                prizeText = "100 USDT";
-                prizeClass = "bg-white text-[#E65100] font-black border-0 shadow-lg px-3 py-1 text-xs scale-105";
-                nameClass = "text-white font-black text-lg ";
-                statClass = "text-[#FFE082] font-semibold";
-              } else if (rank === 2) {
-                bgClass = "bg-gradient-to-r from-[#E2E8F0] via-[#CBD5E1] to-[#94A3B8]  border border-white z-10 relative";
-                rankTextClass = "text-[#334155] font-black text-lg ";
-                icon = <Medal size={22} className="text-[#334155] " />;
-                prizeText = "50 USDT";
-                prizeClass = "bg-white text-[#475569] font-black border-0 shadow-md px-3 py-1 text-xs";
-                nameClass = "text-[#0F172A] font-extrabold text-[16px] ";
-                statClass = "text-[#475569] font-semibold";
-              } else if (rank === 3) {
-                bgClass = "bg-gradient-to-r from-[#F97316] via-[#EA580C] to-[#C2410C]  border border-[#FDBA74] z-10 relative";
-                rankTextClass = "text-[#FFEDD5] font-black text-lg ";
-                icon = <Medal size={22} className="text-[#FFEDD5] " />;
-                prizeText = "20 USDT";
-                prizeClass = "bg-white text-[#C2410C] font-black border-0 shadow-md px-3 py-1 text-xs";
-                nameClass = "text-white font-extrabold text-[16px] ";
-                statClass = "text-[#FFEDD5] font-semibold";
-              }
-
-              return (
-                <motion.div
-                  key={user.id || user.telegram_id || index}
-                  variants={{ initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 } }}
-                  whileHover={{ scale: rank > 1 ? 1.02 : 1.04 }}
-                  className={`rounded-2xl p-4 flex items-center gap-3 overflow-hidden ${bgClass}`}
-                >
-                  {rank <= 3 && (
-                    <>
-                      
-                    </>
-                  )}
-                  
-                  <div className={`w-8 flex justify-center shrink-0 ${rankTextClass}`}>
-                    {icon || `#${rank}`}
-                  </div>
-                  
-                  <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold overflow-hidden shrink-0 shadow-inner ${rank <= 3 ? 'bg-white/20 text-white ' : 'bg-surface-soft text-ink border border-border/50'}`}>
-                    {user.username ? (
-                      <span className="text-sm tracking-wider">{user.username.substring(0, 2).toUpperCase()}</span>
-                    ) : (
-                      <Users size={20} className="opacity-80" />
-                    )}
-                  </div>
-                  
-                  <div className="flex-1 min-w-0 z-10">
-                    <h3 className={`truncate ${nameClass}`}>
-                      {user.first_name || user.username || 'Anonymous'}
-                    </h3>
-                    <p className={`text-[11px] uppercase tracking-wider truncate mt-0.5 ${statClass}`}>
-                      <strong className="font-black text-sm mr-1">{user.valid_referrals || 0}</strong> valid 
-                      <span className="opacity-50 mx-1">|</span> {user.total_referrals} total
-                    </p>
-                  </div>
-                  
-                  <div className="text-right shrink-0 flex flex-col items-end gap-1 z-10">
-                    <div className={`uppercase tracking-widest rounded-full flex items-center justify-center ${prizeClass}`}>
-                      {prizeText}
-                    </div>
-                  </div>
-                </motion.div>
-              );
-            })}
           </motion.div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
