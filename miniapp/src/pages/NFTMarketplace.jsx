@@ -14,7 +14,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
   const [activeTab, setActiveTab] = useState('marketplace'); // marketplace | inventory | deposit
   const [cards, setCards] = useState([]);
   const [myCards, setMyCards] = useState([]);
-  const [depositWallet, setDepositWallet] = useState('UQD1_WjEGr_9GM901K9MrnqpMVsJXAN2YNmLNPZoFRJfFxM8');
+  const [depositWallet, setDepositWallet] = useState('UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR');
   const [loading, setLoading] = useState(true);
   const [buyingId, setBuyingId] = useState(null);
   const [claimingId, setClaimingId] = useState(null);

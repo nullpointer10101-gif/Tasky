@@ -3,7 +3,7 @@ const router = express.Router();
 const https = require('https');
 const { pool } = require('../db');
 
-const ADMIN_WALLET = process.env.ADMIN_WALLET || 'UQD1_WjEGr_9GM901K9MrnqpMVsJXAN2YNmLNPZoFRJfFxM8';
+const ADMIN_WALLET = process.env.ADMIN_WALLET || 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
 
 /**
  * GET /api/nft/marketplace
