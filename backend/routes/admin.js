@@ -1561,7 +1561,14 @@ router.post('/broadcast/nft', async (req, res) => {
               };
 
               if (image_url && bot.sendPhoto) {
-                await bot.sendPhoto(tid, image_url, {
+                let photoPayload = image_url;
+                if (image_url.includes('nft_banner_1.png')) {
+                  photoPayload = fs.createReadStream(path.join(__dirname, '../public/uploads/nft_banner_1.png'));
+                } else if (image_url.includes('nft_banner_2.png')) {
+                  photoPayload = fs.createReadStream(path.join(__dirname, '../public/uploads/nft_banner_2.png'));
+                }
+
+                await bot.sendPhoto(tid, photoPayload, {
                   caption: message,
                   parse_mode: 'HTML',
                   reply_markup: replyMarkup
