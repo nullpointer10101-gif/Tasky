@@ -1890,4 +1890,99 @@ router.post('/send-gram-reminder/:telegram_id', async (req, res) => {
   }
 });
 
+// GET /api/admin/nft-holders
+router.get('/nft-holders', async (req, res) => {
+  try {
+    const holdersQuery = `
+      SELECT 
+        unc.id as instance_id,
+        unc.telegram_id,
+        unc.purchased_at,
+        unc.last_claimed_at,
+        unc.claims_done,
+        unc.total_earned_gram,
+        unc.is_completed,
+        u.username,
+        u.first_name,
+        nc.name as nft_name,
+        nc.price_gram,
+        nc.daily_yield_gram,
+        nc.duration_days,
+        nc.total_yield_gram
+      FROM user_nft_cards unc
+      JOIN users u ON unc.telegram_id = u.telegram_id
+      JOIN nft_cards nc ON unc.nft_id = nc.id
+      ORDER BY unc.purchased_at DESC
+    `;
+    const { rows: holders } = await pool.query(holdersQuery);
+
+    const statsQuery = `
+      SELECT 
+        COUNT(DISTINCT telegram_id) as total_unique_holders,
+        COUNT(id) as total_miners_sold,
+        COALESCE(SUM(total_earned_gram), 0) as total_yield_distributed
+      FROM user_nft_cards
+    `;
+    const { rows: statsRows } = await pool.query(statsQuery);
+
+    res.json({
+      success: true,
+      stats: {
+        total_unique_holders: parseInt(statsRows[0].total_unique_holders, 10) || 0,
+        total_miners_sold: parseInt(statsRows[0].total_miners_sold, 10) || 0,
+        total_yield_distributed: parseFloat(statsRows[0].total_yield_distributed) || 0
+      },
+      holders
+    });
+  } catch (err) {
+    console.error('Error fetching admin NFT holders:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/gram-deposits
+router.get('/gram-deposits', async (req, res) => {
+  try {
+    const depositsQuery = `
+      SELECT 
+        gd.id,
+        gd.telegram_id,
+        gd.amount_gram,
+        gd.tx_hash,
+        gd.auto_verified,
+        gd.status,
+        gd.created_at,
+        u.username,
+        u.first_name
+      FROM gram_deposits gd
+      LEFT JOIN users u ON gd.telegram_id = u.telegram_id
+      ORDER BY gd.created_at DESC
+    `;
+    const { rows: deposits } = await pool.query(depositsQuery);
+
+    const statsQuery = `
+      SELECT 
+        COUNT(id) as total_deposits,
+        COALESCE(SUM(amount_gram), 0) as total_gram_deposited,
+        COUNT(DISTINCT telegram_id) as total_depositors
+      FROM gram_deposits
+      WHERE status = 'approved'
+    `;
+    const { rows: statsRows } = await pool.query(statsQuery);
+
+    res.json({
+      success: true,
+      stats: {
+        total_deposits: parseInt(statsRows[0].total_deposits, 10) || 0,
+        total_gram_deposited: parseFloat(statsRows[0].total_gram_deposited) || 0,
+        total_depositors: parseInt(statsRows[0].total_depositors, 10) || 0
+      },
+      deposits
+    });
+  } catch (err) {
+    console.error('Error fetching admin GRAM deposits:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

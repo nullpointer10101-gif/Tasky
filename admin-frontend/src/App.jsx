@@ -18,6 +18,8 @@ import Settings from './pages/Settings';
 import Machines from './pages/Machines';
 import SpecialOffers from './pages/SpecialOffers';
 import PromoCodes from './pages/PromoCodes';
+import NftHolders from './pages/NftHolders';
+import GramDeposits from './pages/GramDeposits';
 import api from './api';
 import { Toaster } from 'react-hot-toast';
 
@@ -27,16 +29,16 @@ function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = localStorage.getItem('tasky_admin_password');
-      if (!token) {
+      const savedPass = localStorage.getItem('tasky_admin_password');
+      if (!savedPass) {
         setLoading(false);
         return;
       }
       try {
         await api.get('/stats');
         setAuth(true);
-      } catch (e) {
-        setAuth(false);
+      } catch (err) {
+        localStorage.removeItem('tasky_admin_password');
       } finally {
         setLoading(false);
       }
@@ -66,6 +68,8 @@ function App() {
             <Route path="gram-claims" element={<GramClaims />} />
             <Route path="gram-watchers" element={<GramWatchers />} />
             <Route path="gram-withdrawals" element={<GramWithdrawals />} />
+            <Route path="nft-holders" element={<NftHolders />} />
+            <Route path="gram-deposits" element={<GramDeposits />} />
             <Route path="users" element={<Users />} />
             <Route path="broadcast" element={<Broadcast />} />
             <Route path="machines" element={<Machines />} />
