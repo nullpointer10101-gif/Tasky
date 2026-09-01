@@ -65,6 +65,32 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
   const handleVerify = async () => {
     setLoading(true);
     try {
+      // Step 1: Re-fetch live status right now (fresh, no cache)
+      const { data: freshStatus, error: statusErr } = await getChannelStatus(telegramId);
+      console.log('[Verify] Fresh status check:', freshStatus, statusErr);
+
+      if (statusErr || !freshStatus) {
+        showToast('Could not check channel membership. Please try again!', 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Update UI with fresh status
+      setChannelStatus(freshStatus);
+
+      // Step 2: Frontend guard - ALL must be true before we even call backend
+      if (!freshStatus.all_joined) {
+        const missing = [];
+        if (!freshStatus.tasky_official) missing.push('@Tasky_Official');
+        if (!freshStatus.tasky_payouts) missing.push('@TaskyPayouts');
+        if (!freshStatus.alphadrop) missing.push('@AlphaDropDaily');
+        if (!freshStatus.community) missing.push('@TaskyOfficialCommunity');
+        showToast(`❌ Not joined: ${missing.join(', ')}. Join them first!`, 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Step 3: All 4 confirmed joined — call backend to finalize & grant reward
       const { data, error } = await verifyChannels(telegramId);
       if (error) {
         showToast(error, 'error');
@@ -87,6 +113,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       setLoading(false);
     }
   };
+
 
   const channels = [
     {
