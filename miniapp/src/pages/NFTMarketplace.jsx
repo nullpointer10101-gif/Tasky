@@ -388,7 +388,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                     <div className="flex items-center justify-between pt-2 border-t border-border/50">
                       <div>
                         <p className="text-[10px] font-bold text-ink-soft uppercase">Total Earned</p>
-                        <p className="text-xs font-black text-emerald-400">+{card.total_earned_gram.toFixed(3)} GRAM</p>
+                        <p className="text-xs font-black text-emerald-400">+{Number(card?.total_earned_gram || 0).toFixed(3)} GRAM</p>
                       </div>
 
                       {isMaxedOut ? (

@@ -154,12 +154,12 @@ router.get('/my-cards', async (req, res) => {
 
       return {
         ...card,
-        price_gram: parseFloat(card.price_gram),
-        daily_yield_gram: parseFloat(card.daily_yield_gram),
-        total_yield_gram: parseFloat(card.total_yield_gram),
-        total_earned_gram: parseFloat(card.total_earned_gram),
+        price_gram: parseFloat(card.price_gram) || 0,
+        daily_yield_gram: parseFloat(card.daily_yield_gram) || 0,
+        total_yield_gram: parseFloat(card.total_yield_gram) || 0,
+        total_earned_gram: parseFloat(card.total_earned_gram) || 0,
         can_claim: canClaim,
-        next_claim_seconds: nextClaimSeconds,
+        next_claim_seconds: Math.max(0, nextClaimSeconds || 0),
         days_remaining: Math.max(0, durationDays - claimsDone)
       };
     });
