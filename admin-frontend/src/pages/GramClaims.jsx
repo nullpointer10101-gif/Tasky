@@ -213,7 +213,7 @@ export default function GramClaims() {
                   </div>
 
                   {/* User Verification Metrics */}
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
                       <span className="text-ink font-semibold">{c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -235,6 +235,18 @@ export default function GramClaims() {
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Claim Attempt</span>
                       <span className="text-ink font-semibold text-amber-400">#{c.claim_seq || 1} Claim</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Last Claim Time</span>
+                      {c.last_claim_at ? (
+                        <div className="space-y-0.5">
+                          <span className="text-amber-300 font-semibold text-[10.5px] block leading-tight">
+                            {new Date(c.last_claim_at).toLocaleDateString()} {new Date(c.last_claim_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-emerald-400 font-bold text-[11px]">1st Claim (None)</span>
+                      )}
                     </div>
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 col-span-2 sm:col-span-1 lg:col-span-1">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
@@ -326,7 +338,7 @@ export default function GramClaims() {
                   </div>
 
                   {/* User Verification Metrics */}
-                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Joined Date</span>
                       <span className="text-ink font-semibold">{h.created_at ? new Date(h.created_at).toLocaleDateString() : 'N/A'}</span>
@@ -348,6 +360,18 @@ export default function GramClaims() {
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Claim Attempt</span>
                       <span className="text-ink font-semibold text-amber-400">#{h.claim_seq || 1} Claim</span>
+                    </div>
+                    <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30">
+                      <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Prev Claim Time</span>
+                      {h.last_claim_at ? (
+                        <div className="space-y-0.5">
+                          <span className="text-amber-300 font-semibold text-[10.5px] block leading-tight">
+                            {new Date(h.last_claim_at).toLocaleDateString()} {new Date(h.last_claim_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-emerald-400 font-bold text-[11px]">1st Claim (None)</span>
+                      )}
                     </div>
                     <div className="bg-[#0b1329]/30 p-2.5 rounded-xl border border-border/30 col-span-2 sm:col-span-1 lg:col-span-1">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold tracking-wider mb-0.5">Approved Payouts</span>
