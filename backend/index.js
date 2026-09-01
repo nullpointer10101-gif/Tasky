@@ -176,6 +176,16 @@ if (fs.existsSync(adminDistPath)) {
   });
 }
 
+// Serve Miniapp Static Build directly from Backend (Bypasses Vercel 100/day limit!)
+const miniappDistPath = path.join(__dirname, '../miniapp/dist');
+if (fs.existsSync(miniappDistPath)) {
+  app.use(express.static(miniappDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
+    res.sendFile(path.join(miniappDistPath, 'index.html'));
+  });
+}
+
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Test UI: http://localhost:${PORT}/test.html`);
