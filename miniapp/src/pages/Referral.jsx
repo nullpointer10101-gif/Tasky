@@ -148,7 +148,12 @@ export default function Referral({ user }) {
         {['stats', 'leaderboard'].map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              if (tab === 'leaderboard' && showToast) {
+                showToast('🔒 Leaderboard is currently locked! Season 2 coming soon.', 'error');
+              }
+            }}
             className={`flex-1 py-2 text-[15px] font-bold z-10 transition-all flex items-center justify-center gap-2 relative ${
               activeTab === tab ? 'text-ink' : 'text-ink-soft hover:text-ink'
             }`}
@@ -163,10 +168,8 @@ export default function Referral({ user }) {
                 <span className={`${activeTab === tab ? '' : 'bg-clip-text text-transparent bg-gradient-to-r from-fuchsia-500 to-purple-500 '}`}>
                   Leaderboard
                 </span>
-                {/* Urgent notification dot */}
-                <span className="flex h-2 w-2 relative ml-0.5 -mt-2">
-                  <span className=" absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-80"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500 "></span>
+                <span className="inline-flex items-center gap-0.5 bg-amber-500/20 text-amber-300 text-[10px] font-black px-1.5 py-0.5 rounded-full border border-amber-500/30">
+                  <Lock size={10} />
                 </span>
               </div>
             )}

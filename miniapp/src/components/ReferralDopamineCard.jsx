@@ -58,7 +58,7 @@ export default function ReferralDopamineCard({ referralData, onNavigate }) {
         <div className="flex items-center gap-2">
           <Trophy size={16} className="text-amber-500" />
           <span className="text-[11px] font-bold text-ink-soft">
-            Top 10 referrers this week win <strong className="text-ink">10 Bonus Spins</strong>
+            Season 2 Leaderboard Pool <strong className="text-amber-400 font-black">Coming Soon 🔒</strong>
           </span>
         </div>
         <button
