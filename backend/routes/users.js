@@ -429,18 +429,19 @@ router.get('/channel-status', async (req, res) => {
             checkMembership('@TaskyOfficialCommunity')
         ]);
 
-        const allJoined = joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity;
+        const allJoined = Boolean(joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity);
 
-        // If user joined all 4, auto mark verified in DB
         if (allJoined) {
             await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
+        } else {
+            await pool.query('UPDATE users SET has_verified_channels = FALSE WHERE telegram_id = $1', [telegram_id]);
         }
 
         res.json({
-            tasky_official: joinedChannel,
-            tasky_payouts: joinedPayouts,
-            alphadrop: joinedAlphaDrop,
-            community: joinedCommunity,
+            tasky_official: Boolean(joinedChannel),
+            tasky_payouts: Boolean(joinedPayouts),
+            alphadrop: Boolean(joinedAlphaDrop),
+            community: Boolean(joinedCommunity),
             all_joined: allJoined
         });
     } catch (error) {
@@ -480,19 +481,21 @@ router.post('/verify-channels', async (req, res) => {
         ]);
 
         const notJoined = [];
-        if (!joinedChannel) notJoined.push('Official Channel');
-        if (!joinedPayouts) notJoined.push('Tasky Payouts');
+        if (!joinedChannel) notJoined.push('Tasky Official Channel');
+        if (!joinedPayouts) notJoined.push('Tasky Payouts 💎');
         if (!joinedAlphaDrop) notJoined.push('AlphaDrop Daily');
-        if (!joinedCommunity) notJoined.push('Community Group');
+        if (!joinedCommunity) notJoined.push('Official Community Group');
 
         if (notJoined.length > 0) {
+            await pool.query('UPDATE users SET has_verified_channels = FALSE WHERE telegram_id = $1', [telegram_id]);
             return res.status(400).json({ 
-                error: `Please join the remaining communities: ${notJoined.join(', ')}`,
+                error: `Missing required communities: ${notJoined.join(', ')}. Please join them first!`,
                 status: {
-                    tasky_official: joinedChannel,
-                    tasky_payouts: joinedPayouts,
-                    alphadrop: joinedAlphaDrop,
-                    community: joinedCommunity
+                    tasky_official: Boolean(joinedChannel),
+                    tasky_payouts: Boolean(joinedPayouts),
+                    alphadrop: Boolean(joinedAlphaDrop),
+                    community: Boolean(joinedCommunity),
+                    all_joined: false
                 }
             });
         }

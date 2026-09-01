@@ -69,14 +69,17 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       if (error) {
         showToast(error, 'error');
         await checkLiveStatus(true);
-      } else {
+      } else if (data && data.success) {
         triggerConfetti({ particleCount: 150, spread: 90 });
         if (data.reward_granted) {
-          showToast('🎉 All channels verified! +200 TASKY added to your balance.', 'success');
+          showToast('🎉 All 4 communities verified! +200 TASKY added to your balance.', 'success');
         } else {
-          showToast('🎉 All channels verified! Welcome to Tasky.', 'success');
+          showToast('🎉 All 4 communities verified! Welcome to Tasky.', 'success');
         }
         await refreshUser();
+      } else {
+        showToast('Please join all 4 channels before continuing.', 'error');
+        await checkLiveStatus(true);
       }
     } catch (err) {
       showToast('Connection failed. Please make sure you joined all 4 channels and try again!', 'error');
