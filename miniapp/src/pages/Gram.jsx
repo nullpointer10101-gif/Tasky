@@ -548,6 +548,19 @@ export default function Gram({ user, refreshUser, tgUser }) {
                     </div>
                   ))}
                 </div>
+
+                {/* Mandatory Click Warning */}
+                <div className="w-full bg-rose-500/10 border border-rose-500/30 rounded-xl p-3 text-left flex items-start gap-2.5">
+                  <AlertCircle size={17} className="text-rose-400 shrink-0 mt-0.5 animate-pulse" />
+                  <div className="space-y-0.5">
+                    <p className="text-[11px] font-black text-rose-300 uppercase tracking-wide flex items-center gap-1.5">
+                      ⚠️ Critical: You Must Click on the Ad
+                    </p>
+                    <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
+                      You <strong>MUST click / open the sponsor ad</strong> after watching. If you do not click the ad, your view will <strong>not be counted</strong> and your GRAM withdrawal will be <strong>cancelled</strong>.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Watch Ad button or loading */}
@@ -574,7 +587,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
                             {adLoadingStage === 2 && '📡 Connecting to ad network...'}
                             {adLoadingStage >= 3 && '🎬 Starting video ad...'}
                           </p>
-                          <p className="text-[11px] text-white/40 font-bold">Keep the app open and watch the full ad</p>
+                          <p className="text-[11px] text-rose-300 font-bold">👉 Remember to CLICK on the ad after it finishes!</p>
                         </div>
                         <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                           <motion.div
