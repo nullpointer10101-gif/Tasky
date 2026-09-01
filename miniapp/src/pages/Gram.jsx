@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem, Wifi, Trophy, Copy, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, Play, Lock, ArrowUpRight, Gem, Wifi, Trophy, Copy, RefreshCw, ShieldCheck, Flame, Zap, Rocket, X } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
@@ -68,6 +68,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
   const [milestoneToast, setMilestoneToast] = useState(null);
   const [lastMilestoneShown, setLastMilestoneShown] = useState(0);
   const [adPulse, setAdPulse] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+  const [rewardCelebration, setRewardCelebration] = useState(null);
   const { showToast } = useToast();
 
   // ── NAME SUFFIX STATE (backend-verified via bot.getChat, NOT cached WebApp data) ──
@@ -211,12 +213,41 @@ export default function Gram({ user, refreshUser, tgUser }) {
         showToast(res.error, 'error');
       } else {
         const newCount = (status?.ads_watched_today || 0) + 1;
+        const newStreak = streakCount + 1;
+        setStreakCount(newStreak);
+
         setStatus(prev => prev ? { ...prev, ads_watched_today: newCount, last_ad_time: new Date().toISOString() } : prev);
-        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); } catch(e){}
+        
+        try { 
+          window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); 
+          window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
+        } catch(e){}
+
         if (newCount >= TOTAL_ADS) {
           setShowCompletionBurst(true);
           triggerConfetti({ particleCount: 250, spread: 120, origin: { y: 0.5 } });
+        } else {
+          triggerConfetti({ particleCount: 70, spread: 65, origin: { y: 0.65 } });
         }
+
+        const getEncouragement = (cnt, strk) => {
+          if (cnt >= TOTAL_ADS) return "🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!";
+          if (cnt >= 50) return `⚡ ALMOST THERE! Only ${TOTAL_ADS - cnt} ads left to unlock 0.02 GRAM!`;
+          if (cnt >= 40) return `🔥 Final Stretch! ${TOTAL_ADS - cnt} remaining! You're dominating!`;
+          if (cnt >= 30) return `💎 HALFWAY MILESTONE! Big rewards getting closer!`;
+          if (cnt >= 20) return `🚀 Unstoppable! ${cnt} ads validated! Keep the momentum!`;
+          if (cnt >= 10) return `⚡ Great rhythm! ${strk} in a row streak active!`;
+          return `🌱 +1 Ad Validated! Keep rolling towards 0.02 GRAM!`;
+        };
+
+        setRewardCelebration({
+          count: newCount,
+          left: Math.max(0, TOTAL_ADS - newCount),
+          pct: Math.min(100, Math.round((newCount / TOTAL_ADS) * 100)),
+          streak: newStreak,
+          message: getEncouragement(newCount, newStreak)
+        });
+
         await fetchStatus();
         if (refreshUser) refreshUser();
       }
@@ -866,6 +897,127 @@ export default function Gram({ user, refreshUser, tgUser }) {
           </div>
         </div>
       )}
+
+      {/* ── ENGAGING POST-AD REWARD CELEBRATION MODAL ── */}
+      <AnimatePresence>
+        {rewardCelebration && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.85, y: -20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="bg-gradient-to-b from-[#1c1236] via-[#100924] to-[#080414] border-2 border-indigo-500/40 rounded-3xl p-6 max-w-sm w-full text-center space-y-4 shadow-[0_0_50px_rgba(99,102,241,0.35)] relative overflow-hidden"
+            >
+              {/* Top ambient glow */}
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-40 h-40 bg-indigo-500/20 rounded-full blur-[40px] pointer-events-none" />
+
+              {/* Close button */}
+              <button
+                onClick={() => setRewardCelebration(null)}
+                className="absolute top-4 right-4 p-2 text-white/40 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+              >
+                <X size={16} />
+              </button>
+
+              {/* Floating Animated 3D Badge */}
+              <div className="relative mx-auto w-20 h-20 flex items-center justify-center">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
+                  className="absolute inset-0 rounded-full border-2 border-dashed border-amber-400/40"
+                />
+                <motion.div
+                  animate={{ scale: [1, 1.15, 1] }}
+                  transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                  className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-yellow-500 flex items-center justify-center shadow-[0_0_25px_rgba(245,158,11,0.6)]"
+                >
+                  <Sparkles size={32} className="text-slate-950 animate-pulse" />
+                </motion.div>
+              </div>
+
+              {/* Title & Stats */}
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider">
+                  <CheckCircle2 size={12} /> Ad Validated +1
+                </span>
+                <h3 className="text-2xl font-black text-white uppercase tracking-tight mt-1">
+                  Reward Credited!
+                </h3>
+                <p className="text-xs text-amber-300 font-bold leading-relaxed px-2">
+                  {rewardCelebration.message}
+                </p>
+              </div>
+
+              {/* Progress Summary Card */}
+              <div className="bg-black/50 border border-white/10 rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-white/60 font-bold flex items-center gap-1">
+                    <Flame size={14} className="text-orange-400 fill-orange-400" /> {rewardCelebration.streak}x Streak
+                  </span>
+                  <span className="text-amber-400 font-black text-sm">
+                    {rewardCelebration.count} / {TOTAL_ADS} Ads
+                  </span>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="w-full bg-white/10 h-2.5 rounded-full overflow-hidden p-0.5">
+                  <motion.div
+                    initial={{ width: '0%' }}
+                    animate={{ width: `${rewardCelebration.pct}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-amber-400 to-emerald-400 rounded-full"
+                  />
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] text-white/40 font-semibold">
+                  <span>{rewardCelebration.pct}% Finished</span>
+                  <span className="text-amber-300 font-bold">{rewardCelebration.left} Ads remaining</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                {rewardCelebration.left > 0 ? (
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    animate={{ scale: [1, 1.02, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    onClick={() => {
+                      setRewardCelebration(null);
+                      setTimeout(() => {
+                        handleWatchAd();
+                      }, 200);
+                    }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.4)] active:scale-95 transition-all"
+                  >
+                    <Play size={16} fill="currentColor" />
+                    Watch Next Ad ({rewardCelebration.left} Left) 🚀
+                  </motion.button>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setRewardCelebration(null);
+                      handleClaim();
+                    }}
+                    className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(16,185,129,0.4)] active:scale-95 transition-all"
+                  >
+                    <Trophy size={18} />
+                    Receive 0.02 GRAM Now! 🎉
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setRewardCelebration(null)}
+                  className="w-full py-2.5 text-xs text-white/50 hover:text-white font-bold transition-colors"
+                >
+                  Take a quick break
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
