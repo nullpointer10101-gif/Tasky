@@ -636,7 +636,7 @@ router.post('/withdrawals/review', async (req, res) => {
     if (wRes.rows.length === 0) throw new Error('Swap not found or already processed');
 
     const { telegram_id, tasky_amount, receive_amount, receive_token, wallet_address } = wRes.rows[0];
-    const finalTxHash = tx_hash || wRes.rows[0].tx_hash || null;
+    const finalTxHash = (tx_hash && tx_hash.trim()) ? tx_hash.trim() : (wRes.rows[0].tx_hash ? wRes.rows[0].tx_hash.trim() : null);
 
     if (action === 'approve') {
       if (!finalTxHash || !finalTxHash.trim()) {

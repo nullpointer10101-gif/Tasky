@@ -24,7 +24,9 @@ function maskWallet(wallet) {
  */
 function getExplorerLink(txHash) {
   if (!txHash) return null;
-  const clean = String(txHash).trim();
+  let clean = String(txHash).trim();
+  clean = clean.replace(/^['"<\[(]+|['">\])]+$/g, '').trim();
+  if (!clean) return null;
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     return clean;
   }
