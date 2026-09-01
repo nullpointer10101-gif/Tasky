@@ -49,25 +49,45 @@ class ErrorBoundary extends React.Component {
           <h1 style={{ fontSize: '22px', fontWeight: 900, marginBottom: '8px', color: '#ffffff' }}>
             Something went wrong
           </h1>
-          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '28px', lineHeight: 1.6, maxWidth: '280px' }}>
-            The app ran into an unexpected issue. Please tap the button below to reload.
+          <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '16px', lineHeight: 1.6, maxWidth: '280px' }}>
+            {this.state.error?.message || 'The app ran into an unexpected issue. Please tap the button below to reload.'}
           </p>
-          <button
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '14px 32px',
-              borderRadius: '50px',
-              background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-              color: '#ffffff',
-              fontWeight: 800,
-              fontSize: '15px',
-              border: 'none',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
-            }}
-          >
-            Reload App
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '50px',
+                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: '#ffffff',
+                fontWeight: 800,
+                fontSize: '14px',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: '0 4px 20px rgba(99,102,241,0.4)',
+              }}
+            >
+              Reload App
+            </button>
+            <button
+              onClick={() => {
+                localStorage.clear();
+                window.location.reload();
+              }}
+              style={{
+                padding: '12px 24px',
+                borderRadius: '50px',
+                background: 'rgba(255,255,255,0.1)',
+                color: '#ffffff',
+                fontWeight: 700,
+                fontSize: '14px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                cursor: 'pointer',
+              }}
+            >
+              Reset Cache
+            </button>
+          </div>
         </div>
       );
     }

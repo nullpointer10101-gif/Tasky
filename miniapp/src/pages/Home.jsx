@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck, Rocket } from 'lucide-react';
+import { Bell, Wallet, Trophy, CheckCircle2, Users, Info, Zap, ChevronRight, Star, ShieldCheck, Rocket, Sparkles } from 'lucide-react';
 import DopamineBalanceTicker from '../components/DopamineBalanceTicker';
 import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
