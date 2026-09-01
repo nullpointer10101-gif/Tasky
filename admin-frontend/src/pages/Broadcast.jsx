@@ -22,13 +22,13 @@ export default function Broadcast() {
   const bannerOptions = [
     {
       id: 'banner1',
-      label: '🖼️ Banner 1 (App Mockups)',
-      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_1.png'
+      label: '🖼️ Banner 1 (Full HD NFT Miners Launch)',
+      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_1.jpg'
     },
     {
       id: 'banner2',
-      label: '🖼️ Banner 2 (Neon Cyberpunk)',
-      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_2.png'
+      label: '🖼️ Banner 2 (Full HD Neon Cyberpunk)',
+      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_2.jpg'
     },
     {
       id: 'none',
