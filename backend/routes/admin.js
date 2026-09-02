@@ -2,7 +2,25 @@ const express = require('express');
 const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
+const TelegramBot = require('node-telegram-bot-api');
 const { broadcastPayoutProof } = require('../utils/payoutChannel');
+
+function getActiveTelegramBot() {
+  if (bot && typeof bot.sendMessage === 'function' && !bot.isDummy) {
+    return bot;
+  }
+  const candidateTokens = [
+    process.env.TELEGRAM_BOT_TOKEN,
+    process.env.BOT_TOKEN,
+    process.env.TG_BOT_TOKEN,
+    process.env.TELEGRAM_TOKEN
+  ].filter(t => t && t !== 'your_bot_token_here' && t.trim() !== '');
+
+  if (candidateTokens.length > 0) {
+    return new TelegramBot(candidateTokens[0], { polling: false });
+  }
+  return null;
+}
 
 // --- Simple Admin Auth Middleware ---
 // Expects an 'x-admin-password' header to match the .env ADMIN_PASSWORD
@@ -1557,7 +1575,8 @@ router.post('/broadcast/nft', async (req, res) => {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            if (bot && typeof bot.sendMessage === 'function' && !bot.isDummy) {
+            const activeBot = getActiveTelegramBot();
+            if (activeBot) {
               const replyMarkup = {
                 inline_keyboard: [
                   [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
@@ -1565,7 +1584,7 @@ router.post('/broadcast/nft', async (req, res) => {
               };
 
               let sent = false;
-              if (image_url && typeof bot.sendPhoto === 'function') {
+              if (image_url && typeof activeBot.sendPhoto === 'function') {
                 let photoPayload = image_url;
                 if (image_url.includes('nft_banner')) {
                   const officialPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
@@ -1575,7 +1594,7 @@ router.post('/broadcast/nft', async (req, res) => {
                 }
 
                 try {
-                  await bot.sendPhoto(tid, photoPayload, {
+                  await activeBot.sendPhoto(tid, photoPayload, {
                     caption: message,
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
@@ -1583,15 +1602,21 @@ router.post('/broadcast/nft', async (req, res) => {
                   sent = true;
                 } catch (photoErr) {
                   console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text message:`, photoErr.message);
+                  global.nftBroadcast.lastError = photoErr.message;
                 }
               }
 
-              if (!sent && typeof bot.sendMessage === 'function') {
-                await bot.sendMessage(tid, message, {
-                  parse_mode: 'HTML',
-                  reply_markup: replyMarkup
-                });
-                sent = true;
+              if (!sent && typeof activeBot.sendMessage === 'function') {
+                try {
+                  await activeBot.sendMessage(tid, message, {
+                    parse_mode: 'HTML',
+                    reply_markup: replyMarkup
+                  });
+                  sent = true;
+                } catch (sendErr) {
+                  console.error(`[NFT BROADCAST] text send error for ${tid}:`, sendErr.message);
+                  global.nftBroadcast.lastError = sendErr.message;
+                }
               }
 
               if (sent) {
@@ -1602,6 +1627,7 @@ router.post('/broadcast/nft', async (req, res) => {
             } else {
               console.error(`[NFT BROADCAST] Bot instance missing or dummy bot for tid ${tid}`);
               global.nftBroadcast.failed++;
+              global.nftBroadcast.lastError = 'Telegram Bot token not provided on server';
             }
           } catch (e) {
             console.error(`Send error for user ${tid}:`, e.message);

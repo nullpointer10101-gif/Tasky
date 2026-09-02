@@ -410,11 +410,11 @@ export default function Broadcast() {
               {nftStatus && (
                 <div className="bg-black/40 border border-purple-500/30 rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold">
-                    <span className="text-purple-300 uppercase tracking-wider">
+                    <span className="text-purple-300 uppercase tracking-wider truncate max-w-[220px]" title={nftStatus.lastError || ''}>
                       {nftStatus.status === 'running' 
                         ? '🚀 Broadcasting NFT...' 
                         : nftStatus.failed > 0 && nftStatus.success === 0 
-                          ? '❌ Send Failed (Check Server Bot Token)' 
+                          ? `❌ ${nftStatus.lastError || 'Send Failed'}` 
                           : '✅ Completed'}
                     </span>
                     <span className="font-mono text-purple-400">{nftProgressPct}%</span>
