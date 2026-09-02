@@ -1534,6 +1534,28 @@ router.get('/broadcast/nft-status', (req, res) => {
   res.json(global.nftBroadcast);
 });
 
+router.get('/broadcast/diagnostics', (req, res) => {
+  const tokenKeys = ['TELEGRAM_BOT_TOKEN', 'BOT_TOKEN', 'TG_BOT_TOKEN', 'TELEGRAM_TOKEN'];
+  const tokenInfo = {};
+  tokenKeys.forEach(k => {
+    const val = process.env[k];
+    tokenInfo[k] = val ? `SET (length=${val.length}, starts=${val.substring(0, 8)}...)` : 'NOT SET';
+  });
+
+  const activeBot = getActiveTelegramBot();
+
+  res.json({
+    bot_isDummy: bot ? bot.isDummy : 'bot is null',
+    bot_hasSendMessage: typeof bot?.sendMessage === 'function',
+    bot_hasSendPhoto: typeof bot?.sendPhoto === 'function',
+    activeBot_available: activeBot !== null,
+    activeBot_isDummy: activeBot ? activeBot.isDummy : 'n/a',
+    token_env: tokenInfo,
+    node_env: process.env.NODE_ENV || 'not set',
+    nft_banner_path_exists: require('fs').existsSync(require('path').join(__dirname, '../public/uploads/nft_banner_official.jpg'))
+  });
+});
+
 router.post('/broadcast/nft', async (req, res) => {
   const { message, target, image_url } = req.body;
   if (!message) return res.status(400).json({ error: 'Message content is required' });
