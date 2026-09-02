@@ -131,7 +131,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       if (error) {
         showToast(error, 'error');
       } else if (data && data.success) {
-        showToast(data.message || '🎉 Deposit verified! Balance updated.', 'success');
+        showToast('🎉 Deposit verified & credited to Vault! Tap "Buy with Vault" to activate your NFT Miner.', 'success');
         setTxHashInput('');
         await refreshUser();
         await fetchData();
