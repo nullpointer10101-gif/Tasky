@@ -392,7 +392,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                       </div>
 
                       {isMaxedOut ? (
-                        <span className="text-xs font-bold text-ink-soft/70">10/10 Days Complete</span>
+                        <span className="text-xs font-bold text-ink-soft/70">{claimsDone}/{durationDays} Days Complete</span>
                       ) : card.can_claim ? (
                         <Button
                           size="sm"

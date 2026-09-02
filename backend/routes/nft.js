@@ -5,6 +5,11 @@ const { pool } = require('../db');
 
 const ADMIN_WALLET = process.env.ADMIN_WALLET || 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
 
+// Ensure user_nft_cards has total_days column
+pool.query('ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT NULL').catch(err => {
+  console.error('Error adding total_days column to user_nft_cards:', err.message);
+});
+
 /**
  * GET /api/nft/marketplace
  * Fetch available NFT Cards for purchase
@@ -26,6 +31,7 @@ router.get('/marketplace', async (req, res) => {
 /**
  * POST /api/nft/buy
  * Purchase NFT card with GRAM balance
+ * If user already has an active NFT card of this type, keep daily reward same and extend duration/days!
  */
 router.post('/buy', async (req, res) => {
   const { telegram_id, nft_id } = req.body;
@@ -69,22 +75,51 @@ router.post('/buy', async (req, res) => {
     }
     const updateRes = await client.query(updateQuery, [priceGram, telegram_id]);
 
-    // 4. Create User NFT Card Entry
-    await client.query(
-      `INSERT INTO user_nft_cards (telegram_id, nft_id, purchased_at, last_claimed_at, claims_done, total_earned_gram)
-       VALUES ($1, $2, NOW(), NULL, 0, 0)`,
+    // 4. Check if user already has an active NFT card for this nft_id
+    const activeCardRes = await client.query(
+      `SELECT * FROM user_nft_cards 
+       WHERE telegram_id = $1 AND nft_id = $2 AND is_completed = FALSE 
+       ORDER BY purchased_at DESC LIMIT 1 FOR UPDATE`,
       [telegram_id, nft_id]
     );
+
+    let isUpgrade = false;
+    let newTotalDays = parseInt(nft.duration_days, 10);
+
+    if (activeCardRes.rows.length > 0) {
+      // Active card exists: Upgrade duration/days! Daily yield stays the same.
+      const activeCard = activeCardRes.rows[0];
+      const currentTotalDays = parseInt(activeCard.total_days || nft.duration_days, 10);
+      newTotalDays = currentTotalDays + parseInt(nft.duration_days, 10);
+
+      await client.query(
+        `UPDATE user_nft_cards SET total_days = $1 WHERE id = $2`,
+        [newTotalDays, activeCard.id]
+      );
+      isUpgrade = true;
+    } else {
+      // Create new User NFT Card Entry
+      await client.query(
+        `INSERT INTO user_nft_cards (telegram_id, nft_id, total_days, purchased_at, last_claimed_at, claims_done, total_earned_gram, is_completed)
+         VALUES ($1, $2, $3, NOW(), NULL, 0, 0, FALSE)`,
+        [telegram_id, nft_id, newTotalDays]
+      );
+    }
 
     // 5. Update NFT Sold Count
     await client.query('UPDATE nft_cards SET sold_count = sold_count + 1 WHERE id = $1', [nft_id]);
 
     await client.query('COMMIT');
 
+    const successMessage = isUpgrade
+      ? `🎉 Upgraded ${nft.name}! Duration extended by +${nft.duration_days} days (Total: ${newTotalDays} days). Daily return remains ${nft.daily_yield_gram} GRAM/day.`
+      : `🎉 Successfully purchased ${nft.name}! Check your Inventory to claim daily yield.`;
+
     res.json({
       success: true,
-      message: `🎉 Successfully purchased ${nft.name}! Check your Inventory to claim daily yield.`,
-      new_balance: parseFloat(updateRes.rows[0].balance)
+      message: successMessage,
+      new_balance: parseFloat(updateRes.rows[0].balance),
+      is_upgrade: isUpgrade
     });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -113,6 +148,7 @@ router.get('/my-cards', async (req, res) => {
         unc.claims_done,
         unc.total_earned_gram,
         unc.is_completed,
+        unc.total_days,
         nc.id as nft_id,
         nc.name,
         nc.description,
@@ -131,8 +167,10 @@ router.get('/my-cards', async (req, res) => {
 
     const cards = rows.map(card => {
       const claimsDone = parseInt(card.claims_done, 10) || 0;
-      const durationDays = parseInt(card.duration_days, 10) || 10;
+      const durationDays = parseInt(card.total_days || card.duration_days, 10) || 10;
       const isMaxedOut = claimsDone >= durationDays || card.is_completed;
+      const dailyYield = parseFloat(card.daily_yield_gram) || 0;
+      const totalYield = durationDays * dailyYield;
 
       let canClaim = false;
       let nextClaimSeconds = 0;
@@ -155,8 +193,9 @@ router.get('/my-cards', async (req, res) => {
       return {
         ...card,
         price_gram: parseFloat(card.price_gram) || 0,
-        daily_yield_gram: parseFloat(card.daily_yield_gram) || 0,
-        total_yield_gram: parseFloat(card.total_yield_gram) || 0,
+        daily_yield_gram: dailyYield,
+        duration_days: durationDays,
+        total_yield_gram: totalYield,
         total_earned_gram: parseFloat(card.total_earned_gram) || 0,
         can_claim: canClaim,
         next_claim_seconds: Math.max(0, nextClaimSeconds || 0),
@@ -199,11 +238,11 @@ router.post('/claim-yield', async (req, res) => {
 
     const card = cardRes.rows[0];
     const claimsDone = parseInt(card.claims_done, 10) || 0;
-    const durationDays = parseInt(card.duration_days, 10) || 10;
+    const durationDays = parseInt(card.total_days || card.duration_days, 10) || 10;
 
     if (claimsDone >= durationDays || card.is_completed) {
       await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'This NFT Miner has completed all 10 days of yield!' });
+      return res.status(400).json({ error: `This NFT Miner has completed all ${durationDays} days of yield!` });
     }
 
     if (card.last_claimed_at) {

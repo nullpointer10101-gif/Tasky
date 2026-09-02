@@ -52,9 +52,11 @@ async function migrate() {
       last_claimed_at TIMESTAMP,
       claims_done INT DEFAULT 0,
       total_earned_gram NUMERIC DEFAULT 0,
-      is_completed BOOLEAN DEFAULT FALSE
+      is_completed BOOLEAN DEFAULT FALSE,
+      total_days INT DEFAULT NULL
     );
   `);
+  await pool.query(`ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT NULL;`);
 
   // 3. Table: gram_deposits
   await pool.query(`

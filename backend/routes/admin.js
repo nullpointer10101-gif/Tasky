@@ -1994,6 +1994,7 @@ router.get('/nft-holders', async (req, res) => {
         unc.claims_done,
         unc.total_earned_gram,
         unc.is_completed,
+        unc.total_days,
         u.username,
         u.first_name,
         nc.name as nft_name,
@@ -2006,7 +2007,17 @@ router.get('/nft-holders', async (req, res) => {
       JOIN nft_cards nc ON unc.nft_id = nc.id
       ORDER BY unc.purchased_at DESC
     `;
-    const { rows: holders } = await pool.query(holdersQuery);
+    const { rows: rawHolders } = await pool.query(holdersQuery);
+
+    const holders = rawHolders.map(h => {
+      const durationDays = parseInt(h.total_days || h.duration_days, 10) || 10;
+      const dailyYield = parseFloat(h.daily_yield_gram) || 0;
+      return {
+        ...h,
+        duration_days: durationDays,
+        total_yield_gram: durationDays * dailyYield
+      };
+    });
 
     const statsQuery = `
       SELECT 
