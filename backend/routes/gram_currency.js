@@ -23,9 +23,9 @@ router.get('/balance/:telegram_id', async (req, res) => {
         const { gram_balance, gram_wallet_address, wallet_address } = userRes.rows[0];
         const activeWallet = gram_wallet_address || wallet_address || null;
 
-        // Sum of withdrawals in last 24 hours
+        // Sum and count of withdrawals in last 24 hours
         const todayWithdrawnRes = await pool.query(
-            `SELECT COALESCE(SUM(amount), 0) as total_today
+            `SELECT COALESCE(SUM(amount), 0) as total_today, COUNT(*) as count_today
              FROM gram_withdrawals
              WHERE telegram_id = $1 
                AND status IN ('pending', 'approved', 'done')
@@ -33,7 +33,9 @@ router.get('/balance/:telegram_id', async (req, res) => {
             [telegram_id]
         );
         const withdrawnToday = parseFloat(todayWithdrawnRes.rows[0].total_today || 0);
+        const countToday = parseInt(todayWithdrawnRes.rows[0].count_today, 10) || 0;
         const remainingDailyLimit = Math.max(0, MAX_WITHDRAWAL - withdrawnToday);
+        const hasReachedDailyCount = countToday >= 1;
 
         // Recent withdrawal history
         const historyRes = await pool.query(
@@ -56,7 +58,9 @@ router.get('/balance/:telegram_id', async (req, res) => {
             gram_balance: parseFloat(gram_balance || 0),
             wallet: activeWallet,
             has_pending_withdrawal: has_pending,
-            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && remainingDailyLimit >= MIN_WITHDRAWAL,
+            withdrawals_today_count: countToday,
+            has_reached_daily_limit: hasReachedDailyCount,
+            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && !hasReachedDailyCount && remainingDailyLimit >= MIN_WITHDRAWAL,
             min_withdrawal: MIN_WITHDRAWAL,
             max_withdrawal: MAX_WITHDRAWAL,
             withdrawn_today: withdrawnToday,
@@ -138,6 +142,19 @@ router.post('/withdraw', async (req, res) => {
         if (parseInt(pendingRes.rows[0].count, 10) > 0) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'You already have a pending GRAM withdrawal. Please wait for it to be processed.' });
+        }
+
+        // Check 1 withdrawal per day limit
+        const dailyCountRes = await client.query(
+            `SELECT COUNT(*) FROM gram_withdrawals
+             WHERE telegram_id = $1 
+               AND status IN ('pending', 'approved', 'done')
+               AND requested_at >= NOW() - INTERVAL '24 hours'`,
+            [telegram_id]
+        );
+        if (parseInt(dailyCountRes.rows[0].count, 10) >= 1) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Daily limit reached! You can only request 1 withdrawal per day (every 24 hours).' });
         }
 
         // Check daily limit (sum of withdrawals in last 24h)

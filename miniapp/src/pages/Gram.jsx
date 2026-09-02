@@ -314,6 +314,10 @@ export default function Gram({ user, refreshUser, tgUser }) {
     const amt = parseFloat(withdrawAmount);
     if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
     if (amt > 0.1) { showToast('Maximum daily withdrawal limit is 0.1 GRAM', 'error'); return; }
+    if (gramInfo?.has_reached_daily_limit || (gramInfo?.withdrawals_today_count || 0) >= 1) {
+      showToast('Daily limit reached! Only 1 withdrawal allowed per day.', 'error');
+      return;
+    }
     if (gramInfo?.remaining_daily_limit !== undefined && amt > gramInfo.remaining_daily_limit) { 
       showToast(`Daily limit remaining: ${gramInfo.remaining_daily_limit.toFixed(3)} GRAM`, 'error'); 
       return; 
@@ -332,7 +336,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     finally { setIsWithdrawing(false); }
   };
 
-  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || !withdrawAmount || parseFloat(withdrawAmount) < 0.01 || parseFloat(withdrawAmount) > 0.1));
+  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || gramInfo?.has_reached_daily_limit || !withdrawAmount || parseFloat(withdrawAmount) < 0.01 || parseFloat(withdrawAmount) > 0.1));
   const count = status?.ads_watched_today || 0;
   const pct = Math.min(100, (count / TOTAL_ADS) * 100);
   const adsLeft = getAdsLeft(count);
@@ -377,9 +381,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
             <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60">Your GRAM Balance</p>
             <p className="text-2xl font-black text-emerald-300">{parseFloat(gramInfo?.gram_balance || 0).toFixed(4)} <span className="text-sm text-emerald-400/60">GRAM</span></p>
           </div>
-          {gramInfo?.has_pending_withdrawal && (
+          {gramInfo?.has_pending_withdrawal ? (
             <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20">Pending</span>
-          )}
+          ) : gramInfo?.has_reached_daily_limit ? (
+            <span className="text-[9px] font-black uppercase tracking-wider bg-purple-500/20 text-purple-300 px-2.5 py-1 rounded-lg border border-purple-500/20">1/1 Used Today</span>
+          ) : null}
         </div>
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -395,14 +401,14 @@ export default function Gram({ user, refreshUser, tgUser }) {
               className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors">MAX</button>
           </div>
           <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
-            <span>Daily Max Limit: 0.1 GRAM</span>
-            {gramInfo?.remaining_daily_limit !== undefined && (
-              <span>Remaining Today: {gramInfo.remaining_daily_limit.toFixed(3)} GRAM</span>
+            <span>Daily Limit: 1 Withdrawal / Day (Max 0.1)</span>
+            {gramInfo?.withdrawals_today_count !== undefined && (
+              <span>Today: {gramInfo.withdrawals_today_count}/1</span>
             )}
           </div>
           <button onClick={handleWithdrawClick} disabled={isBtnDisabled}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
-            {!isWalletConnected ? <><Wallet size={16}/>Connect Wallet First</> : isWithdrawing ? <><Loader2 size={16} className="animate-spin"/>Processing...</> : gramInfo?.has_pending_withdrawal ? <><Clock size={16}/>Withdrawal Pending</> : <><ArrowUpRight size={16}/>Withdraw GRAM</>}
+            {!isWalletConnected ? <><Wallet size={16}/>Connect Wallet First</> : isWithdrawing ? <><Loader2 size={16} className="animate-spin"/>Processing...</> : gramInfo?.has_pending_withdrawal ? <><Clock size={16}/>Withdrawal Pending</> : gramInfo?.has_reached_daily_limit ? <><Clock size={16}/>Daily Limit Reached (1/1)</> : <><ArrowUpRight size={16}/>Withdraw GRAM</>}
           </button>
           {/* ── NAME SUFFIX LIVE CHECKER (Withdrawal section) ── */}
           {suffixOk ? (
