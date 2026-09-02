@@ -6,7 +6,7 @@ const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 const MIN_WITHDRAWAL = 0.01;
-const MAX_WITHDRAWAL = 0.1;
+const MAX_WITHDRAWAL = 0.05;
 
 // GET /api/gram-currency/balance/:telegram_id
 router.get('/balance/:telegram_id', async (req, res) => {

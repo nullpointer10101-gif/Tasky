@@ -503,7 +503,7 @@ export default function Broadcast() {
             <div>
               <h3 className="text-emerald-400 font-bold mb-0.5 text-sm leading-tight">💎 GRAM Currency Broadcaster</h3>
               <p className="text-emerald-400/80 text-[11px]">
-                Broadcast daily 0.02 GRAM quest rewards & 0.1 GRAM withdrawal limit updates.
+                Broadcast daily 0.02 GRAM quest rewards & 0.05 GRAM withdrawal limit updates.
               </p>
             </div>
           </div>
