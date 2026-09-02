@@ -39,9 +39,6 @@ export default function Users() {
     }
   };
 
-  const totalBalance = users.reduce((acc, u) => acc + Number(u.balance || 0), 0);
-  const totalGramBalance = users.reduce((acc, u) => acc + Number(u.gram_balance || 0), 0);
-
   // --- Handlers ---
   const handleToggleBan = async (user) => {
     const newStatus = !user.is_banned;
@@ -260,6 +257,7 @@ export default function Users() {
   });
 
   const totalBalance = users.reduce((acc, u) => acc + Number(u.balance || 0), 0);
+  const totalGramBalance = users.reduce((acc, u) => acc + Number(u.gram_balance || 0), 0);
   const formatDate = (dateString) => {
     const d = new Date(dateString);
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
