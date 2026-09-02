@@ -37,15 +37,23 @@ export default function Broadcast() {
   const nftTemplates = [
     {
       label: 'Variant 1: High Yield Launch ⚡️',
-      text: `🚀 <b>NEW FEATURE LAUNCH: NFT DIGITAL MINERS!</b> 💎\n\nTasky family, buy limited <b>NFT Digital Miners</b> and earn guaranteed daily GRAM returns!\n\n⚡️ <b>Gram Mini Miner #01:</b> 0.5 GRAM ➔ 0.7 GRAM Total Return (10 Days)\n🚀 <b>Gram Turbo Miner #02:</b> 1.0 GRAM ➔ 1.5 GRAM Total Return (10 Days)\n\n💎 <b>Instant Pay via Tonkeeper:</b> Direct 1-tap TON/GRAM deposit & instant on-chain verification!\n\n👉 <b>Tap below to claim your NFT Miner now:</b>`
+      text: `🚀 <b>NEW FEATURE LAUNCH: TASKY NFT MINERS!</b> 💎\n\nTasky family, buy limited <b>Tasky NFT Digital Miners</b> and earn guaranteed daily GRAM returns!\n\n🚀 <b>Tasky Turbo Miner #02:</b> 1.0 GRAM ➔ 1.5 GRAM Total Return (10 Days)\n⚡️ <b>Tasky Mini Miner #01:</b> 0.5 GRAM ➔ 0.7 GRAM Total Return (10 Days)\n\n💎 <b>Instant Pay via Tonkeeper:</b> Direct 1-tap TON/GRAM deposit & instant on-chain verification!\n\n👉 <b>Tap below to claim your NFT Miner now:</b>`
     },
     {
       label: 'Variant 2: Passive Daily Income 📈',
-      text: `🔥 <b>EARN PASSIVE GRAM EVERY DAY FOR 10 DAYS!</b> 🎁\n\nUnlock your personal NFT Miner and start mining daily GRAM rewards automatically!\n\n• <b>0.5 GRAM Miner:</b> Pays <b>+0.07 GRAM/day</b> for 10 Days (0.7 GRAM Total!)\n• <b>1.0 GRAM Miner:</b> Pays <b>+0.15 GRAM/day</b> for 10 Days (1.5 GRAM Total!)\n\n⚡️ Transfer via Tonkeeper with zero admin wait time!\n\n💎 <b>Start Mining Today:</b>`
+      text: `🔥 <b>EARN PASSIVE GRAM EVERY DAY FOR 10 DAYS!</b> 🎁\n\nUnlock your personal Tasky NFT Miner and start mining daily GRAM rewards automatically!\n\n• <b>1.0 GRAM Turbo Miner:</b> Pays <b>+0.15 GRAM/day</b> for 10 Days (1.5 GRAM Total!)\n• <b>0.5 GRAM Mini Miner:</b> Pays <b>+0.07 GRAM/day</b> for 10 Days (0.7 GRAM Total!)\n\n⚡️ Transfer via Tonkeeper with zero admin wait time!\n\n💎 <b>Start Mining Today:</b>`
     },
     {
       label: 'Variant 3: Limited Stock Urgency 🚨',
-      text: `🚨 <b>LIMITED NFT MINERS AVAILABLE - ACT FAST!</b> ⚡️\n\nOnly <b>100 NFT Miners</b> were generated for Season 2 launch!\n\n💰 Own a miner today to earn up to <b>1.5 GRAM</b> returned directly to your vault balance!\n\n👉 <b>Secure Your NFT Miner Before Stock Runs Out:</b>`
+      text: `🚨 <b>LIMITED NFT MINERS AVAILABLE - ACT FAST!</b> ⚡️\n\nOnly <b>100 Tasky NFT Miners</b> were generated for Season 2 launch!\n\n💰 Own a miner today to earn up to <b>1.5 GRAM</b> returned directly to your vault balance!\n\n👉 <b>Secure Your NFT Miner Before Stock Runs Out:</b>`
+    },
+    {
+      label: 'Variant 4: Buy Once, Earn Daily 🏆',
+      text: `🏆 <b>BUY ONCE. EARN GRAM DAILY FOR 10 DAYS!</b> 💎\n\nPurchase limited Tasky NFT miners to automatically generate guaranteed daily GRAM returns directly to your vault balance.\n\n✨ <b>140% Guaranteed ROI</b> over 10 days!\n\n👉 <b>Open Tasky & Activate Your Miner Now:</b>`
+    },
+    {
+      label: 'Variant 5: Custom Message ✍️',
+      text: `🚀 <b>TASKY SPECIAL ANNOUNCEMENT</b> 💎\n\nWrite your custom announcement message here...`
     }
   ];
 
