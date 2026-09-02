@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Search, Ban, CheckCircle, User, Zap, Users as UsersIcon, Coins, History, X, Wallet, MessageSquare, RefreshCw, ChevronRight, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { Search, Ban, CheckCircle, User, Zap, Users as UsersIcon, Coins, History, X, Wallet, MessageSquare, RefreshCw, ChevronRight, ArrowUpRight, ArrowDownRight, Gem } from 'lucide-react';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -38,6 +38,9 @@ export default function Users() {
       setLoading(false);
     }
   };
+
+  const totalBalance = users.reduce((acc, u) => acc + Number(u.balance || 0), 0);
+  const totalGramBalance = users.reduce((acc, u) => acc + Number(u.gram_balance || 0), 0);
 
   // --- Handlers ---
   const handleToggleBan = async (user) => {
@@ -273,14 +276,23 @@ export default function Users() {
       </div>
 
       {/* Insights */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
             <UsersIcon size={24} />
           </div>
           <div>
-            <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Total Users</p>
+            <p className="text-xs text-ink-soft font-bold uppercase tracking-wider">Total Users</p>
             <p className="text-2xl font-black text-ink">{users.length}{users.length >= 1000 ? '+' : ''}</p>
+          </div>
+        </div>
+        <div className="bg-surface-soft border border-cyan-500/30 rounded-2xl p-4 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center">
+            <Gem size={24} />
+          </div>
+          <div>
+            <p className="text-xs text-ink-soft font-bold uppercase tracking-wider">Total User GRAM Balance</p>
+            <p className="text-2xl font-black text-cyan-400">+{totalGramBalance.toFixed(3)} GRAM</p>
           </div>
         </div>
         <div className="bg-surface-soft border border-border rounded-2xl p-4 flex items-center gap-4">
@@ -288,7 +300,7 @@ export default function Users() {
             <Coins size={24} />
           </div>
           <div>
-            <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Total Balance</p>
+            <p className="text-xs text-ink-soft font-bold uppercase tracking-wider">Total TASKY Balance</p>
             <p className="text-2xl font-black text-ink">{totalBalance.toLocaleString()} TASKY</p>
           </div>
         </div>
@@ -297,7 +309,7 @@ export default function Users() {
             <span className="font-bold text-lg">TV</span>
           </div>
           <div>
-            <p className="text-sm text-ink-soft font-bold uppercase tracking-wider">Ads Watched</p>
+            <p className="text-xs text-ink-soft font-bold uppercase tracking-wider">Ads Watched</p>
             <p className="text-2xl font-black text-ink">
               {users.reduce((acc, u) => acc + Number(u.total_ads_watched || 0), 0).toLocaleString()}
             </p>

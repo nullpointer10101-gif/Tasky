@@ -51,6 +51,7 @@ router.get('/stats', async (req, res) => {
     const tasksRes = await pool.query("SELECT COUNT(*) FROM user_tasks WHERE status = 'pending'");
     const withdrawalsRes = await pool.query("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'");
     const balanceRes = await pool.query('SELECT SUM(balance) FROM users');
+    const gramBalanceRes = await pool.query("SELECT COALESCE(SUM(gram_balance), 0) as sum FROM users");
 
     const gramAdsRes = await pool.query(`
       SELECT 
@@ -124,6 +125,7 @@ router.get('/stats', async (req, res) => {
       pendingGramClaims,
       pendingGramWithdrawals,
       totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0),
+      totalCirculatingGram: parseFloat(gramBalanceRes.rows[0].sum || 0),
       todayGramAds,
       yesterdayGramAds,
       activeUsersList,

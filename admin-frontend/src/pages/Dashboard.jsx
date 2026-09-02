@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, CheckSquare, ArrowDownToLine, Coins, Activity, Tv,
   LogIn, Calendar, RotateCcw, ListChecks, Pickaxe, Wallet,
-  Eye, Gift, Upload, Zap, Star, Image, UserCheck, UserPlus, Clock
+  Eye, Gift, Upload, Zap, Star, Image, UserCheck, UserPlus, Clock, Gem
 } from 'lucide-react';
 import api from '../api';
 
@@ -71,6 +71,7 @@ export default function Dashboard() {
   const statCards = [
     { title: 'Total Users', value: stats.totalUsers, icon: Users, color: 'text-blue-400', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/5' },
     { title: 'Active Users (5m)', value: stats.onlineUsers || 0, icon: Activity, color: 'text-indigo-400', bg: 'bg-indigo-500/10', shadow: 'shadow-indigo-500/5' },
+    { title: 'Circulating GRAM (User Accs)', value: `+${Number(stats.totalCirculatingGram || 0).toFixed(3)} GRAM`, icon: Gem, color: 'text-cyan-400', bg: 'bg-cyan-500/10', shadow: 'shadow-cyan-500/5' },
     { title: 'Circulating TASKY', value: stats.totalCirculatingTasky.toLocaleString(), icon: Coins, color: 'text-emerald-400', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/5' },
     { title: 'New Users Today', value: stats.newUsersToday ?? 0, icon: UserPlus, color: 'text-pink-400', bg: 'bg-pink-500/10', shadow: 'shadow-pink-500/5' },
   ];
@@ -96,7 +97,7 @@ export default function Dashboard() {
         <p className="text-ink-soft text-sm md:text-base">Real-time statistics for the Tasky platform infrastructure.</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
         {statCards.map((stat, i) => (
           <div key={i} className={`bg-surface-soft border border-border rounded-3xl p-6 flex flex-col justify-between shadow-xl ${stat.shadow} relative overflow-hidden group`}>
             <div className={`absolute -right-8 -top-8 w-32 h-32 ${stat.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
