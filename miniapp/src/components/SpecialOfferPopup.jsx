@@ -32,8 +32,8 @@ function markOfferSeen() {
   } catch {}
 }
 
-function calcTimeLeft(seenAt) {
-  const deadline = seenAt + OFFER_DURATION_MS;
+function calcTimeLeft(createdAtMs) {
+  const deadline = createdAtMs + OFFER_DURATION_MS;
   const diff = Math.max(0, deadline - Date.now());
   const h = Math.floor(diff / 3600000);
   const m = Math.floor((diff % 3600000) / 60000);
@@ -50,6 +50,7 @@ export default function SpecialOfferPopup({ user }) {
   const [offerStatus, setOfferStatus] = useState({ valid_referrals: 0, claim: null });
   const [claiming, setClaiming] = useState(false);
   const [claimDone, setClaimDone] = useState(false);
+  const [createdTimeMs, setCreatedTimeMs] = useState(null);
   const [timeLeft, setTimeLeft] = useState({ total: OFFER_DURATION_MS, str: '24:00:00' });
   const timerRef = useRef(null);
   const { showToast } = useToast();
@@ -59,26 +60,25 @@ export default function SpecialOfferPopup({ user }) {
     // If permanently dismissed/claimed, never show
     if (isOfferDone()) return;
 
-    // Show bubble immediately — don't wait for API
-    setTimeout(() => {
-      markOfferSeen(); // stamp seen time now
-      const seenAt = getSeenTimestamp();
+    // Check user.created_at first if available
+    let userRegMs = user?.created_at ? new Date(user.created_at).getTime() : null;
 
-      // If the offer has already expired, dismiss permanently
-      if (Date.now() - seenAt >= OFFER_DURATION_MS) {
-        dismissOfferPermanently();
+    if (userRegMs) {
+      if (Date.now() - userRegMs >= OFFER_DURATION_MS) {
+        // User created account > 24 hours ago! Expired!
+        setShowBubble(false);
         return;
       }
-
-      setTimeLeft(calcTimeLeft(seenAt));
+      setCreatedTimeMs(userRegMs);
+      setTimeLeft(calcTimeLeft(userRegMs));
       setShowBubble(true);
-    }, 1500);
+    }
 
-    // Load status in background — failure is non-fatal
+    // Load status in background
     const load = async () => {
       try {
         const { data, error } = await getSpecialOfferStatus(user.telegram_id);
-        if (error || !data) return; // silently ignore, bubble already shown
+        if (error || !data) return;
         if (data.claim?.status === 'approved') {
           dismissOfferPermanently();
           setShowBubble(false);
@@ -88,17 +88,30 @@ export default function SpecialOfferPopup({ user }) {
           setClaimDone(true);
         }
         setOfferStatus(data);
+
+        // Check created_at returned from backend API
+        const regAt = data.created_at || user?.created_at;
+        if (regAt) {
+          const regMs = new Date(regAt).getTime();
+          if (Date.now() - regMs >= OFFER_DURATION_MS) {
+            dismissOfferPermanently();
+            setShowBubble(false);
+            return;
+          }
+          setCreatedTimeMs(regMs);
+          setTimeLeft(calcTimeLeft(regMs));
+          setShowBubble(true);
+        }
       } catch {}
     };
     load();
-  }, [user?.telegram_id]);
+  }, [user?.telegram_id, user?.created_at]);
 
   // Live countdown — ticks every second
   useEffect(() => {
-    if (!showBubble) return;
-    const seenAt = getSeenTimestamp();
+    if (!showBubble || !createdTimeMs) return;
     timerRef.current = setInterval(() => {
-      let tl = calcTimeLeft(seenAt);
+      let tl = calcTimeLeft(createdTimeMs);
       if (tl.total <= 0) {
         clearInterval(timerRef.current);
         dismissOfferPermanently();
@@ -108,7 +121,7 @@ export default function SpecialOfferPopup({ user }) {
       }
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [showBubble]);
+  }, [showBubble, createdTimeMs]);
 
   const handleCloseModal = () => setModalOpen(false);
 

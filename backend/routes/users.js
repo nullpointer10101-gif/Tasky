@@ -356,7 +356,7 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
     const { telegram_id } = req.params;
     try {
         const userRes = await pool.query(
-            'SELECT telegram_id FROM users WHERE telegram_id = $1',
+            'SELECT telegram_id, created_at FROM users WHERE telegram_id = $1',
             [telegram_id]
         );
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
@@ -379,7 +379,8 @@ router.get('/special-offer/status/:telegram_id', async (req, res) => {
 
         res.json({
             valid_referrals: parseInt(realReferralsRes.rows[0].count) || 0,
-            claim: claimRes.rows[0] || null
+            claim: claimRes.rows[0] || null,
+            created_at: userRes.rows[0]?.created_at || null
         });
     } catch (err) {
         console.error(err);
