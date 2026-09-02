@@ -1612,23 +1612,17 @@ router.post('/broadcast/nft', async (req, res) => {
 
               let sent = false;
               if (image_url && typeof activeBot.sendPhoto === 'function') {
-                let photoPayload = image_url;
-                if (image_url.includes('nft_banner')) {
-                  const officialPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
-                  if (fs.existsSync(officialPath)) {
-                    photoPayload = officialPath;
-                  }
-                }
-
+                // Always use the URL directly - it's a valid Render HTTPS URL
+                // (local file path substitution removed - caused issues on Render)
                 try {
-                  await activeBot.sendPhoto(tid, photoPayload, {
+                  await activeBot.sendPhoto(tid, image_url, {
                     caption: message,
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
                   });
                   sent = true;
                 } catch (photoErr) {
-                  console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text message:`, photoErr.message);
+                  console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text:`, photoErr.message);
                   global.nftBroadcast.lastError = photoErr.message;
                 }
               }
@@ -1657,8 +1651,11 @@ router.post('/broadcast/nft', async (req, res) => {
               global.nftBroadcast.lastError = 'Telegram Bot token not provided on server';
             }
           } catch (e) {
-            console.error(`Send error for user ${tid}:`, e.message);
-            global.nftBroadcast.failed++;
+            console.error(`[NFT BROADCAST] Outer catch error for ${tid}:`, e.message, e.stack);
+            if (global.nftBroadcast) {
+              global.nftBroadcast.failed++;
+              global.nftBroadcast.lastError = `[outer] ${e.message}`;
+            }
           }
         }));
 
