@@ -235,7 +235,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 <span className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/30 uppercase tracking-widest mb-2">
                   <Trophy size={12} /> High Yield NFT Miners
                 </span>
-                <h2 className="text-xl font-black text-white tracking-tight mb-1">Buy Once. Earn GRAM Daily for 10 Days!</h2>
+                <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-300 tracking-tight leading-tight mb-1 py-0.5">Buy Once. Earn GRAM Daily for 10 Days!</h2>
                 <p className="text-xs text-purple-200/80 max-w-xs mx-auto">Purchase limited NFT miners to automatically generate guaranteed daily GRAM returns directly to your vault balance.</p>
               </div>
             </div>
