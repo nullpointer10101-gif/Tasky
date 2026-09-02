@@ -1821,7 +1821,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[GRAM REMINDER BROADCAST] Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
+    console.log(`[GRAM REMINDER BROADCAST] Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
 
     global.gramReminderBroadcast = {
       target,
@@ -1840,8 +1840,9 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            if (bot && bot.sendMessage) {
-              await bot.sendMessage(tid, text, { 
+            const activeBot = getActiveTelegramBot();
+            if (activeBot) {
+              await activeBot.sendMessage(tid, text, { 
                 parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
@@ -1850,6 +1851,8 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
                 }
               });
               global.gramReminderBroadcast.success++;
+            } else {
+              global.gramReminderBroadcast.failed++;
             }
           } catch (err) {
             console.error(`[GRAM BROADCAST] Failed for ${tid}:`, err.message);
@@ -1859,7 +1862,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
         global.gramReminderBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      global.gramReminderBroadcast.status = 'done';
+      global.gramReminderBroadcast.status = 'completed';
       console.log(`[GRAM BROADCAST] Finished! Success: ${global.gramReminderBroadcast.success}, Failed: ${global.gramReminderBroadcast.failed}`);
     })();
 
