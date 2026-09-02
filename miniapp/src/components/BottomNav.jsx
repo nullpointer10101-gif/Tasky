@@ -69,8 +69,11 @@ export default function BottomNav({ active, onChange, user }) {
                   strokeWidth={isActive ? 2.2 : 1.8}
                   className={isActive ? 'text-brand' : 'text-ink-faint'}
                 />
-                {showDot && (
+                {id === 'gram' && showDot && (
                   <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-surface shadow-sm animate-pulse" />
+                )}
+                {id === 'nft' && (
+                  <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full border border-surface shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
                 )}
               </div>
 
