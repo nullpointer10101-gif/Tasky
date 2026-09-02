@@ -313,7 +313,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
   const handleWithdrawGram = async () => {
     const amt = parseFloat(withdrawAmount);
     if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
-    if (amt > 0.1) { showToast('Maximum daily withdrawal limit is 0.1 GRAM', 'error'); return; }
+    const maxLimit = gramInfo?.max_withdrawal || 0.02;
+    if (amt > maxLimit) { showToast(`Maximum daily withdrawal limit for your account tier is ${maxLimit} GRAM`, 'error'); return; }
     if (gramInfo?.has_reached_daily_limit || (gramInfo?.withdrawals_today_count || 0) >= 1) {
       showToast('Daily limit reached! Only 1 withdrawal allowed per day.', 'error');
       return;

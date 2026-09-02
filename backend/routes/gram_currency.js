@@ -6,7 +6,40 @@ const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 const MIN_WITHDRAWAL = 0.01;
-const MAX_WITHDRAWAL = 0.05;
+
+// Helper to determine dynamic daily withdrawal limit based on NFT miner card ownership
+// - Turbo Miner (1.5 GRAM Yield / 1.0 GRAM Price): 0.05 GRAM / day
+// - Mini Miner (0.7 GRAM Yield / 0.5 GRAM Price): 0.03 GRAM / day
+// - Normal User (No active NFT): 0.02 GRAM / day
+async function getUserMaxWithdrawalLimit(telegramId, dbClient = pool) {
+    try {
+        const res = await dbClient.query(`
+            SELECT nc.price_gram, nc.total_yield_gram
+            FROM user_nft_cards unc
+            JOIN nft_cards nc ON unc.nft_id = nc.id
+            WHERE unc.telegram_id::text = $1::text
+        `, [telegramId]);
+
+        if (res.rows.length === 0) {
+            return 0.02; // Normal user limit
+        }
+
+        let maxLimit = 0.02;
+        for (const row of res.rows) {
+            const price = parseFloat(row.price_gram || 0);
+            const totalYield = parseFloat(row.total_yield_gram || 0);
+            if (price >= 1.0 || totalYield >= 1.5) {
+                maxLimit = Math.max(maxLimit, 0.05); // Turbo Miner -> 0.05
+            } else if (price >= 0.5 || totalYield >= 0.7) {
+                maxLimit = Math.max(maxLimit, 0.03); // Mini Miner -> 0.03
+            }
+        }
+        return maxLimit;
+    } catch (err) {
+        console.error('Error fetching user NFT max withdrawal limit:', err);
+        return 0.02;
+    }
+}
 
 // GET /api/gram-currency/balance/:telegram_id
 router.get('/balance/:telegram_id', async (req, res) => {
@@ -23,6 +56,8 @@ router.get('/balance/:telegram_id', async (req, res) => {
         const { gram_balance, gram_wallet_address, wallet_address } = userRes.rows[0];
         const activeWallet = gram_wallet_address || wallet_address || null;
 
+        const maxLimit = await getUserMaxWithdrawalLimit(telegram_id);
+
         // Sum and count of withdrawals in last 24 hours
         const todayWithdrawnRes = await pool.query(
             `SELECT COALESCE(SUM(amount), 0) as total_today, COUNT(*) as count_today
@@ -34,7 +69,7 @@ router.get('/balance/:telegram_id', async (req, res) => {
         );
         const withdrawnToday = parseFloat(todayWithdrawnRes.rows[0].total_today || 0);
         const countToday = parseInt(todayWithdrawnRes.rows[0].count_today, 10) || 0;
-        const remainingDailyLimit = Math.max(0, MAX_WITHDRAWAL - withdrawnToday);
+        const remainingDailyLimit = Math.max(0, maxLimit - withdrawnToday);
         const hasReachedDailyCount = countToday >= 1;
 
         // Recent withdrawal history
@@ -62,7 +97,7 @@ router.get('/balance/:telegram_id', async (req, res) => {
             has_reached_daily_limit: hasReachedDailyCount,
             can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && !hasReachedDailyCount && remainingDailyLimit >= MIN_WITHDRAWAL,
             min_withdrawal: MIN_WITHDRAWAL,
-            max_withdrawal: MAX_WITHDRAWAL,
+            max_withdrawal: maxLimit,
             withdrawn_today: withdrawnToday,
             remaining_daily_limit: remainingDailyLimit,
             history: historyRes.rows
@@ -78,12 +113,14 @@ router.post('/withdraw', async (req, res) => {
     const { telegram_id, amount } = req.body;
     if (!telegram_id || !amount) return res.status(400).json({ error: 'telegram_id and amount required' });
 
+    const maxLimit = await getUserMaxWithdrawalLimit(telegram_id);
+
     const withdrawAmount = parseFloat(amount);
     if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAWAL) {
         return res.status(400).json({ error: `Minimum withdrawal is ${MIN_WITHDRAWAL} GRAM` });
     }
-    if (withdrawAmount > MAX_WITHDRAWAL) {
-        return res.status(400).json({ error: `Maximum withdrawal limit is ${MAX_WITHDRAWAL} GRAM per day` });
+    if (withdrawAmount > maxLimit) {
+        return res.status(400).json({ error: `Maximum withdrawal limit for your account is ${maxLimit} GRAM per day` });
     }
 
     const client = await pool.connect();
@@ -167,11 +204,11 @@ router.post('/withdraw', async (req, res) => {
             [telegram_id]
         );
         const dailyWithdrawn = parseFloat(dailyWithdrawnRes.rows[0].total || 0);
-        if (dailyWithdrawn + withdrawAmount > MAX_WITHDRAWAL) {
+        if (dailyWithdrawn + withdrawAmount > maxLimit) {
             await client.query('ROLLBACK');
-            const remaining = Math.max(0, MAX_WITHDRAWAL - dailyWithdrawn);
+            const remaining = Math.max(0, maxLimit - dailyWithdrawn);
             return res.status(400).json({ 
-                error: `Daily withdrawal limit is ${MAX_WITHDRAWAL} GRAM. You have requested/withdrawn ${dailyWithdrawn.toFixed(3)} GRAM in the last 24h. Remaining limit: ${remaining.toFixed(3)} GRAM.` 
+                error: `Daily withdrawal limit for your account is ${maxLimit} GRAM. You have requested/withdrawn ${dailyWithdrawn.toFixed(3)} GRAM in the last 24h. Remaining limit: ${remaining.toFixed(3)} GRAM.` 
             });
         }
 
