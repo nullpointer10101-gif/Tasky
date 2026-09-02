@@ -6,9 +6,11 @@ const TelegramBot = require('node-telegram-bot-api');
 const { broadcastPayoutProof } = require('../utils/payoutChannel');
 
 function getActiveTelegramBot() {
-  if (bot && typeof bot.sendMessage === 'function' && !bot.isDummy) {
+  // Prefer the existing bot instance (already initialized with polling on Render)
+  if (bot && !bot.isDummy && typeof bot.sendMessage === 'function') {
     return bot;
   }
+  // Only create a fresh standalone instance if the main bot is a dummy
   const candidateTokens = [
     process.env.TELEGRAM_BOT_TOKEN,
     process.env.BOT_TOKEN,
@@ -17,7 +19,9 @@ function getActiveTelegramBot() {
   ].filter(t => t && t !== 'your_bot_token_here' && t.trim() !== '');
 
   if (candidateTokens.length > 0) {
-    return new TelegramBot(candidateTokens[0], { polling: false });
+    const fallbackBot = new TelegramBot(candidateTokens[0], { polling: false });
+    fallbackBot.isDummy = false;
+    return fallbackBot;
   }
   return null;
 }
@@ -1552,7 +1556,8 @@ router.get('/broadcast/diagnostics', (req, res) => {
     activeBot_isDummy: activeBot ? activeBot.isDummy : 'n/a',
     token_env: tokenInfo,
     node_env: process.env.NODE_ENV || 'not set',
-    nft_banner_path_exists: require('fs').existsSync(require('path').join(__dirname, '../public/uploads/nft_banner_official.jpg'))
+    nft_banner_path_exists: require('fs').existsSync(require('path').join(__dirname, '../public/uploads/nft_banner_official.jpg')),
+    last_nft_broadcast: global.nftBroadcast || null
   });
 });
 
