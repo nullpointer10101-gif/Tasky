@@ -2129,12 +2129,17 @@ router.get('/nft-holders', async (req, res) => {
     `;
     const { rows: statsRows } = await pool.query(statsQuery);
 
+    const balanceRes = await pool.query("SELECT COALESCE(SUM(gram_balance), 0) as total_gram_balance FROM users");
+    const depositRes = await pool.query("SELECT COALESCE(SUM(amount_gram), 0) as total_gram_deposited FROM gram_deposits WHERE status = 'approved'");
+
     res.json({
       success: true,
       stats: {
         total_unique_holders: parseInt(statsRows[0].total_unique_holders, 10) || 0,
         total_miners_sold: parseInt(statsRows[0].total_miners_sold, 10) || 0,
-        total_yield_distributed: parseFloat(statsRows[0].total_yield_distributed) || 0
+        total_yield_distributed: parseFloat(statsRows[0].total_yield_distributed) || 0,
+        total_gram_balance: parseFloat(balanceRes.rows[0].total_gram_balance) || 0,
+        total_gram_deposited: parseFloat(depositRes.rows[0].total_gram_deposited) || 0
       },
       holders
     });

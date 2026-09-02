@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Users, RefreshCw, Zap, Rocket, CheckCircle, Clock } from 'lucide-react';
+import { Sparkles, Users, RefreshCw, Zap, Rocket, CheckCircle, Clock, Gem, Coins } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
@@ -42,7 +42,7 @@ export default function NftHolders() {
           <h1 className="text-2xl font-black text-white flex items-center gap-2">
             <Sparkles className="text-purple-400" /> NFT Miners & Holders
           </h1>
-          <p className="text-sm text-slate-400">View active NFT miner card holders and daily return stats</p>
+          <p className="text-sm text-slate-400">View active NFT miner card holders, total user GRAM balances, and daily return stats</p>
         </div>
         <button
           onClick={fetchHolders}
@@ -53,34 +53,54 @@ export default function NftHolders() {
       </div>
 
       {/* Overview Widgets */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 border border-purple-500/30 rounded-2xl p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold">
-            <Users size={24} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="bg-slate-900 border border-cyan-500/40 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg shadow-cyan-500/5">
+          <div className="w-11 h-11 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center font-bold shrink-0">
+            <Coins size={22} />
           </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Unique NFT Holders</p>
-            <p className="text-2xl font-black text-white">{data.stats.total_unique_holders || 0}</p>
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-amber-500/30 rounded-2xl p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
-            <Rocket size={24} />
-          </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Miners Sold</p>
-            <p className="text-2xl font-black text-amber-400">{data.stats.total_miners_sold || 0}</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold truncate">Exact Available User GRAM</p>
+            <p className="text-xl font-black text-cyan-400 truncate">+{Number(data.stats.total_gram_balance || 0).toFixed(3)} GRAM</p>
           </div>
         </div>
 
-        <div className="bg-slate-900 border border-emerald-500/30 rounded-2xl p-4 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold">
-            <Zap size={24} />
+        <div className="bg-slate-900 border border-emerald-500/40 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg shadow-emerald-500/5">
+          <div className="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center font-bold shrink-0">
+            <Gem size={22} />
           </div>
-          <div>
-            <p className="text-xs text-slate-400 uppercase tracking-wider font-bold">Total Yield Distributed</p>
-            <p className="text-2xl font-black text-emerald-400">+{Number(data.stats.total_yield_distributed || 0).toFixed(3)} GRAM</p>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold truncate">Total GRAM Deposited</p>
+            <p className="text-xl font-black text-emerald-400 truncate">+{Number(data.stats.total_gram_deposited || 0).toFixed(3)} GRAM</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-purple-500/40 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg shadow-purple-500/5">
+          <div className="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center font-bold shrink-0">
+            <Zap size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold truncate">Total Yield Distributed</p>
+            <p className="text-xl font-black text-purple-400 truncate">+{Number(data.stats.total_yield_distributed || 0).toFixed(3)} GRAM</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg shadow-amber-500/5">
+          <div className="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold shrink-0">
+            <Rocket size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold truncate">Total Miners Sold</p>
+            <p className="text-xl font-black text-amber-400 truncate">{data.stats.total_miners_sold || 0}</p>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-indigo-500/40 rounded-2xl p-4 flex items-center gap-3.5 shadow-lg shadow-indigo-500/5">
+          <div className="w-11 h-11 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center font-bold shrink-0">
+            <Users size={22} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-400 uppercase tracking-wider font-bold truncate">Unique NFT Holders</p>
+            <p className="text-xl font-black text-white truncate">{data.stats.total_unique_holders || 0}</p>
           </div>
         </div>
       </div>
