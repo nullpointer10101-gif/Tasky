@@ -134,6 +134,7 @@ export default function NftHolders() {
               <thead className="bg-slate-800/60 uppercase tracking-wider text-[10px] text-slate-400 border-b border-slate-800">
                 <tr>
                   <th className="p-3.5">User</th>
+                  <th className="p-3.5">Account GRAM Balance</th>
                   <th className="p-3.5">NFT Miner Card</th>
                   <th className="p-3.5">Price</th>
                   <th className="p-3.5">Daily Return</th>
@@ -154,6 +155,9 @@ export default function NftHolders() {
                       <td className="p-3.5 font-bold text-white">
                         <div>{h.first_name || 'User'}</div>
                         <div className="text-[10px] text-purple-400 font-mono">@{h.username || h.telegram_id}</div>
+                      </td>
+                      <td className="p-3.5 font-black text-cyan-400">
+                        {Number(h.gram_balance || 0).toFixed(3)} GRAM
                       </td>
                       <td className="p-3.5">
                         <span className="font-bold text-white flex items-center gap-1.5">

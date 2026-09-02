@@ -2098,6 +2098,7 @@ router.get('/nft-holders', async (req, res) => {
         unc.total_days,
         u.username,
         u.first_name,
+        COALESCE(u.gram_balance, 0) as gram_balance,
         nc.name as nft_name,
         nc.price_gram,
         nc.daily_yield_gram,
