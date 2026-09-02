@@ -240,7 +240,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
             </div>
 
             {/* NFT Cards List */}
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-5">
               {cards.map((nft) => {
                 const isTurbo = nft.id === 2;
                 const price = parseFloat(nft.price_gram);
@@ -251,79 +251,81 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                     whileHover={{ scale: 1.01 }}
                     className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
                       isTurbo
-                        ? 'bg-gradient-to-br from-[#1E1B4B] via-[#4C1D95] to-[#1E1B4B] border-amber-500/50 shadow-xl shadow-purple-500/10'
-                        : 'bg-surface-soft border-purple-500/30 hover:border-purple-500/60'
+                        ? 'bg-gradient-to-br from-[#1E1B4B] via-[#311075] to-[#1E1B4B] border-amber-500/50 shadow-2xl shadow-purple-900/30'
+                        : 'bg-surface-soft border-purple-500/30 hover:border-purple-500/60 shadow-xl'
                     }`}
                   >
-                    {/* Top Badge */}
+                    {/* Top Row: Rarity Badge & Duration */}
                     <div className="flex items-center justify-between mb-4">
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                         isTurbo
-                          ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-black shadow-md shadow-amber-500/30'
+                          ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black shadow-md shadow-amber-500/30'
                           : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                       }`}>
                         {isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
                         {nft.rarity || 'LIMITED EDITION'}
                       </div>
-                      <span className="text-[11px] font-bold text-ink-soft">10 Days Return</span>
+                      <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
+                        <Clock size={11} />
+                        <span>10 Days Mining Return</span>
+                      </div>
                     </div>
 
                     {/* Card Title & Icon */}
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 border ${
+                    <div className="flex items-center gap-3.5 mb-4">
+                      <div className={`w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 border shadow-inner ${
                         isTurbo
-                          ? 'bg-gradient-to-tr from-amber-500/20 to-purple-600/30 border-amber-500/40 text-amber-300'
-                          : 'bg-purple-500/15 border-purple-500/30 text-purple-400'
+                          ? 'bg-gradient-to-tr from-amber-500/30 to-purple-600/40 border-amber-400/50 text-amber-300 shadow-amber-500/20'
+                          : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
                       }`}>
-                        {isTurbo ? <Rocket size={28} /> : <Zap size={28} />}
+                        {isTurbo ? <Rocket size={26} /> : <Zap size={26} />}
                       </div>
                       <div>
-                        <h3 className="text-lg font-black text-white leading-tight">{nft.name}</h3>
+                        <h3 className="text-base font-black text-white leading-tight">{nft.name}</h3>
                         <p className="text-xs text-ink-soft leading-snug mt-0.5">{nft.description}</p>
                       </div>
                     </div>
 
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-3 gap-2 bg-black/20 p-3 rounded-2xl border border-white/10 mb-4 text-center">
-                      <div>
-                        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Price</p>
-                        <p className="text-sm font-black text-amber-400">{nft.price_gram} GRAM</p>
+                    {/* Yield Showcase Box */}
+                    <div className="grid grid-cols-2 gap-2 bg-black/30 p-3 rounded-2xl border border-white/10 mb-4">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-center">
+                        <p className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Daily Yield</p>
+                        <p className="text-sm font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM/day</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Daily Yield</p>
-                        <p className="text-sm font-black text-emerald-400">+{nft.daily_yield_gram} GRAM</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-ink-soft uppercase tracking-wider">Total Return</p>
-                        <p className="text-sm font-black text-purple-300">{nft.total_yield_gram} GRAM</p>
+                      <div className="bg-purple-500/10 border border-purple-500/20 p-2.5 rounded-xl text-center">
+                        <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Total 10D Return</p>
+                        <p className="text-sm font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM <span className="text-[10px] text-amber-400 font-bold">(140%)</span></p>
                       </div>
                     </div>
 
-                    {/* Dual Action Buttons */}
-                    <div className="space-y-2">
-                      {/* Option 1: Buy with Vault Balance */}
+                    {/* Price & Buy Action Box */}
+                    <div className="bg-black/40 p-3.5 rounded-2xl border border-white/10 flex items-center justify-between gap-3 mb-2.5">
+                      <div>
+                        <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Miner Price</p>
+                        <p className="text-lg font-black text-amber-300 leading-none mt-1">{nft.price_gram} <span className="text-xs font-bold text-white/70">GRAM</span></p>
+                      </div>
                       <Button
                         onClick={() => handleBuy(nft)}
                         loading={buyingId === nft.id}
-                        className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border-0 shadow-lg ${
+                        className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border-0 shadow-lg ${
                           isTurbo
-                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black hover:opacity-95'
-                            : 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white hover:opacity-95'
+                            ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black hover:opacity-95 shadow-amber-500/20'
+                            : 'bg-gradient-to-r from-purple-600 to-emerald-600 text-white hover:opacity-95 shadow-purple-500/20'
                         }`}
                       >
                         <Zap size={14} />
-                        <span>Buy with Vault ({nft.price_gram} GRAM)</span>
+                        <span>Buy with Vault</span>
                       </Button>
-
-                      {/* Option 2: Pay Directly via Tonkeeper */}
-                      <button
-                        onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
-                        className="w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-blue-600/30 hover:bg-blue-600/40 text-blue-300 border border-blue-500/40 transition-all active:scale-98"
-                      >
-                        <ExternalLink size={14} />
-                        <span>Pay {nft.price_gram} GRAM via Tonkeeper 💎</span>
-                      </button>
                     </div>
+
+                    {/* Pay via Tonkeeper Direct Button */}
+                    <button
+                      onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
+                      className="w-full py-2.5 px-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all active:scale-98"
+                    >
+                      <ExternalLink size={12} />
+                      <span>Pay {nft.price_gram} GRAM Direct via Tonkeeper Wallet 💎</span>
+                    </button>
                   </motion.div>
                 );
               })}
