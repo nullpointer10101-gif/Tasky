@@ -1568,15 +1568,23 @@ router.post('/broadcast/nft', async (req, res) => {
                 if (image_url.includes('nft_banner')) {
                   const officialPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
                   if (fs.existsSync(officialPath)) {
-                    photoPayload = fs.createReadStream(officialPath);
+                    photoPayload = officialPath;
                   }
                 }
 
-                await bot.sendPhoto(tid, photoPayload, {
-                  caption: message,
-                  parse_mode: 'HTML',
-                  reply_markup: replyMarkup
-                });
+                try {
+                  await bot.sendPhoto(tid, photoPayload, {
+                    caption: message,
+                    parse_mode: 'HTML',
+                    reply_markup: replyMarkup
+                  });
+                } catch (photoErr) {
+                  console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text message:`, photoErr.message);
+                  await bot.sendMessage(tid, message, {
+                    parse_mode: 'HTML',
+                    reply_markup: replyMarkup
+                  });
+                }
               } else if (bot.sendMessage) {
                 await bot.sendMessage(tid, message, {
                   parse_mode: 'HTML',
