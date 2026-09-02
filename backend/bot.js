@@ -2,12 +2,19 @@ const TelegramBot = require('node-telegram-bot-api');
 const { pool } = require('./db');
 require('dotenv').config();
 
-const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
+const candidateTokens = [
+    process.env.TELEGRAM_BOT_TOKEN,
+    process.env.BOT_TOKEN,
+    process.env.TG_BOT_TOKEN,
+    process.env.TELEGRAM_TOKEN
+].filter(t => t && t !== 'your_bot_token_here' && t.trim() !== '');
+
+const token = candidateTokens[0] || null;
 const PORT = process.env.PORT || 3000;
 const API_BASE = `http://localhost:${PORT}/api`;
 
 let bot;
-if (token && token !== 'your_bot_token_here') {
+if (token) {
     bot = new TelegramBot(token, { polling: true });
     bot.isDummy = false;
     
