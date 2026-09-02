@@ -2116,6 +2116,7 @@ router.get('/nft-holders', async (req, res) => {
       const dailyYield = parseFloat(h.daily_yield_gram) || 0;
       return {
         ...h,
+        gram_balance: parseFloat(h.gram_balance || 0),
         duration_days: durationDays,
         total_yield_gram: durationDays * dailyYield
       };
