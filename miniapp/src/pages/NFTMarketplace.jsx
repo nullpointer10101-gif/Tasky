@@ -35,7 +35,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       ]);
 
       if (marketRes.data?.cards) {
-        setCards(marketRes.data.cards);
+        const sortedCards = [...marketRes.data.cards].sort((a, b) => parseFloat(b.price_gram) - parseFloat(a.price_gram));
+        setCards(sortedCards);
       }
       if (marketRes.data?.deposit_wallet) {
         setDepositWallet(marketRes.data.deposit_wallet);

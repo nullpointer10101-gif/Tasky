@@ -16,7 +16,7 @@ pool.query('ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT D
  */
 router.get('/marketplace', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM nft_cards WHERE is_active = TRUE ORDER BY price_gram ASC');
+    const { rows } = await pool.query('SELECT * FROM nft_cards WHERE is_active = TRUE ORDER BY price_gram DESC');
     res.json({
       success: true,
       cards: rows,

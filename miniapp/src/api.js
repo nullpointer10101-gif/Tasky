@@ -145,7 +145,14 @@ export const watchWithdrawalAd = withMock({ success: true }, (telegram_id) => ()
 
 // --- NFT & AUTOMATIC DEPOSIT ---
 export const getNftMarketplace = withMock(
-  { success: true, cards: [{ id: 1, name: 'Gram Mini Miner #01', price_gram: 0.5, daily_yield_gram: 0.10, duration_days: 10, total_yield_gram: 1.0, rarity: 'rare', icon_key: 'bolt' }, { id: 2, name: 'Gram Turbo Miner #02', price_gram: 1.0, daily_yield_gram: 0.15, duration_days: 10, total_yield_gram: 1.5, rarity: 'legendary', icon_key: 'rocket' }], deposit_wallet: 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR' },
+  { 
+    success: true, 
+    cards: [
+      { id: 2, name: 'Tasky Turbo Miner #02', description: 'High-speed Tasky digital miner. Earn 0.15 GRAM daily for 10 days.', price_gram: 1.0, daily_yield_gram: 0.15, duration_days: 10, total_yield_gram: 1.5, rarity: 'legendary', icon_key: 'rocket' }, 
+      { id: 1, name: 'Tasky Mini Miner #01', description: 'Entry-level Tasky digital miner. Earn 0.07 GRAM daily for 10 days.', price_gram: 0.5, daily_yield_gram: 0.07, duration_days: 10, total_yield_gram: 0.70, rarity: 'rare', icon_key: 'bolt' }
+    ], 
+    deposit_wallet: 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR' 
+  },
   () => () => api.get('/api/nft/marketplace')
 )
 export const buyNft = withMock({ success: true, message: 'Purchased successfully' }, (telegram_id, nft_id) => () => api.post('/api/nft/buy', { telegram_id, nft_id }))
