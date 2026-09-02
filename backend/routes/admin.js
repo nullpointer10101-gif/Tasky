@@ -1520,8 +1520,8 @@ router.post('/broadcast/nft', async (req, res) => {
   const { message, target, image_url } = req.body;
   if (!message) return res.status(400).json({ error: 'Message content is required' });
 
-  if (global.nftBroadcast && global.nftBroadcast.status === 'running') {
-    return res.status(400).json({ error: 'Another NFT broadcast is currently in progress.' });
+  if (global.nftBroadcast && global.nftBroadcast.status === 'running' && (Date.now() - (global.nftBroadcast.startTime || 0) < 60000)) {
+    return res.status(400).json({ error: 'Another NFT broadcast is currently in progress. Please wait 60s.' });
   }
 
   try {
@@ -1546,7 +1546,8 @@ router.post('/broadcast/nft', async (req, res) => {
       success: 0,
       failed: 0,
       status: 'running',
-      currentIdx: 0
+      currentIdx: 0,
+      startTime: Date.now()
     };
 
     // Process asynchronously in background
@@ -1625,7 +1626,7 @@ router.post('/broadcast/promo', async (req, res) => {
   const { code, target } = req.body;
   if (!code) return res.status(400).json({ error: 'Promo code is required' });
 
-  if (global.promoBroadcast && global.promoBroadcast.status === 'running') {
+  if (global.promoBroadcast && global.promoBroadcast.status === 'running' && (Date.now() - (global.promoBroadcast.startTime || 0) < 60000)) {
     return res.status(400).json({ error: 'Another broadcast is currently in progress.' });
   }
 
@@ -1705,7 +1706,7 @@ router.get('/broadcast/gram-reminder-status', (req, res) => {
 router.post('/broadcast/gram-reminder', async (req, res) => {
   const { target, templateIndex } = req.body;
 
-  if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running') {
+  if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running' && (Date.now() - (global.gramReminderBroadcast.startTime || 0) < 60000)) {
     return res.status(400).json({ error: 'Another Gram reminder broadcast is currently in progress.' });
   }
 
