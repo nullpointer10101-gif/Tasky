@@ -104,9 +104,13 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
     }
 });
 
-// Ping that user started watching an ad (for analytics / active users tracking)
+// Ping that user started watching an ad (for analytics & watch time verification)
 router.post('/start-watch', async (req, res) => {
-    // We just return success, index.js middleware handles setting the 'Watching Gram Ad' status
+    const { telegram_id } = req.body;
+    if (telegram_id) {
+        global.gramAdStartTimes = global.gramAdStartTimes || new Map();
+        global.gramAdStartTimes.set(telegram_id.toString(), Date.now());
+    }
     res.json({ success: true });
 });
 
@@ -119,6 +123,18 @@ router.post('/watch-ad', async (req, res) => {
         // Check user exists
         const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+        // Enforce server-side watch time verification (must have called /start-watch at least 14s ago)
+        global.gramAdStartTimes = global.gramAdStartTimes || new Map();
+        const adStartTime = global.gramAdStartTimes.get(telegram_id.toString());
+        if (!adStartTime) {
+            return res.status(400).json({ error: 'You must start watching the ad before claiming. Please tap Watch Ad again.' });
+        }
+        const watchDurationSec = (Date.now() - adStartTime) / 1000;
+        if (watchDurationSec < 14) {
+            const remaining = Math.ceil(14 - watchDurationSec);
+            return res.status(429).json({ error: `Ad closed too early! You must watch the ad for at least 15 seconds. Please wait ${remaining}s.` });
+        }
 
         // Check if user claimed reward in the last 24 hours
         const claimCheckRes = await pool.query(`
@@ -148,11 +164,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: 'Daily ad limit reached (60 ads per 24 hours). Please wait.' });
         }
 
-        // Enforce 10-second cooldown
+        // Enforce 15-second cooldown between consecutive ads
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 10) {
-                const timeLeft = Math.ceil(10 - secondsSinceLast);
+            if (secondsSinceLast < 15) {
+                const timeLeft = Math.ceil(15 - secondsSinceLast);
                 return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
             }
         }
@@ -162,6 +178,9 @@ router.post('/watch-ad', async (req, res) => {
             `INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, 'gram_ad')`,
             [telegram_id]
         );
+
+        // Clear start time
+        global.gramAdStartTimes.delete(telegram_id.toString());
 
         res.json({ success: true, ads_watched_today: count + 1 });
     } catch (err) {

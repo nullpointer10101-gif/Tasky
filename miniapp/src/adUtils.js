@@ -173,8 +173,8 @@ async function playAdWithFocusProtection(playAdFn) {
   const res = await playAdFn();
   const elapsed = (Date.now() - startTime) / 1000;
 
-  if (elapsed < 6) {
-    throw new Error('Ad was closed too early.');
+  if (elapsed < 15) {
+    throw new Error('Ad was closed too early. You must watch for at least 15 seconds.');
   }
 
   return res;
