@@ -294,7 +294,7 @@ export const verifyGramSuffix = withMock(
 
 // --- GRAM CURRENCY (IN-APP BALANCE) ---
 export const getGramCurrencyBalance = withMock(
-  () => ({ gram_balance: 12.5, wallet: 'UQtest...', has_pending_withdrawal: false, can_withdraw: true, min_withdrawal: 0.01, history: [] }),
+  () => ({ gram_balance: 12.5, wallet: 'UQtest...', has_pending_withdrawal: false, can_withdraw: true, min_withdrawal: 0.01, max_withdrawal: 0.1, history: [] }),
   (telegram_id) => () => api.get(`/api/gram-currency/balance/${telegram_id}`)
 )
 export const requestGramWithdrawal = withMock(

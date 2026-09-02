@@ -313,6 +313,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
   const handleWithdrawGram = async () => {
     const amt = parseFloat(withdrawAmount);
     if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
+    if (amt > 0.1) { showToast('Maximum daily withdrawal limit is 0.1 GRAM', 'error'); return; }
+    if (gramInfo?.remaining_daily_limit !== undefined && amt > gramInfo.remaining_daily_limit) { 
+      showToast(`Daily limit remaining: ${gramInfo.remaining_daily_limit.toFixed(3)} GRAM`, 'error'); 
+      return; 
+    }
     if (amt > (gramInfo?.gram_balance || 0)) { showToast('Insufficient GRAM balance', 'error'); return; }
     setIsWithdrawing(true);
     try {
@@ -327,7 +332,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     finally { setIsWithdrawing(false); }
   };
 
-  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || !withdrawAmount || parseFloat(withdrawAmount) < 0.01));
+  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || !withdrawAmount || parseFloat(withdrawAmount) < 0.01 || parseFloat(withdrawAmount) > 0.1));
   const count = status?.ads_watched_today || 0;
   const pct = Math.min(100, (count / TOTAL_ADS) * 100);
   const adsLeft = getAdsLeft(count);
@@ -368,14 +373,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
       <Card className="p-5 relative overflow-hidden bg-gradient-to-br from-emerald-900/40 to-teal-900/30 border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full pointer-events-none" />
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30">
-              <Gem size={20} className="text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60">Your GRAM Balance</p>
-              <p className="text-2xl font-black text-emerald-300">{parseFloat(gramInfo?.gram_balance || 0).toFixed(4)} <span className="text-sm text-emerald-400/60">GRAM</span></p>
-            </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400/60">Your GRAM Balance</p>
+            <p className="text-2xl font-black text-emerald-300">{parseFloat(gramInfo?.gram_balance || 0).toFixed(4)} <span className="text-sm text-emerald-400/60">GRAM</span></p>
           </div>
           {gramInfo?.has_pending_withdrawal && (
             <span className="text-[9px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 px-2.5 py-1 rounded-lg border border-amber-500/20">Pending</span>
@@ -385,14 +385,20 @@ export default function Gram({ user, refreshUser, tgUser }) {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
-                type="number" step="0.01" min="0.01" max={gramInfo?.gram_balance || 0}
+                type="number" step="0.01" min="0.01" max="0.1"
                 value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)}
-                placeholder="Min 0.01 GRAM"
+                placeholder="Min 0.01 | Max 0.1 GRAM"
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold placeholder-white/20 focus:outline-none focus:border-emerald-500/50"
               />
             </div>
-            <button onClick={() => setWithdrawAmount(String(gramInfo?.gram_balance || 0))}
+            <button onClick={() => setWithdrawAmount(String(Math.min(0.1, gramInfo?.remaining_daily_limit ?? 0.1, gramInfo?.gram_balance || 0)))}
               className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors">MAX</button>
+          </div>
+          <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
+            <span>Daily Max Limit: 0.1 GRAM</span>
+            {gramInfo?.remaining_daily_limit !== undefined && (
+              <span>Remaining Today: {gramInfo.remaining_daily_limit.toFixed(3)} GRAM</span>
+            )}
           </div>
           <button onClick={handleWithdrawClick} disabled={isBtnDisabled}
             className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]">

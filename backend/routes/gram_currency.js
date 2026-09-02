@@ -6,6 +6,7 @@ const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 const MIN_WITHDRAWAL = 0.01;
+const MAX_WITHDRAWAL = 0.1;
 
 // GET /api/gram-currency/balance/:telegram_id
 router.get('/balance/:telegram_id', async (req, res) => {
@@ -21,6 +22,18 @@ router.get('/balance/:telegram_id', async (req, res) => {
 
         const { gram_balance, gram_wallet_address, wallet_address } = userRes.rows[0];
         const activeWallet = gram_wallet_address || wallet_address || null;
+
+        // Sum of withdrawals in last 24 hours
+        const todayWithdrawnRes = await pool.query(
+            `SELECT COALESCE(SUM(amount), 0) as total_today
+             FROM gram_withdrawals
+             WHERE telegram_id = $1 
+               AND status IN ('pending', 'approved', 'done')
+               AND requested_at >= NOW() - INTERVAL '24 hours'`,
+            [telegram_id]
+        );
+        const withdrawnToday = parseFloat(todayWithdrawnRes.rows[0].total_today || 0);
+        const remainingDailyLimit = Math.max(0, MAX_WITHDRAWAL - withdrawnToday);
 
         // Recent withdrawal history
         const historyRes = await pool.query(
@@ -43,8 +56,11 @@ router.get('/balance/:telegram_id', async (req, res) => {
             gram_balance: parseFloat(gram_balance || 0),
             wallet: activeWallet,
             has_pending_withdrawal: has_pending,
-            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending,
+            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && remainingDailyLimit >= MIN_WITHDRAWAL,
             min_withdrawal: MIN_WITHDRAWAL,
+            max_withdrawal: MAX_WITHDRAWAL,
+            withdrawn_today: withdrawnToday,
+            remaining_daily_limit: remainingDailyLimit,
             history: historyRes.rows
         });
     } catch (err) {
@@ -61,6 +77,9 @@ router.post('/withdraw', async (req, res) => {
     const withdrawAmount = parseFloat(amount);
     if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAWAL) {
         return res.status(400).json({ error: `Minimum withdrawal is ${MIN_WITHDRAWAL} GRAM` });
+    }
+    if (withdrawAmount > MAX_WITHDRAWAL) {
+        return res.status(400).json({ error: `Maximum withdrawal limit is ${MAX_WITHDRAWAL} GRAM per day` });
     }
 
     const client = await pool.connect();
@@ -119,6 +138,24 @@ router.post('/withdraw', async (req, res) => {
         if (parseInt(pendingRes.rows[0].count, 10) > 0) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: 'You already have a pending GRAM withdrawal. Please wait for it to be processed.' });
+        }
+
+        // Check daily limit (sum of withdrawals in last 24h)
+        const dailyWithdrawnRes = await client.query(
+            `SELECT COALESCE(SUM(amount), 0) as total
+             FROM gram_withdrawals
+             WHERE telegram_id = $1 
+               AND status IN ('pending', 'approved', 'done')
+               AND requested_at >= NOW() - INTERVAL '24 hours'`,
+            [telegram_id]
+        );
+        const dailyWithdrawn = parseFloat(dailyWithdrawnRes.rows[0].total || 0);
+        if (dailyWithdrawn + withdrawAmount > MAX_WITHDRAWAL) {
+            await client.query('ROLLBACK');
+            const remaining = Math.max(0, MAX_WITHDRAWAL - dailyWithdrawn);
+            return res.status(400).json({ 
+                error: `Daily withdrawal limit is ${MAX_WITHDRAWAL} GRAM. You have requested/withdrawn ${dailyWithdrawn.toFixed(3)} GRAM in the last 24h. Remaining limit: ${remaining.toFixed(3)} GRAM.` 
+            });
         }
 
         // Deduct balance and insert withdrawal request
