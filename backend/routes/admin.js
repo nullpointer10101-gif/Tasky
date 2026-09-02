@@ -1525,16 +1525,19 @@ router.post('/broadcast/nft', async (req, res) => {
   }
 
   try {
-    const adminId = '8823265955';
+    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
     let targets = [];
     if (target === 'admin') {
-      targets = [adminId];
+      targets = adminIds;
     } else {
       const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[NFT BROADCAST] Target: ${target}, Image: ${image_url || 'None'}, AdminID: ${adminId}, Targets Count: ${targets.length}`);
+    console.log(`[NFT BROADCAST] Target: ${target}, Image: ${image_url || 'None'}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
 
     global.nftBroadcast = {
       target,
@@ -1614,16 +1617,19 @@ router.post('/broadcast/promo', async (req, res) => {
   const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <code>${code.toUpperCase()}</code> 👈\n<i>(Tap the code above to copy it)</i>\n\n🚀 Open the app and enter the code to redeem!`;
 
   try {
-    const adminId = '8823265955';
+    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
     let targets = [];
     if (target === 'admin') {
-      targets = [adminId];
+      targets = adminIds;
     } else {
       const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminID: ${adminId}, Targets Count: ${targets.length}, Targets List:`, targets);
+    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}, Targets List:`, targets);
 
     global.promoBroadcast = {
       code: code.toUpperCase(),
@@ -1717,10 +1723,13 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
   const buttonText = selectedTemplate.button;
 
   try {
-    const adminId = '8823265955';
+    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
     let targets = [];
     if (target === 'admin') {
-      targets = [adminId];
+      targets = adminIds;
     } else {
       const query = `
         SELECT telegram_id FROM users 
