@@ -411,16 +411,37 @@ export default function Broadcast() {
                 <div className="bg-black/40 border border-purple-500/30 rounded-xl p-3 space-y-2">
                   <div className="flex items-center justify-between text-[11px] font-bold">
                     <span className="text-purple-300 uppercase tracking-wider">
-                      {nftStatus.status === 'running' ? '🚀 Broadcasting NFT...' : '✅ Completed'}
+                      {nftStatus.status === 'running' 
+                        ? '🚀 Broadcasting NFT...' 
+                        : nftStatus.failed > 0 && nftStatus.success === 0 
+                          ? '❌ Send Failed (Check Server Bot Token)' 
+                          : '✅ Completed'}
                     </span>
                     <span className="font-mono text-purple-400">{nftProgressPct}%</span>
                   </div>
 
                   <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
                     <div
-                      className="h-full bg-gradient-to-r from-purple-500 to-amber-400 rounded-full transition-all duration-300"
+                      className={`h-full rounded-full transition-all duration-300 ${
+                        nftStatus.failed > 0 && nftStatus.success === 0 ? 'bg-rose-500' : 'bg-gradient-to-r from-purple-500 to-amber-400'
+                      }`}
                       style={{ width: `${nftProgressPct}%` }}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1 text-center text-[10px] font-bold pt-1">
+                    <div className="bg-white/5 p-1.5 rounded-lg">
+                      <p className="text-ink-soft">Target</p>
+                      <p className="text-white text-xs font-mono">{nftStatus.total}</p>
+                    </div>
+                    <div className="bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
+                      <p className="text-emerald-400">Sent</p>
+                      <p className="text-emerald-300 text-xs font-mono">{nftStatus.success}</p>
+                    </div>
+                    <div className="bg-rose-500/10 p-1.5 rounded-lg border border-rose-500/20">
+                      <p className="text-rose-400">Failed</p>
+                      <p className="text-rose-300 text-xs font-mono">{nftStatus.failed}</p>
+                    </div>
                   </div>
                 </div>
               )}

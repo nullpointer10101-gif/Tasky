@@ -1556,14 +1556,15 @@ router.post('/broadcast/nft', async (req, res) => {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            if (bot) {
+            if (bot && typeof bot.sendMessage === 'function' && !bot.isDummy) {
               const replyMarkup = {
                 inline_keyboard: [
                   [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
                 ]
               };
 
-              if (image_url && bot.sendPhoto) {
+              let sent = false;
+              if (image_url && typeof bot.sendPhoto === 'function') {
                 let photoPayload = image_url;
                 if (image_url.includes('nft_banner')) {
                   const officialPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
@@ -1578,21 +1579,27 @@ router.post('/broadcast/nft', async (req, res) => {
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
                   });
+                  sent = true;
                 } catch (photoErr) {
                   console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text message:`, photoErr.message);
-                  await bot.sendMessage(tid, message, {
-                    parse_mode: 'HTML',
-                    reply_markup: replyMarkup
-                  });
                 }
-              } else if (bot.sendMessage) {
+              }
+
+              if (!sent && typeof bot.sendMessage === 'function') {
                 await bot.sendMessage(tid, message, {
                   parse_mode: 'HTML',
                   reply_markup: replyMarkup
                 });
+                sent = true;
               }
-              global.nftBroadcast.success++;
+
+              if (sent) {
+                global.nftBroadcast.success++;
+              } else {
+                global.nftBroadcast.failed++;
+              }
             } else {
+              console.error(`[NFT BROADCAST] Bot instance missing or dummy bot for tid ${tid}`);
               global.nftBroadcast.failed++;
             }
           } catch (e) {

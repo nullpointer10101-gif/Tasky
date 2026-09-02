@@ -2,13 +2,14 @@ const TelegramBot = require('node-telegram-bot-api');
 const { pool } = require('./db');
 require('dotenv').config();
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
+const token = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN;
 const PORT = process.env.PORT || 3000;
 const API_BASE = `http://localhost:${PORT}/api`;
 
 let bot;
 if (token && token !== 'your_bot_token_here') {
     bot = new TelegramBot(token, { polling: true });
+    bot.isDummy = false;
     
     bot.on('polling_error', (error) => {
         console.error('Polling error:', error.code, error.message);
@@ -16,11 +17,13 @@ if (token && token !== 'your_bot_token_here') {
 } else {
     // dummy bot fallback
     bot = {
+        isDummy: true,
         onText: () => {},
         on: () => {},
-        sendMessage: () => {}
+        sendMessage: () => Promise.reject(new Error('Telegram Bot token not provided on server')),
+        sendPhoto: () => Promise.reject(new Error('Telegram Bot token not provided on server'))
     };
-    console.log('Telegram Bot token not provided or is default, bot not started.');
+    console.warn('⚠️ Telegram Bot token not provided or is default, dummy bot initialized.');
 }
 
 const isAdmin = (msg) => {
