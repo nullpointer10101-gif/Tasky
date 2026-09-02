@@ -336,7 +336,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     finally { setIsWithdrawing(false); }
   };
 
-  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || gramInfo?.has_reached_daily_limit || !withdrawAmount || parseFloat(withdrawAmount) < 0.01 || parseFloat(withdrawAmount) > 0.1));
+  const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || gramInfo?.has_reached_daily_limit || !withdrawAmount || parseFloat(withdrawAmount) < 0.01));
   const count = status?.ads_watched_today || 0;
   const pct = Math.min(100, (count / TOTAL_ADS) * 100);
   const adsLeft = getAdsLeft(count);
@@ -391,17 +391,17 @@ export default function Gram({ user, refreshUser, tgUser }) {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <input
-                type="number" step="0.01" min="0.01" max="0.1"
+                type="number" step="0.01" min="0.01"
                 value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)}
-                placeholder="Min 0.01 | Max 0.1 GRAM"
+                placeholder="Min 0.01 GRAM"
                 className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm font-bold placeholder-white/20 focus:outline-none focus:border-emerald-500/50"
               />
             </div>
-            <button onClick={() => setWithdrawAmount(String(Math.min(0.1, gramInfo?.remaining_daily_limit ?? 0.1, gramInfo?.gram_balance || 0)))}
+            <button onClick={() => setWithdrawAmount(String(gramInfo?.gram_balance || 0))}
               className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors">MAX</button>
           </div>
           <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
-            <span>Daily Limit: 1 Withdrawal / Day (Max 0.1)</span>
+            <span>Daily Limit: 1 Withdrawal / Day</span>
             {gramInfo?.withdrawals_today_count !== undefined && (
               <span>Today: {gramInfo.withdrawals_today_count}/1</span>
             )}
