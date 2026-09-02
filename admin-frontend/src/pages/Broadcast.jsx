@@ -88,6 +88,39 @@ export default function Broadcast() {
 
   const [nftCustomText, setNftCustomText] = useState(nftTemplates[0].text);
 
+  // Check initial broadcast status on component mount
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const [nftRes, promoRes, gramRes] = await Promise.allSettled([
+          api.get('/broadcast/nft-status'),
+          api.get('/broadcast/promo-status'),
+          api.get('/broadcast/gram-reminder-status')
+        ]);
+
+        if (nftRes.status === 'fulfilled' && nftRes.value.data) {
+          setNftStatus(nftRes.value.data);
+          if (nftRes.value.data.status === 'running') {
+            setIsBroadcastingNft(true);
+          }
+        }
+        if (promoRes.status === 'fulfilled' && promoRes.value.data) {
+          setPromoStatus(promoRes.value.data);
+          if (promoRes.value.data.status === 'running') {
+            setIsBroadcastingPromo(true);
+          }
+        }
+        if (gramRes.status === 'fulfilled' && gramRes.value.data) {
+          setGramStatus(gramRes.value.data);
+          if (gramRes.value.data.status === 'running') {
+            setIsBroadcastingGram(true);
+          }
+        }
+      } catch (_) {}
+    };
+    fetchStatuses();
+  }, []);
+
   // Poll Promo Status
   useEffect(() => {
     let interval;
