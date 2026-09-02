@@ -1854,6 +1854,8 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'Withdrawal not found or already processed' });
     }
+    const w = wRes.rows[0];
+
     if (!tx_hash || !tx_hash.trim()) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error: 'Transaction hash or Tonviewer link is mandatory to approve this GRAM withdrawal.' });
@@ -1892,7 +1894,7 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
     let isNftUser = false;
     let userNftName = null;
     try {
-      const nftCheck = await client.query(`
+      const nftCheck = await pool.query(`
         SELECT nc.name 
         FROM user_nft_cards unc 
         JOIN nft_cards nc ON unc.nft_id = nc.id 
