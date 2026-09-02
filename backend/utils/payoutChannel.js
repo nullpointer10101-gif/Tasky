@@ -38,7 +38,7 @@ function getExplorerLink(txHash) {
  * 
  * @param {Object} bot Telegram Bot instance (node-telegram-bot-api)
  * @param {Object} params
- * @param {string} params.type Reward / Payout type (e.g. 'Daily Quest 0.02 GRAM', 'Gram Balance Withdrawal', 'USDT Swap')
+ * @param {string} params.type Reward / Payout type (e.g. 'Daily Quest 0.02 GRAM', 'Gram Balance Withdrawal', 'NFT Miner Return')
  * @param {string|number} params.amount Amount sent
  * @param {string} params.token Currency ticker (e.g. 'GRAM', 'USDT')
  * @param {string} params.wallet Recipient wallet address
@@ -46,6 +46,8 @@ function getExplorerLink(txHash) {
  * @param {string|number} [params.telegram_id] Recipient Telegram user ID
  * @param {string} [params.username] Recipient Telegram @username
  * @param {string} [params.first_name] Recipient first name
+ * @param {boolean} [params.is_nft] Whether recipient is an NFT Miner holder
+ * @param {string} [params.nft_name] Name of the NFT Miner card
  */
 async function broadcastPayoutProof(bot, {
   type = 'Daily Quest Reward',
@@ -55,7 +57,9 @@ async function broadcastPayoutProof(bot, {
   tx_hash = null,
   telegram_id = '',
   username = '',
-  first_name = ''
+  first_name = '',
+  is_nft = false,
+  nft_name = ''
 }) {
   try {
     if (!bot || !bot.sendMessage) {
@@ -91,6 +95,9 @@ async function broadcastPayoutProof(bot, {
       return { skipped: true, reason: 'not_configured' };
     }
 
+    // Auto-detect NFT payout
+    const isNftPayout = is_nft || /nft|miner/i.test(type) || !!nft_name;
+
     // 2. Format User Display
     let recipientDisplay = '';
     const cleanName = (first_name || '').replace(/[<>]/g, '').trim();
@@ -113,9 +120,30 @@ async function broadcastPayoutProof(bot, {
 
     const dateStr = new Date().toUTCString().replace('GMT', 'UTC');
 
-    // 4. Construct Message HTML
-    const messageHtml = 
-`💎 <b>TASKY VERIFIED PAYOUT PROOF</b> 💎
+    // 4. Construct Message HTML (NFT Miner VIP theme vs Standard theme)
+    let messageHtml = '';
+
+    if (isNftPayout) {
+      // 🌟 NFT DIGITAL MINER PROOF THEME 🚀
+      messageHtml = 
+`✨ <b>NFT DIGITAL MINER PAYOUT PROOF</b> 🚀
+💎 <b>TASKY HIGH YIELD VIP RETURN</b> 💎
+━━━━━━━━━━━━━━━━━━━━
+
+👤 <b>VIP Holder:</b> ${recipientDisplay}
+💎 <b>NFT Miner:</b> <b>${nft_name || 'NFT Digital Miner'}</b>
+💰 <b>Amount Paid:</b> <b>${amount} ${token}</b>
+🏷 <b>Reward Type:</b> ${type}
+🏦 <b>Tonkeeper Wallet:</b> <code>${wallet || 'N/A'}</code>
+⏰ <b>Date & Time:</b> ${dateStr}
+
+${txLine}━━━━━━━━━━━━━━━━━━━━
+⚡️ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ⚡️
+💎 <i>Earn guaranteed daily passive GRAM returns with Tasky NFT Digital Miners!</i>`;
+    } else {
+      // ⚡️ STANDARD VERIFIED PAYOUT PROOF THEME 💎
+      messageHtml = 
+`⚡️ <b>TASKY VERIFIED PAYOUT PROOF</b> 💎
 ━━━━━━━━━━━━━━━━━━━━
 
 👤 <b>Recipient:</b> ${recipientDisplay}
@@ -125,13 +153,14 @@ async function broadcastPayoutProof(bot, {
 ⏰ <b>Date & Time:</b> ${dateStr}
 
 ${txLine}━━━━━━━━━━━━━━━━━━━━
-✅ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ⚡
+✅ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ⚡️
 🌟 <i>Tasky delivers verified crypto earnings daily! Join our community & start earning today.</i>`;
+    }
 
     // 5. Build Inline Keyboard
     const inline_keyboard = [
       [
-        { text: '🚀 Open Tasky & Earn', url: 'https://t.me/TaskyAppbot/app' }
+        { text: isNftPayout ? '⚡ Claim NFT Miner Now 💎' : '🚀 Open Tasky & Earn', url: 'https://t.me/TaskyAppbot/app' }
       ]
     ];
 

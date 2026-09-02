@@ -1888,16 +1888,37 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
       } catch (e) {}
     }
 
+    // Check if user owns an NFT card for special NFT Payout Proof branding
+    let isNftUser = false;
+    let userNftName = null;
+    try {
+      const nftCheck = await client.query(`
+        SELECT nc.name 
+        FROM user_nft_cards unc 
+        JOIN nft_cards nc ON unc.nft_id = nc.id 
+        WHERE unc.telegram_id = $1 
+        ORDER BY unc.purchased_at DESC LIMIT 1
+      `, [w.telegram_id]);
+      if (nftCheck.rows.length > 0) {
+        isNftUser = true;
+        userNftName = nftCheck.rows[0].name;
+      }
+    } catch (e) {
+      console.error('[AdminApprove] NFT check error:', e.message);
+    }
+
     // Broadcast to official Telegram Payout Channel
     broadcastPayoutProof(bot, {
-      type: 'Gram Balance Withdrawal',
+      type: isNftUser ? 'NFT Miner Return' : 'Gram Balance Withdrawal',
       amount: w.amount,
       token: 'GRAM',
       wallet: w.wallet_address,
       tx_hash: tx_hash || null,
       telegram_id: w.telegram_id,
       username: userRes.rows[0]?.username,
-      first_name: userRes.rows[0]?.first_name
+      first_name: userRes.rows[0]?.first_name,
+      is_nft: isNftUser,
+      nft_name: userNftName
     }).catch(e => console.error('[PayoutProof] Gram withdrawal error:', e.message));
 
     res.json({ success: true });
