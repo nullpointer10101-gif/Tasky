@@ -501,30 +501,17 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               </div>
             </Card>
 
-            {/* Step 3: Automatic Blockchain Verification */}
-            <Card>
-              <p className="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Zap size={14} className="text-emerald-400" />
-                Step 3: Automatic Blockchain Verifier
-              </p>
-              <div className="space-y-3">
-                <input
-                  type="text"
-                  placeholder="Paste Tonviewer Tx Hash (Optional)"
-                  value={txHashInput}
-                  onChange={(e) => setTxHashInput(e.target.value)}
-                  className="w-full bg-black/30 border border-white/10 rounded-2xl px-4 py-3 text-xs text-white placeholder-ink-soft/60 focus:outline-none focus:border-purple-500"
-                />
-                <Button
-                  onClick={handleAutoVerifyDeposit}
-                  loading={verifyingDeposit}
-                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider border-0 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
-                >
-                  <Zap size={16} />
-                  <span>Verify Deposit Automatically ⚡</span>
-                </Button>
-              </div>
-            </Card>
+            {/* Direct Automatic Deposit Verifier Button */}
+            <div className="pt-2">
+              <Button
+                onClick={handleAutoVerifyDeposit}
+                loading={verifyingDeposit}
+                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider border-0 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+              >
+                <Zap size={18} />
+                <span>Verify Deposit Automatically ⚡</span>
+              </Button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
