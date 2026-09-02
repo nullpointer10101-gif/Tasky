@@ -2,8 +2,28 @@ const express = require('express');
 const router = express.Router();
 const https = require('https');
 const { pool } = require('../db');
+const bot = require('../bot');
 
 const ADMIN_WALLET = process.env.ADMIN_WALLET || 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
+
+function sendAdminBroadcast(message, extraOpts = {}) {
+  try {
+    const adminIds = ['8823265955'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
+    const targetBot = (bot && !bot.isDummy && typeof bot.sendMessage === 'function') ? bot : null;
+    if (targetBot) {
+      adminIds.forEach(adminId => {
+        targetBot.sendMessage(adminId, message, { parse_mode: 'HTML', ...extraOpts }).catch(err => {
+          console.warn(`[ADMIN NOTIFY] Failed to notify ${adminId}:`, err.message);
+        });
+      });
+    }
+  } catch (err) {
+    console.error('[ADMIN NOTIFY ERROR]:', err.message);
+  }
+}
 
 // Ensure user_nft_cards has total_days column
 pool.query('ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT NULL').catch(err => {
@@ -52,8 +72,8 @@ router.post('/buy', async (req, res) => {
     const nft = nftRes.rows[0];
     const priceGram = parseFloat(nft.price_gram);
 
-    // 2. Fetch User Gram Balance
-    const userRes = await client.query('SELECT balance, gram_balance FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+    // 2. Fetch User Gram Balance & Details
+    const userRes = await client.query('SELECT username, first_name, balance, gram_balance FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
     if (userRes.rows.length === 0) {
       await client.query('ROLLBACK');
       return res.status(404).json({ error: 'User not found' });
@@ -110,6 +130,18 @@ router.post('/buy', async (req, res) => {
     await client.query('UPDATE nft_cards SET sold_count = sold_count + 1 WHERE id = $1', [nft_id]);
 
     await client.query('COMMIT');
+
+    // Notify Admin
+    const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
+    const actionTag = isUpgrade ? '🔄 NFT MINER UPGRADE' : '🚀 NEW NFT MINER PURCHASE';
+    sendAdminBroadcast(
+      `🛒 <b>${actionTag}</b>\n\n` +
+      `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
+      `⚡ <b>NFT Miner:</b> ${nft.name}\n` +
+      `💰 <b>Price Paid:</b> ${priceGram} GRAM\n` +
+      `📈 <b>Daily Return:</b> +${nft.daily_yield_gram} GRAM/day (${newTotalDays} Days Total)\n` +
+      `💳 <b>New User Balance:</b> ${parseFloat(updateRes.rows[0].balance).toFixed(3)} GRAM`
+    );
 
     const successMessage = isUpgrade
       ? `🎉 Upgraded ${nft.name}! Duration extended by +${nft.duration_days} days (Total: ${newTotalDays} days). Daily return remains ${nft.daily_yield_gram} GRAM/day.`
@@ -380,8 +412,8 @@ router.post('/deposit/auto-verify', async (req, res) => {
               [telegram_id, depositedGram, matchedHash]
             );
 
-            // Update user balance
-            const userRes = await client.query('SELECT gram_balance FROM users WHERE telegram_id = $1', [telegram_id]);
+            // Update user balance & fetch details for admin broadcast
+            const userRes = await client.query('SELECT username, first_name, gram_balance FROM users WHERE telegram_id = $1', [telegram_id]);
             let updateQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
             if (userRes.rows[0]?.gram_balance !== null && userRes.rows[0]?.gram_balance !== undefined) {
               updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1 WHERE telegram_id = $2 RETURNING gram_balance as balance';
@@ -389,6 +421,20 @@ router.post('/deposit/auto-verify', async (req, res) => {
             const updateRes = await client.query(updateQuery, [depositedGram, telegram_id]);
 
             await client.query('COMMIT');
+
+            // Notify Admin of Deposit
+            const user = userRes.rows[0] || {};
+            const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
+            const txHashDisplay = matchedHash ? (matchedHash.length > 20 ? `${matchedHash.substring(0, 10)}...${matchedHash.substring(matchedHash.length - 6)}` : matchedHash) : 'N/A';
+
+            sendAdminBroadcast(
+              `💰 <b>NEW GRAM DEPOSIT VERIFIED!</b>\n\n` +
+              `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
+              `💎 <b>Amount Credited:</b> +${depositedGram.toFixed(3)} GRAM\n` +
+              `🔗 <b>Tx Hash:</b> <code>${txHashDisplay}</code>\n` +
+              `⚡ <b>Verification:</b> TON Blockchain Auto-Verified\n` +
+              `💳 <b>New User Balance:</b> ${parseFloat(updateRes.rows[0].balance).toFixed(3)} GRAM`
+            );
 
             return res.json({
               success: true,
