@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift, Rocket, Zap, Image as ImageIcon } from 'lucide-react';
+import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift, Rocket, Zap, Image as ImageIcon, Gem, Coins } from 'lucide-react';
 
 export default function Broadcast() {
   const [message, setMessage] = useState('');
@@ -18,6 +18,12 @@ export default function Broadcast() {
   const [nftStatus, setNftStatus] = useState(null);
   const [isBroadcastingNft, setIsBroadcastingNft] = useState(false);
   const [nftTemplateIndex, setNftTemplateIndex] = useState(0);
+
+  // GRAM Currency Broadcast State
+  const [gramTarget, setGramTarget] = useState('admin'); // 'admin' or 'all'
+  const [gramStatus, setGramStatus] = useState(null);
+  const [isBroadcastingGram, setIsBroadcastingGram] = useState(false);
+  const [gramTemplateIndex, setGramTemplateIndex] = useState(0);
 
   const bannerOptions = [
     {
@@ -54,6 +60,29 @@ export default function Broadcast() {
     {
       label: 'Variant 5: Custom Message ✍️',
       text: `🚀 <b>TASKY SPECIAL ANNOUNCEMENT</b> 💎\n\nWrite your custom announcement message here...`
+    }
+  ];
+
+  const gramTemplates = [
+    {
+      label: 'Variant 1: Daily 0.02 GRAM Quest Reminder 💎',
+      text: `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`
+    },
+    {
+      label: 'Variant 2: Free GRAM Daily Payout 🎁',
+      text: `🔥 <b>Free GRAM waiting to be claimed!</b>\n\nDon't miss out on your daily yield. Watch your 60 short ads now and unlock <b>0.02 GRAM</b> paid instantly to your wallet!\n\n⚡️ <b>Get your free GRAM tokens here:</b>`
+    },
+    {
+      label: 'Variant 3: Ad Slots Refreshed ⚡️',
+      text: `🚀 <b>Ad slots refreshed! Ready for GRAM?</b>\n\nWatch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.\n\n👉 <b>Click below to start:</b>`
+    },
+    {
+      label: 'Variant 4: High Demand Cap Urgency 🚨',
+      text: `🚨 <b>URGENT: Gram rewards are filling up fast!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before it resets!\n\n💰 <b>Secure your payout here:</b>`
+    },
+    {
+      label: 'Variant 5: Claim & Rank Up 🏆',
+      text: `🏆 <b>Boost your Tasky status with free GRAM!</b>\n\nDaily active miners are already claiming. Watch your 60 ads to unlock <b>0.02 GRAM</b> and increase your daily rank!\n\n💎 <b>Claim & Rank Up:</b>`
     }
   ];
 
@@ -98,6 +127,26 @@ export default function Broadcast() {
     }
     return () => clearInterval(interval);
   }, [isBroadcastingNft]);
+
+  // Poll GRAM Status
+  useEffect(() => {
+    let interval;
+    if (isBroadcastingGram) {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get('/broadcast/gram-reminder-status');
+          if (res.data) {
+            setGramStatus(res.data);
+            if (res.data.status === 'completed') {
+              setIsBroadcastingGram(false);
+              toast.success('GRAM Currency Broadcast completed successfully!');
+            }
+          }
+        } catch (_) {}
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isBroadcastingGram]);
 
   const handleSelectNftTemplate = (idx) => {
     setNftTemplateIndex(idx);
@@ -190,12 +239,45 @@ export default function Broadcast() {
     }
   };
 
+  const handleSendGram = async () => {
+    const confirmMsg = gramTarget === 'admin'
+      ? 'Send GRAM Currency broadcast test to ADMIN ONLY (8823265955)?'
+      : 'Broadcast GRAM Currency announcement to ALL eligible users?';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setGramStatus({
+        target: gramTarget,
+        total: 0,
+        success: 0,
+        failed: 0,
+        status: 'running',
+        currentIdx: 0
+      });
+      setIsBroadcastingGram(true);
+      await api.post('/broadcast/gram-reminder', { 
+        target: gramTarget,
+        templateIndex: gramTemplateIndex
+      });
+      toast.success('GRAM Currency broadcast started!');
+    } catch (error) {
+      toast.error(error.response?.data?.error || 'Failed to start GRAM broadcast');
+      setIsBroadcastingGram(false);
+      setGramStatus(null);
+    }
+  };
+
   const promoProgressPct = promoStatus?.total > 0 
     ? Math.round((promoStatus.currentIdx / promoStatus.total) * 100) 
     : 0;
 
   const nftProgressPct = nftStatus?.total > 0
     ? Math.round((nftStatus.currentIdx / nftStatus.total) * 100)
+    : 0;
+
+  const gramProgressPct = gramStatus?.total > 0
+    ? Math.round((gramStatus.currentIdx / gramStatus.total) * 100)
     : 0;
 
   return (
@@ -205,82 +287,82 @@ export default function Broadcast() {
         <p className="text-ink-soft text-sm md:text-base">Push notifications and announcements directly to every user's Telegram.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* ========================================================= */}
         {/* CARD 1: NFT DIGITAL MINERS LAUNCH BROADCASTER             */}
         {/* ========================================================= */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-5 flex gap-4 items-start shadow-sm shadow-purple-500/5">
-            <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 font-bold">
-              <Rocket size={20} />
+        <div className="flex flex-col gap-4">
+          <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-purple-500/5">
+            <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 font-bold">
+              <Rocket size={18} />
             </div>
             <div>
-              <h3 className="text-purple-400 font-bold mb-1 text-base leading-tight">✨ NFT Miners Broadcaster</h3>
-              <p className="text-purple-400/80 text-xs">
-                Announce new NFT Digital Miners with attached high-resolution promo banners and direct deposit links.
+              <h3 className="text-purple-400 font-bold mb-0.5 text-sm leading-tight">✨ NFT Miners Broadcaster</h3>
+              <p className="text-purple-400/80 text-[11px]">
+                Announce new NFT Miners with attached promo banners and deposit links.
               </p>
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-purple-500/30 rounded-3xl p-6 shadow-xl shadow-black/20 relative overflow-hidden flex-1 flex flex-col justify-between">
+          <div className="bg-surface-soft border border-purple-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 relative overflow-hidden flex-1 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               
               {/* Target Selector */}
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
                   1. Broadcast Target
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setNftTarget('admin')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
                       nftTarget === 'admin'
                         ? 'bg-purple-600 text-white border-purple-400 shadow-md'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
                     }`}
                   >
-                    🧪 Admin Only (Test)
+                    🧪 Admin Only
                   </button>
                   <button
                     type="button"
                     onClick={() => setNftTarget('all')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
                       nftTarget === 'all'
                         ? 'bg-purple-600 text-white border-purple-400 shadow-md'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
                     }`}
                   >
-                    📢 All Active Users
+                    📢 All Users
                   </button>
                 </div>
               </div>
 
               {/* Banner Image Selector */}
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                  <ImageIcon size={14} className="text-amber-400" />
-                  2. Select Attached Banner Image
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5 flex items-center gap-1">
+                  <ImageIcon size={12} className="text-amber-400" />
+                  2. Banner Image
                 </label>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {bannerOptions.map((opt) => (
                     <button
                       key={opt.id}
                       type="button"
                       onClick={() => setSelectedImageUrl(opt.url)}
-                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-bold transition-all ${
+                      className={`w-full flex items-center justify-between p-2 rounded-xl border text-[11px] font-bold transition-all ${
                         selectedImageUrl === opt.url
                           ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
                           : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
                       }`}
                     >
-                      <span>{opt.label}</span>
+                      <span className="truncate pr-1">{opt.label}</span>
                       {opt.url && (
                         <img
                           src={opt.url}
                           alt="preview"
-                          className="w-12 h-8 rounded-lg object-cover border border-white/20"
+                          className="w-10 h-7 rounded-md object-cover border border-white/20 shrink-0"
                         />
                       )}
                     </button>
@@ -290,16 +372,16 @@ export default function Broadcast() {
 
               {/* Variant Selector */}
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
-                  3. Message Text Variant
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  3. Text Variant
                 </label>
-                <div className="space-y-1.5">
+                <div className="space-y-1">
                   {nftTemplates.map((t, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleSelectNftTemplate(idx)}
-                      className={`w-full text-left py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      className={`w-full text-left py-1.5 px-2.5 rounded-xl text-[11px] font-bold border transition-all ${
                         nftTemplateIndex === idx
                           ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
                           : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
@@ -313,84 +395,184 @@ export default function Broadcast() {
 
               {/* Message Editor */}
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
-                  4. Custom Caption Editor (HTML Format)
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  4. Caption Editor (HTML)
                 </label>
                 <textarea
                   value={nftCustomText}
                   onChange={(e) => setNftCustomText(e.target.value)}
-                  rows={5}
-                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl p-3.5 text-ink text-xs font-mono focus:outline-none focus:border-purple-500 resize-none"
+                  rows={4}
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-[11px] font-mono focus:outline-none focus:border-purple-500 resize-none"
                 />
               </div>
 
               {/* Live Status Widget */}
               {nftStatus && (
-                <div className="bg-black/40 border border-purple-500/30 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold">
+                <div className="bg-black/40 border border-purple-500/30 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
                     <span className="text-purple-300 uppercase tracking-wider">
-                      {nftStatus.status === 'running' ? '🚀 Broadcasting Photo Announcement...' : '✅ Photo Broadcast Completed'}
+                      {nftStatus.status === 'running' ? '🚀 Broadcasting NFT...' : '✅ Completed'}
                     </span>
                     <span className="font-mono text-purple-400">{nftProgressPct}%</span>
                   </div>
 
-                  <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/10">
+                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
                     <div
                       className="h-full bg-gradient-to-r from-purple-500 to-amber-400 rounded-full transition-all duration-300"
                       style={{ width: `${nftProgressPct}%` }}
                     />
                   </div>
-
-                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-bold">
-                    <div className="bg-white/5 p-2 rounded-xl">
-                      <p className="text-ink-soft">Target</p>
-                      <p className="text-white text-xs font-mono">{nftStatus.total}</p>
-                    </div>
-                    <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
-                      <p className="text-emerald-400">Sent</p>
-                      <p className="text-emerald-300 text-xs font-mono">{nftStatus.success}</p>
-                    </div>
-                    <div className="bg-red-500/10 p-2 rounded-xl border border-red-500/20">
-                      <p className="text-red-400">Failed</p>
-                      <p className="text-red-300 text-xs font-mono">{nftStatus.failed}</p>
-                    </div>
-                  </div>
                 </div>
               )}
-
-              {/* Action Button */}
-              <button
-                onClick={handleSendNft}
-                disabled={isBroadcastingNft || !nftCustomText.trim()}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
-              >
-                {isBroadcastingNft ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
-                <span>{nftTarget === 'admin' ? 'Test NFT Broadcast with Image (Admin)' : 'Broadcast Photo Announcement to ALL'}</span>
-              </button>
             </div>
+
+            {/* Action Button */}
+            <button
+              onClick={handleSendNft}
+              disabled={isBroadcastingNft || !nftCustomText.trim()}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5"
+            >
+              {isBroadcastingNft ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+              <span>{nftTarget === 'admin' ? 'Test NFT Broadcast (Admin)' : 'Broadcast NFT to ALL'}</span>
+            </button>
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* CARD 2: PROMO CODE BROADCASTER                            */}
+        {/* CARD 2: GRAM CURRENCY BROADCASTER                         */}
         {/* ========================================================= */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-5 flex gap-4 items-start shadow-sm shadow-indigo-500/5">
-            <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">
-              <Code size={20} />
+        <div className="flex flex-col gap-4">
+          <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-emerald-500/5">
+            <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 font-bold">
+              <Gem size={18} />
             </div>
             <div>
-              <h3 className="text-indigo-400 font-bold mb-1 text-base leading-tight">🎁 Promo Code Broadcaster</h3>
-              <p className="text-indigo-400/80 text-xs">
+              <h3 className="text-emerald-400 font-bold mb-0.5 text-sm leading-tight">💎 GRAM Currency Broadcaster</h3>
+              <p className="text-emerald-400/80 text-[11px]">
+                Broadcast daily 0.02 GRAM quest rewards & 0.1 GRAM withdrawal limit updates.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-surface-soft border border-emerald-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 relative overflow-hidden flex-1 flex flex-col justify-between space-y-4">
+            <div className="space-y-4">
+              
+              {/* Target Selector */}
+              <div>
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  1. Target Audience
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGramTarget('admin')}
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
+                      gramTarget === 'admin'
+                        ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                        : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
+                    }`}
+                  >
+                    🧪 Admin Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGramTarget('all')}
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
+                      gramTarget === 'all'
+                        ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
+                        : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
+                    }`}
+                  >
+                    📢 All Active Users
+                  </button>
+                </div>
+              </div>
+
+              {/* Variant Selector */}
+              <div>
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  2. Select Message Variant
+                </label>
+                <div className="space-y-1">
+                  {gramTemplates.map((t, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setGramTemplateIndex(idx)}
+                      className={`w-full text-left py-1.5 px-2.5 rounded-xl text-[11px] font-bold border transition-all ${
+                        gramTemplateIndex === idx
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Preview Box */}
+              <div>
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  3. Template Preview
+                </label>
+                <div className="bg-[#0a0f1c] border border-emerald-500/20 rounded-xl p-3 text-[11px] font-mono text-emerald-200/90 whitespace-pre-wrap max-h-36 overflow-y-auto">
+                  {gramTemplates[gramTemplateIndex]?.text}
+                </div>
+              </div>
+
+              {/* Live Status Widget */}
+              {gramStatus && (
+                <div className="bg-black/40 border border-emerald-500/30 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
+                    <span className="text-emerald-300 uppercase tracking-wider">
+                      {gramStatus.status === 'running' ? '🚀 Broadcasting GRAM...' : '✅ Completed'}
+                    </span>
+                    <span className="font-mono text-emerald-400">{gramProgressPct}%</span>
+                  </div>
+
+                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
+                      style={{ width: `${gramProgressPct}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={handleSendGram}
+              disabled={isBroadcastingGram}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5"
+            >
+              {isBroadcastingGram ? <RefreshCw size={14} className="animate-spin" /> : <Gem size={14} />}
+              <span>{gramTarget === 'admin' ? 'Test GRAM Broadcast (Admin)' : 'Broadcast GRAM to ALL'}</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* CARD 3: PROMO CODE BROADCASTER                            */}
+        {/* ========================================================= */}
+        <div className="flex flex-col gap-4">
+          <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-indigo-500/5">
+            <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">
+              <Code size={18} />
+            </div>
+            <div>
+              <h3 className="text-indigo-400 font-bold mb-0.5 text-sm leading-tight">🎁 Promo Code Broadcaster</h3>
+              <p className="text-indigo-400/80 text-[11px]">
                 Broadcast promo reward codes directly to user Telegram accounts.
               </p>
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
+          <div className="bg-surface-soft border border-border rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
                   Promo Code
                 </label>
                 <input
@@ -398,19 +580,19 @@ export default function Broadcast() {
                   value={promoCode}
                   onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
                   placeholder="e.g. TASKY100"
-                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl p-3.5 text-ink text-sm font-mono focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-xs font-mono focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
                   Target Audience
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => setTarget('admin')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
                       target === 'admin'
                         ? 'bg-indigo-600 text-white border-indigo-400 shadow-md'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
@@ -421,27 +603,27 @@ export default function Broadcast() {
                   <button
                     type="button"
                     onClick={() => setTarget('all')}
-                    className={`py-2.5 px-3 rounded-xl text-xs font-black border transition-all ${
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
                       target === 'all'
                         ? 'bg-indigo-600 text-white border-indigo-400 shadow-md'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
                     }`}
                   >
-                    📢 All Active Users
+                    📢 All Users
                   </button>
                 </div>
               </div>
 
               {promoStatus && (
-                <div className="bg-black/40 border border-indigo-500/30 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between text-xs font-bold">
+                <div className="bg-black/40 border border-indigo-500/30 rounded-xl p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold">
                     <span className="text-indigo-300 uppercase tracking-wider">
-                      {promoStatus.status === 'running' ? '🚀 Broadcasting Code...' : '✅ Promo Broadcast Completed'}
+                      {promoStatus.status === 'running' ? '🚀 Broadcasting Code...' : '✅ Completed'}
                     </span>
                     <span className="font-mono text-indigo-400">{promoProgressPct}%</span>
                   </div>
 
-                  <div className="w-full h-2 bg-black/50 rounded-full overflow-hidden border border-white/10">
+                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
                     <div
                       className="h-full bg-gradient-to-r from-indigo-500 to-teal-400 rounded-full transition-all duration-300"
                       style={{ width: `${promoProgressPct}%` }}
@@ -454,50 +636,50 @@ export default function Broadcast() {
             <button
               onClick={handleSendPromo}
               disabled={isBroadcastingPromo || !promoCode.trim()}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-teal-600 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
             >
-              {isBroadcastingPromo ? <RefreshCw size={16} className="animate-spin" /> : <Gift size={16} />}
+              {isBroadcastingPromo ? <RefreshCw size={14} className="animate-spin" /> : <Gift size={14} />}
               <span>{target === 'admin' ? 'Test Promo Broadcast (Admin)' : 'Broadcast Promo Code to ALL'}</span>
             </button>
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* CARD 3: RAW CUSTOM BROADCASTER                            */}
+        {/* CARD 4: RAW CUSTOM BROADCASTER                            */}
         {/* ========================================================= */}
-        <div className="flex flex-col gap-6">
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-5 flex gap-4 items-start shadow-sm shadow-amber-500/5">
-            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 font-bold">
-              <AlertTriangle size={20} />
+        <div className="flex flex-col gap-4">
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-amber-500/5">
+            <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 font-bold">
+              <AlertTriangle size={18} />
             </div>
             <div>
-              <h3 className="text-amber-500 font-bold mb-1 text-base leading-tight">Custom Global Broadcast</h3>
-              <p className="text-amber-500/80 text-xs">
-                Send custom raw HTML messages to all active users in the database.
+              <h3 className="text-amber-500 font-bold mb-0.5 text-sm leading-tight">Custom Global Broadcast</h3>
+              <p className="text-amber-500/80 text-[11px]">
+                Send custom raw HTML messages to all active users in database.
               </p>
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-border rounded-3xl p-6 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
+          <div className="bg-surface-soft border border-border rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
             <div>
-              <label className="text-xs font-bold text-ink-soft uppercase tracking-wider block mb-2">
+              <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
                 Custom Message (HTML)
               </label>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Write custom message here..."
-                rows={9}
-                className="w-full bg-[#0a0f1c] border border-border/50 rounded-2xl p-3.5 text-ink text-xs font-mono focus:outline-none focus:border-amber-500 resize-none"
+                rows={7}
+                className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-xs font-mono focus:outline-none focus:border-amber-500 resize-none"
               />
             </div>
 
             <button
               onClick={handleSend}
               disabled={isSending || !message.trim()}
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
             >
-              {isSending ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+              {isSending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
               <span>Send Custom Broadcast</span>
             </button>
           </div>
