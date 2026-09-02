@@ -1525,7 +1525,7 @@ router.post('/broadcast/nft', async (req, res) => {
   }
 
   try {
-    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    const adminIds = ['8823265955'];
     if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
       adminIds.push(process.env.ADMIN_TELEGRAM_ID);
     }
@@ -1632,7 +1632,7 @@ router.post('/broadcast/promo', async (req, res) => {
   const text = `🎉 <b>NEW PROMO CODE RELEASED!</b> 🎉\n\nClaim your reward now using this code inside the app:\n👉 <code>${code.toUpperCase()}</code> 👈\n<i>(Tap the code above to copy it)</i>\n\n🚀 Open the app and enter the code to redeem!`;
 
   try {
-    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    const adminIds = ['8823265955'];
     if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
       adminIds.push(process.env.ADMIN_TELEGRAM_ID);
     }
@@ -1738,7 +1738,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
   const buttonText = selectedTemplate.button;
 
   try {
-    const adminIds = ['8823265955', '6446145632', '7620028567'];
+    const adminIds = ['8823265955'];
     if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
       adminIds.push(process.env.ADMIN_TELEGRAM_ID);
     }
