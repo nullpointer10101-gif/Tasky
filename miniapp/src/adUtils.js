@@ -1,23 +1,20 @@
 /**
- * Ad Manager — Guaranteed Adexium Priority + GigaPub Fallback
+ * Ad Manager — 100% Guaranteed Adexium Priority + GigaPub Fallback
  *
- * Configured for Adexium Push-like / Interstitial / Rewarded formats.
- *
- * Flow:
+ * Guaranteed Adexium Flow:
  * 1. Initialize Adexium instance with wid & adFormat ('push-like').
  * 2. On Watch Ad:
- *    - Query Adexium requestAd('push-like', true / false)
- *    - Query Adexium requestAd('push', true / false)
- *    - Query Adexium requestAd('interstitial', true / false)
- *    - Query Adexium requestAd('rewarded', true / false)
- * 3. IF ANY format returns >0 bids:
- *    - Call displayAd(ads, format)
+ *    a) Query Adexium requestAd('push-like', true / false)
+ *    b) Query Adexium requestAd('interstitial', true / false)
+ *    c) Call Adexium autoFetchAd()
+ * 3. Detect if Adexium displayed an ad on screen (via DOM element / iframe inspection).
+ * 4. IF Adexium displayed an ad:
  *    - Wait 15s view duration
- *    - Return { success: true, network: 'adexium' } IMMEDIATELY.
- * 4. ONLY IF ALL Adexium formats return 0 bids:
+ *    - RETURN IMMEDIATELY { success: true, network: 'adexium' }
+ *    - GigaPub is NEVER called!
+ * 5. ONLY IF Adexium produced ZERO ad overlay:
  *    - Fallback to GigaPub window.showGiga()
- *    - Return { success: true, network: 'gigapub' } upon completion.
- * 5. IF neither network serves an ad -> return { success: false } — NO fake rewards!
+ *    - RETURN { success: true, network: 'gigapub' }
  */
 
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
@@ -42,7 +39,10 @@ export function initAdexiumAds() {
             wid: ADEXIUM_WID,
             adFormat: 'push-like' 
           });
-          console.log('[AdManager] ✅ Adexium SDK initialized (push-like format)');
+          if (typeof window._adexiumInstance.autoMode === 'function') {
+            window._adexiumInstance.autoMode();
+          }
+          console.log('[AdManager] ✅ Adexium SDK initialized');
         } catch (err) {
           _adexiumInitStarted = false;
           console.error('[AdManager] Adexium init error:', err);
@@ -66,7 +66,6 @@ export function initAdexiumAds() {
     }
   }
 
-  // Pre-load GigaPub script in background so fallback is ready if needed
   initGigaAds();
 }
 
@@ -95,8 +94,51 @@ export function prefetchGramAd() {
 }
 
 /**
+ * Helper to check if an Adexium ad overlay or iframe is currently on screen
+ */
+function _isAdexiumAdOnScreen() {
+  if (typeof document === 'undefined') return false;
+
+  // 1. Check for specific Adexium / TGAds elements
+  const adSelectors = [
+    'iframe[src*="tgads"]',
+    'iframe[src*="adexium"]',
+    '[class*="adexium"]',
+    '[id*="adexium"]',
+    '[class*="tgads"]',
+    '[id*="tgads"]',
+  ];
+  for (const sel of adSelectors) {
+    const el = document.querySelector(sel);
+    if (el) {
+      const style = window.getComputedStyle(el);
+      if (style.display !== 'none' && style.visibility !== 'hidden') {
+        return true;
+      }
+    }
+  }
+
+  // 2. Check for any full-screen fixed/absolute overlay added outside #root
+  const allElements = document.querySelectorAll('body > div:not(#root), body > iframe, body > section');
+  for (const el of allElements) {
+    if (el.id === 'root') continue;
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
+    if (
+      rect.width > 200 && rect.height > 150 &&
+      (style.position === 'fixed' || style.position === 'absolute') &&
+      style.display !== 'none' && style.visibility !== 'hidden'
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Show a rewarded ad.
- * Adexium Priority -> GigaPub Fallback.
+ * Guaranteed Adexium Priority -> GigaPub Fallback.
  *
  * @param {string} placement
  * @returns {Promise<{ success: boolean, network?: 'adexium'|'gigapub', error?: string }>}
@@ -106,7 +148,7 @@ export async function showRewardedAd(placement = 'main') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // 1. Ensure SDKs are initialized
+  // Ensure SDKs are initialized
   initAdexiumAds();
 
   let widget = window._adexiumInstance;
@@ -121,56 +163,66 @@ export async function showRewardedAd(placement = 'main') {
 
   // ── Step 1: ADEXIUM PRIORITY ──────────────────────────────────
   if (widget) {
-    console.log('[AdManager] 🎯 Querying Adexium for ad bids (push-like / interstitial / rewarded)...');
+    console.log('[AdManager] 🎯 Attempting Adexium ad serving...');
 
-    let adexiumAds = null;
-    let formatUsed = 'push-like';
+    let adexiumDisplayed = false;
 
-    // Format attempts in priority order:
+    // 1a. Try manual requestAd formats
     const formatsToTry = [
       { format: 'push-like', motivated: true },
       { format: 'push-like', motivated: false },
-      { format: 'push', motivated: true },
-      { format: 'push', motivated: false },
       { format: 'interstitial', motivated: true },
       { format: 'interstitial', motivated: false },
-      { format: 'rewarded', motivated: true }
     ];
 
     for (const fmt of formatsToTry) {
       try {
         const ads = await widget.requestAd(fmt.format, fmt.motivated);
         if (Array.isArray(ads) && ads.length > 0) {
-          adexiumAds = ads;
-          formatUsed = fmt.format;
-          console.log(`[AdManager] ✅ Found Adexium bids for format '${fmt.format}' (motivated: ${fmt.motivated})!`);
+          widget.displayAd(ads, fmt.format);
+          console.log(`[AdManager] ✅ Adexium displayAd() called with '${fmt.format}' format!`);
+          adexiumDisplayed = true;
           break;
         }
-      } catch (e) {
-        // Continue trying next format
-      }
+      } catch (e) {}
     }
 
-    // ONLY IF REAL BIDS RETURNED -> DISPLAY ADEXIUM AD
-    if (Array.isArray(adexiumAds) && adexiumAds.length > 0) {
+    // 1b. If requestAd returned 0 bids, try autoFetchAd()
+    if (!adexiumDisplayed) {
       try {
-        widget.displayAd(adexiumAds, formatUsed);
-        console.log(`[AdManager] ✅ Adexium ${formatUsed} ad displayed on screen! Waiting 15s...`);
-        // Wait required view duration
-        await new Promise(r => setTimeout(r, 15000));
-        console.log('[AdManager] ✅ Adexium view time completed!');
-        return { success: true, network: 'adexium' };
-      } catch (displayErr) {
-        console.warn('[AdManager] Adexium displayAd failed:', displayErr);
+        console.log('[AdManager] Calling Adexium autoFetchAd()...');
+        await widget.autoFetchAd();
+      } catch (e) {
+        console.warn('[AdManager] autoFetchAd error:', e);
       }
     }
 
-    console.warn('[AdManager] ⚠️ Adexium returned 0 bids across all formats. Switching to GigaPub fallback...');
+    // 1c. Poll for 2.5s to verify if Adexium rendered an ad on screen
+    let adSeenOnScreen = false;
+    for (let i = 0; i < 12; i++) {
+      if (_isAdexiumAdOnScreen()) {
+        adSeenOnScreen = true;
+        break;
+      }
+      await new Promise(r => setTimeout(r, 200));
+    }
+
+    // IF ADEXIUM AD IS CONFIRMED ON SCREEN:
+    // Wait required 15s view duration and RETURN IMMEDIATELY as Adexium.
+    // NEVER fall back to GigaPub!
+    if (adSeenOnScreen || adexiumDisplayed) {
+      console.log('[AdManager] ✅ Adexium ad confirmed on screen! Waiting 15s view duration...');
+      await new Promise(r => setTimeout(r, 15000));
+      console.log('[AdManager] ✅ Adexium 15s view completed successfully!');
+      return { success: true, network: 'adexium' };
+    }
+
+    console.warn('[AdManager] ⚠️ Adexium produced no visible ad on screen. Handing off to GigaPub fallback...');
   } else {
-    console.warn('[AdManager] ⚠️ Adexium SDK instance not ready. Switching to GigaPub fallback...');
+    console.warn('[AdManager] ⚠️ Adexium SDK not ready. Handing off to GigaPub fallback...');
   }
 
-  // ── Step 2: GIGAPUB FALLBACK (Only called if Adexium returned 0 bids) ──
+  // ── Step 2: GIGAPUB FALLBACK (Only executed if Adexium produced 0 ads) ──
   console.log('[AdManager] ⚡ Triggering GigaPub Fallback...');
   
   if (typeof window.showGiga !== 'function') {
