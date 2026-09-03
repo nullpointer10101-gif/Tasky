@@ -1,26 +1,28 @@
 /**
  * Ad Manager — 100% Adexium Exclusive
- * Single source of truth for all ad operations.
  *
- * Key strategy: Pre-warm ads in background (prefetchAd) so they are cached
- * and ready instantly when user taps Watch Ad. Multiple format attempts for
- * maximum fill rate.
+ * CRITICAL FINDING: Adexium REQUIRES autoMode() to be called during init.
+ * autoMode() sets up Adexium's internal bidding pipeline. Without it,
+ * requestAd() always returns an empty array regardless of fill availability.
+ *
+ * Correct flow:
+ * 1. init: new AdexiumWidget + autoMode() (sets up bidding)
+ * 2. prefetch: autoFetchAd() in background (preloads an ad)
+ * 3. on user tap: autoFetchAd() to trigger immediate display
+ * 4. detect ad on screen via DOM + wait required view time → credit
  */
 
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
 const ADEXIUM_SCRIPT_ID = 'adexium-ad-sdk';
 const ADEXIUM_WID = 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774';
 
-// Guard: only initialize once
 let _initStarted = false;
-
-// Pre-fetched ad cache — filled in background so tap is instant
-let _cachedAds = null;
-let _prefetchInProgress = false;
+let _prefetchDone = false;
 
 /**
- * Initialize the Adexium SDK.
- * Safe to call multiple times — only runs once.
+ * Initialize Adexium SDK with autoMode().
+ * autoMode() is REQUIRED — it initializes Adexium's bidding pipeline.
+ * Safe to call multiple times.
  */
 export function initAdexiumAds() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
@@ -31,16 +33,15 @@ export function initAdexiumAds() {
   const runInit = () => {
     if (window.AdexiumWidget && !window._adexiumInstance) {
       try {
-        window._adexiumInstance = new window.AdexiumWidget({
-          wid: ADEXIUM_WID,
-          adFormat: 'interstitial',
-        });
-        console.log('[AdManager] Adexium SDK initialized successfully');
-        // Start pre-fetching an ad immediately after init
-        _prefetchAd();
+        window._adexiumInstance = new window.AdexiumWidget({ wid: ADEXIUM_WID });
+        // REQUIRED: autoMode initializes Adexium's internal bidding pipeline
+        window._adexiumInstance.autoMode();
+        console.log('[AdManager] ✅ Adexium initialized with autoMode (bidding pipeline active)');
+        // Prefetch an ad into Adexium's internal queue
+        setTimeout(_prefetchBackground, 1000);
       } catch (err) {
         _initStarted = false;
-        console.error('[AdManager] Adexium widget init error:', err);
+        console.error('[AdManager] Adexium init error:', err);
       }
     }
   };
@@ -50,94 +51,66 @@ export function initAdexiumAds() {
     return;
   }
 
-  // Script already in DOM (loaded by index.html) — wait for it
   if (document.getElementById(ADEXIUM_SCRIPT_ID)) {
     const poll = setInterval(() => {
-      if (window.AdexiumWidget) {
-        clearInterval(poll);
-        runInit();
-      }
+      if (window.AdexiumWidget) { clearInterval(poll); runInit(); }
     }, 100);
-    setTimeout(() => clearInterval(poll), 10000);
+    setTimeout(() => clearInterval(poll), 12000);
     return;
   }
 
-  // Inject script ourselves as fallback
+  // Inject script as fallback
   try {
     const script = document.createElement('script');
     script.id = ADEXIUM_SCRIPT_ID;
     script.src = ADEXIUM_SCRIPT_URL;
     script.async = true;
     script.crossOrigin = 'anonymous';
-    script.onload = () => {
-      console.log('[AdManager] Adexium script loaded');
-      runInit();
-    };
-    script.onerror = () => {
-      _initStarted = false;
-      console.warn('[AdManager] Adexium script failed to load');
-    };
+    script.onload = () => { console.log('[AdManager] SDK loaded'); runInit(); };
+    script.onerror = () => { _initStarted = false; console.warn('[AdManager] SDK load failed'); };
     document.head.appendChild(script);
   } catch (err) {
     _initStarted = false;
-    console.error('[AdManager] Failed to inject Adexium script:', err);
+    console.error('[AdManager] Script inject failed:', err);
   }
 }
 
 /**
- * Pre-fetch an ad in the background so it's ready when the user taps.
- * Tries both motivated and unmotivated interstitial formats.
- * Caches result in _cachedAds.
+ * Pre-fetch an ad in the background so it's ready when user taps.
  */
-async function _prefetchAd() {
-  if (_prefetchInProgress || _cachedAds) return;
+async function _prefetchBackground() {
   const widget = window._adexiumInstance;
-  if (!widget) return;
-
-  _prefetchInProgress = true;
-  console.log('[AdManager] Pre-fetching Adexium ad in background...');
-
+  if (!widget || _prefetchDone) return;
   try {
-    let ads = await widget.requestAd('interstitial', true);
-    if (!Array.isArray(ads) || ads.length === 0) {
-      ads = await widget.requestAd('interstitial', false);
-    }
-    if (Array.isArray(ads) && ads.length > 0) {
-      _cachedAds = ads;
-      console.log('[AdManager] ✅ Ad pre-fetched and cached — ready to display instantly');
-    } else {
-      console.log('[AdManager] No fill during prefetch — will retry on demand');
-    }
+    console.log('[AdManager] Pre-fetching ad into Adexium queue...');
+    await widget.autoFetchAd();
+    _prefetchDone = true;
+    console.log('[AdManager] ✅ Ad pre-fetched into queue');
   } catch (e) {
     console.warn('[AdManager] Prefetch error:', e);
-  } finally {
-    _prefetchInProgress = false;
   }
 }
 
 /**
- * Call this when the Gram page loads to warm up the ad cache.
+ * Call when Gram page loads to warm up the ad queue.
  */
 export function prefetchGramAd() {
   if (!window._adexiumInstance) {
     initAdexiumAds();
-    // Delay prefetch until SDK is ready
-    setTimeout(_prefetchAd, 1500);
+    setTimeout(_prefetchBackground, 1500);
   } else {
-    _prefetchAd();
+    _prefetchBackground();
   }
 }
 
 /**
- * Show a rewarded Adexium interstitial ad.
+ * Show a rewarded Adexium ad.
  *
- * Strategy:
- * 1. Use cached pre-fetched ad if available (instant display)
- * 2. Otherwise do a fresh requestAd (motivated, then unmotivated)
- * 3. Only return success=true when an ad was actually displayed
- * 4. After displaying, pre-fetch next ad for subsequent taps
+ * Uses autoFetchAd() to trigger Adexium's internal ad display,
+ * then detects the ad overlay on screen via MutationObserver.
+ * Only credits user when a real ad is visually confirmed on screen.
  *
- * @param {string} placement - Placement identifier (for logging)
+ * @param {string} placement
  * @returns {Promise<{ success: boolean, error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
@@ -145,67 +118,102 @@ export async function showRewardedAd(placement = 'main') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // Ensure SDK is initialized
+  // Ensure initialized
   if (!window._adexiumInstance) {
     initAdexiumAds();
-    let waited = 0;
-    while (!window._adexiumInstance && waited < 4000) {
+    let w = 0;
+    while (!window._adexiumInstance && w < 5000) {
       await new Promise(r => setTimeout(r, 200));
-      waited += 200;
+      w += 200;
     }
   }
 
   const widget = window._adexiumInstance;
   if (!widget) {
-    return { success: false, error: 'Ad provider not ready. Please refresh the app and try again.' };
+    return { success: false, error: 'Ad provider not ready. Please refresh and try again.' };
   }
 
-  console.log(`[AdManager] Showing ad (placement: ${placement})...`);
+  console.log(`[AdManager] Triggering Adexium ad (placement: ${placement})...`);
 
-  let ads = null;
+  // Trigger ad display via autoFetchAd
+  try {
+    await widget.autoFetchAd();
+    console.log('[AdManager] autoFetchAd() called — waiting for ad to appear on screen...');
+  } catch (e) {
+    console.warn('[AdManager] autoFetchAd error:', e);
+    return { success: false, error: 'Ad network error. Please try again.' };
+  }
 
-  // Step 1: Use cached ad if available (fastest path)
-  if (_cachedAds && _cachedAds.length > 0) {
-    ads = _cachedAds;
-    _cachedAds = null; // consume the cache
-    console.log('[AdManager] Using pre-fetched cached ad');
-  } else {
-    // Step 2: Fresh request — try motivated first, then unmotivated
-    console.log('[AdManager] No cache — requesting fresh ad...');
-    try {
-      ads = await widget.requestAd('interstitial', true);
-      if (!Array.isArray(ads) || ads.length === 0) {
-        ads = await widget.requestAd('interstitial', false);
+  // Detect ad overlay appearing in DOM (confirms real ad rendered on screen)
+  const adShown = await new Promise(resolve => {
+    let detected = false;
+    let viewTimer = null;
+
+    // Adexium renders a full-screen overlay — detect any new full-screen element
+    const checkVisible = () => {
+      const allDivs = document.querySelectorAll('div, iframe, section');
+      for (const el of allDivs) {
+        const style = window.getComputedStyle(el);
+        const rect = el.getBoundingClientRect();
+        if (
+          rect.width > window.innerWidth * 0.7 &&
+          rect.height > window.innerHeight * 0.7 &&
+          (style.position === 'fixed' || style.position === 'absolute') &&
+          style.zIndex !== 'auto' &&
+          parseInt(style.zIndex) > 100 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden' &&
+          el.id !== 'root' // exclude our app root
+        ) {
+          return true;
+        }
       }
-    } catch (e) {
-      console.warn('[AdManager] requestAd error:', e);
-    }
+      return false;
+    };
+
+    const onDetected = () => {
+      if (detected) return;
+      detected = true;
+      console.log('[AdManager] ✅ Ad overlay detected on screen — starting view timer...');
+      observer.disconnect();
+      // Wait 15s view time from when ad appears
+      viewTimer = setTimeout(() => {
+        console.log('[AdManager] ✅ 15s view complete — crediting user');
+        resolve(true);
+      }, 15000);
+    };
+
+    // Check immediately (ad might already be visible)
+    if (checkVisible()) { onDetected(); return; }
+
+    const observer = new MutationObserver(() => {
+      if (!detected && checkVisible()) onDetected();
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
+    // Give 8 seconds for the ad to appear on screen
+    setTimeout(() => {
+      if (!detected) {
+        observer.disconnect();
+        if (viewTimer) clearTimeout(viewTimer);
+        console.warn('[AdManager] ⚠️ No ad overlay appeared within 8s');
+        resolve(false);
+      }
+    }, 8000);
+  });
+
+  // Pre-fetch next ad while processing result
+  _prefetchDone = false;
+  setTimeout(_prefetchBackground, 1000);
+
+  if (!adShown) {
+    return {
+      success: false,
+      error: 'No ad available right now. Please try again in a moment.',
+    };
   }
 
-  if (Array.isArray(ads) && ads.length > 0) {
-    // Display the ad overlay to the user
-    widget.displayAd(ads, 'interstitial');
-    console.log('[AdManager] ✅ Adexium ad displayed — waiting 15s view time...');
-
-    // Pre-fetch next ad in background while current one is being watched
-    setTimeout(_prefetchAd, 2000);
-
-    // Wait required view duration
-    await new Promise(r => setTimeout(r, 15000));
-
-    console.log('[AdManager] ✅ Ad view complete — crediting reward');
-    return { success: true };
-  }
-
-  // No ad fill at all
-  // Still pre-fetch for next attempt
-  setTimeout(_prefetchAd, 3000);
-
-  console.warn('[AdManager] ⚠️ No ad fill available from Adexium right now');
-  return {
-    success: false,
-    error: 'No ad available right now. Please wait a moment and try again.',
-  };
+  return { success: true };
 }
 
 // Backwards-compat stubs
