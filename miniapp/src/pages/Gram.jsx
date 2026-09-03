@@ -195,8 +195,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
     }
     setIsWatchingAd(true);
     setAdLoadingStage(1);
-    adStageTimerRef.current = setTimeout(() => setAdLoadingStage(2), 1500);
-    adStageTimerRef.current = setTimeout(() => setAdLoadingStage(3), 4000);
+    const t1 = setTimeout(() => setAdLoadingStage(2), 1500);
+    const t2 = setTimeout(() => setAdLoadingStage(3), 4000);
+    adStageTimerRef.current = [t1, t2];
 
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
@@ -207,7 +208,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
       const adResult = await showRewardedAd('gram');
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
-        setIsWatchingAd(false); setAdLoadingStage(0); return;
+        return;
       }
 
       // Show which network served the ad
@@ -262,8 +263,13 @@ export default function Gram({ user, refreshUser, tgUser }) {
     } catch (err) {
       showToast('Failed to log ad completion', 'error');
     } finally {
-      clearTimeout(adStageTimerRef.current);
-      setIsWatchingAd(false); setAdLoadingStage(0);
+      if (Array.isArray(adStageTimerRef.current)) {
+        adStageTimerRef.current.forEach(clearTimeout);
+      } else if (adStageTimerRef.current) {
+        clearTimeout(adStageTimerRef.current);
+      }
+      setIsWatchingAd(false); 
+      setAdLoadingStage(0);
     }
   };
 
