@@ -97,11 +97,19 @@ export async function showRewardedAd(placement = 'main') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // Make sure scripts are loading
+  // ── Step 1: Try Adexium (Ensure instance is ready) ───────────
   initAdexiumAds();
 
-  // ── Step 1: Try Adexium ───────────────────────────────────────
-  const widget = window._adexiumInstance;
+  let widget = window._adexiumInstance;
+  if (!widget) {
+    let waited = 0;
+    while (!window._adexiumInstance && waited < 3000) {
+      await new Promise(r => setTimeout(r, 150));
+      waited += 150;
+    }
+    widget = window._adexiumInstance;
+  }
+
   if (widget) {
     console.log('[AdManager] Requesting Adexium ad...');
     let ads = null;
@@ -124,7 +132,7 @@ export async function showRewardedAd(placement = 'main') {
         console.warn('[AdManager] Adexium displayAd failed:', displayErr);
       }
     } else {
-      console.log('[AdManager] Adexium returned no bids — trying GigaPub instantly...');
+      console.log('[AdManager] Adexium returned no bids — trying GigaPub fallback...');
     }
   }
 
