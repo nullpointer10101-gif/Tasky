@@ -1,13 +1,23 @@
 /**
  * Ad Manager — Guaranteed Adexium Priority + GigaPub Fallback
  *
- * Strict Rules:
- * 1. Adexium is ALWAYS queried first via requestAd().
- * 2. An Adexium ad is ONLY considered served if requestAd() returns an array with length > 0
- *    AND displayAd() is successfully called.
- * 3. Never fake a credit via autoFetchAd() resolving empty.
- * 4. GigaPub is ONLY called as a fallback if Adexium returns 0 bids.
- * 5. If neither network serves an ad, return { success: false } immediately — NO fake rewards!
+ * Configured for Adexium Push-like / Interstitial / Rewarded formats.
+ *
+ * Flow:
+ * 1. Initialize Adexium instance with wid & adFormat ('push-like').
+ * 2. On Watch Ad:
+ *    - Query Adexium requestAd('push-like', true / false)
+ *    - Query Adexium requestAd('push', true / false)
+ *    - Query Adexium requestAd('interstitial', true / false)
+ *    - Query Adexium requestAd('rewarded', true / false)
+ * 3. IF ANY format returns >0 bids:
+ *    - Call displayAd(ads, format)
+ *    - Wait 15s view duration
+ *    - Return { success: true, network: 'adexium' } IMMEDIATELY.
+ * 4. ONLY IF ALL Adexium formats return 0 bids:
+ *    - Fallback to GigaPub window.showGiga()
+ *    - Return { success: true, network: 'gigapub' } upon completion.
+ * 5. IF neither network serves an ad -> return { success: false } — NO fake rewards!
  */
 
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
@@ -28,8 +38,11 @@ export function initAdexiumAds() {
     const runAdexiumInit = () => {
       if (window.AdexiumWidget && !window._adexiumInstance) {
         try {
-          window._adexiumInstance = new window.AdexiumWidget({ wid: ADEXIUM_WID });
-          console.log('[AdManager] ✅ Adexium SDK initialized');
+          window._adexiumInstance = new window.AdexiumWidget({ 
+            wid: ADEXIUM_WID,
+            adFormat: 'push-like' 
+          });
+          console.log('[AdManager] ✅ Adexium SDK initialized (push-like format)');
         } catch (err) {
           _adexiumInitStarted = false;
           console.error('[AdManager] Adexium init error:', err);
@@ -108,35 +121,34 @@ export async function showRewardedAd(placement = 'main') {
 
   // ── Step 1: ADEXIUM PRIORITY ──────────────────────────────────
   if (widget) {
-    console.log('[AdManager] 🎯 Querying Adexium for ad bids...');
+    console.log('[AdManager] 🎯 Querying Adexium for ad bids (push-like / interstitial / rewarded)...');
 
     let adexiumAds = null;
-    let formatUsed = 'interstitial';
+    let formatUsed = 'push-like';
 
-    // Attempt 1a: Interstitial (Motivated)
-    try {
-      adexiumAds = await widget.requestAd('interstitial', true);
-    } catch (e) {
-      console.warn('[AdManager] Adexium interstitial motivated error:', e);
-    }
+    // Format attempts in priority order:
+    const formatsToTry = [
+      { format: 'push-like', motivated: true },
+      { format: 'push-like', motivated: false },
+      { format: 'push', motivated: true },
+      { format: 'push', motivated: false },
+      { format: 'interstitial', motivated: true },
+      { format: 'interstitial', motivated: false },
+      { format: 'rewarded', motivated: true }
+    ];
 
-    // Attempt 1b: Interstitial (Standard)
-    if (!Array.isArray(adexiumAds) || adexiumAds.length === 0) {
+    for (const fmt of formatsToTry) {
       try {
-        adexiumAds = await widget.requestAd('interstitial', false);
-      } catch (e) {
-        console.warn('[AdManager] Adexium interstitial standard error:', e);
-      }
-    }
-
-    // Attempt 1c: Rewarded format
-    if (!Array.isArray(adexiumAds) || adexiumAds.length === 0) {
-      try {
-        adexiumAds = await widget.requestAd('rewarded', true);
-        if (Array.isArray(adexiumAds) && adexiumAds.length > 0) {
-          formatUsed = 'rewarded';
+        const ads = await widget.requestAd(fmt.format, fmt.motivated);
+        if (Array.isArray(ads) && ads.length > 0) {
+          adexiumAds = ads;
+          formatUsed = fmt.format;
+          console.log(`[AdManager] ✅ Found Adexium bids for format '${fmt.format}' (motivated: ${fmt.motivated})!`);
+          break;
         }
-      } catch (e) {}
+      } catch (e) {
+        // Continue trying next format
+      }
     }
 
     // ONLY IF REAL BIDS RETURNED -> DISPLAY ADEXIUM AD
@@ -153,7 +165,7 @@ export async function showRewardedAd(placement = 'main') {
       }
     }
 
-    console.warn('[AdManager] ⚠️ Adexium returned 0 bids. Switching to GigaPub fallback...');
+    console.warn('[AdManager] ⚠️ Adexium returned 0 bids across all formats. Switching to GigaPub fallback...');
   } else {
     console.warn('[AdManager] ⚠️ Adexium SDK instance not ready. Switching to GigaPub fallback...');
   }
@@ -184,7 +196,7 @@ export async function showRewardedAd(placement = 'main') {
     }
   }
 
-  // ── Step 3: No fill from either network — DO NOT GIVE REWARD ─────
+  // ── Step 3: No fill from either network ───────────────────────
   console.warn('[AdManager] ❌ No ad available from Adexium or GigaPub.');
   return { 
     success: false, 
