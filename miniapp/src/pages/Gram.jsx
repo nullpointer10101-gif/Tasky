@@ -5,7 +5,7 @@ import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal, startWatchGramAd, verifyGramSuffix } from '../api';
-import { showRewardedAd } from '../adUtils';
+import { showRewardedAd, prefetchGramAd } from '../adUtils';
 import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
@@ -109,8 +109,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
     }
   }, [user?.telegram_id]);
 
-  // Run silent check on page load
+  // Run silent suffix check and pre-fetch ad on page load
   useEffect(() => { checkSuffix(true); }, [checkSuffix]);
+  useEffect(() => { prefetchGramAd(); }, []);
 
   const recheckName = useCallback(() => checkSuffix(false), [checkSuffix]);
 
