@@ -1,11 +1,14 @@
 /**
- * Ad Manager — Fast Adexium Primary + Fast GigaPub Fallback
+ * Ad Manager — Guaranteed Adexium Priority + GigaPub Fallback
  *
- * Fast logic:
- * 1. Checks Adexium via requestAd('interstitial').
- * 2. If Adexium returns an ad -> calls displayAd() immediately.
- * 3. If Adexium has NO fill -> falls back IMMEDIATELY to GigaPub window.showGiga().
- * 4. Zero artificial multi-second delays.
+ * Adexium-first flow:
+ * 1. Ensure Adexium SDK & instance are fully loaded (waits up to 3s if needed).
+ * 2. Try Adexium requestAd('interstitial', true) [motivated].
+ * 3. Try Adexium requestAd('interstitial', false) [standard].
+ * 4. Try Adexium requestAd('rewarded', true) / ('rewarded', false).
+ * 5. Try Adexium autoFetchAd().
+ * 6. If ANY Adexium method returns an ad / renders an overlay -> display it, wait 15s -> return { success: true, network: 'adexium' }.
+ * 7. ONLY if all Adexium attempts return no fill -> fallback to GigaPub window.showGiga().
  */
 
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
@@ -18,12 +21,9 @@ const GIGA_SCRIPT_ID     = 'gigapub-ad-sdk';
 let _adexiumInitStarted = false;
 let _gigaInitStarted    = false;
 
-// ── Initialize both ad networks in parallel ──────────────────────
-
 export function initAdexiumAds() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   
-  // Init Adexium
   if (!window._adexiumInstance && !_adexiumInitStarted) {
     _adexiumInitStarted = true;
     const runAdexiumInit = () => {
@@ -57,7 +57,6 @@ export function initAdexiumAds() {
     }
   }
 
-  // Also pre-warm GigaPub in parallel
   initGigaAds();
 }
 
@@ -85,9 +84,29 @@ export function prefetchGramAd() {
   initAdexiumAds();
 }
 
+// DOM helper to check if an Adexium overlay has rendered
+function _checkAdexiumOverlayVisible() {
+  const els = document.querySelectorAll('div, iframe, section');
+  for (const el of els) {
+    const s = window.getComputedStyle(el);
+    const r = el.getBoundingClientRect();
+    if (
+      r.width  > window.innerWidth  * 0.6 &&
+      r.height > window.innerHeight * 0.6 &&
+      (s.position === 'fixed' || s.position === 'absolute') &&
+      s.zIndex !== 'auto' &&
+      parseInt(s.zIndex) > 50 &&
+      s.display !== 'none' &&
+      s.visibility !== 'hidden' &&
+      el.id !== 'root'
+    ) return true;
+  }
+  return false;
+}
+
 /**
  * Show a rewarded ad.
- * Fast attempt: Adexium -> GigaPub fallback -> Fail gracefully.
+ * Guaranteed Adexium Priority -> GigaPub Fallback.
  *
  * @param {string} placement
  * @returns {Promise<{ success: boolean, network?: 'adexium'|'gigapub', error?: string }>}
@@ -97,52 +116,93 @@ export async function showRewardedAd(placement = 'main') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // ── Step 1: Try Adexium (Ensure instance is ready) ───────────
+  // Ensure Adexium SDK & instance are ready
   initAdexiumAds();
 
   let widget = window._adexiumInstance;
   if (!widget) {
     let waited = 0;
-    while (!window._adexiumInstance && waited < 3000) {
+    while (!window._adexiumInstance && waited < 3500) {
       await new Promise(r => setTimeout(r, 150));
       waited += 150;
     }
     widget = window._adexiumInstance;
   }
 
+  // ── Step 1: Exhaustive Adexium Attempt ────────────────────────
   if (widget) {
-    console.log('[AdManager] Requesting Adexium ad...');
+    console.log('[AdManager] 🎯 Attempting Adexium (Primary)...');
     let ads = null;
+
+    // 1a. Try motivated interstitial
     try {
       ads = await widget.requestAd('interstitial', true);
-      if (!Array.isArray(ads) || ads.length === 0) {
+    } catch (e) {}
+
+    // 1b. Try unmotivated interstitial
+    if (!Array.isArray(ads) || ads.length === 0) {
+      try {
         ads = await widget.requestAd('interstitial', false);
-      }
-    } catch (e) {
-      console.warn('[AdManager] Adexium requestAd error:', e);
+      } catch (e) {}
     }
 
+    // 1c. Try rewarded formats
+    if (!Array.isArray(ads) || ads.length === 0) {
+      try {
+        ads = await widget.requestAd('rewarded', true);
+      } catch (e) {}
+    }
+    if (!Array.isArray(ads) || ads.length === 0) {
+      try {
+        ads = await widget.requestAd('rewarded', false);
+      } catch (e) {}
+    }
+
+    // If requestAd returned ads, display them!
     if (Array.isArray(ads) && ads.length > 0) {
       try {
         widget.displayAd(ads, 'interstitial');
-        console.log('[AdManager] ✅ Adexium ad displayed — waiting 15s view time...');
+        console.log('[AdManager] ✅ Adexium ad displayed via displayAd()! Waiting 15s...');
         await new Promise(r => setTimeout(r, 15000));
         return { success: true, network: 'adexium' };
       } catch (displayErr) {
-        console.warn('[AdManager] Adexium displayAd failed:', displayErr);
+        console.warn('[AdManager] Adexium displayAd error:', displayErr);
       }
-    } else {
-      console.log('[AdManager] Adexium returned no bids — trying GigaPub fallback...');
     }
+
+    // 1d. Fallback attempt: autoFetchAd()
+    console.log('[AdManager] Trying Adexium autoFetchAd()...');
+    try {
+      await widget.autoFetchAd();
+      // Check if autoFetchAd rendered an overlay
+      let adexiumOverlaySeen = false;
+      for (let i = 0; i < 15; i++) { // poll over 3 seconds
+        await new Promise(r => setTimeout(r, 200));
+        if (_checkAdexiumOverlayVisible()) {
+          adexiumOverlaySeen = true;
+          break;
+        }
+      }
+      if (adexiumOverlaySeen) {
+        console.log('[AdManager] ✅ Adexium ad overlay confirmed via autoFetchAd()! Waiting 15s...');
+        await new Promise(r => setTimeout(r, 15000));
+        return { success: true, network: 'adexium' };
+      }
+    } catch (autoErr) {
+      console.warn('[AdManager] Adexium autoFetchAd error:', autoErr);
+    }
+
+    console.warn('[AdManager] ⚠️ Adexium returned no fill across all formats. Moving to GigaPub fallback...');
+  } else {
+    console.warn('[AdManager] ⚠️ Adexium SDK failed to load within timeout. Moving to GigaPub fallback...');
   }
 
   // ── Step 2: Try GigaPub Fallback ─────────────────────────────
-  console.log('[AdManager] Launching GigaPub fallback...');
+  console.log('[AdManager] ⚡ Launching GigaPub Fallback...');
   
-  // Wait up to 2s if GigaPub script is still loading
   if (typeof window.showGiga !== 'function') {
     let waited = 0;
-    while (typeof window.showGiga !== 'function' && waited < 2000) {
+    while (typeof window.showGiga !== 'function' && waited < 2500) {
       await new Promise(r => setTimeout(r, 200));
       waited += 200;
     }
