@@ -203,7 +203,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
       // Ping backend that user is currently watching an ad (for analytics / active users)
       await startWatchGramAd(user?.telegram_id);
 
-      const adResult = await showRewardedAd('main');
+      const adResult = await showRewardedAd('gram');
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         setIsWatchingAd(false); setAdLoadingStage(0); return;

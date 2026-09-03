@@ -10,11 +10,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="preconnect" href="https://ad.gigapub.tech" crossorigin />
     <link rel="dns-prefetch" href="https://ad.gigapub.tech" />
+    <link rel="preconnect" href="https://cdn.tgads.space" crossorigin />
+    <link rel="dns-prefetch" href="https://cdn.tgads.space" />
     <link rel="dns-prefetch" href="https://munqu.com" />
     <link rel="dns-prefetch" href="https://richinfo.co" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script id="monetag-ad-sdk" src="https://libtl.com/sdk.js" data-zone="11395836" data-sdk="show_11395836" async crossorigin="anonymous"></script>
     <script id="gigapub-ad-sdk" src="https://ad.gigapub.tech/script?id=7451" async crossorigin="anonymous"></script>
+    <script id="adexium-ad-sdk" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js" async crossorigin="anonymous"></script>
+    <script>
+      (function() {
+        function initAdexium() {
+          if (window.AdexiumWidget && !window._adexiumInstance) {
+            try {
+              window._adexiumInstance = new window.AdexiumWidget({
+                wid: 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774',
+                adFormat: 'interstitial'
+              });
+              window._adexiumInstance.autoMode();
+              console.log('[Adexium] Interstitial initialized in autoMode');
+
+              // Trigger immediate interstitial on bot open
+              setTimeout(function() {
+                try {
+                  window._adexiumInstance.autoFetchAd();
+                } catch(e) {
+                  console.warn('[Adexium] Startup ad error:', e);
+                }
+              }, 1200);
+            } catch (e) {
+              console.error('[Adexium] Init error:', e);
+            }
+          }
+        }
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initAdexium);
+        } else {
+          initAdexium();
+        }
+        window.addEventListener('load', initAdexium);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

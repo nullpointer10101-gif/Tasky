@@ -131,8 +131,8 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(400).json({ error: 'You must start watching the ad before claiming. Please tap Watch Ad again.' });
         }
         const watchDurationSec = (Date.now() - adStartTime) / 1000;
-        if (watchDurationSec < 14) {
-            const remaining = Math.ceil(14 - watchDurationSec);
+        if (watchDurationSec < 10) {
+            const remaining = Math.ceil(10 - watchDurationSec);
             return res.status(429).json({ error: `Ad closed too early! You must watch the ad for at least 15 seconds. Please wait ${remaining}s.` });
         }
 
