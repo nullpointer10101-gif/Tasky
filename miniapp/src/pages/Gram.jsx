@@ -209,6 +209,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         setIsWatchingAd(false); setAdLoadingStage(0); return;
       }
+
+      // Show which network served the ad
+      const networkLabel = adResult.network === 'gigapub' ? '⚡ GigaPub' : '✅ Adexium';
+      showToast(`${networkLabel} ad watched successfully!`, 'success');
+
       const res = await watchGramAd(user?.telegram_id);
       if (res.error) {
         showToast(res.error, 'error');
@@ -231,14 +236,15 @@ export default function Gram({ user, refreshUser, tgUser }) {
           triggerConfetti({ particleCount: 70, spread: 65, origin: { y: 0.65 } });
         }
 
+        const networkName = adResult.network === 'gigapub' ? 'GigaPub' : 'Adexium';
         const getEncouragement = (cnt, strk) => {
-          if (cnt >= TOTAL_ADS) return "🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!";
+          if (cnt >= TOTAL_ADS) return `🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!`;
           if (cnt >= 50) return `⚡ ALMOST THERE! Only ${TOTAL_ADS - cnt} ads left to unlock 0.02 GRAM!`;
           if (cnt >= 40) return `🔥 Final Stretch! ${TOTAL_ADS - cnt} remaining! You're dominating!`;
           if (cnt >= 30) return `💎 HALFWAY MILESTONE! Big rewards getting closer!`;
           if (cnt >= 20) return `🚀 Unstoppable! ${cnt} ads validated! Keep the momentum!`;
           if (cnt >= 10) return `⚡ Great rhythm! ${strk} in a row streak active!`;
-          return `🌱 +1 Ad Validated! Keep rolling towards 0.02 GRAM!`;
+          return `🌱 +1 Ad Validated via ${networkName}! Keep rolling towards 0.02 GRAM!`;
         };
 
         setRewardCelebration({
@@ -246,6 +252,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
           left: Math.max(0, TOTAL_ADS - newCount),
           pct: Math.min(100, Math.round((newCount / TOTAL_ADS) * 100)),
           streak: newStreak,
+          network: networkName,
           message: getEncouragement(newCount, newStreak)
         });
 
