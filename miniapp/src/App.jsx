@@ -16,15 +16,12 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
-import { initGigaAds } from './adUtils'
+import { initAdexiumAds } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
 export const ToastContext = createContext(null);
 export const useToast = () => useContext(ToastContext);
-
-// Pre-warm ad network SDK on application load
-initGigaAds();
 
 
 
@@ -94,6 +91,8 @@ export default function App() {
       }
     }
     boot()
+    // Initialize Adexium SDK after React has mounted
+    initAdexiumAds()
   }, [tgUser])
 
   const refreshUser = async () => {
