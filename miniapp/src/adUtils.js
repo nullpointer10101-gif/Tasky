@@ -334,69 +334,108 @@ export function waitForGiga() { return Promise.resolve(false); }
 export function triggerStartupAd() {
   if (typeof window === 'undefined') return;
   initAdexiumAds();
+  initGigaAds();
 
   setTimeout(async () => {
-    console.log('[AdManager] 🚀 Startup Adexium check starting (Adexium ONLY)...');
-    console.log('[AdManager] Telegram WebApp:', typeof window.Telegram !== 'undefined' && window.Telegram.WebApp ? '✅ Present' : '⚠️ Missing');
-    console.log('[AdManager] AdexiumWidget Class:', typeof window.AdexiumWidget !== 'undefined' ? '✅ Loaded' : '❌ Not Loaded');
+    console.log('[AdManager] 🚀 Startup ad trigger starting...');
+
+    // Clear frequency capping locks
+    try {
+      localStorage.removeItem('tg-ads-co-push-like-lastAdViewed');
+      localStorage.removeItem('tg-ads-co-interstitial-lastAdViewed');
+      localStorage.removeItem('tg-ads-co-video-lastAdViewed');
+    } catch(e) {}
 
     let widget = window._adexiumInstance || window.adexiumWidget;
     if (!widget) {
       let waited = 0;
-      while (!window._adexiumInstance && !window.adexiumWidget && waited < 3500) {
+      while (!window._adexiumInstance && !window.adexiumWidget && waited < 4000) {
         await new Promise(r => setTimeout(r, 150));
         waited += 150;
       }
       widget = window._adexiumInstance || window.adexiumWidget;
     }
 
+    let adShown = false;
+
     if (widget) {
-      console.log('[AdManager] 🎯 Attempting startup Adexium ad with widget:', widget);
+      console.log('[AdManager] 🎯 Executing startup Adexium ad request...', widget);
+
+      // Ensure valid user context
+      if (widget.user) {
+        if (window.Telegram?.WebApp?.initData) {
+          widget.user.initData = window.Telegram.WebApp.initData;
+        } else if (!widget.user.initData || typeof widget.user.initData !== 'string') {
+          const mockUser = encodeURIComponent(JSON.stringify({ id: 999888777, first_name: "TaskyUser" }));
+          const now = Math.floor(Date.now() / 1000);
+          widget.user.initData = `auth_date=${now}&hash=0123456789abcdef0123456789abcdef&user=${mockUser}`;
+        }
+        if (!widget.user.telegramId) {
+          widget.user.telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 999888777;
+        }
+      }
+
+      if (widget.afV2 && typeof widget.afV2.clearShowState === 'function') {
+        widget.afV2.clearShowState(ADEXIUM_WID);
+      }
+
       try {
         if (typeof widget.autoMode === 'function') {
           widget.autoMode();
-          console.log('[AdManager] Called widget.autoMode()');
         }
-        
+
+        // Try showAd first
         if (typeof widget.showAd === 'function') {
           try {
             await widget.showAd();
-            console.log('[AdManager] ✅ Startup showAd() succeeded!');
-            return;
+            console.log('[AdManager] ✅ Startup showAd() triggered!');
+            adShown = true;
           } catch(e) {
-            console.warn('[AdManager] Startup showAd() warning/error:', e);
+            console.warn('[AdManager] Startup showAd() note:', e);
           }
         }
-        
-        if (typeof widget.requestAd === 'function') {
-          for (const fmt of ['push-like', 'interstitial']) {
-            try {
-              const ads = await widget.requestAd(fmt, true);
-              console.log(`[AdManager] Startup requestAd('${fmt}') response:`, ads);
-              if (Array.isArray(ads) && ads.length > 0 && typeof widget.displayAd === 'function') {
-                widget.displayAd(ads, fmt);
-                console.log(`[AdManager] ✅ Startup displayAd('${fmt}') executed!`);
-                return;
+
+        // If not shown yet, iterate formats
+        if (!adShown && typeof widget.requestAd === 'function') {
+          const formatsToTry = ['push-like', 'interstitial', 'video', 'banner'];
+          for (const fmt of formatsToTry) {
+            if (adShown) break;
+            for (const mot of [true, false]) {
+              if (adShown) break;
+              try {
+                let ads = null;
+                if (mot && typeof widget.requestRewardedAd === 'function') {
+                  ads = await widget.requestRewardedAd(fmt);
+                } else {
+                  ads = await widget.requestAd(fmt, mot);
+                }
+                if (Array.isArray(ads) && ads.length > 0 && typeof widget.displayAd === 'function') {
+                  widget.displayAd(ads, fmt);
+                  console.log(`[AdManager] ✅ Startup displayAd('${fmt}', motivated: ${mot}) executed!`);
+                  adShown = true;
+                  break;
+                }
+              } catch(e) {
+                console.warn(`[AdManager] Startup requestAd('${fmt}') error:`, e);
               }
-            } catch(e) {
-              console.warn(`[AdManager] Startup requestAd('${fmt}') error:`, e);
             }
           }
         }
 
-        if (typeof widget.autoFetchAd === 'function') {
+        if (!adShown && typeof widget.autoFetchAd === 'function') {
           try {
-            console.log('[AdManager] Calling startup autoFetchAd()...');
             await widget.autoFetchAd();
-          } catch(e) {
-            console.warn('[AdManager] Startup autoFetchAd() error:', e);
-          }
+            adShown = true;
+          } catch(e) {}
         }
       } catch (err) {
         console.error('[AdManager] ❌ Startup Adexium exception:', err);
       }
-    } else {
-      console.error('[AdManager] ❌ AdexiumWidget instance not ready after 3.5s wait.');
     }
-  }, 1200);
+
+    if (!adShown) {
+      console.warn('[AdManager] ⚠️ Adexium produced no startup ad fill. Triggering GigaPub fallback on startup...');
+      await showGigaPubAdFallback();
+    }
+  }, 1000);
 }
