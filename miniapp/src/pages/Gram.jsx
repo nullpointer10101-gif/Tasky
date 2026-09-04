@@ -328,7 +328,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
     const maxLimit = gramInfo?.max_withdrawal || 0.02;
     if (amt > maxLimit) { 
-      showToast(`Your current NFT tier allows up to ${maxLimit} GRAM daily withdrawal. Buy/Upgrade to the 5 GRAM NFT to withdraw up to 0.70 GRAM daily!`, 'error'); 
+      showToast(`Your current daily withdrawal limit for this NFT tier is ${maxLimit} GRAM per day. Please enter an amount up to ${maxLimit} GRAM.`, 'error'); 
       return; 
     }
     if (gramInfo?.has_reached_daily_limit || (gramInfo?.withdrawals_today_count || 0) >= 1) {

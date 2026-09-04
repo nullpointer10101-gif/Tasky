@@ -270,7 +270,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const price = parseFloat(nft.price_gram);
                 const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
                 const directCommission = (price * 0.30).toFixed(2);
-                const maxDailyWithdraw = isMega ? '0.70' : isTurbo ? '0.05' : '0.03';
+                const maxDailyWithdraw = isMega ? '0.30' : isTurbo ? '0.05' : '0.03';
 
                 return (
                   <motion.div
