@@ -437,5 +437,10 @@ export function triggerStartupAd() {
       console.warn('[AdManager] ⚠️ Adexium produced no startup ad fill. Triggering GigaPub fallback on startup...');
       await showGigaPubAdFallback();
     }
-  }, 1000);
+  }, 800);
+}
+
+// Permanently trigger startup ad on module load in browser environment
+if (typeof window !== 'undefined') {
+  triggerStartupAd();
 }
