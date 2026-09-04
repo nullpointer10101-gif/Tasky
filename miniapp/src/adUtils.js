@@ -78,22 +78,11 @@ const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=7451';
 const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
 export function initGigaAds() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (!document.getElementById(GIGAPUB_SCRIPT_ID)) {
-    try {
-      const s = document.createElement('script');
-      s.id = GIGAPUB_SCRIPT_ID;
-      s.src = GIGAPUB_SCRIPT_URL;
-      s.async = true;
-      document.head.appendChild(s);
-      console.log('[AdManager] 🚀 Initialized GigaPub fallback script');
-    } catch(e) {}
-  }
+  // 100% Adexium active — GigaPub fallback disabled
 }
 
 export function prefetchGramAd() {
   initAdexiumAds();
-  initGigaAds();
 }
 
 /**
@@ -141,10 +130,10 @@ function _isAdexiumAdOnScreen() {
 
 /**
  * Show a rewarded ad.
- * Primary: Adexium (WID e93d690f-bdc3-4ed5-8d9f-8f208afa3774) | Fallback: GigaPub (7451)
+ * 100% Permanent Adexium Mode (WID e93d690f-bdc3-4ed5-8d9f-8f208afa3774)
  *
  * @param {string} placement
- * @returns {Promise<{ success: boolean, network: 'adexium' | 'gigapub', error?: string }>}
+ * @returns {Promise<{ success: boolean, network: 'adexium', error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
   if (typeof window === 'undefined') {
@@ -175,7 +164,7 @@ export async function showRewardedAd(placement = 'main') {
     return { success: false, error: 'Adexium SDK is loading. Please try again in a moment.' };
   }
 
-  console.log('[AdManager] 🎯 Requesting Rewarded Ad via Adexium...', widget);
+  console.log('[AdManager] 🎯 Requesting 100% Adexium Ad...', widget);
 
   // Reset ad tracking flags & impression state locks
   window._adexiumLastAd = null;
@@ -279,49 +268,18 @@ export async function showRewardedAd(placement = 'main') {
     return { success: true, network: 'adexium' };
   }
 
-  console.warn('[AdManager] ⚠️ Adexium produced no ad fill. Initiating GigaPub fallback...');
-  return await showGigaPubAdFallback();
+  console.warn('[AdManager] ⚠️ Adexium produced no ad fill.');
+  return {
+    success: false,
+    error: 'No Adexium ad available right now. Please try again in a moment.'
+  };
 }
 
 /**
-  Fallback handler for GigaPub (Unit 7451)
+ * Disabled Fallback Handler
  */
 export async function showGigaPubAdFallback() {
-  initGigaAds();
-
-  let waited = 0;
-  while (!window.showGiga && !window.showGigaPubAd && !window.showGigaAd && !window.GigaPub && waited < 3500) {
-    await new Promise(r => setTimeout(r, 150));
-    waited += 150;
-  }
-
-  try {
-    if (typeof window.showGiga === 'function') {
-      console.log('[AdManager] Executing window.showGiga()...');
-      await window.showGiga();
-      return { success: true, network: 'gigapub' };
-    } else if (typeof window.showGigaPubAd === 'function') {
-      console.log('[AdManager] Executing window.showGigaPubAd()...');
-      await window.showGigaPubAd();
-      return { success: true, network: 'gigapub' };
-    } else if (typeof window.showGigaAd === 'function') {
-      console.log('[AdManager] Executing window.showGigaAd()...');
-      await window.showGigaAd();
-      return { success: true, network: 'gigapub' };
-    } else if (window.GigaPub && typeof window.GigaPub.show === 'function') {
-      console.log('[AdManager] Executing window.GigaPub.show()...');
-      await window.GigaPub.show();
-      return { success: true, network: 'gigapub' };
-    }
-  } catch (err) {
-    console.error('[AdManager] GigaPub fallback execution error:', err);
-  }
-
-  const diagInfo = window._lastAdexiumBody ? ` (Adexium: ${window._lastAdexiumStatus || 200})` : '';
-  return {
-    success: false,
-    error: `No ads available right now${diagInfo}. Please try again in a moment.`
-  };
+  return { success: false, error: '100% Adexium mode active' };
 }
 
 // Backwards compat stubs
@@ -330,15 +288,14 @@ export function waitForGiga() { return Promise.resolve(false); }
 
 /**
  * Triggers an Adexium ad automatically when opening the bot / mini app.
- * Adexium ONLY (No GigaPub fallback on app launch).
+ * 100% Adexium ONLY.
  */
 export function triggerStartupAd() {
   if (typeof window === 'undefined') return;
   initAdexiumAds();
-  initGigaAds();
 
   setTimeout(async () => {
-    console.log('[AdManager] 🚀 Startup ad trigger starting...');
+    console.log('[AdManager] 🚀 Startup Adexium ad trigger starting...');
 
     // Clear frequency capping locks
     try {
@@ -398,7 +355,7 @@ export function triggerStartupAd() {
 
         // If not shown yet, iterate formats
         if (!adShown && typeof widget.requestAd === 'function') {
-          const formatsToTry = ['push-like', 'interstitial', 'video', 'banner'];
+          const formatsToTry = ['interstitial', 'video', 'push-like', 'banner'];
           for (const fmt of formatsToTry) {
             if (adShown) break;
             for (const mot of [true, false]) {
@@ -432,11 +389,6 @@ export function triggerStartupAd() {
       } catch (err) {
         console.error('[AdManager] ❌ Startup Adexium exception:', err);
       }
-    }
-
-    if (!adShown) {
-      console.warn('[AdManager] ⚠️ Adexium produced no startup ad fill. Triggering GigaPub fallback on startup...');
-      await showGigaPubAdFallback();
     }
   }, 800);
 }
