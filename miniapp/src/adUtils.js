@@ -73,7 +73,7 @@ export function initAdexiumAds() {
   }
 }
 
-const GIGAPUB_SCRIPT_URL = 'https://static.gigapub.net/script?id=7451';
+const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=7451';
 const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
 export function initGigaAds() {
@@ -289,13 +289,17 @@ export async function showGigaPubAdFallback() {
   initGigaAds();
 
   let waited = 0;
-  while (!window.showGigaPubAd && !window.showGigaAd && !window.GigaPub && waited < 3000) {
+  while (!window.showGiga && !window.showGigaPubAd && !window.showGigaAd && !window.GigaPub && waited < 3500) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
   try {
-    if (typeof window.showGigaPubAd === 'function') {
+    if (typeof window.showGiga === 'function') {
+      console.log('[AdManager] Executing window.showGiga()...');
+      await window.showGiga();
+      return { success: true, network: 'gigapub' };
+    } else if (typeof window.showGigaPubAd === 'function') {
       console.log('[AdManager] Executing window.showGigaPubAd()...');
       await window.showGigaPubAd();
       return { success: true, network: 'gigapub' };
@@ -309,7 +313,7 @@ export async function showGigaPubAdFallback() {
       return { success: true, network: 'gigapub' };
     }
   } catch (err) {
-    console.error('[AdManager] GigaPub fallback error:', err);
+    console.error('[AdManager] GigaPub fallback execution error:', err);
   }
 
   const diagInfo = window._lastAdexiumBody ? ` (Adexium: ${window._lastAdexiumStatus || 200})` : '';
