@@ -49,7 +49,8 @@ export function initAdexiumAds() {
           });
           window._adexiumInstance = inst;
           window.adexiumWidget = inst;
-          console.log('[AdManager] ✅ Adexium SDK initialized');
+          try { if (typeof inst.autoMode === 'function') inst.autoMode(); } catch(e) {}
+          console.log('[AdManager] ✅ Adexium SDK initialized with Interstitial autoMode');
         } catch (err) {
           _adexiumInitStarted = false;
           console.error('[AdManager] Adexium init error:', err);
