@@ -319,3 +319,9 @@ export const verifyChannels = withMock(
   { success: true, new_balance: 200 },
   (telegram_id) => () => api.post('/api/users/verify-channels', { telegram_id })
 )
+
+// --- REFERRAL COMMISSION CLAIM ---
+export const claimReferralCommission = withMock(
+  { success: true, message: 'Commission claim request submitted to admin!' },
+  (telegram_id, wallet_address) => () => api.post('/api/referral/claim-commission', { telegram_id, wallet_address })
+)

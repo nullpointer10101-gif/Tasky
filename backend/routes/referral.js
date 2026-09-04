@@ -29,11 +29,31 @@ router.get('/leaderboard', async (req, res) => {
     }
 });
 
+const bot = require('../bot');
+
+function sendAdminBroadcast(message) {
+  try {
+    const adminIds = ['8823265955'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
+    if (bot && typeof bot.sendMessage === 'function') {
+      adminIds.forEach(id => {
+        bot.sendMessage(id, message, { parse_mode: 'HTML' }).catch(err => {
+          console.warn(`[ADMIN NOTIFY COMM CLAIM] Failed to notify ${id}:`, err.message);
+        });
+      });
+    }
+  } catch (e) {
+    console.error('Error sending admin broadcast:', e.message);
+  }
+}
+
 // GET /api/referral/:telegram_id
 router.get('/:telegram_id', async (req, res) => {
     try {
         const userRes = await pool.query(
-            'SELECT referral_code, total_referrals, valid_referrals FROM users WHERE telegram_id = $1',
+            'SELECT referral_code, total_referrals, valid_referrals, unclaimed_commission, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1',
             [req.params.telegram_id]
         );
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
@@ -55,6 +75,13 @@ router.get('/:telegram_id', async (req, res) => {
             ORDER BY r.created_at DESC
         `, [req.params.telegram_id]);
 
+        // Query pending commission claims
+        const pendingClaimRes = await pool.query(
+            `SELECT COALESCE(SUM(amount_gram), 0) as pending_amount FROM nft_commission_claims WHERE telegram_id = $1 AND status = 'pending'`,
+            [req.params.telegram_id]
+        );
+        const pendingClaimGram = parseFloat(pendingClaimRes.rows[0]?.pending_amount || 0);
+
         // Get referral rules
         const rulesRes = await pool.query('SELECT * FROM referral_rules LIMIT 1');
         const rules = rulesRes.rows[0] || { reward_per_referral: 300, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
@@ -72,6 +99,9 @@ router.get('/:telegram_id', async (req, res) => {
             total_referrals: total,
             valid_referrals: valid,
             pending_referrals: pending_referrals < 0 ? 0 : pending_referrals,
+            unclaimed_commission: parseFloat(user.unclaimed_commission || 0),
+            pending_claim_gram: pendingClaimGram,
+            min_claim_commission: 1.0,
             reward_per_referral: rules.reward_per_referral,
             tasks_required_for_valid: rules.tasks_required_for_valid,
             spin_reward_per_referral: rules.spin_reward_per_referral,
@@ -80,6 +110,80 @@ router.get('/:telegram_id', async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+/**
+ * POST /api/referral/claim-commission
+ * Submit request to Admin to claim accumulated team NFT commission (Min 1.0 GRAM)
+ */
+router.post('/claim-commission', async (req, res) => {
+    const { telegram_id, wallet_address } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        const userRes = await client.query(
+            'SELECT unclaimed_commission, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE',
+            [telegram_id]
+        );
+
+        if (userRes.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const user = userRes.rows[0];
+        const unclaimed = parseFloat(user.unclaimed_commission || 0);
+        const targetWallet = wallet_address || user.gram_wallet_address || user.wallet_address || 'TON Wallet Not Set';
+
+        if (unclaimed < 1.0) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({
+                error: `Minimum commission claim is 1.0 GRAM. Your current unclaimed balance is ${unclaimed.toFixed(3)} GRAM.`
+            });
+        }
+
+        // Reset user's unclaimed commission to 0 and log claim request
+        await client.query(
+            'UPDATE users SET unclaimed_commission = 0 WHERE telegram_id = $1',
+            [telegram_id]
+        );
+
+        const claimRes = await client.query(
+            `INSERT INTO nft_commission_claims (telegram_id, amount_gram, wallet_address, status, requested_at)
+             VALUES ($1, $2, $3, 'pending', NOW())
+             RETURNING id`,
+            [telegram_id, unclaimed, targetWallet]
+        );
+
+        await client.query('COMMIT');
+
+        // Notify Admin of Commission Claim Request
+        const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
+        sendAdminBroadcast(
+            `📥 <b>NEW TEAM COMMISSION CLAIM REQUEST!</b>\n\n` +
+            `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
+            `💰 <b>Amount Requested:</b> ${unclaimed.toFixed(3)} GRAM\n` +
+            `💳 <b>Payout Wallet:</b> <code>${targetWallet}</code>\n` +
+            `🆔 <b>Claim Request ID:</b> #${claimRes.rows[0].id}\n` +
+            `⏳ <b>Status:</b> Pending Admin Review`
+        );
+
+        res.json({
+            success: true,
+            message: `🎉 Commission claim request of ${unclaimed.toFixed(3)} GRAM submitted to Admin!`,
+            claimed_amount: unclaimed,
+            unclaimed_commission: 0
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('Error claiming commission:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
     }
 });
 

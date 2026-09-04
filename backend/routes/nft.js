@@ -573,20 +573,20 @@ async function distributeNftReferralCommissions(dbPool, buyerTelegramId, priceGr
       if (refRes.rows.length === 0) break;
       const referrer = refRes.rows[0];
 
-      let updateQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
-      if (referrer.gram_balance !== null && referrer.gram_balance !== undefined) {
-        updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1 WHERE telegram_id = $2 RETURNING gram_balance as balance';
-      }
-      const updatedRef = await dbPool.query(updateQuery, [commAmount, currentReferrerId]);
-      const newBal = updatedRef.rows[0]?.balance || 0;
+      const updatedRef = await dbPool.query(
+        `UPDATE users SET unclaimed_commission = COALESCE(unclaimed_commission, 0) + $1 WHERE telegram_id = $2 RETURNING unclaimed_commission`,
+        [commAmount, currentReferrerId]
+      );
+      const newUnclaimed = parseFloat(updatedRef.rows[0]?.unclaimed_commission || 0);
 
       if (bot && typeof bot.sendMessage === 'function') {
         const msg = `🎉 <b>Team NFT Commission Received!</b>\n\n` +
           `👤 <b>Team Member:</b> ${buyerName}\n` +
           `⚡ <b>NFT Purchased:</b> ${nftName} (${priceGram} GRAM)\n` +
           `🏆 <b>Commission Tier:</b> ${rate.label} (${(rate.percent * 100).toFixed(0)}%)\n` +
-          `💰 <b>Reward Credited:</b> +${commAmount.toFixed(3)} GRAM\n` +
-          `💳 <b>New Vault Balance:</b> ${parseFloat(newBal).toFixed(3)} GRAM`;
+          `💰 <b>Commission Earned:</b> +${commAmount.toFixed(3)} GRAM\n` +
+          `💼 <b>Unclaimed Commission Balance:</b> ${newUnclaimed.toFixed(3)} GRAM\n\n` +
+          `💡 <i>Tap "Refer & Earn" in Tasky to claim your commissions once your balance reaches 1.0 GRAM!</i>`;
         bot.sendMessage(currentReferrerId, msg, { parse_mode: 'HTML' }).catch(err => {
           console.warn(`[NFT COMM NOTIFY] Failed to notify ${currentReferrerId}:`, err.message);
         });

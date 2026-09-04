@@ -4,7 +4,7 @@ import { Copy, Share, Trophy, Users, CheckCircle2, Clock, Gift, Medal, Lock, Spa
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getReferral, getReferralLeaderboard } from '../api';
+import { getReferral, getReferralLeaderboard, claimReferralCommission } from '../api';
 import { useToast } from '../App';
 import ReferralSquadRoadmap from '../components/ReferralSquadRoadmap';
 import { useIsAdmin } from '../AdminContext';
@@ -23,7 +23,37 @@ export default function Referral({ user }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [isDemo, setIsDemo] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [claimingComm, setClaimingComm] = useState(false);
   const { showToast } = useToast();
+
+  const handleClaimCommission = async () => {
+    const telegramId = user?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+    if (!telegramId) {
+      showToast('Telegram user ID required', 'error');
+      return;
+    }
+    const unclaimed = parseFloat(refData?.unclaimed_commission || 0);
+    if (unclaimed < 1.0) {
+      showToast(`Minimum commission claim is 1.0 GRAM. You currently have ${unclaimed.toFixed(3)} GRAM.`, 'error');
+      return;
+    }
+
+    setClaimingComm(true);
+    try {
+      const { data, error } = await claimReferralCommission(telegramId);
+      if (error) {
+        showToast(error, 'error');
+      } else if (data && data.success) {
+        showToast(data.message || '🎉 Commission claim request submitted to Admin!', 'success');
+        const refRes = await getReferral(telegramId);
+        if (refRes.data) setRefData(refRes.data);
+      }
+    } catch (err) {
+      showToast('Error submitting commission claim', 'error');
+    } finally {
+      setClaimingComm(false);
+    }
+  };
 
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -219,6 +249,45 @@ export default function Referral({ user }) {
                 <p className="text-sm text-ink-faint mb-1">Reward/Invite</p>
                 <p className="text-lg font-bold">+{refData?.reward_per_referral || 200} & {refData?.spin_reward_per_referral || 1} Spin</p>
               </Card>
+            </div>
+
+            {/* Team NFT Unclaimed Commission Vault Card */}
+            <div className="bg-gradient-to-br from-[#2D0B00] via-[#4A1000] to-[#1F0800] p-4 rounded-3xl border border-amber-500/50 shadow-xl space-y-3 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    <Gift size={18} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-xs uppercase tracking-wider text-amber-300">Team NFT Commission Vault</h3>
+                    <p className="text-[11px] text-white/70">Min Claim: <b className="text-amber-300">1.0 GRAM</b> (Admin Review)</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Unclaimed Balance</p>
+                  <p className="text-lg font-black text-amber-300">{parseFloat(refData?.unclaimed_commission || 0).toFixed(3)} GRAM</p>
+                </div>
+              </div>
+
+              {parseFloat(refData?.pending_claim_gram || 0) > 0 && (
+                <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-1.5 font-semibold">
+                  <Clock size={14} className="animate-spin text-amber-400 shrink-0" />
+                  <span>Pending Claim: <b>{parseFloat(refData?.pending_claim_gram).toFixed(3)} GRAM</b> (Under Admin Review)</span>
+                </div>
+              )}
+
+              <Button
+                onClick={handleClaimCommission}
+                loading={claimingComm}
+                disabled={parseFloat(refData?.unclaimed_commission || 0) < 1.0 || claimingComm}
+                className={`w-full py-3 rounded-2xl font-black text-xs uppercase tracking-wider border-0 shadow-lg transition-all ${
+                  parseFloat(refData?.unclaimed_commission || 0) >= 1.0
+                    ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black hover:opacity-95 shadow-amber-500/30 active:scale-98'
+                    : 'bg-white/10 text-white/40 cursor-not-allowed'
+                }`}
+              >
+                {parseFloat(refData?.unclaimed_commission || 0) >= 1.0 ? '📥 Claim Commission Request to Admin' : `🔒 Min 1.0 GRAM to Claim (${(1.0 - parseFloat(refData?.unclaimed_commission || 0)).toFixed(3)} GRAM needed)`}
+              </Button>
             </div>
 
             {/* Exact Commission Breakdown Chart Across ALL NFTs */}
