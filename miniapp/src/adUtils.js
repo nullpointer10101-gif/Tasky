@@ -281,9 +281,32 @@ export async function showRewardedAd(placement = 'main') {
   }
 
   if (adConfirmed) {
-    console.log('[AdManager] ✅ Adexium ad confirmed! Waiting 15s view duration...');
-    await new Promise(r => setTimeout(r, 15000));
-    console.log('[AdManager] ✅ Adexium ad view duration completed!');
+    console.log('[AdManager] ✅ Adexium ad confirmed! Watching ad completion...');
+    let closed = false;
+    const onClosed = () => { closed = true; };
+    if (widget.on) {
+      try {
+        widget.on('adClosed', onClosed);
+        widget.on('adPlaybackCompleted', onClosed);
+      } catch(e) {}
+    }
+
+    // Wait up to 10s max or until closed/overlay removed
+    for (let s = 0; s < 50; s++) {
+      await new Promise(r => setTimeout(r, 200));
+      if (closed || (s > 15 && !_isAdexiumAdOnScreen())) {
+        console.log('[AdManager] ✅ Adexium ad completed / closed!');
+        break;
+      }
+    }
+
+    if (widget.off) {
+      try {
+        widget.off('adClosed', onClosed);
+        widget.off('adPlaybackCompleted', onClosed);
+      } catch(e) {}
+    }
+
     return { success: true, network: 'adexium' };
   }
 
