@@ -420,6 +420,12 @@ router.post('/deposit/auto-verify', async (req, res) => {
   const userMemo = `TASKY_${telegram_id}`;
 
   try {
+    // 0. Fetch User Context for Wallet & Username Matching
+    const userRes = await pool.query('SELECT username, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1', [telegram_id]);
+    const userObj = userRes.rows[0] || {};
+    const userWallet = (userObj.gram_wallet_address || userObj.wallet_address || '').trim().toLowerCase();
+    const username = (userObj.username || '').trim().toLowerCase();
+
     // 1. Check if Tx Hash was already credited in DB
     if (cleanTxHash) {
       const existing = await pool.query('SELECT * FROM gram_deposits WHERE tx_hash = $1', [cleanTxHash]);
@@ -448,13 +454,20 @@ router.post('/deposit/auto-verify', async (req, res) => {
             for (const action of (ev.actions || [])) {
               if (action.type === 'TonTransfer') {
                 const transfer = action.TonTransfer;
-                const comment = transfer.comment || '';
+                const comment = (transfer.comment || '').trim();
+                const senderAddress = (transfer.sender?.address || transfer.sender?.user_friendly || '').trim().toLowerCase();
                 
-                // Check if comment matches TASKY_<TELEGRAM_ID> OR tx hash matches cleanTxHash
-                const isMemoMatch = comment.includes(userMemo) || comment.includes(String(telegram_id));
+                // Flexible matching: Memo / ID / Username OR Sender Wallet Address OR Tx Hash
+                const isMemoMatch = comment.includes(userMemo) || 
+                                    comment.includes(String(telegram_id)) || 
+                                    (username && comment.toLowerCase().includes(username));
+                const isWalletMatch = userWallet && senderAddress && (
+                                      senderAddress.includes(userWallet) || 
+                                      userWallet.includes(senderAddress)
+                                    );
                 const isHashMatch = cleanTxHash && (eventId === cleanTxHash || eventId.toLowerCase() === cleanTxHash.toLowerCase());
 
-                if (isMemoMatch || isHashMatch) {
+                if (isMemoMatch || isWalletMatch || isHashMatch) {
                   const nanoAmount = BigInt(transfer.amount || 0);
                   depositedGram = Number(nanoAmount) / 1e9;
 
