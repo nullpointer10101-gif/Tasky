@@ -316,9 +316,17 @@ export async function showGigaPubAdFallback() {
       console.log('[AdManager] Executing window.showGigaAd()...');
       await window.showGigaAd();
       return { success: true, network: 'gigapub' };
+    } else if (window.GigaPub && typeof window.GigaPub.showAd === 'function') {
+      console.log('[AdManager] Executing window.GigaPub.showAd()...');
+      await window.GigaPub.showAd();
+      return { success: true, network: 'gigapub' };
     } else if (window.GigaPub && typeof window.GigaPub.show === 'function') {
       console.log('[AdManager] Executing window.GigaPub.show()...');
       await window.GigaPub.show();
+      return { success: true, network: 'gigapub' };
+    } else if (typeof window.showAd === 'function') {
+      console.log('[AdManager] Executing global window.showAd()...');
+      await window.showAd();
       return { success: true, network: 'gigapub' };
     }
   } catch (err) {
