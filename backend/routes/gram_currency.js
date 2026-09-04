@@ -8,6 +8,7 @@ const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 const MIN_WITHDRAWAL = 0.01;
 
 // Helper to determine dynamic daily withdrawal limit based on NFT miner card ownership
+// - Mega Miner (7.0 GRAM Yield / 5.0 GRAM Price): 0.70 GRAM / day
 // - Turbo Miner (1.5 GRAM Yield / 1.0 GRAM Price): 0.05 GRAM / day
 // - Mini Miner (0.7 GRAM Yield / 0.5 GRAM Price): 0.03 GRAM / day
 // - Normal User (No active NFT): 0.02 GRAM / day
@@ -28,7 +29,9 @@ async function getUserMaxWithdrawalLimit(telegramId, dbClient = pool) {
         for (const row of res.rows) {
             const price = parseFloat(row.price_gram || 0);
             const totalYield = parseFloat(row.total_yield_gram || 0);
-            if (price >= 1.0 || totalYield >= 1.5) {
+            if (price >= 5.0 || totalYield >= 7.0) {
+                maxLimit = Math.max(maxLimit, 0.70); // Mega Miner -> 0.70
+            } else if (price >= 1.0 || totalYield >= 1.5) {
                 maxLimit = Math.max(maxLimit, 0.05); // Turbo Miner -> 0.05
             } else if (price >= 0.5 || totalYield >= 0.7) {
                 maxLimit = Math.max(maxLimit, 0.03); // Mini Miner -> 0.03
