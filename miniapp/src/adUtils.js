@@ -44,7 +44,7 @@ export function initAdexiumAds() {
           const hasTgUser = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || window.Telegram?.WebApp?.initData);
           const inst = new window.AdexiumWidget({ 
             wid: ADEXIUM_WID,
-            adFormat: 'push-like',
+            adFormat: 'interstitial',
             debug: !hasTgUser
           });
           window._adexiumInstance = inst;
@@ -204,7 +204,7 @@ export async function showRewardedAd(placement = 'main') {
   // Execute request calls across all formats and motivated settings to find any active Adexium campaign
   try {
     let ads = null;
-    const formatsToTry = ['push-like', 'interstitial', 'video', 'banner'];
+    const formatsToTry = ['interstitial', 'video', 'rewarded', 'push-like'];
     const motivatedOptions = [true, false];
     
     for (const fmt of formatsToTry) {
