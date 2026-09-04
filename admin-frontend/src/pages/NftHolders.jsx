@@ -161,7 +161,13 @@ export default function NftHolders() {
                       </td>
                       <td className="p-3.5">
                         <span className="font-bold text-white flex items-center gap-1.5">
-                          {h.price_gram >= 1 ? <Rocket size={14} className="text-amber-400" /> : <Zap size={14} className="text-purple-400" />}
+                          {parseFloat(h.price_gram) >= 5 ? (
+                            <Flame size={14} className="text-orange-400 animate-pulse" />
+                          ) : parseFloat(h.price_gram) >= 1 ? (
+                            <Rocket size={14} className="text-amber-400" />
+                          ) : (
+                            <Zap size={14} className="text-purple-400" />
+                          )}
                           {h.nft_name}
                         </span>
                       </td>
@@ -173,7 +179,7 @@ export default function NftHolders() {
                       <td className="p-3.5 font-black text-emerald-400">
                         +{Number(h.total_earned_gram || 0).toFixed(3)} GRAM
                       </td>
-                      <td className="p-3.5 text-slate-400">
+                      <td className="p-3.5 text-slate-300 font-medium text-xs">
                         {new Date(h.purchased_at).toLocaleString()}
                       </td>
                       <td className="p-3.5">
@@ -182,7 +188,7 @@ export default function NftHolders() {
                             ? 'bg-slate-800 text-slate-400 border-slate-700'
                             : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                         }`}>
-                          {isComplete ? '10/10 Complete' : 'Active Mining'}
+                          {isComplete ? `${durationDays}/${durationDays} COMPLETE` : 'ACTIVE MINING'}
                         </span>
                       </td>
                     </tr>
