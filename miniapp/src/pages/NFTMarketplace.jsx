@@ -270,6 +270,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const price = parseFloat(nft.price_gram);
                 const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
                 const directCommission = (price * 0.30).toFixed(2);
+                const maxDailyWithdraw = isMega ? '0.70' : isTurbo ? '0.05' : '0.03';
 
                 return (
                   <motion.div
@@ -318,15 +319,19 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                       </div>
                     </div>
 
-                    {/* Yield Showcase Box */}
-                    <div className="grid grid-cols-2 gap-2 bg-black/30 p-3 rounded-2xl border border-white/10 mb-3">
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-center">
-                        <p className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Daily Yield</p>
-                        <p className="text-sm font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM/day</p>
+                    {/* Yield & Withdrawal Specs Box (Daily Yield | 10D Return | Max Daily Withdraw) */}
+                    <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-2.5 rounded-2xl border border-white/10 mb-3 text-center">
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl">
+                        <p className="text-[9px] font-bold text-emerald-400/80 uppercase tracking-wider">Daily Yield</p>
+                        <p className="text-xs font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM</p>
                       </div>
-                      <div className="bg-purple-500/10 border border-purple-500/20 p-2.5 rounded-xl text-center">
-                        <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Total {nft.duration_days || 10}D Return</p>
-                        <p className="text-sm font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM <span className="text-[10px] text-amber-400 font-bold">({roiPercent}%)</span></p>
+                      <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-xl">
+                        <p className="text-[9px] font-bold text-purple-300/80 uppercase tracking-wider">10D Return</p>
+                        <p className="text-xs font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM</p>
+                      </div>
+                      <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
+                        <p className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">Max Withdraw</p>
+                        <p className="text-xs font-black text-amber-300 mt-0.5">{maxDailyWithdraw} GRAM/d</p>
                       </div>
                     </div>
 

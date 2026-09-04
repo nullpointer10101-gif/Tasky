@@ -414,8 +414,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
             <button onClick={() => setWithdrawAmount(String(gramInfo?.gram_balance || 0))}
               className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors">MAX</button>
           </div>
-          <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
-            <span>Daily Limit: 1 Withdrawal / Day</span>
+          <div className="flex justify-between items-center text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+            <span>⚡ Account Daily Limit: <b className="text-amber-200">{gramInfo?.max_withdrawal || 0.02} GRAM/day</b></span>
             {gramInfo?.withdrawals_today_count !== undefined && (
               <span>Today: {gramInfo.withdrawals_today_count}/1</span>
             )}
