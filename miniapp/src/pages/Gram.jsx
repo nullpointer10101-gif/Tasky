@@ -327,7 +327,10 @@ export default function Gram({ user, refreshUser, tgUser }) {
     const amt = parseFloat(withdrawAmount);
     if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
     const maxLimit = gramInfo?.max_withdrawal || 0.02;
-    if (amt > maxLimit) { showToast(`Maximum daily withdrawal limit for your account tier is ${maxLimit} GRAM`, 'error'); return; }
+    if (amt > maxLimit) { 
+      showToast(`Your current NFT tier allows up to ${maxLimit} GRAM daily withdrawal. Buy/Upgrade to the 5 GRAM NFT to withdraw up to 0.70 GRAM daily!`, 'error'); 
+      return; 
+    }
     if (gramInfo?.has_reached_daily_limit || (gramInfo?.withdrawals_today_count || 0) >= 1) {
       showToast('Daily limit reached! Only 1 withdrawal allowed per day.', 'error');
       return;
@@ -414,8 +417,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
             <button onClick={() => setWithdrawAmount(String(gramInfo?.gram_balance || 0))}
               className="px-3 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 transition-colors">MAX</button>
           </div>
-          <div className="flex justify-between items-center text-[10px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
-            <span>⚡ Account Daily Limit: <b className="text-amber-200">{gramInfo?.max_withdrawal || 0.02} GRAM/day</b></span>
+          <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
+            <span>Daily Limit: 1 Withdrawal / Day (Max {gramInfo?.max_withdrawal || 0.02} GRAM)</span>
             {gramInfo?.withdrawals_today_count !== undefined && (
               <span>Today: {gramInfo.withdrawals_today_count}/1</span>
             )}
