@@ -1,5 +1,5 @@
 /**
- * Ad Manager — 100% Adexium Only (No Fallbacks)
+ * Ad Manager — Primary: Adexium (WID e93d690f-bdc3-4ed5-8d9f-8f208afa3774) | Fallback: GigaPub (7451)
  */
 
 if (typeof window !== 'undefined' && window.fetch && !window._adexiumFetchIntercepted) {
@@ -140,10 +140,10 @@ function _isAdexiumAdOnScreen() {
 
 /**
  * Show a rewarded ad.
- * 100% Adexium Only.
+ * Primary: Adexium (WID e93d690f-bdc3-4ed5-8d9f-8f208afa3774) | Fallback: GigaPub (7451)
  *
  * @param {string} placement
- * @returns {Promise<{ success: boolean, network: 'adexium', error?: string }>}
+ * @returns {Promise<{ success: boolean, network: 'adexium' | 'gigapub', error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
   if (typeof window === 'undefined') {
