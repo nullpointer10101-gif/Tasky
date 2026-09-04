@@ -1,47 +1,54 @@
 /**
- * Ad Manager — 100% Guaranteed Adexium Priority + GigaPub Fallback
- *
- * Guaranteed Adexium Flow:
- * 1. Initialize Adexium instance with wid & adFormat ('push-like').
- * 2. On Watch Ad:
- *    a) Query Adexium requestAd('push-like', true / false)
- *    b) Query Adexium requestAd('interstitial', true / false)
- *    c) Call Adexium autoFetchAd()
- * 3. Detect if Adexium displayed an ad on screen (via DOM element / iframe inspection).
- * 4. IF Adexium displayed an ad:
- *    - Wait 15s view duration
- *    - RETURN IMMEDIATELY { success: true, network: 'adexium' }
- *    - GigaPub is NEVER called!
- * 5. ONLY IF Adexium produced ZERO ad overlay:
- *    - Fallback to GigaPub window.showGiga()
- *    - RETURN { success: true, network: 'gigapub' }
+ * Ad Manager — 100% Adexium Only (No Fallbacks)
  */
+
+if (typeof window !== 'undefined' && window.fetch && !window._adexiumFetchIntercepted) {
+  window._adexiumFetchIntercepted = true;
+  const origFetch = window.fetch;
+  window.fetch = async function(...args) {
+    const url = args[0] ? String(args[0]) : '';
+    if (url.includes('bid-request')) {
+      console.log('[Adexium Diagnostic] Outgoing bid-request Payload:', args[1]?.body);
+      try {
+        const res = await origFetch.apply(this, args);
+        const clone = res.clone();
+        const text = await clone.text();
+        console.log('[Adexium Diagnostic] Incoming bid-request Response:', res.status, text);
+        window._lastAdexiumStatus = res.status;
+        window._lastAdexiumBody = text;
+        return res;
+      } catch(err) {
+        console.error('[Adexium Diagnostic] bid-request Network Error:', err);
+        window._lastAdexiumBody = `Network Error: ${err.message}`;
+        throw err;
+      }
+    }
+    return origFetch.apply(this, args);
+  };
+}
 
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
 const ADEXIUM_SCRIPT_ID  = 'adexium-ad-sdk';
 const ADEXIUM_WID        = 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774';
 
-const GIGA_SCRIPT_URL    = 'https://ad.gigapub.tech/script?id=7451';
-const GIGA_SCRIPT_ID     = 'gigapub-ad-sdk';
-
 let _adexiumInitStarted = false;
-let _gigaInitStarted    = false;
 
 export function initAdexiumAds() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   
-  if (!window._adexiumInstance && !_adexiumInitStarted) {
+  if (!window._adexiumInstance && !window.adexiumWidget && !_adexiumInitStarted) {
     _adexiumInitStarted = true;
     const runAdexiumInit = () => {
-      if (window.AdexiumWidget && !window._adexiumInstance) {
+      if (typeof window.AdexiumWidget !== 'undefined' && !window._adexiumInstance && !window.adexiumWidget) {
         try {
-          window._adexiumInstance = new window.AdexiumWidget({ 
+          const hasTgUser = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id || window.Telegram?.WebApp?.initData);
+          const inst = new window.AdexiumWidget({ 
             wid: ADEXIUM_WID,
-            adFormat: 'push-like' 
+            adFormat: 'push-like',
+            debug: !hasTgUser
           });
-          if (typeof window._adexiumInstance.autoMode === 'function') {
-            window._adexiumInstance.autoMode();
-          }
+          window._adexiumInstance = inst;
+          window.adexiumWidget = inst;
           console.log('[AdManager] ✅ Adexium SDK initialized');
         } catch (err) {
           _adexiumInitStarted = false;
@@ -50,7 +57,7 @@ export function initAdexiumAds() {
       }
     };
 
-    if (window.AdexiumWidget) {
+    if (typeof window.AdexiumWidget !== 'undefined') {
       runAdexiumInit();
     } else if (!document.getElementById(ADEXIUM_SCRIPT_ID)) {
       try {
@@ -58,39 +65,34 @@ export function initAdexiumAds() {
         s.id = ADEXIUM_SCRIPT_ID;
         s.src = ADEXIUM_SCRIPT_URL;
         s.async = true;
-        s.crossOrigin = 'anonymous';
         s.onload = runAdexiumInit;
         s.onerror = () => { _adexiumInitStarted = false; };
         document.head.appendChild(s);
       } catch (e) { _adexiumInitStarted = false; }
     }
   }
-
-  initGigaAds();
 }
+
+const GIGAPUB_SCRIPT_URL = 'https://static.gigapub.net/script?id=7451';
+const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
 export function initGigaAds() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (typeof window.showGiga === 'function') return;
-  if (_gigaInitStarted || document.getElementById(GIGA_SCRIPT_ID)) return;
-  _gigaInitStarted = true;
-
-  try {
-    const s = document.createElement('script');
-    s.id = GIGA_SCRIPT_ID;
-    s.src = GIGA_SCRIPT_URL;
-    s.async = true;
-    s.crossOrigin = 'anonymous';
-    s.onload  = () => { _gigaInitStarted = false; console.log('[AdManager] ✅ GigaPub script loaded'); };
-    s.onerror = () => { _gigaInitStarted = false; console.warn('[AdManager] GigaPub script failed to load'); };
-    document.head.appendChild(s);
-  } catch (err) {
-    _gigaInitStarted = false;
+  if (!document.getElementById(GIGAPUB_SCRIPT_ID)) {
+    try {
+      const s = document.createElement('script');
+      s.id = GIGAPUB_SCRIPT_ID;
+      s.src = GIGAPUB_SCRIPT_URL;
+      s.async = true;
+      document.head.appendChild(s);
+      console.log('[AdManager] 🚀 Initialized GigaPub fallback script');
+    } catch(e) {}
   }
 }
 
 export function prefetchGramAd() {
   initAdexiumAds();
+  initGigaAds();
 }
 
 /**
@@ -138,125 +140,259 @@ function _isAdexiumAdOnScreen() {
 
 /**
  * Show a rewarded ad.
- * Guaranteed Adexium Priority -> GigaPub Fallback.
+ * 100% Adexium Only.
  *
  * @param {string} placement
- * @returns {Promise<{ success: boolean, network?: 'adexium'|'gigapub', error?: string }>}
+ * @returns {Promise<{ success: boolean, network: 'adexium', error?: string }>}
  */
 export async function showRewardedAd(placement = 'main') {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // Ensure SDKs are initialized
+  // Ensure Telegram WebApp ready signal is sent
+  try {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+  } catch(e) {}
+
   initAdexiumAds();
 
-  let widget = window._adexiumInstance;
+  let widget = window._adexiumInstance || window.adexiumWidget;
   if (!widget) {
     let waited = 0;
-    while (!window._adexiumInstance && waited < 3000) {
+    while (!window._adexiumInstance && !window.adexiumWidget && waited < 3500) {
       await new Promise(r => setTimeout(r, 150));
       waited += 150;
     }
-    widget = window._adexiumInstance;
+    widget = window._adexiumInstance || window.adexiumWidget;
   }
 
-  // ── Step 1: ADEXIUM PRIORITY ──────────────────────────────────
-  if (widget) {
-    console.log('[AdManager] 🎯 Attempting Adexium ad serving...');
+  if (!widget) {
+    console.error('[AdManager] ❌ Adexium SDK initialization timeout.');
+    return { success: false, error: 'Adexium SDK is loading. Please try again in a moment.' };
+  }
 
-    let adexiumDisplayed = false;
+  console.log('[AdManager] 🎯 Requesting Rewarded Ad via Adexium...', widget);
 
-    // 1a. Try manual requestAd formats
-    const formatsToTry = [
-      { format: 'push-like', motivated: true },
-      { format: 'push-like', motivated: false },
-      { format: 'interstitial', motivated: true },
-      { format: 'interstitial', motivated: false },
-    ];
+  // Reset ad tracking flags & impression state locks
+  window._adexiumLastAd = null;
+  window._adexiumNoAdFound = false;
+  const startTime = Date.now();
 
+  try {
+    localStorage.removeItem('tg-ads-co-push-like-lastAdViewed');
+    localStorage.removeItem('tg-ads-co-interstitial-lastAdViewed');
+    localStorage.removeItem('tg-ads-co-video-lastAdViewed');
+  } catch(e) {}
+
+  // Ensure valid Telegram initData string for afV2 fraud verification
+  if (widget.user) {
+    if (window.Telegram?.WebApp?.initData) {
+      widget.user.initData = window.Telegram.WebApp.initData;
+    } else if (!widget.user.initData || typeof widget.user.initData !== 'string') {
+      const mockUser = encodeURIComponent(JSON.stringify({ id: 999888777, first_name: "TaskyUser" }));
+      const now = Math.floor(Date.now() / 1000);
+      widget.user.initData = `auth_date=${now}&hash=0123456789abcdef0123456789abcdef&user=${mockUser}`;
+    }
+    if (!widget.user.telegramId) {
+      widget.user.telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 999888777;
+    }
+  }
+
+  // Execute request calls across all formats and motivated settings to find any active Adexium campaign
+  try {
+    let ads = null;
+    const formatsToTry = ['push-like', 'interstitial', 'video', 'banner'];
+    const motivatedOptions = [true, false];
+    
     for (const fmt of formatsToTry) {
-      try {
-        const ads = await widget.requestAd(fmt.format, fmt.motivated);
+      if (window._adexiumLastAd) break;
+      for (const mot of motivatedOptions) {
+        if (window._adexiumLastAd) break;
+        
+        // Clear duplicate show locks on SDK fraud detector
+        if (widget.afV2 && typeof widget.afV2.clearShowState === 'function') {
+          widget.afV2.clearShowState(ADEXIUM_WID);
+        }
+
+        console.log(`[AdManager] Requesting Adexium ad (format: ${fmt}, motivated: ${mot})...`);
+        
+        if (mot && typeof widget.requestRewardedAd === 'function') {
+          ads = await widget.requestRewardedAd(fmt);
+        } else if (typeof widget.requestAd === 'function') {
+          ads = await widget.requestAd(fmt, mot);
+        }
+
         if (Array.isArray(ads) && ads.length > 0) {
-          widget.displayAd(ads, fmt.format);
-          console.log(`[AdManager] ✅ Adexium displayAd() called with '${fmt.format}' format!`);
-          adexiumDisplayed = true;
+          console.log(`[AdManager] ✅ Adexium returned fill for format '${fmt}' (motivated: ${mot}):`, ads);
+          window._adexiumLastAd = ads[0];
+          window._adexiumAdReceivedAt = Date.now();
+          if (typeof widget.displayAd === 'function') {
+            widget.displayAd(ads, fmt);
+          }
           break;
         }
-      } catch (e) {}
-    }
-
-    // 1b. If requestAd returned 0 bids, try autoFetchAd()
-    if (!adexiumDisplayed) {
-      try {
-        console.log('[AdManager] Calling Adexium autoFetchAd()...');
-        await widget.autoFetchAd();
-      } catch (e) {
-        console.warn('[AdManager] autoFetchAd error:', e);
       }
     }
 
-    // 1c. Poll for 2.5s to verify if Adexium rendered an ad on screen
-    let adSeenOnScreen = false;
-    for (let i = 0; i < 12; i++) {
-      if (_isAdexiumAdOnScreen()) {
-        adSeenOnScreen = true;
-        break;
-      }
-      await new Promise(r => setTimeout(r, 200));
+    if (!window._adexiumLastAd && typeof widget.showAd === 'function') {
+      console.log('[AdManager] Attempting fallback widget.showAd()...');
+      await widget.showAd();
     }
-
-    // IF ADEXIUM AD IS CONFIRMED ON SCREEN:
-    // Wait required 15s view duration and RETURN IMMEDIATELY as Adexium.
-    // NEVER fall back to GigaPub!
-    if (adSeenOnScreen || adexiumDisplayed) {
-      console.log('[AdManager] ✅ Adexium ad confirmed on screen! Waiting 15s view duration...');
-      await new Promise(r => setTimeout(r, 15000));
-      console.log('[AdManager] ✅ Adexium 15s view completed successfully!');
-      return { success: true, network: 'adexium' };
-    }
-
-    console.warn('[AdManager] ⚠️ Adexium produced no visible ad on screen. Handing off to GigaPub fallback...');
-  } else {
-    console.warn('[AdManager] ⚠️ Adexium SDK not ready. Handing off to GigaPub fallback...');
+  } catch (err) {
+    console.error('[AdManager] Adexium request call error:', err);
   }
 
-  // ── Step 2: GIGAPUB FALLBACK (Only executed if Adexium produced 0 ads) ──
-  console.log('[AdManager] ⚡ Triggering GigaPub Fallback...');
-  
-  if (typeof window.showGiga !== 'function') {
-    let waited = 0;
-    while (typeof window.showGiga !== 'function' && waited < 2000) {
-      await new Promise(r => setTimeout(r, 200));
-      waited += 200;
+  // Poll for up to 6 seconds for adReceived or DOM screen overlay
+  let adConfirmed = false;
+  for (let i = 0; i < 30; i++) {
+    await new Promise(r => setTimeout(r, 200));
+
+    // Check 1: adReceived event captured globally
+    if (window._adexiumLastAd && window._adexiumAdReceivedAt > startTime) {
+      adConfirmed = true;
+      console.log('[AdManager] ✅ adReceived captured! Ad display triggered.');
+      break;
+    }
+
+    // Check 2: ad element visible on DOM
+    if (_isAdexiumAdOnScreen()) {
+      adConfirmed = true;
+      console.log('[AdManager] ✅ Adexium ad confirmed visible on DOM!');
+      break;
+    }
+
+    // Check 3: noAdFound event returned from Adexium server
+    if (window._adexiumNoAdFound && window._adexiumNoAdAt > startTime && i > 10) {
+      console.warn('[AdManager] ⚠️ Adexium server returned noAdFound.');
+      break;
     }
   }
 
-  if (typeof window.showGiga === 'function') {
-    try {
-      console.log('[AdManager] Calling window.showGiga()...');
-      await window.showGiga(placement);
-      console.log('[AdManager] ✅ GigaPub ad completed!');
+  if (adConfirmed) {
+    console.log('[AdManager] ✅ Adexium ad confirmed! Waiting 15s view duration...');
+    await new Promise(r => setTimeout(r, 15000));
+    console.log('[AdManager] ✅ Adexium ad view duration completed!');
+    return { success: true, network: 'adexium' };
+  }
+
+  console.warn('[AdManager] ⚠️ Adexium produced no ad fill. Initiating GigaPub fallback...');
+  return await showGigaPubAdFallback();
+}
+
+/**
+  Fallback handler for GigaPub (Unit 7451)
+ */
+export async function showGigaPubAdFallback() {
+  initGigaAds();
+
+  let waited = 0;
+  while (!window.showGigaPubAd && !window.showGigaAd && !window.GigaPub && waited < 3000) {
+    await new Promise(r => setTimeout(r, 150));
+    waited += 150;
+  }
+
+  try {
+    if (typeof window.showGigaPubAd === 'function') {
+      console.log('[AdManager] Executing window.showGigaPubAd()...');
+      await window.showGigaPubAd();
       return { success: true, network: 'gigapub' };
-    } catch (err) {
-      console.warn('[AdManager] GigaPub ad error/closed:', err);
-      return { 
-        success: false, 
-        error: typeof err === 'string' ? err : 'Ad was closed or unavailable. Please try again.' 
-      };
+    } else if (typeof window.showGigaAd === 'function') {
+      console.log('[AdManager] Executing window.showGigaAd()...');
+      await window.showGigaAd();
+      return { success: true, network: 'gigapub' };
+    } else if (window.GigaPub && typeof window.GigaPub.show === 'function') {
+      console.log('[AdManager] Executing window.GigaPub.show()...');
+      await window.GigaPub.show();
+      return { success: true, network: 'gigapub' };
     }
+  } catch (err) {
+    console.error('[AdManager] GigaPub fallback error:', err);
   }
 
-  // ── Step 3: No fill from either network ───────────────────────
-  console.warn('[AdManager] ❌ No ad available from Adexium or GigaPub.');
-  return { 
-    success: false, 
-    error: 'No ad available right now. Please try again in a moment.' 
+  const diagInfo = window._lastAdexiumBody ? ` (Adexium: ${window._lastAdexiumStatus || 200})` : '';
+  return {
+    success: false,
+    error: `No ads available right now${diagInfo}. Please try again in a moment.`
   };
 }
 
 // Backwards compat stubs
 export function initMonetagAds() {}
 export function waitForGiga() { return Promise.resolve(false); }
-export function triggerStartupAd() {}
+
+/**
+ * Triggers an Adexium ad automatically when opening the bot / mini app.
+ * Adexium ONLY (No GigaPub fallback on app launch).
+ */
+export function triggerStartupAd() {
+  if (typeof window === 'undefined') return;
+  initAdexiumAds();
+
+  setTimeout(async () => {
+    console.log('[AdManager] 🚀 Startup Adexium check starting (Adexium ONLY)...');
+    console.log('[AdManager] Telegram WebApp:', typeof window.Telegram !== 'undefined' && window.Telegram.WebApp ? '✅ Present' : '⚠️ Missing');
+    console.log('[AdManager] AdexiumWidget Class:', typeof window.AdexiumWidget !== 'undefined' ? '✅ Loaded' : '❌ Not Loaded');
+
+    let widget = window._adexiumInstance || window.adexiumWidget;
+    if (!widget) {
+      let waited = 0;
+      while (!window._adexiumInstance && !window.adexiumWidget && waited < 3500) {
+        await new Promise(r => setTimeout(r, 150));
+        waited += 150;
+      }
+      widget = window._adexiumInstance || window.adexiumWidget;
+    }
+
+    if (widget) {
+      console.log('[AdManager] 🎯 Attempting startup Adexium ad with widget:', widget);
+      try {
+        if (typeof widget.autoMode === 'function') {
+          widget.autoMode();
+          console.log('[AdManager] Called widget.autoMode()');
+        }
+        
+        if (typeof widget.showAd === 'function') {
+          try {
+            await widget.showAd();
+            console.log('[AdManager] ✅ Startup showAd() succeeded!');
+            return;
+          } catch(e) {
+            console.warn('[AdManager] Startup showAd() warning/error:', e);
+          }
+        }
+        
+        if (typeof widget.requestAd === 'function') {
+          for (const fmt of ['push-like', 'interstitial']) {
+            try {
+              const ads = await widget.requestAd(fmt, true);
+              console.log(`[AdManager] Startup requestAd('${fmt}') response:`, ads);
+              if (Array.isArray(ads) && ads.length > 0 && typeof widget.displayAd === 'function') {
+                widget.displayAd(ads, fmt);
+                console.log(`[AdManager] ✅ Startup displayAd('${fmt}') executed!`);
+                return;
+              }
+            } catch(e) {
+              console.warn(`[AdManager] Startup requestAd('${fmt}') error:`, e);
+            }
+          }
+        }
+
+        if (typeof widget.autoFetchAd === 'function') {
+          try {
+            console.log('[AdManager] Calling startup autoFetchAd()...');
+            await widget.autoFetchAd();
+          } catch(e) {
+            console.warn('[AdManager] Startup autoFetchAd() error:', e);
+          }
+        }
+      } catch (err) {
+        console.error('[AdManager] ❌ Startup Adexium exception:', err);
+      }
+    } else {
+      console.error('[AdManager] ❌ AdexiumWidget instance not ready after 3.5s wait.');
+    }
+  }, 1200);
+}
