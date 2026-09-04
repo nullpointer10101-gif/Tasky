@@ -250,7 +250,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                   🎁 3-Level Team Commissions Active!
                 </h4>
                 <p className="text-[11px] text-white/80 leading-snug mt-0.5">
-                  Earn instant GRAM commission on all NFT purchases made by your team: <b className="text-amber-300">Level 1 (7%)</b> • <b className="text-amber-300">Level 2 (3%)</b> • <b className="text-amber-300">Level 3 (1%)</b>!
+                  Earn instant GRAM commission on all NFT purchases made by your team: <b className="text-amber-300">Level 1 (30% - 1.5 GRAM on 5 GRAM NFT)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
                 </p>
               </div>
             </div>

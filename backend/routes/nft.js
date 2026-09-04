@@ -50,16 +50,16 @@ pool.query(`
 
 /**
  * Helper to distribute 3-Level Team Referral Commissions on NFT Purchases
- * Level 1 (Direct Referrer): 7%
- * Level 2 (Second Level Upline): 3%
- * Level 3 (Third Level Upline): 1%
+ * Level 1 (Direct Referrer): 30% (1.5 GRAM on a 5 GRAM NFT!)
+ * Level 2 (Second Level Upline): 10% (0.5 GRAM on a 5 GRAM NFT!)
+ * Level 3 (Third Level Upline): 4% (0.2 GRAM on a 5 GRAM NFT!)
  */
 async function distributeNftReferralCommissions(dbPool, buyerTelegramId, priceGram, nftName) {
   try {
     const LEVEL_RATES = [
-      { level: 1, percent: 0.07 }, // 7% Level 1
-      { level: 2, percent: 0.03 }, // 3% Level 2
-      { level: 3, percent: 0.01 }  // 1% Level 3
+      { level: 1, percent: 0.30 }, // 30% Level 1 (Direct Referrer = 1.5 GRAM on 5 GRAM purchase)
+      { level: 2, percent: 0.10 }, // 10% Level 2
+      { level: 3, percent: 0.04 }  // 4% Level 3
     ];
 
     let currentUserId = buyerTelegramId;
@@ -545,4 +545,59 @@ router.post('/deposit/auto-verify', async (req, res) => {
   }
 });
 
+/**
+ * Helper to distribute 3-Level Team Referral Commissions (30% Level 1 / 10% Level 2 / 4% Level 3)
+ */
+async function distributeNftReferralCommissions(dbPool, buyerTelegramId, priceGram, nftName) {
+  try {
+    const buyerRes = await dbPool.query('SELECT username, first_name, referred_by FROM users WHERE telegram_id = $1', [buyerTelegramId]);
+    if (buyerRes.rows.length === 0) return;
+    const buyer = buyerRes.rows[0];
+    const buyerName = buyer.username ? `@${buyer.username}` : (buyer.first_name || `User ${buyerTelegramId}`);
+
+    const rates = [
+      { level: 1, percent: 0.30, label: 'Level 1 (Direct)' },
+      { level: 2, percent: 0.10, label: 'Level 2' },
+      { level: 3, percent: 0.04, label: 'Level 3' }
+    ];
+
+    let currentReferrerId = buyer.referred_by;
+
+    for (const rate of rates) {
+      if (!currentReferrerId) break;
+
+      const commAmount = parseFloat((priceGram * rate.percent).toFixed(4));
+      if (commAmount <= 0) break;
+
+      const refRes = await dbPool.query('SELECT telegram_id, referred_by, gram_balance FROM users WHERE telegram_id = $1', [currentReferrerId]);
+      if (refRes.rows.length === 0) break;
+      const referrer = refRes.rows[0];
+
+      let updateQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
+      if (referrer.gram_balance !== null && referrer.gram_balance !== undefined) {
+        updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1 WHERE telegram_id = $2 RETURNING gram_balance as balance';
+      }
+      const updatedRef = await dbPool.query(updateQuery, [commAmount, currentReferrerId]);
+      const newBal = updatedRef.rows[0]?.balance || 0;
+
+      if (bot && typeof bot.sendMessage === 'function') {
+        const msg = `🎉 <b>Team NFT Commission Received!</b>\n\n` +
+          `👤 <b>Team Member:</b> ${buyerName}\n` +
+          `⚡ <b>NFT Purchased:</b> ${nftName} (${priceGram} GRAM)\n` +
+          `🏆 <b>Commission Tier:</b> ${rate.label} (${(rate.percent * 100).toFixed(0)}%)\n` +
+          `💰 <b>Reward Credited:</b> +${commAmount.toFixed(3)} GRAM\n` +
+          `💳 <b>New Vault Balance:</b> ${parseFloat(newBal).toFixed(3)} GRAM`;
+        bot.sendMessage(currentReferrerId, msg, { parse_mode: 'HTML' }).catch(err => {
+          console.warn(`[NFT COMM NOTIFY] Failed to notify ${currentReferrerId}:`, err.message);
+        });
+      }
+
+      currentReferrerId = referrer.referred_by;
+    }
+  } catch (err) {
+    console.error('Error in distributeNftReferralCommissions:', err.message);
+  }
+}
+
 module.exports = router;
+
