@@ -150,7 +150,20 @@ router.post('/buy', async (req, res) => {
     const nft = nftRes.rows[0];
     const priceGram = parseFloat(nft.price_gram);
 
-    // 2. Fetch User Gram Balance & Details
+    // 2. Check maximum purchase limit of 2 per miner for all users
+    const ownedCardsRes = await client.query(
+      `SELECT COUNT(*) as count FROM user_nft_cards WHERE telegram_id::text = $1::text AND nft_id = $2`,
+      [telegram_id, nft_id]
+    );
+    const ownedCount = parseInt(ownedCardsRes.rows[0]?.count || 0, 10);
+    if (ownedCount >= 2) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({
+        error: `Purchase limit reached! Every user is allowed a maximum of 2 purchases for ${nft.name} (You currently own ${ownedCount}/2).`
+      });
+    }
+
+    // 3. Fetch User Gram Balance & Details
     const userRes = await client.query('SELECT username, first_name, balance, gram_balance FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
     if (userRes.rows.length === 0) {
       await client.query('ROLLBACK');
@@ -166,73 +179,47 @@ router.post('/buy', async (req, res) => {
       });
     }
 
-    // 3. Deduct GRAM Balance
+    // 4. Deduct GRAM Balance
     let updateQuery = 'UPDATE users SET balance = balance - $1 WHERE telegram_id = $2 RETURNING balance';
     if (user.gram_balance !== null && user.gram_balance !== undefined) {
       updateQuery = 'UPDATE users SET gram_balance = gram_balance - $1 WHERE telegram_id = $2 RETURNING gram_balance as balance';
     }
     const updateRes = await client.query(updateQuery, [priceGram, telegram_id]);
 
-    // 4. Check if user already has an active NFT card for this nft_id
-    const activeCardRes = await client.query(
-      `SELECT * FROM user_nft_cards 
-       WHERE telegram_id = $1 AND nft_id = $2 AND is_completed = FALSE 
-       ORDER BY purchased_at DESC LIMIT 1 FOR UPDATE`,
-      [telegram_id, nft_id]
+    // 5. Create new User NFT Card Entry (10 Days Duration)
+    const durationDays = parseInt(nft.duration_days, 10) || 10;
+    await client.query(
+      `INSERT INTO user_nft_cards (telegram_id, nft_id, total_days, purchased_at, last_claimed_at, claims_done, total_earned_gram, is_completed)
+       VALUES ($1, $2, $3, NOW(), NULL, 0, 0, FALSE)`,
+      [telegram_id, nft_id, durationDays]
     );
 
-    let isUpgrade = false;
-    let newTotalDays = parseInt(nft.duration_days, 10);
-
-    if (activeCardRes.rows.length > 0) {
-      // Active card exists: Upgrade duration/days! Daily yield stays the same.
-      const activeCard = activeCardRes.rows[0];
-      const currentTotalDays = parseInt(activeCard.total_days || nft.duration_days, 10);
-      newTotalDays = currentTotalDays + parseInt(nft.duration_days, 10);
-
-      await client.query(
-        `UPDATE user_nft_cards SET total_days = $1 WHERE id = $2`,
-        [newTotalDays, activeCard.id]
-      );
-      isUpgrade = true;
-    } else {
-      // Create new User NFT Card Entry
-      await client.query(
-        `INSERT INTO user_nft_cards (telegram_id, nft_id, total_days, purchased_at, last_claimed_at, claims_done, total_earned_gram, is_completed)
-         VALUES ($1, $2, $3, NOW(), NULL, 0, 0, FALSE)`,
-        [telegram_id, nft_id, newTotalDays]
-      );
-    }
-
-    // 5. Update NFT Sold Count
+    // 6. Update NFT Sold Count
     await client.query('UPDATE nft_cards SET sold_count = sold_count + 1 WHERE id = $1', [nft_id]);
 
     await client.query('COMMIT');
 
-    // 6. Distribute 3-Level Team Referral Commissions (7% / 3% / 1%)
+    // 7. Distribute 3-Level Team Referral Commissions (30% / 10% / 4%)
     distributeNftReferralCommissions(pool, telegram_id, priceGram, nft.name);
 
     // Notify Admin
     const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
-    const actionTag = isUpgrade ? '🔄 NFT MINER UPGRADE' : '🚀 NEW NFT MINER PURCHASE';
     sendAdminBroadcast(
-      `🛒 <b>${actionTag}</b>\n\n` +
+      `🛒 <b>🚀 NEW NFT MINER PURCHASE (${ownedCount + 1}/2)</b>\n\n` +
       `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
       `⚡ <b>NFT Miner:</b> ${nft.name}\n` +
       `💰 <b>Price Paid:</b> ${priceGram} GRAM\n` +
-      `📈 <b>Daily Return:</b> +${nft.daily_yield_gram} GRAM/day (${newTotalDays} Days Total)\n` +
+      `📈 <b>Daily Return:</b> +${nft.daily_yield_gram} GRAM/day (${durationDays} Days)\n` +
       `💳 <b>New User Balance:</b> ${parseFloat(updateRes.rows[0].balance).toFixed(3)} GRAM`
     );
 
-    const successMessage = isUpgrade
-      ? `🎉 Upgraded ${nft.name}! Duration extended by +${nft.duration_days} days (Total: ${newTotalDays} days). Daily return remains ${nft.daily_yield_gram} GRAM/day.`
-      : `🎉 Successfully purchased ${nft.name}! Check your Inventory to claim daily yield.`;
+    const successMessage = `🎉 Successfully purchased ${nft.name}! (${ownedCount + 1}/2 owned). Check your Inventory tab to claim daily yield!`;
 
     res.json({
       success: true,
       message: successMessage,
       new_balance: parseFloat(updateRes.rows[0].balance),
-      is_upgrade: isUpgrade
+      owned_count: ownedCount + 1
     });
   } catch (err) {
     await client.query('ROLLBACK');

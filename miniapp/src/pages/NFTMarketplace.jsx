@@ -271,6 +271,10 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
                 const directCommission = (price * 0.30).toFixed(2);
                 const maxDailyWithdraw = isMega ? '0.30' : isTurbo ? '0.05' : '0.03';
+                const ownedCount = myCards
+                  .filter(c => Number(c.nft_id) === Number(nft.id))
+                  .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
+                const isMaxOwned = ownedCount >= 2;
 
                 return (
                   <motion.div
@@ -284,17 +288,24 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         : 'bg-surface-soft border-purple-500/30 hover:border-purple-500/60 shadow-xl'
                     }`}
                   >
-                    {/* Top Row: Rarity Badge & Duration */}
-                    <div className="flex items-center justify-between mb-4">
-                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        isMega
-                          ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white shadow-md shadow-orange-500/30 animate-pulse'
-                          : isTurbo
-                          ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black shadow-md shadow-amber-500/30'
-                          : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                      }`}>
-                        {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
-                        {nft.rarity || 'LIMITED EDITION'}
+                    {/* Top Row: Rarity Badge & Duration & Ownership */}
+                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                          isMega
+                            ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white shadow-md shadow-orange-500/30 animate-pulse'
+                            : isTurbo
+                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black shadow-md shadow-amber-500/30'
+                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                        }`}>
+                          {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
+                          {nft.rarity || 'LIMITED EDITION'}
+                        </div>
+                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                          isMaxOwned ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                        }`}>
+                          {ownedCount > 0 ? `Owned: ${ownedCount}/2` : 'Max 2 / User'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
                         <Clock size={11} />
@@ -351,9 +362,12 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                       </div>
                       <Button
                         onClick={() => handleBuy(nft)}
+                        disabled={isMaxOwned}
                         loading={buyingId === nft.id}
                         className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border-0 shadow-lg ${
-                          isMega
+                          isMaxOwned
+                            ? 'bg-gray-700/50 text-white/40 cursor-not-allowed shadow-none'
+                            : isMega
                             ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white hover:opacity-95 shadow-orange-500/30'
                             : isTurbo
                             ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black hover:opacity-95 shadow-amber-500/20'
@@ -361,7 +375,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         }`}
                       >
                         {isMega ? <Flame size={14} /> : <Zap size={14} />}
-                        <span>Buy with Vault</span>
+                        <span>{isMaxOwned ? 'Max Limit (2/2)' : 'Buy with Vault'}</span>
                       </Button>
                     </div>
 
