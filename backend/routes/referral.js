@@ -115,7 +115,7 @@ router.get('/:telegram_id', async (req, res) => {
 
 /**
  * POST /api/referral/claim-commission
- * Instantly claim accumulated team NFT commission directly to Vault balance (Min 1.0 GRAM)
+ * Submit team NFT commission claim request (Min 1.0 GRAM) for manual Admin payout
  */
 router.post('/claim-commission', async (req, res) => {
     const { telegram_id, wallet_address } = req.body;
@@ -126,7 +126,7 @@ router.post('/claim-commission', async (req, res) => {
         await client.query('BEGIN');
 
         const userRes = await client.query(
-            'SELECT unclaimed_commission, gram_balance, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE',
+            'SELECT unclaimed_commission, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE',
             [telegram_id]
         );
 
@@ -137,7 +137,7 @@ router.post('/claim-commission', async (req, res) => {
 
         const user = userRes.rows[0];
         const unclaimed = parseFloat(user.unclaimed_commission || 0);
-        const targetWallet = wallet_address || user.gram_wallet_address || user.wallet_address || 'Vault Wallet';
+        const targetWallet = wallet_address || user.gram_wallet_address || user.wallet_address || 'TON Wallet Not Set';
 
         if (unclaimed < 1.0) {
             await client.query('ROLLBACK');
@@ -146,40 +146,37 @@ router.post('/claim-commission', async (req, res) => {
             });
         }
 
-        // Instantly credit user's main balance and reset unclaimed_commission to 0
-        let updateQuery = 'UPDATE users SET balance = balance + $1, unclaimed_commission = 0 WHERE telegram_id = $2 RETURNING balance';
-        if (user.gram_balance !== null && user.gram_balance !== undefined) {
-            updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1, unclaimed_commission = 0 WHERE telegram_id = $2 RETURNING gram_balance as balance';
-        }
-        const updateRes = await client.query(updateQuery, [unclaimed, telegram_id]);
-        const newBalance = parseFloat(updateRes.rows[0].balance);
+        // Reset unclaimed commission balance to 0
+        await client.query(
+            'UPDATE users SET unclaimed_commission = 0 WHERE telegram_id = $1',
+            [telegram_id]
+        );
 
-        // Record approved claim history
+        // Record pending claim request for manual admin payout
         const claimRes = await client.query(
-            `INSERT INTO nft_commission_claims (telegram_id, amount_gram, wallet_address, status, requested_at, processed_at)
-             VALUES ($1, $2, $3, 'approved', NOW(), NOW())
+            `INSERT INTO nft_commission_claims (telegram_id, amount_gram, wallet_address, status, requested_at)
+             VALUES ($1, $2, $3, 'pending', NOW())
              RETURNING id`,
             [telegram_id, unclaimed, targetWallet]
         );
 
         await client.query('COMMIT');
 
-        // Notify Admin of Instant Commission Claim
+        // Notify Admin of Commission Claim Request for Manual Payout
         const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
         sendAdminBroadcast(
-            `⚡ <b>INSTANT TEAM COMMISSION CLAIMED!</b>\n\n` +
+            `📥 <b>NEW TEAM COMMISSION CLAIM REQUEST!</b>\n\n` +
             `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
-            `💰 <b>Amount Credited:</b> +${unclaimed.toFixed(3)} GRAM\n` +
-            `💳 <b>New Vault Balance:</b> ${newBalance.toFixed(3)} GRAM\n` +
-            `🆔 <b>Claim Entry:</b> #${claimRes.rows[0].id}\n` +
-            `⚡ <b>Status:</b> Instantly Credited to User Vault`
+            `💰 <b>Amount Requested:</b> ${unclaimed.toFixed(3)} GRAM\n` +
+            `💳 <b>Payout Wallet:</b> <code>${targetWallet}</code>\n` +
+            `🆔 <b>Claim Request ID:</b> #${claimRes.rows[0].id}\n` +
+            `⏳ <b>Status:</b> Pending Admin Manual Payout`
         );
 
         res.json({
             success: true,
             message: `🎉 Instant Payout! +${unclaimed.toFixed(3)} GRAM credited directly to your Vault Balance!`,
             claimed_amount: unclaimed,
-            new_balance: newBalance,
             unclaimed_commission: 0
         });
     } catch (err) {

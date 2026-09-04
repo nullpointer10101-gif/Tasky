@@ -44,7 +44,8 @@ export default function Referral({ user }) {
       if (error) {
         showToast(error, 'error');
       } else if (data && data.success) {
-        showToast(data.message || '🎉 Commission claim request submitted to Admin!', 'success');
+        const claimed = data.claimed_amount || unclaimed;
+        showToast(data.message || `🎉 Instant Payout! +${claimed.toFixed(3)} GRAM credited directly to your Vault Balance!`, 'success');
         const refRes = await getReferral(telegramId);
         if (refRes.data) setRefData(refRes.data);
       }
