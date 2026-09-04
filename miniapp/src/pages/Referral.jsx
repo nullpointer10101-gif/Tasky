@@ -260,7 +260,7 @@ export default function Referral({ user }) {
                   </div>
                   <div>
                     <h3 className="font-black text-xs uppercase tracking-wider text-amber-300">Team NFT Commission Vault</h3>
-                    <p className="text-[11px] text-white/70">Min Claim: <b className="text-amber-300">1.0 GRAM</b> (Admin Review)</p>
+                    <p className="text-[11px] text-white/70">Min Claim: <b className="text-amber-300">1.0 GRAM</b> (Instant Vault Payout ⚡)</p>
                   </div>
                 </div>
                 <div className="text-right">
@@ -268,13 +268,6 @@ export default function Referral({ user }) {
                   <p className="text-lg font-black text-amber-300">{parseFloat(refData?.unclaimed_commission || 0).toFixed(3)} GRAM</p>
                 </div>
               </div>
-
-              {parseFloat(refData?.pending_claim_gram || 0) > 0 && (
-                <div className="p-2.5 bg-amber-500/10 rounded-xl border border-amber-500/20 text-[11px] text-amber-300 flex items-center gap-1.5 font-semibold">
-                  <Clock size={14} className="animate-spin text-amber-400 shrink-0" />
-                  <span>Pending Claim: <b>{parseFloat(refData?.pending_claim_gram).toFixed(3)} GRAM</b> (Under Admin Review)</span>
-                </div>
-              )}
 
               <Button
                 onClick={handleClaimCommission}
@@ -286,7 +279,7 @@ export default function Referral({ user }) {
                     : 'bg-white/10 text-white/40 cursor-not-allowed'
                 }`}
               >
-                {parseFloat(refData?.unclaimed_commission || 0) >= 1.0 ? '📥 Claim Commission Request to Admin' : `🔒 Min 1.0 GRAM to Claim (${(1.0 - parseFloat(refData?.unclaimed_commission || 0)).toFixed(3)} GRAM needed)`}
+                {parseFloat(refData?.unclaimed_commission || 0) >= 1.0 ? '⚡ Claim Commission Instantly to Vault' : `🔒 Min 1.0 GRAM to Claim (Instant Payout)`}
               </Button>
             </div>
 
