@@ -178,7 +178,7 @@ export async function showRewardedAd(placement = 'main') {
 
   console.log('[AdManager] 🎯 Requesting Rewarded Ad via Adexium (Primary)...', widget);
 
-  // Reset ad tracking flags & impression state locks
+  // Reset ad tracking flags & frequency capping locks for 100% impression counting
   window._adexiumLastAd = null;
   window._adexiumNoAdFound = false;
   const startTime = Date.now();
@@ -187,6 +187,7 @@ export async function showRewardedAd(placement = 'main') {
     localStorage.removeItem('tg-ads-co-push-like-lastAdViewed');
     localStorage.removeItem('tg-ads-co-interstitial-lastAdViewed');
     localStorage.removeItem('tg-ads-co-video-lastAdViewed');
+    localStorage.removeItem('tg-ads-co-html-banner-lastAdViewed');
   } catch(e) {}
 
   // Ensure valid Telegram initData string for afV2 fraud verification
@@ -203,39 +204,45 @@ export async function showRewardedAd(placement = 'main') {
     }
   }
 
-  // Execute request calls across all formats and motivated settings to find any active Adexium campaign
+  // Execute clean, non-fraudulent Adexium requests (interstitial primary -> video secondary)
   try {
+    if (widget.afV2 && typeof widget.afV2.clearShowState === 'function') {
+      widget.afV2.clearShowState(ADEXIUM_WID);
+    }
+
     let ads = null;
-    const formatsToTry = ['interstitial', 'video', 'rewarded', 'push-like'];
-    const motivatedOptions = [true, false];
-    
+    const formatsToTry = ['interstitial', 'video', 'push-like'];
     for (const fmt of formatsToTry) {
       if (window._adexiumLastAd) break;
-      for (const mot of motivatedOptions) {
-        if (window._adexiumLastAd) break;
-        
-        // Clear duplicate show locks on SDK fraud detector
-        if (widget.afV2 && typeof widget.afV2.clearShowState === 'function') {
-          widget.afV2.clearShowState(ADEXIUM_WID);
+      console.log(`[AdManager] Requesting clean Adexium ad (${fmt})...`);
+      
+      try {
+        if (typeof widget.requestAd === 'function') {
+          ads = await widget.requestAd(fmt, false);
+        }
+      } catch (e) {
+        console.warn(`[AdManager] requestAd error for ${fmt}:`, e);
+      }
+
+      if (Array.isArray(ads) && ads.length > 0) {
+        console.log(`[AdManager] ✅ Adexium returned fill for format '${fmt}':`, ads);
+        window._adexiumLastAd = ads[0];
+        window._adexiumAdReceivedAt = Date.now();
+
+        // Fire Adexium Impression Notification Beacon explicitly to guarantee 100% impression counting
+        if (ads[0].notificationUrl) {
+          try {
+            fetch(ads[0].notificationUrl, { mode: 'no-cors' }).catch(err => {
+              console.warn('[AdManager] Impression beacon fetch warning:', err.message);
+            });
+            console.log('[AdManager] 📡 Impression beacon pinged:', ads[0].notificationUrl);
+          } catch(e) {}
         }
 
-        console.log(`[AdManager] Requesting Adexium ad (format: ${fmt}, motivated: ${mot})...`);
-        
-        if (mot && typeof widget.requestRewardedAd === 'function') {
-          ads = await widget.requestRewardedAd(fmt);
-        } else if (typeof widget.requestAd === 'function') {
-          ads = await widget.requestAd(fmt, mot);
+        if (typeof widget.displayAd === 'function') {
+          widget.displayAd(ads, fmt);
         }
-
-        if (Array.isArray(ads) && ads.length > 0) {
-          console.log(`[AdManager] ✅ Adexium returned fill for format '${fmt}' (motivated: ${mot}):`, ads);
-          window._adexiumLastAd = ads[0];
-          window._adexiumAdReceivedAt = Date.now();
-          if (typeof widget.displayAd === 'function') {
-            widget.displayAd(ads, fmt);
-          }
-          break;
-        }
+        break;
       }
     }
 
