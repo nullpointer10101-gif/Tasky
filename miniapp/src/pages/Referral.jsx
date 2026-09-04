@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Copy, Share, Trophy, Users, CheckCircle2, Clock, Gift, Medal, Lock, Sparkles } from 'lucide-react';
+import { Copy, Share, Trophy, Users, CheckCircle2, Clock, Gift, Medal, Lock, Sparkles, Flame } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -113,7 +113,7 @@ export default function Referral({ user }) {
       <div className="mb-2 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-ink">Refer & Earn</h1>
-          <p className="text-sm text-ink-soft">Invite friends to earn TASKY</p>
+          <p className="text-sm text-ink-soft">Invite friends to earn TASKY & NFT Team Commissions</p>
         </div>
       </div>
 
@@ -219,6 +219,52 @@ export default function Referral({ user }) {
                 <p className="text-sm text-ink-faint mb-1">Reward/Invite</p>
                 <p className="text-lg font-bold">+{refData?.reward_per_referral || 200} & {refData?.spin_reward_per_referral || 1} Spin</p>
               </Card>
+            </div>
+
+            {/* Exact Commission Breakdown Chart Across ALL NFTs */}
+            <div className="bg-gradient-to-br from-[#1E1B4B] via-[#2A123D] to-[#0F0D24] p-4 rounded-3xl border border-amber-500/30 space-y-3 shadow-xl">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📊</span>
+                <h3 className="font-black text-xs md:text-sm text-amber-300 uppercase tracking-wider">Exact Commission Breakdown Across ALL NFTs</h3>
+              </div>
+              <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-white/10 bg-white/5 text-[11px] font-black text-ink-soft">
+                      <th className="p-3">NFT Card</th>
+                      <th className="p-3">Price</th>
+                      <th className="p-3 text-amber-300">🥇 Level 1 Direct Ref (30%)</th>
+                      <th className="p-3 text-purple-300">🥈 Level 2 Upline (10%)</th>
+                      <th className="p-3 text-indigo-300">🥉 Level 3 Upline (4%)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5 font-semibold text-white">
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="p-3 font-bold text-purple-300">Starter Miner #01</td>
+                      <td className="p-3 text-amber-400 font-extrabold">0.50 GRAM</td>
+                      <td className="p-3 text-emerald-400 font-black">+0.15 GRAM</td>
+                      <td className="p-3 text-purple-200">+0.05 GRAM</td>
+                      <td className="p-3 text-indigo-200">+0.02 GRAM</td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors">
+                      <td className="p-3 font-bold text-amber-300">Turbo Miner #02</td>
+                      <td className="p-3 text-amber-400 font-extrabold">1.00 GRAM</td>
+                      <td className="p-3 text-emerald-400 font-black">+0.30 GRAM</td>
+                      <td className="p-3 text-purple-200">+0.10 GRAM</td>
+                      <td className="p-3 text-indigo-200">+0.04 GRAM</td>
+                    </tr>
+                    <tr className="hover:bg-white/5 transition-colors bg-orange-500/10">
+                      <td className="p-3 font-bold text-orange-300 flex items-center gap-1">
+                        <Flame size={12} className="text-orange-400" /> Mega Miner #03
+                      </td>
+                      <td className="p-3 text-amber-400 font-extrabold">5.00 GRAM</td>
+                      <td className="p-3 text-emerald-400 font-black">+1.50 GRAM</td>
+                      <td className="p-3 text-purple-200">+0.50 GRAM</td>
+                      <td className="p-3 text-indigo-200">+0.20 GRAM</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <Card>

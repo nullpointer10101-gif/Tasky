@@ -22,6 +22,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
   const [copiedMemo, setCopiedMemo] = useState(false);
   const [txHashInput, setTxHashInput] = useState('');
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
+  const [showCommModal, setShowCommModal] = useState(false);
 
   const memoText = `TASKY_${telegramId}`;
   const gramBalance = parseFloat(user?.gram_balance || user?.balance || 0);
@@ -245,13 +246,19 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
                 <Users size={20} />
               </div>
-              <div className="text-left">
+              <div className="text-left flex-1">
                 <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
                   🎁 3-Level Team Commissions Active!
                 </h4>
                 <p className="text-[11px] text-white/80 leading-snug mt-0.5">
-                  Earn instant GRAM commissions on <b>ALL NFT purchases</b> (0.5, 1 & 5 GRAM): <b className="text-amber-300">Level 1 (30%)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
+                  Earn instant GRAM commissions on <b>ALL NFT purchases</b>: <b className="text-amber-300">Level 1 (30%)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
                 </p>
+                <button
+                  onClick={() => setShowCommModal(true)}
+                  className="mt-2 text-[10px] font-black text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1 rounded-xl border border-amber-500/30 transition-all flex items-center gap-1 active:scale-95"
+                >
+                  📊 View Commission Breakdown Chart →
+                </button>
               </div>
             </div>
 
@@ -552,6 +559,76 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Commission Details Modal */}
+      {showCommModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-gradient-to-br from-[#1E1B4B] via-[#2A123D] to-[#0F0D24] p-5 rounded-3xl border border-amber-500/40 w-full max-w-lg shadow-2xl relative space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-xs md:text-sm text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                📊 Exact Commission Breakdown Across ALL NFTs
+              </h3>
+              <button
+                onClick={() => setShowCommModal(false)}
+                className="text-white/60 hover:text-white px-2 py-1 rounded-lg bg-white/10 text-xs font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
+              <table className="w-full text-left border-collapse text-xs">
+                <thead>
+                  <tr className="border-b border-white/10 bg-white/5 text-[11px] font-black text-ink-soft">
+                    <th className="p-3">NFT Card</th>
+                    <th className="p-3">Price</th>
+                    <th className="p-3 text-amber-300">🥇 Level 1 Direct Ref (30%)</th>
+                    <th className="p-3 text-purple-300">🥈 Level 2 Upline (10%)</th>
+                    <th className="p-3 text-indigo-300">🥉 Level 3 Upline (4%)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5 font-semibold text-white">
+                  <tr className="hover:bg-white/5 transition-colors">
+                    <td className="p-3 font-bold text-purple-300">Starter Miner #01</td>
+                    <td className="p-3 text-amber-400 font-extrabold">0.50 GRAM</td>
+                    <td className="p-3 text-emerald-400 font-black">+0.15 GRAM</td>
+                    <td className="p-3 text-purple-200">+0.05 GRAM</td>
+                    <td className="p-3 text-indigo-200">+0.02 GRAM</td>
+                  </tr>
+                  <tr className="hover:bg-white/5 transition-colors">
+                    <td className="p-3 font-bold text-amber-300">Turbo Miner #02</td>
+                    <td className="p-3 text-amber-400 font-extrabold">1.00 GRAM</td>
+                    <td className="p-3 text-emerald-400 font-black">+0.30 GRAM</td>
+                    <td className="p-3 text-purple-200">+0.10 GRAM</td>
+                    <td className="p-3 text-indigo-200">+0.04 GRAM</td>
+                  </tr>
+                  <tr className="hover:bg-white/5 transition-colors bg-orange-500/10">
+                    <td className="p-3 font-bold text-orange-300 flex items-center gap-1">
+                      <Flame size={12} className="text-orange-400" /> Mega Miner #03
+                    </td>
+                    <td className="p-3 text-amber-400 font-extrabold">5.00 GRAM</td>
+                    <td className="p-3 text-emerald-400 font-black">+1.50 GRAM</td>
+                    <td className="p-3 text-purple-200">+0.50 GRAM</td>
+                    <td className="p-3 text-indigo-200">+0.20 GRAM</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <button
+              onClick={() => setShowCommModal(false)}
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-98 transition-all"
+            >
+              Close Details
+            </button>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
