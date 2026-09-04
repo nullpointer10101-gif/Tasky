@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Users, RefreshCw, Zap, Rocket, CheckCircle, Clock, Gem, Coins } from 'lucide-react';
+import { Sparkles, Users, RefreshCw, Zap, Rocket, CheckCircle, Clock, Gem, Coins, Flame } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
 
