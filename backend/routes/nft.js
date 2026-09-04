@@ -25,10 +25,88 @@ function sendAdminBroadcast(message, extraOpts = {}) {
   }
 }
 
-// Ensure user_nft_cards has total_days column
+// Ensure user_nft_cards has total_days column and seed NFT Cards (including 5 GRAM Mega Miner #03)
 pool.query('ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT NULL').catch(err => {
   console.error('Error adding total_days column to user_nft_cards:', err.message);
 });
+
+pool.query(`
+  INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
+  VALUES 
+    (1, 'Gram Mini Miner #01', 'Entry-level digital miner. Earn 0.07 GRAM daily for 10 days.', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, true),
+    (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true),
+    (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true)
+  ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
+    price_gram = EXCLUDED.price_gram,
+    daily_yield_gram = EXCLUDED.daily_yield_gram,
+    duration_days = EXCLUDED.duration_days,
+    total_yield_gram = EXCLUDED.total_yield_gram,
+    rarity = EXCLUDED.rarity,
+    icon_key = EXCLUDED.icon_key,
+    is_active = EXCLUDED.is_active;
+`).catch(err => console.error('Error seeding nft_cards:', err.message));
+
+/**
+ * Helper to distribute 3-Level Team Referral Commissions on NFT Purchases
+ * Level 1 (Direct Referrer): 7%
+ * Level 2 (Second Level Upline): 3%
+ * Level 3 (Third Level Upline): 1%
+ */
+async function distributeNftReferralCommissions(dbPool, buyerTelegramId, priceGram, nftName) {
+  try {
+    const LEVEL_RATES = [
+      { level: 1, percent: 0.07 }, // 7% Level 1
+      { level: 2, percent: 0.03 }, // 3% Level 2
+      { level: 3, percent: 0.01 }  // 1% Level 3
+    ];
+
+    let currentUserId = buyerTelegramId;
+
+    // Get Buyer Info for Notification
+    const buyerRes = await dbPool.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [buyerTelegramId]);
+    const buyerObj = buyerRes.rows[0] || {};
+    const buyerName = buyerObj.username ? `@${buyerObj.username}` : (buyerObj.first_name || buyerTelegramId);
+
+    for (const { level, percent } of LEVEL_RATES) {
+      // Find direct referrer of currentUserId
+      const refRes = await dbPool.query('SELECT referred_by FROM users WHERE telegram_id = $1', [currentUserId]);
+      const uplineId = refRes.rows[0]?.referred_by;
+
+      if (!uplineId) break; // No further upline in chain
+
+      const commAmount = parseFloat((priceGram * percent).toFixed(4));
+      if (commAmount > 0) {
+        // Credit GRAM balance to upline
+        const userRes = await dbPool.query('SELECT gram_balance FROM users WHERE telegram_id = $1', [uplineId]);
+        let updateQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2';
+        if (userRes.rows[0]?.gram_balance !== null && userRes.rows[0]?.gram_balance !== undefined) {
+          updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1 WHERE telegram_id = $2';
+        }
+        await dbPool.query(updateQuery, [commAmount, uplineId]);
+
+        console.log(`[NFT COMM] Level ${level} commission: +${commAmount} GRAM paid to ${uplineId} (Buyer: ${buyerTelegramId}, NFT: ${nftName})`);
+
+        // Send Telegram notification to upline
+        if (bot && !bot.isDummy && typeof bot.sendMessage === 'function') {
+          const msg = `🎁 <b>Level ${level} Team NFT Commission!</b>\n\n` +
+                      `👤 <b>Team Member:</b> ${buyerName}\n` +
+                      `⚡ <b>NFT Miner:</b> ${nftName}\n` +
+                      `💰 <b>Your Commission (${(percent * 100).toFixed(0)}%):</b> +${commAmount} GRAM\n\n` +
+                      `Keep expanding your 3-level team to maximize passive referral rewards! 🚀`;
+          bot.sendMessage(uplineId, msg, { parse_mode: 'HTML' }).catch(err => {
+            console.warn(`[NFT COMM NOTIFY] Failed to notify ${uplineId}:`, err.message);
+          });
+        }
+      }
+
+      currentUserId = uplineId; // Ascend to next level up in tree
+    }
+  } catch (err) {
+    console.error('[NFT COMM ERROR]:', err.message);
+  }
+}
 
 /**
  * GET /api/nft/marketplace
@@ -130,6 +208,9 @@ router.post('/buy', async (req, res) => {
     await client.query('UPDATE nft_cards SET sold_count = sold_count + 1 WHERE id = $1', [nft_id]);
 
     await client.query('COMMIT');
+
+    // 6. Distribute 3-Level Team Referral Commissions (7% / 3% / 1%)
+    distributeNftReferralCommissions(pool, telegram_id, priceGram, nft.name);
 
     // Notify Admin
     const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, ExternalLink } from 'lucide-react';
+import { Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, ExternalLink, Flame, Users } from 'lucide-react';
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
@@ -240,18 +240,37 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
               </div>
             </div>
 
+            {/* 3-Level Team Referral Rewards Notice Banner */}
+            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30 rounded-2xl p-3.5 flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
+                <Users size={20} />
+              </div>
+              <div className="text-left">
+                <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                  🎁 3-Level Team Commissions Active!
+                </h4>
+                <p className="text-[11px] text-white/80 leading-snug mt-0.5">
+                  Earn instant GRAM commission on all NFT purchases made by your team: <b className="text-amber-300">Level 1 (7%)</b> • <b className="text-amber-300">Level 2 (3%)</b> • <b className="text-amber-300">Level 3 (1%)</b>!
+                </p>
+              </div>
+            </div>
+
             {/* NFT Cards List */}
             <div className="grid grid-cols-1 gap-5">
               {cards.map((nft) => {
+                const isMega = nft.id === 3 || parseFloat(nft.price_gram) >= 5;
                 const isTurbo = nft.id === 2;
                 const price = parseFloat(nft.price_gram);
+                const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
 
                 return (
                   <motion.div
                     key={nft.id}
                     whileHover={{ scale: 1.01 }}
                     className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
-                      isTurbo
+                      isMega
+                        ? 'bg-gradient-to-br from-[#2D0B00] via-[#5C1300] to-[#1F0800] border-orange-500/60 shadow-2xl shadow-orange-950/40 ring-1 ring-orange-500/30'
+                        : isTurbo
                         ? 'bg-gradient-to-br from-[#1E1B4B] via-[#311075] to-[#1E1B4B] border-amber-500/50 shadow-2xl shadow-purple-900/30'
                         : 'bg-surface-soft border-purple-500/30 hover:border-purple-500/60 shadow-xl'
                     }`}
@@ -259,27 +278,31 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                     {/* Top Row: Rarity Badge & Duration */}
                     <div className="flex items-center justify-between mb-4">
                       <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        isTurbo
+                        isMega
+                          ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white shadow-md shadow-orange-500/30 animate-pulse'
+                          : isTurbo
                           ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black shadow-md shadow-amber-500/30'
                           : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
                       }`}>
-                        {isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
+                        {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
                         {nft.rarity || 'LIMITED EDITION'}
                       </div>
                       <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
                         <Clock size={11} />
-                        <span>10 Days Mining Return</span>
+                        <span>{nft.duration_days || 10} Days Mining Return</span>
                       </div>
                     </div>
 
                     {/* Card Title & Icon */}
                     <div className="flex items-center gap-3.5 mb-4">
                       <div className={`w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 border shadow-inner ${
-                        isTurbo
+                        isMega
+                          ? 'bg-gradient-to-tr from-orange-500/40 to-red-600/40 border-orange-400/60 text-orange-300 shadow-orange-500/30'
+                          : isTurbo
                           ? 'bg-gradient-to-tr from-amber-500/30 to-purple-600/40 border-amber-400/50 text-amber-300 shadow-amber-500/20'
                           : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
                       }`}>
-                        {isTurbo ? <Rocket size={26} /> : <Zap size={26} />}
+                        {isMega ? <Flame size={28} className="text-orange-400 animate-pulse" /> : isTurbo ? <Rocket size={26} /> : <Zap size={26} />}
                       </div>
                       <div>
                         <h3 className="text-base font-black text-white leading-tight">{nft.name}</h3>
@@ -294,8 +317,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         <p className="text-sm font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM/day</p>
                       </div>
                       <div className="bg-purple-500/10 border border-purple-500/20 p-2.5 rounded-xl text-center">
-                        <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Total 10D Return</p>
-                        <p className="text-sm font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM <span className="text-[10px] text-amber-400 font-bold">(140%)</span></p>
+                        <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Total {nft.duration_days || 10}D Return</p>
+                        <p className="text-sm font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM <span className="text-[10px] text-amber-400 font-bold">({roiPercent}%)</span></p>
                       </div>
                     </div>
 
@@ -309,12 +332,14 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         onClick={() => handleBuy(nft)}
                         loading={buyingId === nft.id}
                         className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border-0 shadow-lg ${
-                          isTurbo
+                          isMega
+                            ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white hover:opacity-95 shadow-orange-500/30'
+                            : isTurbo
                             ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black hover:opacity-95 shadow-amber-500/20'
                             : 'bg-gradient-to-r from-purple-600 to-emerald-600 text-white hover:opacity-95 shadow-purple-500/20'
                         }`}
                       >
-                        <Zap size={14} />
+                        {isMega ? <Flame size={14} /> : <Zap size={14} />}
                         <span>Buy with Vault</span>
                       </Button>
                     </div>
