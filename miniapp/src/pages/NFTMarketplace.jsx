@@ -250,7 +250,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                   🎁 3-Level Team Commissions Active!
                 </h4>
                 <p className="text-[11px] text-white/80 leading-snug mt-0.5">
-                  Earn instant GRAM commission on all NFT purchases made by your team: <b className="text-amber-300">Level 1 (30% - 1.5 GRAM on 5 GRAM NFT)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
+                  Earn instant GRAM commissions on <b>ALL NFT purchases</b> (0.5, 1 & 5 GRAM): <b className="text-amber-300">Level 1 (30%)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
                 </p>
               </div>
             </div>
@@ -262,6 +262,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const isTurbo = nft.id === 2;
                 const price = parseFloat(nft.price_gram);
                 const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
+                const directCommission = (price * 0.30).toFixed(2);
 
                 return (
                   <motion.div
@@ -311,7 +312,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                     </div>
 
                     {/* Yield Showcase Box */}
-                    <div className="grid grid-cols-2 gap-2 bg-black/30 p-3 rounded-2xl border border-white/10 mb-4">
+                    <div className="grid grid-cols-2 gap-2 bg-black/30 p-3 rounded-2xl border border-white/10 mb-3">
                       <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-center">
                         <p className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Daily Yield</p>
                         <p className="text-sm font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM/day</p>
@@ -320,6 +321,14 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         <p className="text-[10px] font-bold text-purple-300/80 uppercase tracking-wider">Total {nft.duration_days || 10}D Return</p>
                         <p className="text-sm font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM <span className="text-[10px] text-amber-400 font-bold">({roiPercent}%)</span></p>
                       </div>
+                    </div>
+
+                    {/* Direct Referral Reward Badge */}
+                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/25 px-3 py-1.5 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-300 mb-3">
+                      <span className="flex items-center gap-1">
+                        <Users size={12} className="text-amber-400" /> Direct Ref Commission (30%):
+                      </span>
+                      <span className="font-black text-amber-200">+{directCommission} GRAM</span>
                     </div>
 
                     {/* Price & Buy Action Box */}
