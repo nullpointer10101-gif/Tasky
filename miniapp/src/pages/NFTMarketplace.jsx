@@ -274,7 +274,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const ownedCount = myCards
                   .filter(c => Number(c.nft_id) === Number(nft.id))
                   .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
-                const isMaxOwned = ownedCount >= 2;
+                const isMaxOwned = ownedCount >= 10;
 
                 return (
                   <motion.div
@@ -304,7 +304,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
                           isMaxOwned ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
                         }`}>
-                          {ownedCount > 0 ? `Owned: ${ownedCount}/2` : 'Max 2 / User'}
+                          {ownedCount > 0 ? `Owned: ${ownedCount}/10` : 'Max 10 / User'}
                         </span>
                       </div>
                       <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
@@ -375,7 +375,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                         }`}
                       >
                         {isMega ? <Flame size={14} /> : <Zap size={14} />}
-                        <span>{isMaxOwned ? 'Max Limit (2/2)' : 'Buy with Vault'}</span>
+                        <span>{isMaxOwned ? 'Max Limit (10/10)' : 'Buy with Vault'}</span>
                       </Button>
                     </div>
 

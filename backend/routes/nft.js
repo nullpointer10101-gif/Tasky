@@ -150,16 +150,16 @@ router.post('/buy', async (req, res) => {
     const nft = nftRes.rows[0];
     const priceGram = parseFloat(nft.price_gram);
 
-    // 2. Check maximum purchase limit of 2 per miner for all users
+    // 2. Check maximum purchase limit of 10 per miner for all users
     const ownedCardsRes = await client.query(
       `SELECT COUNT(*) as count FROM user_nft_cards WHERE telegram_id::text = $1::text AND nft_id = $2`,
       [telegram_id, nft_id]
     );
     const ownedCount = parseInt(ownedCardsRes.rows[0]?.count || 0, 10);
-    if (ownedCount >= 2) {
+    if (ownedCount >= 10) {
       await client.query('ROLLBACK');
       return res.status(400).json({
-        error: `Purchase limit reached! Every user is allowed a maximum of 2 purchases for ${nft.name} (You currently own ${ownedCount}/2).`
+        error: `Purchase limit reached! Every user is allowed a maximum of 10 purchases for ${nft.name} (You currently own ${ownedCount}/10).`
       });
     }
 
@@ -205,7 +205,7 @@ router.post('/buy', async (req, res) => {
     // Notify Admin
     const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
     sendAdminBroadcast(
-      `🛒 <b>🚀 NEW NFT MINER PURCHASE (${ownedCount + 1}/2)</b>\n\n` +
+      `🛒 <b>🚀 NEW NFT MINER PURCHASE (${ownedCount + 1}/10)</b>\n\n` +
       `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
       `⚡ <b>NFT Miner:</b> ${nft.name}\n` +
       `💰 <b>Price Paid:</b> ${priceGram} GRAM\n` +
@@ -213,7 +213,7 @@ router.post('/buy', async (req, res) => {
       `💳 <b>New User Balance:</b> ${parseFloat(updateRes.rows[0].balance).toFixed(3)} GRAM`
     );
 
-    const successMessage = `🎉 Successfully purchased ${nft.name}! (${ownedCount + 1}/2 owned). Check your Inventory tab to claim daily yield!`;
+    const successMessage = `🎉 Successfully purchased ${nft.name}! (${ownedCount + 1}/10 owned). Check your Inventory tab to claim daily yield!`;
 
     res.json({
       success: true,
