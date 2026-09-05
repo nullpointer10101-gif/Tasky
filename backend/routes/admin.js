@@ -2254,12 +2254,52 @@ router.get('/gram-deposits', async (req, res) => {
         gd.status,
         gd.created_at,
         u.username,
-        u.first_name
+        u.first_name,
+        COALESCE(u.gram_balance, 0) as gram_balance
       FROM gram_deposits gd
       LEFT JOIN users u ON gd.telegram_id = u.telegram_id
       ORDER BY gd.created_at DESC
     `;
     const { rows: deposits } = await pool.query(depositsQuery);
+
+    // Group deposits by telegram_id to build distinct depositors list
+    const depositorMap = {};
+    for (const d of deposits) {
+      const tid = String(d.telegram_id);
+      const amt = parseFloat(d.amount_gram || 0);
+
+      if (!depositorMap[tid]) {
+        depositorMap[tid] = {
+          telegram_id: d.telegram_id,
+          username: d.username,
+          first_name: d.first_name,
+          gram_balance: parseFloat(d.gram_balance || 0),
+          total_deposited_gram: 0,
+          deposit_count: 0,
+          latest_deposit_at: d.created_at,
+          latest_tx_hash: d.tx_hash,
+          auto_verified: d.auto_verified,
+          status: d.status,
+          deposits: []
+        };
+      }
+
+      depositorMap[tid].deposit_count += 1;
+      if (d.status === 'approved') {
+        depositorMap[tid].total_deposited_gram += amt;
+      }
+
+      depositorMap[tid].deposits.push({
+        id: d.id,
+        amount_gram: amt,
+        tx_hash: d.tx_hash,
+        auto_verified: d.auto_verified,
+        status: d.status,
+        created_at: d.created_at
+      });
+    }
+
+    const depositors = Object.values(depositorMap);
 
     const statsQuery = `
       SELECT 
@@ -2278,6 +2318,7 @@ router.get('/gram-deposits', async (req, res) => {
         total_gram_deposited: parseFloat(statsRows[0].total_gram_deposited) || 0,
         total_depositors: parseInt(statsRows[0].total_depositors, 10) || 0
       },
+      depositors,
       deposits
     });
   } catch (err) {
