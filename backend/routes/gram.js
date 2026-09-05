@@ -181,6 +181,12 @@ router.post('/watch-ad', async (req, res) => {
             [telegram_id]
         );
 
+        // Increment total_ads_watched for user statistics
+        await pool.query(
+            `UPDATE users SET total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $1`,
+            [telegram_id]
+        );
+
         // Clear start time
         global.gramAdStartTimes.delete(telegram_id.toString());
 
