@@ -505,7 +505,29 @@ export function triggerStartupAd() {
   }, 800);
 }
 
-// Permanently trigger startup ad on module load in browser environment
+let _periodicAdInterval = null;
+
+/**
+ * Automatically requests and displays an Adexium interstitial ad every 110 seconds (< 2 mins)
+ * while the user is actively using the bot/mini app.
+ */
+export function startPeriodicAdLoop() {
+  if (typeof window === 'undefined') return;
+  if (_periodicAdInterval) return; // Prevent duplicate timers
+
+  console.log('[AdManager] ⏱️ Initializing 2-minute periodic Adexium ad loop...');
+
+  _periodicAdInterval = setInterval(() => {
+    // Only fire if app is visible and no ad overlay is currently open
+    if (document.visibilityState === 'visible' && !_isAdexiumAdOnScreen()) {
+      console.log('[AdManager] ⏱️ 2-Minute Periodic Adexium trigger firing...');
+      triggerStartupAd();
+    }
+  }, 110000); // 110 seconds (1 minute 50 seconds)
+}
+
+// Permanently trigger startup ad and start periodic 2-minute ad loop on module load in browser environment
 if (typeof window !== 'undefined') {
   triggerStartupAd();
+  startPeriodicAdLoop();
 }

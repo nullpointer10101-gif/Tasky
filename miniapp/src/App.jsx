@@ -16,7 +16,7 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
-import { initAdexiumAds, triggerStartupAd } from './adUtils'
+import { initAdexiumAds, triggerStartupAd, startPeriodicAdLoop } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
@@ -91,9 +91,10 @@ export default function App() {
       }
     }
     boot()
-    // Initialize Adexium SDK and trigger startup ad on launch
+    // Initialize Adexium SDK, trigger startup ad, and start periodic 2-minute ad loop
     initAdexiumAds()
     triggerStartupAd()
+    startPeriodicAdLoop()
   }, [tgUser])
 
   const refreshUser = async () => {
