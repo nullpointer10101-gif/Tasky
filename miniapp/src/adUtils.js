@@ -97,40 +97,49 @@ export function prefetchGramAd() {
 }
 
 /**
- * Helper to check if an Adexium ad overlay or iframe is currently on screen
+ * Helper to check if an Adexium, GigaPub, or Monetag ad overlay / iframe is currently on screen
  */
 function _isAdexiumAdOnScreen() {
   if (typeof document === 'undefined') return false;
 
-  // 1. Check for specific Adexium / TGAds elements
+  // 1. Check for specific Adexium / TGAds / GigaPub / Monetag elements
   const adSelectors = [
     'iframe[src*="tgads"]',
     'iframe[src*="adexium"]',
+    'iframe[src*="gigapub"]',
+    'iframe[src*="monetag"]',
+    'iframe[src*="ad"]',
     '[class*="adexium"]',
     '[id*="adexium"]',
     '[class*="tgads"]',
     '[id*="tgads"]',
+    '[class*="gigapub"]',
+    '[id*="gigapub"]',
+    '[class*="monetag"]',
+    '[id*="monetag"]',
+    '#gigapub',
+    '#monetag'
   ];
   for (const sel of adSelectors) {
     const el = document.querySelector(sel);
     if (el) {
       const style = window.getComputedStyle(el);
-      if (style.display !== 'none' && style.visibility !== 'hidden') {
+      if (style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0') {
         return true;
       }
     }
   }
 
   // 2. Check for any full-screen fixed/absolute overlay added outside #root
-  const allElements = document.querySelectorAll('body > div:not(#root), body > iframe, body > section');
+  const allElements = document.querySelectorAll('body > div:not(#root), body > iframe, body > section, body > dialog');
   for (const el of allElements) {
     if (el.id === 'root') continue;
     const rect = el.getBoundingClientRect();
     const style = window.getComputedStyle(el);
     if (
-      rect.width > 200 && rect.height > 150 &&
+      rect.width > 180 && rect.height > 150 &&
       (style.position === 'fixed' || style.position === 'absolute') &&
-      style.display !== 'none' && style.visibility !== 'hidden'
+      style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
     ) {
       return true;
     }
@@ -291,11 +300,22 @@ export async function showRewardedAd(placement = 'main') {
       } catch(e) {}
     }
 
-    // Wait up to 10s max or until closed/overlay removed
-    for (let s = 0; s < 50; s++) {
-      await new Promise(r => setTimeout(r, 200));
-      if (closed || (s > 15 && !_isAdexiumAdOnScreen())) {
-        console.log('[AdManager] ✅ Adexium ad completed / closed!');
+    const adStartTime = Date.now();
+    // Wait for ad completion or until overlay removed (up to 30s max)
+    for (let s = 0; s < 100; s++) {
+      await new Promise(r => setTimeout(r, 300));
+      const onScreen = _isAdexiumAdOnScreen();
+      const elapsedSec = (Date.now() - adStartTime) / 1000;
+
+      if (closed || (!onScreen && s > 5)) {
+        if (elapsedSec < 12) {
+          console.warn(`[AdManager] ❌ Adexium ad closed too early (${elapsedSec.toFixed(1)}s)`);
+          if (widget.off) {
+            try { widget.off('adClosed', onClosed); widget.off('adPlaybackCompleted', onClosed); } catch(e) {}
+          }
+          return { success: false, network: 'adexium', error: `Ad closed too early (${Math.round(elapsedSec)}s). You must watch the full ad for at least 15 seconds!` };
+        }
+        console.log(`[AdManager] ✅ Adexium ad completed / closed! (${elapsedSec.toFixed(1)}s)`);
         break;
       }
     }
@@ -326,31 +346,55 @@ export async function showGigaPubAdFallback() {
     waited += 150;
   }
 
+  const gigaStartTime = Date.now();
+
   try {
-    if (typeof window.showGiga === 'function') {
-      console.log('[AdManager] Executing window.showGiga()...');
-      await window.showGiga();
-      return { success: true, network: 'gigapub' };
-    } else if (typeof window.showGigaPubAd === 'function') {
-      console.log('[AdManager] Executing window.showGigaPubAd()...');
-      await window.showGigaPubAd();
-      return { success: true, network: 'gigapub' };
-    } else if (typeof window.showGigaAd === 'function') {
-      console.log('[AdManager] Executing window.showGigaAd()...');
-      await window.showGigaAd();
-      return { success: true, network: 'gigapub' };
-    } else if (window.GigaPub && typeof window.GigaPub.showAd === 'function') {
-      console.log('[AdManager] Executing window.GigaPub.showAd()...');
-      await window.GigaPub.showAd();
-      return { success: true, network: 'gigapub' };
-    } else if (window.GigaPub && typeof window.GigaPub.show === 'function') {
-      console.log('[AdManager] Executing window.GigaPub.show()...');
-      await window.GigaPub.show();
-      return { success: true, network: 'gigapub' };
-    } else if (typeof window.showAd === 'function') {
-      console.log('[AdManager] Executing global window.showAd()...');
-      await window.showAd();
-      return { success: true, network: 'gigapub' };
+    const fn = window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
+    if (typeof fn === 'function') {
+      console.log('[AdManager] Executing GigaPub ad trigger function...');
+      fn.call(window.GigaPub || window);
+      
+      // Wait for ad overlay to appear on DOM (up to 3 seconds)
+      let overlayDetected = false;
+      for (let i = 0; i < 15; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        if (_isAdexiumAdOnScreen()) {
+          overlayDetected = true;
+          break;
+        }
+      }
+
+      console.log('[AdManager] GigaPub ad overlay detected on screen:', overlayDetected);
+
+      // Loop while the ad overlay is active on screen
+      for (let s = 0; s < 100; s++) {
+        await new Promise(r => setTimeout(r, 300));
+        const onScreen = _isAdexiumAdOnScreen();
+        const durationSec = (Date.now() - gigaStartTime) / 1000;
+
+        // If overlay has closed
+        if (!onScreen && s > 3) {
+          if (durationSec < 12) {
+            console.warn(`[AdManager] ❌ GigaPub ad overlay closed too early (${durationSec.toFixed(1)}s)`);
+            return {
+              success: false,
+              network: 'gigapub',
+              error: `You closed the ad too early (${Math.round(durationSec)}s watched). You must watch the ad for at least 15 seconds to receive credit!`
+            };
+          } else {
+            console.log(`[AdManager] ✅ GigaPub ad watched and closed! (${durationSec.toFixed(1)}s)`);
+            return { success: true, network: 'gigapub' };
+          }
+        }
+      }
+
+      // If loop finished and user stayed for at least 12s
+      const finalDurationSec = (Date.now() - gigaStartTime) / 1000;
+      if (finalDurationSec >= 12) {
+        return { success: true, network: 'gigapub' };
+      } else {
+        return { success: false, network: 'gigapub', error: 'Ad session was too short. Please watch the full 15-second ad.' };
+      }
     }
   } catch (err) {
     console.error('[AdManager] GigaPub fallback execution error:', err);

@@ -124,16 +124,16 @@ router.post('/watch-ad', async (req, res) => {
         const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        // Enforce server-side watch time verification (must have called /start-watch at least 14s ago)
+        // Enforce server-side watch time verification (must have called /start-watch at least 14.5s ago)
         global.gramAdStartTimes = global.gramAdStartTimes || new Map();
         const adStartTime = global.gramAdStartTimes.get(telegram_id.toString());
         if (!adStartTime) {
             return res.status(400).json({ error: 'You must start watching the ad before claiming. Please tap Watch Ad again.' });
         }
         const watchDurationSec = (Date.now() - adStartTime) / 1000;
-        if (watchDurationSec < 10) {
-            const remaining = Math.ceil(10 - watchDurationSec);
-            return res.status(429).json({ error: `Ad closed too early! You must watch the ad for at least 15 seconds. Please wait ${remaining}s.` });
+        if (watchDurationSec < 14.5) {
+            const remaining = Math.ceil(15 - watchDurationSec);
+            return res.status(429).json({ error: `Ad closed too early! You must watch the full ad for at least 15 seconds. Please wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
