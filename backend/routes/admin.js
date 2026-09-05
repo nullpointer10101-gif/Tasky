@@ -2101,6 +2101,7 @@ router.get('/nft-holders', async (req, res) => {
         u.username,
         u.first_name,
         COALESCE(u.gram_balance, 0) as gram_balance,
+        nc.id as nft_id,
         nc.name as nft_name,
         nc.price_gram,
         nc.daily_yield_gram,
@@ -2113,6 +2114,29 @@ router.get('/nft-holders', async (req, res) => {
     `;
     const { rows: rawHolders } = await pool.query(holdersQuery);
 
+    const depositsQuery = `
+      SELECT telegram_id, amount_gram, tx_hash, status, created_at
+      FROM gram_deposits
+      ORDER BY created_at DESC
+    `;
+    const { rows: rawDeposits } = await pool.query(depositsQuery).catch(() => ({ rows: [] }));
+
+    const depositsByTelegramId = {};
+    const totalDepositedByTelegramId = {};
+    for (const dep of rawDeposits) {
+      const tid = String(dep.telegram_id);
+      if (!depositsByTelegramId[tid]) depositsByTelegramId[tid] = [];
+      depositsByTelegramId[tid].push({
+        amount_gram: parseFloat(dep.amount_gram || 0),
+        tx_hash: dep.tx_hash,
+        status: dep.status,
+        created_at: dep.created_at
+      });
+      if (dep.status === 'approved') {
+        totalDepositedByTelegramId[tid] = (totalDepositedByTelegramId[tid] || 0) + parseFloat(dep.amount_gram || 0);
+      }
+    }
+
     const holders = rawHolders.map(h => {
       const durationDays = parseInt(h.total_days || h.duration_days, 10) || 10;
       const dailyYield = parseFloat(h.daily_yield_gram) || 0;
@@ -2123,6 +2147,68 @@ router.get('/nft-holders', async (req, res) => {
         total_yield_gram: durationDays * dailyYield
       };
     });
+
+    // Group holders by telegram_id to build distinct users array
+    const userMap = {};
+    for (const h of holders) {
+      const tid = String(h.telegram_id);
+      if (!userMap[tid]) {
+        userMap[tid] = {
+          telegram_id: h.telegram_id,
+          username: h.username,
+          first_name: h.first_name,
+          gram_balance: h.gram_balance,
+          total_deposited_gram: totalDepositedByTelegramId[tid] || 0,
+          total_spent_gram: 0,
+          total_daily_yield: 0,
+          total_earned_gram: 0,
+          miners_count: 0,
+          active_miners_count: 0,
+          max_withdrawal_limit: 0.02,
+          miners: [],
+          deposits: depositsByTelegramId[tid] || []
+        };
+      }
+
+      const price = parseFloat(h.price_gram || 0);
+      const dailyYield = parseFloat(h.daily_yield_gram || 0);
+      const claimsDone = parseInt(h.claims_done || 0, 10);
+      const durationDays = parseInt(h.duration_days || 10, 10);
+      const isCompleted = claimsDone >= durationDays || h.is_completed;
+
+      // Calculate max withdrawal limit for user based on highest tier owned
+      if (price >= 5.0) {
+        userMap[tid].max_withdrawal_limit = Math.max(userMap[tid].max_withdrawal_limit, 0.07);
+      } else if (price >= 1.0) {
+        userMap[tid].max_withdrawal_limit = Math.max(userMap[tid].max_withdrawal_limit, 0.05);
+      } else if (price >= 0.5) {
+        userMap[tid].max_withdrawal_limit = Math.max(userMap[tid].max_withdrawal_limit, 0.03);
+      }
+
+      userMap[tid].miners_count += 1;
+      userMap[tid].total_spent_gram += price;
+      userMap[tid].total_earned_gram += parseFloat(h.total_earned_gram || 0);
+
+      if (!isCompleted) {
+        userMap[tid].active_miners_count += 1;
+        userMap[tid].total_daily_yield += dailyYield;
+      }
+
+      userMap[tid].miners.push({
+        instance_id: h.instance_id,
+        nft_id: h.nft_id,
+        nft_name: h.nft_name,
+        price_gram: price,
+        daily_yield_gram: dailyYield,
+        claims_done: claimsDone,
+        duration_days: durationDays,
+        total_earned_gram: parseFloat(h.total_earned_gram || 0),
+        purchased_at: h.purchased_at,
+        is_completed: isCompleted
+      });
+    }
+
+    const users = Object.values(userMap);
 
     const statsQuery = `
       SELECT 
@@ -2145,6 +2231,7 @@ router.get('/nft-holders', async (req, res) => {
         total_gram_balance: parseFloat(balanceRes.rows[0].total_gram_balance) || 0,
         total_gram_deposited: parseFloat(depositRes.rows[0].total_gram_deposited) || 0
       },
+      users,
       holders
     });
   } catch (err) {
