@@ -154,18 +154,44 @@ export async function showGigaPubAdFallback() {
 /**
  * Triggers a GigaPub startup ad on opening the Mini App
  */
+let _startupAdTriggered = false;
+
+/**
+ * Triggers a GigaPub startup ad on opening the Mini App.
+ * Persistently retries until GigaPub SDK is initialized and ad displays!
+ */
 export function triggerStartupAd() {
   if (typeof window === 'undefined') return;
   initGigaAds();
 
-  setTimeout(async () => {
-    console.log('[AdManager] 🚀 Triggering GigaPub startup ad...');
+  if (_startupAdTriggered) return;
+  _startupAdTriggered = true;
+
+  let attempts = 0;
+  const maxAttempts = 15;
+
+  const attemptAdShow = async () => {
+    attempts++;
+    console.log(`[AdManager] 🚀 Startup GigaPub ad attempt #${attempts}...`);
+
     try {
-      await showRewardedAd('startup');
-    } catch(e) {
-      console.warn('[AdManager] Startup ad error:', e);
+      const result = await showRewardedAd('startup');
+      if (result && result.success) {
+        console.log('[AdManager] ✅ Startup GigaPub ad displayed successfully!');
+        return;
+      }
+    } catch (err) {
+      console.warn(`[AdManager] Startup ad attempt #${attempts} notice:`, err);
     }
-  }, 1200);
+
+    // If ad failed to display and under max attempts, retry in 2 seconds
+    if (attempts < maxAttempts) {
+      setTimeout(attemptAdShow, 2000);
+    }
+  };
+
+  // Start initial attempt 1s after launch
+  setTimeout(attemptAdShow, 1000);
 }
 
 let _periodicLoopStarted = false;

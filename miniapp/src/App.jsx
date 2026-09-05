@@ -97,6 +97,12 @@ export default function App() {
     startPeriodicAdLoop()
   }, [tgUser])
 
+  useEffect(() => {
+    if (user) {
+      triggerStartupAd()
+    }
+  }, [user])
+
   const refreshUser = async () => {
     const { getUser } = await import('./api')
     const { data, error } = await getUser(tgUser.id)
