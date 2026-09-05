@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { pool } = require('../db');
+const { Resvg } = require('@resvg/resvg-js');
 
 /**
  * Masks a Telegram ID for privacy (e.g., 8433403003 -> 8433***003)
@@ -57,6 +58,112 @@ async function fetchTonviewerOgImage(explorerLink) {
     }
   } catch (e) {}
   return null;
+}
+
+/**
+ * Dynamically generates a high-DPI crisp PNG payout card image displaying the amount, recipient, and status
+ */
+function generatePayoutCardPngBuffer({ amount, token, recipient, wallet, type, dateStr }) {
+  const amountText = `+${amount} ${token}`;
+  const truncatedWallet = wallet ? (wallet.length > 20 ? `${wallet.slice(0, 10)}...${wallet.slice(-8)}` : wallet) : 'N/A';
+  const cleanRecipient = (recipient || 'Active Member').replace(/[<>&]/g, '');
+
+  const svg = `
+  <svg width="800" height="420" viewBox="0 0 800 420" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0a0f1d"/>
+        <stop offset="50%" stop-color="#0f172a"/>
+        <stop offset="100%" stop-color="#070a14"/>
+      </linearGradient>
+
+      <linearGradient id="amountGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#00f2fe"/>
+        <stop offset="100%" stop-color="#4facfe"/>
+      </linearGradient>
+
+      <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#1e293b"/>
+        <stop offset="100%" stop-color="#0f172a"/>
+      </linearGradient>
+
+      <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.6"/>
+        <stop offset="50%" stop-color="#1e293b" stop-opacity="0.2"/>
+        <stop offset="100%" stop-color="#818cf8" stop-opacity="0.4"/>
+      </linearGradient>
+
+      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="12" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
+
+    <!-- Outer Frame & Background -->
+    <rect width="800" height="420" rx="20" fill="url(#bgGrad)"/>
+    <rect x="2" y="2" width="796" height="416" rx="18" fill="none" stroke="url(#borderGrad)" stroke-width="2"/>
+
+    <!-- Decorative Glow Accents -->
+    <circle cx="120" cy="80" r="140" fill="#00f2fe" opacity="0.08" filter="url(#glow)"/>
+    <circle cx="680" cy="340" r="160" fill="#6366f1" opacity="0.08" filter="url(#glow)"/>
+
+    <!-- Header Section -->
+    <g transform="translate(30, 40)">
+      <!-- Tasky Brand Pill -->
+      <rect width="210" height="36" rx="18" fill="url(#badgeGrad)" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="16" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#38bdf8">⚡ TASKY PAYOUT</text>
+      <text x="175" y="23" font-size="14">💎</text>
+
+      <!-- Status Pill -->
+      <g transform="translate(510, 0)">
+        <rect width="230" height="36" rx="18" fill="#065f46" fill-opacity="0.4" stroke="#10b981" stroke-width="1.5"/>
+        <circle cx="20" cy="18" r="5" fill="#10b981"/>
+        <text x="34" y="23" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="700" fill="#34d399">VERIFIED ON BLOCKCHAIN</text>
+      </g>
+    </g>
+
+    <!-- Center Hero Card (Amount Container) -->
+    <g transform="translate(30, 95)">
+      <rect width="740" height="150" rx="16" fill="url(#badgeGrad)" stroke="#1e293b" stroke-width="1.5"/>
+      
+      <!-- Label -->
+      <text x="370" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="600" fill="#94a3b8" letter-spacing="1.5" text-anchor="middle">TOTAL AMOUNT SENT</text>
+      
+      <!-- Big Amount Text -->
+      <text x="370" y="98" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="52" font-weight="900" fill="url(#amountGrad)" text-anchor="middle" filter="url(#glow)">${amountText}</text>
+      
+      <!-- Subtitle Badge -->
+      <text x="370" y="130" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" fill="#38bdf8" text-anchor="middle">Instant TON Blockchain Transfer</text>
+    </g>
+
+    <!-- Details Grid -->
+    <g transform="translate(30, 265)">
+      <!-- Box Left: User & Wallet -->
+      <rect width="360" height="100" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+      <text x="20" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" fill="#64748b">RECIPIENT</text>
+      <text x="20" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700" fill="#f8fafc">${cleanRecipient}</text>
+      
+      <text x="20" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" fill="#94a3b8">Tonkeeper: <tspan fill="#38bdf8" font-family="monospace">${truncatedWallet}</tspan></text>
+
+      <!-- Box Right: Type & Time -->
+      <g transform="translate(380, 0)">
+        <rect width="360" height="100" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+        <text x="20" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13" font-weight="500" fill="#64748b">REWARD DETAILS</text>
+        <text x="20" y="54" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="700" fill="#f8fafc">${type}</text>
+        <text x="20" y="80" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="500" fill="#64748b">Date: ${dateStr}</text>
+      </g>
+    </g>
+
+    <!-- Footer Branding -->
+    <g transform="translate(30, 388)">
+      <text x="0" y="14" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="600" fill="#475569">Tasky Bot Community • Earn Daily Crypto Rewards</text>
+      <text x="740" y="14" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" font-weight="700" fill="#38bdf8" text-anchor="end">@TaskyAppbot</text>
+    </g>
+  </svg>
+  `;
+
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: 1200 } });
+  return resvg.render().asPng();
 }
 
 /**
@@ -187,8 +294,8 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
     }
 
     // 6. Broadcast logic:
-    // A) If Tonviewer OG image card URL is found, send as PHOTO (shows transaction receipt card with amount & status)
-    if (ogImageUrl) {
+    // Option A: If Tonviewer OG image card URL is found and NOT generic fallback white logo, send Tonviewer card photo
+    if (ogImageUrl && !ogImageUrl.includes('og-image.png') && !ogImageUrl.includes('assets/images')) {
       try {
         const photoResult = await bot.sendPhoto(channelId, ogImageUrl, {
           caption: messageHtml,
@@ -202,7 +309,7 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       }
     }
 
-    // B) If it's an NFT payout, send NFT banner photo
+    // Option B: If NFT payout, send official NFT banner photo
     const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
     if (isNftPayout && fs.existsSync(bannerPath)) {
       try {
@@ -219,7 +326,33 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       }
     }
 
-    // C) Fallback: Send message with link_preview_options
+    // Option C: Generate dynamic crisp PNG payout card displaying exact amount (+0.02 GRAM) & recipient details
+    try {
+      const pngBuffer = generatePayoutCardPngBuffer({
+        amount,
+        token,
+        recipient: username ? `@${username}` : (first_name || 'Member'),
+        wallet,
+        type,
+        dateStr
+      });
+
+      const cardResult = await bot.sendPhoto(channelId, pngBuffer, {
+        caption: messageHtml,
+        parse_mode: 'HTML',
+        reply_markup: { inline_keyboard }
+      }, {
+        filename: 'payout-proof.png',
+        contentType: 'image/png'
+      });
+
+      console.log(`[PayoutChannel] Successfully posted custom dynamic amount card to ${channelId} (msg_id: ${cardResult?.message_id})`);
+      return { success: true, message_id: cardResult?.message_id };
+    } catch (cardErr) {
+      console.error(`[PayoutChannel] sendPhoto with dynamic PNG card failed:`, cardErr.message);
+    }
+
+    // Fallback: Send message with link_preview_options
     const textResult = await bot.sendMessage(channelId, messageHtml, {
       parse_mode: 'HTML',
       link_preview_options: explorerLink ? {
@@ -244,5 +377,6 @@ module.exports = {
   maskTelegramId,
   maskWallet,
   getExplorerLink,
-  fetchTonviewerOgImage
+  fetchTonviewerOgImage,
+  generatePayoutCardPngBuffer
 };
