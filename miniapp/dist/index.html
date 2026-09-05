@@ -8,87 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="preconnect" href="https://cdn.tgads.space" crossorigin />
-    <link rel="dns-prefetch" href="https://cdn.tgads.space" />
     <link rel="preconnect" href="https://ad.gigapub.tech" crossorigin />
     <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
-    <script id="adexium-ad-sdk" type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js" onload="window.initAdexiumGlobal && window.initAdexiumGlobal()"></script>
+    <!-- GigaPub Primary Ad SDK (Unit 7451) -->
     <script id="gigapub-ad-sdk" type="text/javascript" src="https://ad.gigapub.tech/script?id=7451" async></script>
-    <script type="text/javascript">
-      window.initAdexiumGlobal = function() {
-        try {
-          if (window.Telegram && window.Telegram.WebApp) {
-            window.Telegram.WebApp.ready();
-            window.Telegram.WebApp.expand();
-          }
-        } catch(e) {}
-
-        if (typeof AdexiumWidget !== 'undefined' && !window.adexiumWidget) {
-          try {
-            console.log('[AdManager] 🚀 Instantiating AdexiumWidget...');
-            const adexiumWidget = new AdexiumWidget({
-              wid: 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774',
-              adFormat: 'push-like'
-            });
-
-            // Ensure valid Telegram initData string for afV2 fraud verification
-            if (adexiumWidget.user) {
-              if (window.Telegram?.WebApp?.initData) {
-                adexiumWidget.user.initData = window.Telegram.WebApp.initData;
-              } else if (!adexiumWidget.user.initData || typeof adexiumWidget.user.initData !== 'string') {
-                const mockUser = encodeURIComponent(JSON.stringify({ id: 999888777, first_name: "TaskyUser" }));
-                const now = Math.floor(Date.now() / 1000);
-                adexiumWidget.user.initData = `auth_date=${now}&hash=0123456789abcdef0123456789abcdef&user=${mockUser}`;
-              }
-              if (!adexiumWidget.user.telegramId) {
-                adexiumWidget.user.telegramId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id || 999888777;
-              }
-            }
-            
-            // Set up permanent global event handlers
-            if (typeof adexiumWidget.on === 'function') {
-              adexiumWidget.on('adReceived', function(ad) {
-                console.log('[AdManager] 📩 Global Event: adReceived', ad);
-                window._adexiumLastAd = ad;
-                window._adexiumAdReceivedAt = Date.now();
-                try {
-                  if (typeof adexiumWidget.displayAd === 'function') {
-                    adexiumWidget.displayAd(ad);
-                    console.log('[AdManager] ✅ Global displayAd() executed!');
-                  }
-                } catch(err) {
-                  console.error('[AdManager] Global displayAd() error:', err);
-                }
-              });
-
-              adexiumWidget.on('noAdFound', function() {
-                console.warn('[AdManager] ⚠️ Global Event: noAdFound');
-                window._adexiumNoAdFound = true;
-                window._adexiumNoAdAt = Date.now();
-              });
-
-              adexiumWidget.on('adClosed', function() {
-                console.log('[AdManager] 🏁 Global Event: adClosed');
-                window._adexiumAdClosedAt = Date.now();
-              });
-            }
-
-            // AutoMode disabled to prevent background requests from locking duplicate show state
-
-            window.adexiumWidget = adexiumWidget;
-            window._adexiumInstance = adexiumWidget;
-            console.log('[AdManager] ✅ AdexiumWidget initialized globally!', adexiumWidget);
-          } catch(e) {
-            console.error('[AdManager] ❌ AdexiumWidget global init error:', e);
-          }
-        }
-      };
-
-      document.addEventListener('DOMContentLoaded', function() {
-        if (window.initAdexiumGlobal) window.initAdexiumGlobal();
-      });
-    </script>
-    <script type="module" crossorigin src="/assets/index-DPvnT7a-.js"></script>
+    <script type="module" crossorigin src="/assets/index-B9maZeqo.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-D7n5eN9o.css">
   </head>
   <body>

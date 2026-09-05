@@ -212,7 +212,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
       }
 
       // Show confirmation toast
-      showToast('✅ Adexium ad watched successfully!', 'success');
+      showToast('✅ GigaPub ad watched successfully!', 'success');
 
       let res = await watchGramAd(user?.telegram_id);
       if (res.error && (res.error.includes('wait') || res.error.includes('short'))) {
@@ -242,7 +242,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
           triggerConfetti({ particleCount: 70, spread: 65, origin: { y: 0.65 } });
         }
 
-        const networkName = 'Adexium';
+        const networkName = 'GigaPub';
         const getEncouragement = (cnt, strk) => {
           if (cnt >= TOTAL_ADS) return `🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!`;
           if (cnt >= 50) return `⚡ ALMOST THERE! Only ${TOTAL_ADS - cnt} ads left to unlock 0.02 GRAM!`;
