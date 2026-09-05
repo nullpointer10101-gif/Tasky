@@ -146,6 +146,7 @@ export default function NftHolders() {
                   <th className="p-3.5">Account / User</th>
                   <th className="p-3.5">Available GRAM</th>
                   <th className="p-3.5">Total Deposited</th>
+                  <th className="p-3.5">Total Withdrawn</th>
                   <th className="p-3.5">Miners Owned</th>
                   <th className="p-3.5">Total Daily Return</th>
                   <th className="p-3.5">Total Yield Earned</th>
@@ -187,6 +188,9 @@ export default function NftHolders() {
                       </td>
                       <td className="p-3.5 font-black text-emerald-400">
                         +{Number(u.total_deposited_gram || 0).toFixed(3)} GRAM
+                      </td>
+                      <td className="p-3.5 font-black text-rose-400">
+                        +{Number(u.total_withdrawn_gram || 0).toFixed(3)} GRAM
                       </td>
                       <td className="p-3.5">
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -280,31 +284,35 @@ export default function NftHolders() {
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
               
               {/* Financial Metrics Cards Grid */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                <div className="bg-slate-800/60 border border-cyan-500/30 p-3.5 rounded-2xl">
-                  <p className="text-[10px] font-bold text-cyan-400/80 uppercase tracking-wider">Available Balance</p>
-                  <p className="text-lg font-black text-cyan-400 mt-1">+{Number(selectedUser.gram_balance || 0).toFixed(3)} GRAM</p>
+              <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5">
+                <div className="bg-slate-800/60 border border-cyan-500/30 p-3 rounded-2xl">
+                  <p className="text-[9px] font-bold text-cyan-400/80 uppercase tracking-wider">Available Balance</p>
+                  <p className="text-base font-black text-cyan-400 mt-1">+{Number(selectedUser.gram_balance || 0).toFixed(3)} GRAM</p>
                 </div>
-                <div className="bg-slate-800/60 border border-emerald-500/30 p-3.5 rounded-2xl">
-                  <p className="text-[10px] font-bold text-emerald-400/80 uppercase tracking-wider">Total Deposited</p>
-                  <p className="text-lg font-black text-emerald-400 mt-1">+{Number(selectedUser.total_deposited_gram || 0).toFixed(3)} GRAM</p>
+                <div className="bg-slate-800/60 border border-emerald-500/30 p-3 rounded-2xl">
+                  <p className="text-[9px] font-bold text-emerald-400/80 uppercase tracking-wider">Total Deposited</p>
+                  <p className="text-base font-black text-emerald-400 mt-1">+{Number(selectedUser.total_deposited_gram || 0).toFixed(3)} GRAM</p>
                 </div>
-                <div className="bg-slate-800/60 border border-orange-500/30 p-3.5 rounded-2xl">
-                  <p className="text-[10px] font-bold text-orange-400/80 uppercase tracking-wider">Spent on Miners</p>
-                  <p className="text-lg font-black text-orange-400 mt-1">{Number(selectedUser.total_spent_gram || 0).toFixed(2)} GRAM</p>
+                <div className="bg-slate-800/60 border border-rose-500/30 p-3 rounded-2xl">
+                  <p className="text-[9px] font-bold text-rose-400/80 uppercase tracking-wider">Total Withdrawn</p>
+                  <p className="text-base font-black text-rose-400 mt-1">+{Number(selectedUser.total_withdrawn_gram || 0).toFixed(3)} GRAM</p>
                 </div>
-                <div className="bg-slate-800/60 border border-purple-500/30 p-3.5 rounded-2xl">
-                  <p className="text-[10px] font-bold text-purple-400/80 uppercase tracking-wider">Daily Return</p>
-                  <p className="text-lg font-black text-purple-300 mt-1">+{Number(selectedUser.total_daily_yield || 0).toFixed(2)} GRAM/d</p>
+                <div className="bg-slate-800/60 border border-orange-500/30 p-3 rounded-2xl">
+                  <p className="text-[9px] font-bold text-orange-400/80 uppercase tracking-wider">Spent on Miners</p>
+                  <p className="text-base font-black text-orange-400 mt-1">{Number(selectedUser.total_spent_gram || 0).toFixed(2)} GRAM</p>
                 </div>
-                <div className="bg-slate-800/60 border border-amber-500/30 p-3.5 rounded-2xl col-span-2 sm:col-span-1">
-                  <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Max Daily Withdraw</p>
-                  <p className="text-lg font-black text-amber-300 mt-1">{Number(selectedUser.max_withdrawal_limit || 0.02).toFixed(2)} GRAM/d</p>
+                <div className="bg-slate-800/60 border border-purple-500/30 p-3 rounded-2xl">
+                  <p className="text-[9px] font-bold text-purple-400/80 uppercase tracking-wider">Daily Return</p>
+                  <p className="text-base font-black text-purple-300 mt-1">+{Number(selectedUser.total_daily_yield || 0).toFixed(2)} GRAM/d</p>
+                </div>
+                <div className="bg-slate-800/60 border border-amber-500/30 p-3 rounded-2xl col-span-2 sm:col-span-1">
+                  <p className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">Max Daily Limit</p>
+                  <p className="text-base font-black text-amber-300 mt-1">{Number(selectedUser.max_withdrawal_limit || 0.02).toFixed(2)} GRAM/d</p>
                 </div>
               </div>
 
               {/* Tabs Switcher */}
-              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3 flex-wrap">
                 <button
                   onClick={() => setActiveTab('miners')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
@@ -324,6 +332,16 @@ export default function NftHolders() {
                   }`}
                 >
                   <CreditCard size={14} /> Deposit History ({selectedUser.deposits?.length || 0})
+                </button>
+                <button
+                  onClick={() => setActiveTab('withdrawals')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    activeTab === 'withdrawals'
+                      ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/30'
+                      : 'bg-slate-800 text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <ArrowUpRight size={14} /> Gram Withdrawals ({selectedUser.withdrawals?.length || 0})
                 </button>
               </div>
 
@@ -457,6 +475,65 @@ export default function NftHolders() {
                                   >
                                     {d.tx_hash.slice(0, 6)}...{d.tx_hash.slice(-6)} <ArrowUpRight size={11} />
                                   </a>
+                                ) : (
+                                  <span className="text-slate-500">N/A</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Tab 3: Withdrawal History List */}
+              {activeTab === 'withdrawals' && (
+                <div>
+                  {(!selectedUser.withdrawals || selectedUser.withdrawals.length === 0) ? (
+                    <div className="p-8 text-center text-slate-500 bg-slate-800/30 rounded-2xl border border-slate-800">
+                      No GRAM withdrawal requests recorded for this account.
+                    </div>
+                  ) : (
+                    <div className="bg-slate-800/40 rounded-2xl border border-slate-800 overflow-hidden">
+                      <table className="w-full text-left text-xs text-slate-300">
+                        <thead className="bg-slate-800 uppercase tracking-wider text-[10px] text-slate-400 border-b border-slate-700">
+                          <tr>
+                            <th className="p-3">Requested Date</th>
+                            <th className="p-3">Withdrawn Amount</th>
+                            <th className="p-3">Status</th>
+                            <th className="p-3 text-right">Tx Hash / Wallet</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800/60">
+                          {selectedUser.withdrawals.map((w, idx) => (
+                            <tr key={idx} className="hover:bg-slate-800/50">
+                              <td className="p-3 text-slate-300">
+                                {new Date(w.requested_at).toLocaleString()}
+                              </td>
+                              <td className="p-3 font-black text-rose-400">
+                                +{Number(w.amount_gram || 0).toFixed(3)} GRAM
+                              </td>
+                              <td className="p-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${
+                                  w.status === 'approved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+                                }`}>
+                                  {w.status || 'approved'}
+                                </span>
+                              </td>
+                              <td className="p-3 text-right font-mono text-purple-400">
+                                {w.tx_hash ? (
+                                  <a
+                                    href={`https://tonviewer.com/transaction/${w.tx_hash}`}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="hover:underline flex items-center gap-1 justify-end text-[11px] text-blue-400"
+                                  >
+                                    {w.tx_hash.slice(0, 6)}...{w.tx_hash.slice(-6)} <ArrowUpRight size={11} />
+                                  </a>
+                                ) : w.wallet_address ? (
+                                  <span className="text-slate-400 text-[10px]">{w.wallet_address.slice(0, 6)}...{w.wallet_address.slice(-6)}</span>
                                 ) : (
                                   <span className="text-slate-500">N/A</span>
                                 )}

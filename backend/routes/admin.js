@@ -2137,6 +2137,30 @@ router.get('/nft-holders', async (req, res) => {
       }
     }
 
+    const withdrawalsQuery = `
+      SELECT telegram_id, amount, requested_at, status, tx_hash, wallet_address
+      FROM gram_withdrawals
+      ORDER BY requested_at DESC
+    `;
+    const { rows: rawWithdrawals } = await pool.query(withdrawalsQuery).catch(() => ({ rows: [] }));
+
+    const withdrawalsByTelegramId = {};
+    const totalWithdrawnByTelegramId = {};
+    for (const w of rawWithdrawals) {
+      const tid = String(w.telegram_id);
+      if (!withdrawalsByTelegramId[tid]) withdrawalsByTelegramId[tid] = [];
+      withdrawalsByTelegramId[tid].push({
+        amount_gram: parseFloat(w.amount || 0),
+        requested_at: w.requested_at,
+        status: w.status,
+        tx_hash: w.tx_hash,
+        wallet_address: w.wallet_address
+      });
+      if (w.status === 'approved') {
+        totalWithdrawnByTelegramId[tid] = (totalWithdrawnByTelegramId[tid] || 0) + parseFloat(w.amount || 0);
+      }
+    }
+
     const holders = rawHolders.map(h => {
       const durationDays = parseInt(h.total_days || h.duration_days, 10) || 10;
       const dailyYield = parseFloat(h.daily_yield_gram) || 0;
@@ -2160,6 +2184,7 @@ router.get('/nft-holders', async (req, res) => {
           gram_balance: h.gram_balance,
           latest_purchased_at: h.purchased_at,
           total_deposited_gram: totalDepositedByTelegramId[tid] || 0,
+          total_withdrawn_gram: totalWithdrawnByTelegramId[tid] || 0,
           total_spent_gram: 0,
           total_daily_yield: 0,
           total_earned_gram: 0,
@@ -2167,7 +2192,8 @@ router.get('/nft-holders', async (req, res) => {
           active_miners_count: 0,
           max_withdrawal_limit: 0.02,
           miners: [],
-          deposits: depositsByTelegramId[tid] || []
+          deposits: depositsByTelegramId[tid] || [],
+          withdrawals: withdrawalsByTelegramId[tid] || []
         };
       }
 
