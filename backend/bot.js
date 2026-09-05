@@ -15,9 +15,7 @@ const API_BASE = process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/api` : 
 
 let bot;
 if (token) {
-    // Only enable polling if bot.js is main entrypoint or running in production (prevents polling conflicts)
-    const shouldPoll = process.env.RENDER || process.env.NODE_ENV === 'production' || require.main === module;
-    bot = new TelegramBot(token, { polling: shouldPoll });
+    bot = new TelegramBot(token, { polling: true });
     bot.isDummy = false;
     
     bot.on('polling_error', (error) => {
