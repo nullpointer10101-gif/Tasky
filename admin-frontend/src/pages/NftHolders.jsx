@@ -150,6 +150,7 @@ export default function NftHolders() {
                   <th className="p-3.5">Total Daily Return</th>
                   <th className="p-3.5">Total Yield Earned</th>
                   <th className="p-3.5">Max Withdraw Limit</th>
+                  <th className="p-3.5">Purchased Date</th>
                   <th className="p-3.5 text-right">Details</th>
                 </tr>
               </thead>
@@ -158,6 +159,7 @@ export default function NftHolders() {
                   const megaCount = u.miners.filter(m => m.price_gram >= 5.0).length;
                   const turboCount = u.miners.filter(m => m.price_gram >= 1.0 && m.price_gram < 5.0).length;
                   const miniCount = u.miners.filter(m => m.price_gram < 1.0).length;
+                  const purchaseDate = u.latest_purchased_at || u.miners?.[0]?.purchased_at;
 
                   return (
                     <tr
@@ -216,6 +218,9 @@ export default function NftHolders() {
                       </td>
                       <td className="p-3.5 font-black text-amber-300 font-mono text-xs">
                         {Number(u.max_withdrawal_limit || 0.02).toFixed(2)} GRAM/d
+                      </td>
+                      <td className="p-3.5 text-slate-300 font-medium text-xs whitespace-nowrap">
+                        {purchaseDate ? new Date(purchaseDate).toLocaleString() : 'N/A'}
                       </td>
                       <td className="p-3.5 text-right">
                         <button

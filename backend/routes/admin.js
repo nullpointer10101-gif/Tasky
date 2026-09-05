@@ -2158,6 +2158,7 @@ router.get('/nft-holders', async (req, res) => {
           username: h.username,
           first_name: h.first_name,
           gram_balance: h.gram_balance,
+          latest_purchased_at: h.purchased_at,
           total_deposited_gram: totalDepositedByTelegramId[tid] || 0,
           total_spent_gram: 0,
           total_daily_yield: 0,
