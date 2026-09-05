@@ -218,18 +218,14 @@ async function broadcastPayoutProof(bot, {
     // Auto-detect NFT payout
     const isNftPayout = is_nft || /nft|miner/i.test(type) || !!nft_name;
 
-    // 2. Format User Display
-    let recipientDisplay = '';
-    const cleanName = (first_name || '').replace(/[<>]/g, '').trim();
+    // 2. Format User Display (Ultra clean, no clutter)
+    let userHandle = '';
     if (username) {
-      recipientDisplay = `@${username.replace(/^@/, '')} ${cleanName ? `(${cleanName})` : ''}`.trim();
-    } else if (cleanName) {
-      recipientDisplay = cleanName;
+      userHandle = `@${username.replace(/^@/, '')}`;
+    } else if (first_name) {
+      userHandle = (first_name || '').replace(/[<>]/g, '').trim();
     } else {
-      recipientDisplay = 'Active Member';
-    }
-    if (telegram_id) {
-      recipientDisplay += ` <code>[ID: ${maskTelegramId(telegram_id)}]</code>`;
+      userHandle = 'Active Member';
     }
 
     // 3. Format Transaction Explorer Link & Fetch OG Image Card
@@ -237,47 +233,35 @@ async function broadcastPayoutProof(bot, {
     const ogImageUrl = await fetchTonviewerOgImage(explorerLink);
     console.log('[PayoutChannel] Explorer link:', explorerLink, '| OG Image URL:', ogImageUrl ? 'Found' : 'Not Found');
 
-    const txLine = explorerLink
-      ? `🔗 <b>Tonviewer Transaction Link:</b>\n<a href="${explorerLink}">${explorerLink}</a>\n\n`
-      : (wallet ? `🔗 <b>Tonviewer Explorer:</b>\n<a href="https://tonviewer.com/${wallet}">https://tonviewer.com/${maskWallet(wallet)}</a>\n\n` : '');
-
     const dateStr = new Date().toUTCString().replace('GMT', 'UTC');
 
-    // 4. Construct Message HTML (NFT Miner VIP theme vs Standard theme)
+    // 4. Construct Clean, High-Dopamine Message HTML
     let messageHtml = '';
 
     if (isNftPayout) {
-      // 🌟 NFT DIGITAL MINER PROOF THEME 🚀
+      // 🌟 NFT VIP PAYOUT THEME 🚀
       messageHtml = 
-`✨ <b>NFT DIGITAL MINER PAYOUT PROOF</b> 🚀
-💎 <b>TASKY HIGH YIELD VIP RETURN</b> 💎
+`✨ <b>${amount} ${token} VIP PAYOUT SENT!</b> 🚀
 ━━━━━━━━━━━━━━━━━━━━
 
-👤 <b>VIP Holder:</b> ${recipientDisplay}
+👤 <b>VIP Holder:</b> ${userHandle}
 💎 <b>NFT Miner:</b> <b>${nft_name || 'NFT Digital Miner'}</b>
-💰 <b>Amount Paid:</b> <b>${amount} ${token}</b>
-🏷 <b>Reward Type:</b> ${type}
-🏦 <b>Tonkeeper Wallet:</b> <code>${wallet || 'N/A'}</code>
-⏰ <b>Date & Time:</b> ${dateStr}
+🏦 <b>Wallet:</b> <code>${maskWallet(wallet)}</code>
+⚡️ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ✅
 
-${txLine}━━━━━━━━━━━━━━━━━━━━
-⚡️ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ⚡️
-💎 <i>Earn guaranteed daily passive GRAM returns with Tasky NFT Digital Miners!</i>`;
+${explorerLink ? `🔗 <a href="${explorerLink}"><b>View Transaction on Tonviewer</b></a>` : ''}`;
     } else {
-      // ⚡️ STANDARD VERIFIED PAYOUT PROOF THEME 💎
+      // 💎 STANDARD VERIFIED PAYOUT THEME 🚀
       messageHtml = 
-`⚡️ <b>TASKY VERIFIED PAYOUT PROOF</b> 💎
+`💎 <b>${amount} ${token} SENT SUCCESSFULLY!</b> 🚀
 ━━━━━━━━━━━━━━━━━━━━
 
-👤 <b>Recipient:</b> ${recipientDisplay}
-💰 <b>Amount Paid:</b> <b>${amount} ${token}</b>
-🏷 <b>Reward Type:</b> ${type}
-🏦 <b>Tonkeeper Wallet:</b> <code>${wallet || 'N/A'}</code>
-⏰ <b>Date & Time:</b> ${dateStr}
+👤 <b>User:</b> ${userHandle}
+🏷 <b>Reward:</b> ${type}
+🏦 <b>Wallet:</b> <code>${maskWallet(wallet)}</code>
+⚡️ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ✅
 
-${txLine}━━━━━━━━━━━━━━━━━━━━
-✅ <b>Status:</b> <b>Confirmed & Paid on TON Blockchain</b> ⚡️
-🌟 <i>Tasky delivers verified crypto earnings daily! Join our community & start earning today.</i>`;
+${explorerLink ? `🔗 <a href="${explorerLink}"><b>View Transaction on Tonviewer</b></a>` : ''}`;
     }
 
     // 5. Build Inline Keyboard
