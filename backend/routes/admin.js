@@ -28,6 +28,29 @@ function getActiveTelegramBot() {
   return null;
 }
 
+function isUserBlockError(errMsg) {
+  if (!errMsg) return false;
+  return /blocked|deactivated|chat not found/i.test(String(errMsg));
+}
+
+async function sendWithRetry(sendFn, retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await sendFn();
+    } catch (err) {
+      if (err.message && (err.message.includes('429') || /retry after/i.test(err.message))) {
+        const match = err.message.match(/retry after (\d+)/i);
+        const retrySec = match ? parseInt(match[1], 10) : 2;
+        console.opacity = 1;
+        console.warn(`[BROADCAST 429] Rate limited. Sleeping ${retrySec + 1}s before retry...`);
+        await new Promise(r => setTimeout(r, (retrySec + 1) * 1000));
+      } else {
+        throw err;
+      }
+    }
+  }
+}
+
 // --- Simple Admin Auth Middleware ---
 // Expects an 'x-admin-password' header to match the .env ADMIN_PASSWORD
 const adminAuth = (req, res, next) => {
@@ -1058,14 +1081,14 @@ router.post('/broadcast', async (req, res) => {
 
     // Process asynchronously in background
     (async () => {
-      const BATCH_SIZE = 25;
+      const BATCH_SIZE = 30;
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
             const activeBot = getActiveTelegramBot();
             if (activeBot && typeof activeBot.sendMessage === 'function') {
-              await activeBot.sendMessage(tid, message, { parse_mode: 'HTML' });
+              await sendWithRetry(() => activeBot.sendMessage(tid, message, { parse_mode: 'HTML' }));
               global.customBroadcast.success++;
             } else {
               global.customBroadcast.failed++;
@@ -1074,11 +1097,13 @@ router.post('/broadcast', async (req, res) => {
           } catch (err) {
             console.error(`[CUSTOM BROADCAST] Failed to send to ${tid}:`, err.message);
             global.customBroadcast.failed++;
-            global.customBroadcast.lastError = err.message;
+            if (!isUserBlockError(err.message)) {
+              global.customBroadcast.lastError = err.message;
+            }
           }
         }));
         global.customBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 400));
       }
       global.customBroadcast.status = 'completed';
       console.log(`[CUSTOM BROADCAST] Finished! Success: ${global.customBroadcast.success}, Failed: ${global.customBroadcast.failed}`);
@@ -1648,7 +1673,7 @@ router.post('/broadcast/nft', async (req, res) => {
 
     // Process asynchronously in background
     (async () => {
-      const BATCH_SIZE = 25;
+      const BATCH_SIZE = 30;
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
@@ -1669,16 +1694,15 @@ router.post('/broadcast/nft', async (req, res) => {
                   : image_url;
 
                 try {
-                  await activeBot.sendPhoto(tid, photoSource, {
+                  await sendWithRetry(() => activeBot.sendPhoto(tid, photoSource, {
                     caption: message,
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
-                  });
+                  }));
                   sent = true;
                 } catch (photoErr) {
                   console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text:`, photoErr.message);
-                  const isUserBlock = /blocked|deactivated|chat not found/i.test(photoErr.message);
-                  if (!isUserBlock) {
+                  if (!isUserBlockError(photoErr.message)) {
                     global.nftBroadcast.lastError = photoErr.message;
                   }
                 }
@@ -1686,15 +1710,14 @@ router.post('/broadcast/nft', async (req, res) => {
 
               if (!sent && typeof activeBot.sendMessage === 'function') {
                 try {
-                  await activeBot.sendMessage(tid, message, {
+                  await sendWithRetry(() => activeBot.sendMessage(tid, message, {
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
-                  });
+                  }));
                   sent = true;
                 } catch (sendErr) {
                   console.error(`[NFT BROADCAST] text send error for ${tid}:`, sendErr.message);
-                  const isUserBlock = /blocked|deactivated|chat not found/i.test(sendErr.message);
-                  if (!isUserBlock) {
+                  if (!isUserBlockError(sendErr.message)) {
                     global.nftBroadcast.lastError = sendErr.message;
                   }
                 }
@@ -1714,8 +1737,7 @@ router.post('/broadcast/nft', async (req, res) => {
             console.error(`[NFT BROADCAST] Outer catch error for ${tid}:`, e.message, e.stack);
             if (global.nftBroadcast) {
               global.nftBroadcast.failed++;
-              const isUserBlock = /blocked|deactivated|chat not found/i.test(e.message);
-              if (!isUserBlock) {
+              if (!isUserBlockError(e.message)) {
                 global.nftBroadcast.lastError = `[outer] ${e.message}`;
               }
             }
@@ -1723,7 +1745,7 @@ router.post('/broadcast/nft', async (req, res) => {
         }));
 
         global.nftBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(r => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 400));
       }
       global.nftBroadcast.status = 'completed';
     })();
