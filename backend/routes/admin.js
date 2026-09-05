@@ -1508,14 +1508,22 @@ router.post('/gram/claims/review', async (req, res) => {
       if (bot && bot.sendMessage) {
         try {
           let txText = '';
-          if (tx_hash) {
-            const txLink = tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`;
+          const txLink = tx_hash ? (tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`) : null;
+          if (txLink) {
             txText = `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
           }
           await bot.sendMessage(
             telegram_id,
             `🎉 <b>Gram Reward Approved & Paid!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
-            { parse_mode: 'HTML', disable_web_page_preview: false }
+            {
+              parse_mode: 'HTML',
+              link_preview_options: txLink ? {
+                url: txLink,
+                is_disabled: false,
+                prefer_large_media: true,
+                show_above_text: false
+              } : { is_disabled: false }
+            }
           );
         } catch (e) {
           console.error('Failed to notify user of Gram claim approval:', e.message);
@@ -2004,14 +2012,22 @@ router.post('/gram-withdrawals/:id/approve', async (req, res) => {
     if (bot && bot.sendMessage) {
       try {
         let txText = '';
-        if (tx_hash) {
-          const txLink = tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`;
+        const txLink = tx_hash ? (tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`) : null;
+        if (txLink) {
           txText = `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
         }
         bot.sendMessage(
           w.telegram_id,
           `💎 <b>GRAM Withdrawal Approved!</b> 💎\n\n💰 <b>Amount:</b> <code>${w.amount} GRAM</code>\n🏦 <b>Address:</b> <code>${w.wallet_address}</code>\n\n🚀 Your GRAM withdrawal request has been successfully approved and is on the way!${txText}\n\n📢 <b>SHARE PROOF TO GET REWARDS:</b>\nShare a screenshot of your payment proof in our community to qualify for future bonus rewards:\n👉 <a href="https://t.me/TaskyOfficialCommunity">Join Tasky Official Community</a>\n\nThank you! 💎`,
-          { parse_mode: 'HTML', disable_web_page_preview: false }
+          {
+            parse_mode: 'HTML',
+            link_preview_options: txLink ? {
+              url: txLink,
+              is_disabled: false,
+              prefer_large_media: true,
+              show_above_text: false
+            } : { is_disabled: false }
+          }
         );
       } catch (e) {}
     }

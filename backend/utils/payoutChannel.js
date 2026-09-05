@@ -173,7 +173,12 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
     // 6. Send to Channel
     const result = await bot.sendMessage(channelId, messageHtml, {
       parse_mode: 'HTML',
-      disable_web_page_preview: false,
+      link_preview_options: explorerLink ? {
+        url: explorerLink,
+        is_disabled: false,
+        prefer_large_media: true,
+        show_above_text: false
+      } : { is_disabled: false },
       reply_markup: { inline_keyboard }
     });
 
