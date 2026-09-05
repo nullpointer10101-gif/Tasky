@@ -19,7 +19,9 @@ async function getUserMaxWithdrawalLimit(telegramId, dbClient = pool) {
         for (const row of res.rows) {
             const price = parseFloat(row.price_gram || 0);
             const totalYield = parseFloat(row.total_yield_gram || 0);
-            if (price >= 1.0 || totalYield >= 1.5) {
+            if (price >= 5.0 || totalYield >= 7.0) {
+                maxLimit = Math.max(maxLimit, 0.07); // Mega Miner -> 0.07
+            } else if (price >= 1.0 || totalYield >= 1.5) {
                 maxLimit = Math.max(maxLimit, 0.05); // Turbo Miner -> 0.05
             } else if (price >= 0.5 || totalYield >= 0.7) {
                 maxLimit = Math.max(maxLimit, 0.03); // Mini Miner -> 0.03
