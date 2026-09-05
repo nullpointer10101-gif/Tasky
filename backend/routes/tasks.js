@@ -98,10 +98,16 @@ router.get('/', async (req, res) => {
                 let completed = submissionMap[t.id] === 'approved';
                 let submission_status = submissionMap[t.id] || null;
 
-                if (t.is_daily && submission_status) {
+                const cooldownHours = t.cooldown_hours != null 
+                    ? parseFloat(t.cooldown_hours) 
+                    : ((t.id === 17 || (t.title && t.title.toLowerCase().includes('react to our latest post')) || t.type === 'hourly') 
+                        ? 1 
+                        : (t.is_daily ? 24 : null));
+
+                if (cooldownHours && submission_status) {
                     const lastSubTime = new Date(lastSubmissionTimeMap[t.id]);
                     const hoursSinceSub = (new Date() - lastSubTime) / (1000 * 60 * 60);
-                    if (hoursSinceSub >= 24) {
+                    if (hoursSinceSub >= cooldownHours) {
                         completed = false;
                         submission_status = null;
                     }
@@ -173,11 +179,22 @@ router.post('/complete', async (req, res) => {
             if (checkRes.rows.length > 0) {
                 existingTask = checkRes.rows[0];
                 if (existingTask.status !== 'rejected') {
-                    if (task.is_daily) {
+                    const cooldownHours = task.cooldown_hours != null 
+                        ? parseFloat(task.cooldown_hours) 
+                        : ((task.id === 17 || (task.title && task.title.toLowerCase().includes('react to our latest post')) || task.type === 'hourly') 
+                            ? 1 
+                            : (task.is_daily ? 24 : null));
+
+                    if (cooldownHours) {
                         const hoursSinceSub = (new Date() - new Date(existingTask.submitted_at)) / (1000 * 60 * 60);
-                        if (hoursSinceSub < 24) {
+                        if (hoursSinceSub < cooldownHours) {
+                            const minutesLeft = Math.ceil((cooldownHours - hoursSinceSub) * 60);
                             await client.query('ROLLBACK');
-                            return res.status(400).json({ error: 'You can only complete this task once every 24 hours.' });
+                            return res.status(400).json({ 
+                                error: cooldownHours === 1 
+                                    ? `You can complete this task again in ${minutesLeft} minute(s).` 
+                                    : `You can only complete this task once every ${cooldownHours} hours.` 
+                            });
                         }
                     } else {
                         await client.query('ROLLBACK');
