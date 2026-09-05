@@ -79,7 +79,7 @@ const StatusWidget = ({ status, themeColor = 'purple' }) => {
         </div>
       </div>
 
-      {status.lastError && failed > 0 && (
+      {status.lastError && failed > 0 && success === 0 && (
         <div className="text-[10px] text-rose-300/90 font-mono bg-rose-500/10 border border-rose-500/20 p-2 rounded-lg truncate">
           Error: {status.lastError}
         </div>

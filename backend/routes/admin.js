@@ -1661,10 +1661,13 @@ router.post('/broadcast/nft', async (req, res) => {
 
               let sent = false;
               if (image_url && typeof activeBot.sendPhoto === 'function') {
-                // Always use the URL directly - it's a valid Render HTTPS URL
-                // (local file path substitution removed - caused issues on Render)
+                const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+                const photoSource = (fs.existsSync(bannerPath)) 
+                  ? fs.createReadStream(bannerPath) 
+                  : image_url;
+
                 try {
-                  await activeBot.sendPhoto(tid, image_url, {
+                  await activeBot.sendPhoto(tid, photoSource, {
                     caption: message,
                     parse_mode: 'HTML',
                     reply_markup: replyMarkup
@@ -1672,7 +1675,10 @@ router.post('/broadcast/nft', async (req, res) => {
                   sent = true;
                 } catch (photoErr) {
                   console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text:`, photoErr.message);
-                  global.nftBroadcast.lastError = photoErr.message;
+                  const isUserBlock = /blocked|deactivated|chat not found/i.test(photoErr.message);
+                  if (!isUserBlock) {
+                    global.nftBroadcast.lastError = photoErr.message;
+                  }
                 }
               }
 
@@ -1685,7 +1691,10 @@ router.post('/broadcast/nft', async (req, res) => {
                   sent = true;
                 } catch (sendErr) {
                   console.error(`[NFT BROADCAST] text send error for ${tid}:`, sendErr.message);
-                  global.nftBroadcast.lastError = sendErr.message;
+                  const isUserBlock = /blocked|deactivated|chat not found/i.test(sendErr.message);
+                  if (!isUserBlock) {
+                    global.nftBroadcast.lastError = sendErr.message;
+                  }
                 }
               }
 
@@ -1703,7 +1712,10 @@ router.post('/broadcast/nft', async (req, res) => {
             console.error(`[NFT BROADCAST] Outer catch error for ${tid}:`, e.message, e.stack);
             if (global.nftBroadcast) {
               global.nftBroadcast.failed++;
-              global.nftBroadcast.lastError = `[outer] ${e.message}`;
+              const isUserBlock = /blocked|deactivated|chat not found/i.test(e.message);
+              if (!isUserBlock) {
+                global.nftBroadcast.lastError = `[outer] ${e.message}`;
+              }
             }
           }
         }));
