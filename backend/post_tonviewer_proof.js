@@ -3,21 +3,18 @@ const { pool } = require('./db');
 const { broadcastPayoutProof } = require('./utils/payoutChannel');
 
 async function run() {
-  const txLink = 'https://tonviewer.com/transaction/bf51ef8080a65a42e17037bd943231c3c038bf6eb9598a33090dd003199df4aa';
-  
-  // Attach this tx_hash to past claim #116 in DB
-  await pool.query("UPDATE gram_claims SET tx_hash = 'bf51ef8080a65a42e17037bd943231c3c038bf6eb9598a33090dd003199df4aa' WHERE id = 116");
+  const txLink = 'https://tonviewer.com/transaction/4fb6a709faccce35c84e942255b321dc657c1d933c78ad70ef78beee41239fb';
 
-  console.log('Broadcasting verified Tonviewer transaction receipt to @TaskyPayouts...');
+  console.log('Broadcasting verified transaction receipt to payout channel...');
   const result = await broadcastPayoutProof(bot, {
     type: 'Daily Quest 0.02 GRAM',
     amount: '0.02',
     token: 'GRAM',
-    wallet: 'UQCc1YR0xjmVKH3H9Vq-ae__cULTeHGl659EVFQWxvePpOfL',
+    wallet: 'UQAD0nP_8k69xpc4gKo5T8dnMErYrg_G8uK1hTgALays9NQD',
     tx_hash: txLink,
-    telegram_id: '5344124566',
-    username: 'MrWongzz',
-    first_name: 'Wong'
+    telegram_id: '5061043374',
+    username: 'Quanquan2k',
+    first_name: 'Quân'
   });
 
   console.log('Broadcast Result:', result);

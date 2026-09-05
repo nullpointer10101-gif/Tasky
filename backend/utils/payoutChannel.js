@@ -32,6 +32,10 @@ function getExplorerLink(txHash) {
   if (clean.startsWith('http://') || clean.startsWith('https://')) {
     return clean;
   }
+  // Auto-pad leading zero if transaction hash was copied with 63 hex characters instead of 64
+  if (/^[0-9a-fA-F]{63}$/.test(clean)) {
+    clean = '0' + clean;
+  }
   return `https://tonviewer.com/transaction/${clean}`;
 }
 
@@ -43,7 +47,7 @@ async function fetchTonviewerOgImage(explorerLink) {
   try {
     const res = await fetch(explorerLink, {
       headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' },
-      signal: AbortSignal.timeout(3500)
+      signal: AbortSignal.timeout(4500)
     });
     if (!res.ok) return null;
     const html = await res.text();
@@ -57,19 +61,6 @@ async function fetchTonviewerOgImage(explorerLink) {
 
 /**
  * Broadcasts a verified payout proof post to the configured Telegram Payout Channel.
- * 
- * @param {Object} bot Telegram Bot instance (node-telegram-bot-api)
- * @param {Object} params
- * @param {string} params.type Reward / Payout type (e.g. 'Daily Quest 0.02 GRAM', 'Gram Balance Withdrawal', 'NFT Miner Return')
- * @param {string|number} params.amount Amount sent
- * @param {string} params.token Currency ticker (e.g. 'GRAM', 'USDT')
- * @param {string} params.wallet Recipient wallet address
- * @param {string} [params.tx_hash] Blockchain transaction hash or link
- * @param {string|number} [params.telegram_id] Recipient Telegram user ID
- * @param {string} [params.username] Recipient Telegram @username
- * @param {string} [params.first_name] Recipient first name
- * @param {boolean} [params.is_nft] Whether recipient is an NFT Miner holder
- * @param {string} [params.nft_name] Name of the NFT Miner card
  */
 async function broadcastPayoutProof(bot, {
   type = 'Daily Quest Reward',
@@ -137,6 +128,7 @@ async function broadcastPayoutProof(bot, {
     // 3. Format Transaction Explorer Link & Fetch OG Image Card
     const explorerLink = getExplorerLink(tx_hash);
     const ogImageUrl = await fetchTonviewerOgImage(explorerLink);
+    console.log('[PayoutChannel] Explorer link:', explorerLink, '| OG Image URL:', ogImageUrl ? 'Found' : 'Not Found');
 
     const txLine = explorerLink
       ? `🔗 <b>Tonviewer Transaction Link:</b>\n<a href="${explorerLink}">${explorerLink}</a>\n\n`
@@ -194,30 +186,44 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       inline_keyboard[0].push({ text: '🌐 View Wallet', url: `https://tonviewer.com/${wallet}` });
     }
 
-    // 6. Send to Channel via sendPhoto (Primary: Full image card banner, Fallback: sendMessage)
-    const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
-    let result = null;
-
-    if (fs.existsSync(bannerPath)) {
+    // 6. Broadcast logic:
+    // A) If Tonviewer OG image card URL is found, send as PHOTO (shows transaction receipt card with amount & status)
+    if (ogImageUrl) {
       try {
-        const stream = fs.createReadStream(bannerPath);
-        result = await bot.sendPhoto(channelId, stream, {
+        const photoResult = await bot.sendPhoto(channelId, ogImageUrl, {
           caption: messageHtml,
           parse_mode: 'HTML',
           reply_markup: { inline_keyboard }
         });
-        console.log(`[PayoutChannel] Successfully posted payout proof photo to ${channelId} (msg_id: ${result?.message_id})`);
-        return { success: true, message_id: result?.message_id };
+        console.log(`[PayoutChannel] Successfully posted Tonviewer transaction photo card to ${channelId} (msg_id: ${photoResult?.message_id})`);
+        return { success: true, message_id: photoResult?.message_id };
       } catch (photoErr) {
-        console.error(`[PayoutChannel] sendPhoto failed, falling back to sendMessage:`, photoErr.message);
+        console.error(`[PayoutChannel] sendPhoto with ogImageUrl failed:`, photoErr.message);
       }
     }
 
-    // Fallback to sendMessage with link_preview_options if photo not available
-    result = await bot.sendMessage(channelId, messageHtml, {
+    // B) If it's an NFT payout, send NFT banner photo
+    const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+    if (isNftPayout && fs.existsSync(bannerPath)) {
+      try {
+        const stream = fs.createReadStream(bannerPath);
+        const nftResult = await bot.sendPhoto(channelId, stream, {
+          caption: messageHtml,
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard }
+        });
+        console.log(`[PayoutChannel] Successfully posted NFT banner photo to ${channelId} (msg_id: ${nftResult?.message_id})`);
+        return { success: true, message_id: nftResult?.message_id };
+      } catch (nftErr) {
+        console.error(`[PayoutChannel] sendPhoto with NFT banner failed:`, nftErr.message);
+      }
+    }
+
+    // C) Fallback: Send message with link_preview_options
+    const textResult = await bot.sendMessage(channelId, messageHtml, {
       parse_mode: 'HTML',
-      link_preview_options: (ogImageUrl || explorerLink) ? {
-        url: ogImageUrl || explorerLink,
+      link_preview_options: explorerLink ? {
+        url: explorerLink,
         is_disabled: false,
         prefer_large_media: true,
         show_above_text: false
@@ -225,8 +231,8 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       reply_markup: { inline_keyboard }
     });
 
-    console.log(`[PayoutChannel] Successfully posted payout proof text to ${channelId} (msg_id: ${result?.message_id})`);
-    return { success: true, message_id: result?.message_id };
+    console.log(`[PayoutChannel] Successfully posted payout proof text to ${channelId} (msg_id: ${textResult?.message_id})`);
+    return { success: true, message_id: textResult?.message_id };
   } catch (err) {
     console.error(`[PayoutChannel] Failed to post payout proof to channel:`, err.message);
     return { error: err.message };
@@ -237,5 +243,6 @@ module.exports = {
   broadcastPayoutProof,
   maskTelegramId,
   maskWallet,
-  getExplorerLink
+  getExplorerLink,
+  fetchTonviewerOgImage
 };
