@@ -24,6 +24,9 @@ export function initGigaAds() {
   }
 }
 
+// Auto-initialize GigaPub immediately on module load
+initGigaAds();
+
 export function prefetchGramAd() {
   initGigaAds();
 }

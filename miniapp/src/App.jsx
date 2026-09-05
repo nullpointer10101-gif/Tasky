@@ -16,7 +16,7 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
-import { initAdexiumAds, triggerStartupAd, startPeriodicAdLoop } from './adUtils'
+import { initGigaAds, triggerStartupAd, startPeriodicAdLoop } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
@@ -91,8 +91,8 @@ export default function App() {
       }
     }
     boot()
-    // Initialize Adexium SDK, trigger startup ad, and start periodic 2-minute ad loop
-    initAdexiumAds()
+    // Initialize GigaPub SDK, trigger startup ad automatically on opening app, and start periodic ad loop
+    initGigaAds()
     triggerStartupAd()
     startPeriodicAdLoop()
   }, [tgUser])
