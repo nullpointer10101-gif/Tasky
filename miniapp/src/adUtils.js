@@ -153,12 +153,15 @@ function _isAdexiumAdOnScreen() {
  * Primary: Adexium (WID e93d690f-bdc3-4ed5-8d9f-8f208afa3774) | Fallback: GigaPub (7451)
  *
  * @param {string} placement
+ * @param {{ allowFallback?: boolean, adexiumOnly?: boolean }} [options]
  * @returns {Promise<{ success: boolean, network: 'adexium' | 'gigapub', error?: string }>}
  */
-export async function showRewardedAd(placement = 'main') {
+export async function showRewardedAd(placement = 'main', options = {}) {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
+
+  const allowFallback = options.allowFallback !== false && !options.adexiumOnly && placement !== 'tasks';
 
   // Ensure Telegram WebApp ready signal is sent
   try {
@@ -168,7 +171,9 @@ export async function showRewardedAd(placement = 'main') {
   } catch(e) {}
 
   initAdexiumAds();
-  initGigaAds();
+  if (allowFallback) {
+    initGigaAds();
+  }
 
   let widget = window._adexiumInstance || window.adexiumWidget;
   if (!widget) {
@@ -181,11 +186,16 @@ export async function showRewardedAd(placement = 'main') {
   }
 
   if (!widget) {
-    console.error('[AdManager] ❌ Adexium SDK initialization timeout. Falling back to GigaPub...');
-    return await showGigaPubAdFallback();
+    if (allowFallback) {
+      console.error('[AdManager] ❌ Adexium SDK initialization timeout. Falling back to GigaPub...');
+      return await showGigaPubAdFallback();
+    } else {
+      console.error('[AdManager] ❌ Adexium SDK initialization timeout. Fallback disabled for Adexium-only task.');
+      return { success: false, network: 'adexium', error: 'No Adexium ads available right now. Please try again in a moment.' };
+    }
   }
 
-  console.log('[AdManager] 🎯 Requesting Rewarded Ad via Adexium (Primary)...', widget);
+  console.log(`[AdManager] 🎯 Requesting Rewarded Ad via Adexium (Placement: ${placement}, AdexiumOnly: ${!allowFallback})...`, widget);
 
   // Reset ad tracking flags & frequency capping locks for 100% impression counting
   window._adexiumLastAd = null;
@@ -330,8 +340,16 @@ export async function showRewardedAd(placement = 'main') {
     return { success: true, network: 'adexium' };
   }
 
-  console.warn('[AdManager] ⚠️ Adexium produced no ad fill. Initiating GigaPub fallback...');
-  return await showGigaPubAdFallback();
+  if (allowFallback) {
+    console.warn('[AdManager] ⚠️ Adexium produced no ad fill. Initiating GigaPub fallback...');
+    return await showGigaPubAdFallback();
+  }
+
+  return {
+    success: false,
+    network: 'adexium',
+    error: 'No Adexium ads available right now. Please try again in a moment.'
+  };
 }
 
 /**

@@ -200,8 +200,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
           }
         }
 
-        // Show the rewarded ad only for auto_ad tasks
-        const adResult = await showRewardedAd('main');
+        // Show rewarded ad using Adexium ONLY (no GigaPub fallback) for auto_ad tasks
+        const adResult = await showRewardedAd('tasks', { adexiumOnly: true, allowFallback: false });
         if (!adResult.success) {
           showToast(adResult.error || 'You must watch the entire ad to get the reward.', 'error');
           setIsSubmitting(false);
