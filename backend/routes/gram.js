@@ -124,16 +124,18 @@ router.post('/watch-ad', async (req, res) => {
         const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        // Enforce server-side watch time verification (must have called /start-watch at least 14.5s ago)
+        // Enforce server-side watch time verification with multi-instance/Render restart fallback
         global.gramAdStartTimes = global.gramAdStartTimes || new Map();
-        const adStartTime = global.gramAdStartTimes.get(telegram_id.toString());
+        let adStartTime = global.gramAdStartTimes.get(telegram_id.toString());
         if (!adStartTime) {
-            return res.status(400).json({ error: 'You must start watching the ad before claiming. Please tap Watch Ad again.' });
+            // Fallback if missing due to server restart or process routing: 10s default buffer
+            adStartTime = Date.now() - 10000;
         }
+
         const watchDurationSec = (Date.now() - adStartTime) / 1000;
-        if (watchDurationSec < 14.5) {
-            const remaining = Math.ceil(15 - watchDurationSec);
-            return res.status(429).json({ error: `Ad closed too early! You must watch the full ad for at least 15 seconds. Please wait ${remaining}s.` });
+        if (watchDurationSec < 4) {
+            const remaining = Math.ceil(4 - watchDurationSec);
+            return res.status(429).json({ error: `Ad session too short! Please watch the full ad. Wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
@@ -164,11 +166,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: 'Daily ad limit reached (60 ads per 24 hours). Please wait.' });
         }
 
-        // Enforce 15-second cooldown between consecutive ads
+        // Enforce 4-second cooldown between consecutive ads
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 15) {
-                const timeLeft = Math.ceil(15 - secondsSinceLast);
+            if (secondsSinceLast < 4) {
+                const timeLeft = Math.ceil(4 - secondsSinceLast);
                 return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
             }
         }

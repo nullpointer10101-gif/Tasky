@@ -189,11 +189,11 @@ export default function Tasks({ user, refreshUser, navigate }) {
       }
 
       if (selectedTask.verification_type === 'auto_ad') {
-        // Enforce 10-second cooldown
+        // Enforce 4-second cooldown
         if (selectedTask.last_ad_time) {
           const secondsSinceLastAd = (Date.now() - new Date(selectedTask.last_ad_time).getTime()) / 1000;
-          if (secondsSinceLastAd < 10) {
-            const timeLeft = Math.ceil(10 - secondsSinceLastAd);
+          if (secondsSinceLastAd < 4) {
+            const timeLeft = Math.ceil(4 - secondsSinceLastAd);
             showToast(`Please wait ${timeLeft} seconds before watching another ad.`, 'error');
             setIsSubmitting(false);
             return;

@@ -188,8 +188,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
   const handleWatchAd = async () => {
     if (status?.last_ad_time) {
       const secs = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
-      if (secs < 10) {
-        showToast(`Wait ${Math.ceil(10 - secs)}s before next ad.`, 'error');
+      if (secs < 4) {
+        showToast(`Wait ${Math.ceil(4 - secs)}s before next ad.`, 'error');
         return;
       }
     }
@@ -214,7 +214,13 @@ export default function Gram({ user, refreshUser, tgUser }) {
       // Show confirmation toast
       showToast('✅ Adexium ad watched successfully!', 'success');
 
-      const res = await watchGramAd(user?.telegram_id);
+      let res = await watchGramAd(user?.telegram_id);
+      if (res.error && (res.error.includes('wait') || res.error.includes('short'))) {
+        // Auto-retry once after 2 seconds if backend requested a brief wait
+        await new Promise(r => setTimeout(r, 2000));
+        res = await watchGramAd(user?.telegram_id);
+      }
+
       if (res.error) {
         showToast(res.error, 'error');
       } else {

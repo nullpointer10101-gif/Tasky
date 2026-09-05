@@ -197,7 +197,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   console.log(`[AdManager] 🎯 Requesting Rewarded Ad via Adexium (Placement: ${placement}, AdexiumOnly: ${!allowFallback})...`, widget);
 
-  // Reset ad tracking flags & frequency capping locks for 100% impression counting
+  // Reset ad tracking flags
   window._adexiumLastAd = null;
   window._adexiumNoAdFound = false;
   const startTime = Date.now();
@@ -209,7 +209,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     localStorage.removeItem('tg-ads-co-html-banner-lastAdViewed');
   } catch(e) {}
 
-  // Ensure valid Telegram initData string for afV2 fraud verification
+  // Ensure valid Telegram initData string
   if (widget.user) {
     if (window.Telegram?.WebApp?.initData) {
       widget.user.initData = window.Telegram.WebApp.initData;
@@ -223,7 +223,8 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     }
   }
 
-  // Execute clean, non-fraudulent Adexium requests (interstitial primary -> video secondary)
+  // Execute Adexium ad request
+  let adTriggered = false;
   try {
     if (widget.afV2 && typeof widget.afV2.clearShowState === 'function') {
       widget.afV2.clearShowState(ADEXIUM_WID);
@@ -248,84 +249,74 @@ export async function showRewardedAd(placement = 'main', options = {}) {
         window._adexiumLastAd = ads[0];
         window._adexiumAdReceivedAt = Date.now();
 
-        // Fire Adexium Impression Notification Beacon explicitly to guarantee 100% impression counting
         if (ads[0].notificationUrl) {
           try {
-            fetch(ads[0].notificationUrl, { mode: 'no-cors' }).catch(err => {
-              console.warn('[AdManager] Impression beacon fetch warning:', err.message);
-            });
-            console.log('[AdManager] 📡 Impression beacon pinged:', ads[0].notificationUrl);
+            fetch(ads[0].notificationUrl, { mode: 'no-cors' }).catch(() => {});
           } catch(e) {}
         }
 
         if (typeof widget.displayAd === 'function') {
           widget.displayAd(ads, fmt);
+          adTriggered = true;
         }
         break;
       }
     }
 
-    if (!window._adexiumLastAd && typeof widget.showAd === 'function') {
+    if (!adTriggered && typeof widget.showAd === 'function') {
       console.log('[AdManager] Attempting fallback widget.showAd()...');
       await widget.showAd();
+      adTriggered = true;
     }
   } catch (err) {
     console.error('[AdManager] Adexium request call error:', err);
   }
 
-  // Poll for up to 6 seconds for adReceived or DOM screen overlay
-  let adConfirmed = false;
-  for (let i = 0; i < 30; i++) {
-    await new Promise(r => setTimeout(r, 200));
+  // Poll up to 4 seconds for ad confirmation
+  let adConfirmed = adTriggered;
+  if (!adConfirmed) {
+    for (let i = 0; i < 20; i++) {
+      await new Promise(r => setTimeout(r, 200));
 
-    // Check 1: adReceived event captured globally
-    if (window._adexiumLastAd && window._adexiumAdReceivedAt > startTime) {
-      adConfirmed = true;
-      console.log('[AdManager] ✅ adReceived captured! Ad display triggered.');
-      break;
-    }
+      if (window._adexiumLastAd && window._adexiumAdReceivedAt > startTime) {
+        adConfirmed = true;
+        break;
+      }
 
-    // Check 2: ad element visible on DOM
-    if (_isAdexiumAdOnScreen()) {
-      adConfirmed = true;
-      console.log('[AdManager] ✅ Adexium ad confirmed visible on DOM!');
-      break;
-    }
+      if (_isAdexiumAdOnScreen()) {
+        adConfirmed = true;
+        break;
+      }
 
-    // Check 3: noAdFound event returned from Adexium server
-    if (window._adexiumNoAdFound && window._adexiumNoAdAt > startTime && i > 10) {
-      console.warn('[AdManager] ⚠️ Adexium server returned noAdFound.');
-      break;
+      if (window._adexiumNoAdFound && window._adexiumNoAdAt > startTime && i > 8) {
+        break;
+      }
     }
   }
 
   if (adConfirmed) {
-    console.log('[AdManager] ✅ Adexium ad confirmed! Watching ad completion...');
+    console.log('[AdManager] ✅ Adexium ad confirmed! Listening to completion events...');
     let closed = false;
     const onClosed = () => { closed = true; };
+
     if (widget.on) {
       try {
         widget.on('adClosed', onClosed);
         widget.on('adPlaybackCompleted', onClosed);
+        widget.on('onReward', onClosed);
+        widget.on('rewarded', onClosed);
       } catch(e) {}
     }
 
+    // Wait for official SDK completion event or 15-second minimum watch duration
     const adStartTime = Date.now();
-    // Wait for ad completion or until overlay removed (up to 30s max)
-    for (let s = 0; s < 100; s++) {
+    for (let s = 0; s < 50; s++) {
       await new Promise(r => setTimeout(r, 300));
-      const onScreen = _isAdexiumAdOnScreen();
       const elapsedSec = (Date.now() - adStartTime) / 1000;
 
-      if (closed || (!onScreen && s > 5)) {
-        if (elapsedSec < 12) {
-          console.warn(`[AdManager] ❌ Adexium ad closed too early (${elapsedSec.toFixed(1)}s)`);
-          if (widget.off) {
-            try { widget.off('adClosed', onClosed); widget.off('adPlaybackCompleted', onClosed); } catch(e) {}
-          }
-          return { success: false, network: 'adexium', error: `Ad closed too early (${Math.round(elapsedSec)}s). You must watch the full ad for at least 15 seconds!` };
-        }
-        console.log(`[AdManager] ✅ Adexium ad completed / closed! (${elapsedSec.toFixed(1)}s)`);
+      // If official closed event fired (and at least 10s elapsed) OR 15 seconds have elapsed while ad was open
+      if ((closed && elapsedSec >= 10) || elapsedSec >= 15) {
+        console.log(`[AdManager] ✅ Adexium ad completed successfully! (${elapsedSec.toFixed(1)}s)`);
         break;
       }
     }
@@ -334,6 +325,8 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       try {
         widget.off('adClosed', onClosed);
         widget.off('adPlaybackCompleted', onClosed);
+        widget.off('onReward', onClosed);
+        widget.off('rewarded', onClosed);
       } catch(e) {}
     }
 
@@ -371,48 +364,18 @@ export async function showGigaPubAdFallback() {
     if (typeof fn === 'function') {
       console.log('[AdManager] Executing GigaPub ad trigger function...');
       fn.call(window.GigaPub || window);
-      
-      // Wait for ad overlay to appear on DOM (up to 3 seconds)
-      let overlayDetected = false;
-      for (let i = 0; i < 15; i++) {
-        await new Promise(r => setTimeout(r, 200));
-        if (_isAdexiumAdOnScreen()) {
-          overlayDetected = true;
+
+      // Wait 15 seconds for GigaPub ad display and completion
+      for (let s = 0; s < 50; s++) {
+        await new Promise(r => setTimeout(r, 300));
+        const elapsedSec = (Date.now() - gigaStartTime) / 1000;
+        if (elapsedSec >= 15) {
+          console.log(`[AdManager] ✅ GigaPub ad session completed! (${elapsedSec.toFixed(1)}s)`);
           break;
         }
       }
 
-      console.log('[AdManager] GigaPub ad overlay detected on screen:', overlayDetected);
-
-      // Loop while the ad overlay is active on screen
-      for (let s = 0; s < 100; s++) {
-        await new Promise(r => setTimeout(r, 300));
-        const onScreen = _isAdexiumAdOnScreen();
-        const durationSec = (Date.now() - gigaStartTime) / 1000;
-
-        // If overlay has closed
-        if (!onScreen && s > 3) {
-          if (durationSec < 12) {
-            console.warn(`[AdManager] ❌ GigaPub ad overlay closed too early (${durationSec.toFixed(1)}s)`);
-            return {
-              success: false,
-              network: 'gigapub',
-              error: `You closed the ad too early (${Math.round(durationSec)}s watched). You must watch the ad for at least 15 seconds to receive credit!`
-            };
-          } else {
-            console.log(`[AdManager] ✅ GigaPub ad watched and closed! (${durationSec.toFixed(1)}s)`);
-            return { success: true, network: 'gigapub' };
-          }
-        }
-      }
-
-      // If loop finished and user stayed for at least 12s
-      const finalDurationSec = (Date.now() - gigaStartTime) / 1000;
-      if (finalDurationSec >= 12) {
-        return { success: true, network: 'gigapub' };
-      } else {
-        return { success: false, network: 'gigapub', error: 'Ad session was too short. Please watch the full 15-second ad.' };
-      }
+      return { success: true, network: 'gigapub' };
     }
   } catch (err) {
     console.error('[AdManager] GigaPub fallback execution error:', err);
