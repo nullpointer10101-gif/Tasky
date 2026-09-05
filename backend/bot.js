@@ -11,7 +11,7 @@ const candidateTokens = [
 
 const token = candidateTokens[0] || null;
 const PORT = process.env.PORT || 3000;
-const API_BASE = `http://localhost:${PORT}/api`;
+const API_BASE = process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/api` : `http://127.0.0.1:${PORT}/api`;
 
 let bot;
 if (token) {
@@ -50,16 +50,48 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
     const refCode = match[1];
     
     try {
-        await fetch(`${API_BASE}/users/register`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                telegram_id: msg.from.id,
-                username: msg.from.username,
-                first_name: msg.from.first_name,
-                ref: refCode
-            })
-        });
+        // Direct DB user registration (eliminates HTTP loopback dependency)
+        try {
+            const client = await pool.connect();
+            try {
+                await client.query('BEGIN');
+                const userRes = await client.query('SELECT telegram_id FROM users WHERE telegram_id = $1', [msg.from.id]);
+                if (userRes.rows.length > 0) {
+                    if (msg.from.first_name || msg.from.username) {
+                        await client.query(
+                            'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id = $3',
+                            [msg.from.first_name, msg.from.username, msg.from.id]
+                        );
+                    }
+                    await client.query('COMMIT');
+                } else {
+                    let referred_by = null;
+                    if (refCode) {
+                        const refId = parseInt(refCode);
+                        if (!isNaN(refId) && refId !== parseInt(msg.from.id)) {
+                            const referrerCheck = await client.query('SELECT telegram_id FROM users WHERE telegram_id = $1', [refId]);
+                            if (referrerCheck.rows.length > 0) {
+                                referred_by = refId;
+                            }
+                        }
+                    }
+
+                    await client.query(
+                        `INSERT INTO users (telegram_id, username, first_name, referred_by, balance, task_earnings, referral_earnings)
+                         VALUES ($1, $2, $3, $4, 0, 0, 0)`,
+                        [msg.from.id, msg.from.username, msg.from.first_name, referred_by]
+                    );
+                    await client.query('COMMIT');
+                }
+            } catch (dbErr) {
+                await client.query('ROLLBACK');
+                console.error('Error registering user in /start:', dbErr.message);
+            } finally {
+                client.release();
+            }
+        } catch (poolErr) {
+            console.error('DB pool error in /start:', poolErr.message);
+        }
         
         // PERMANENT STABLE URL — always use the alias, never the hash deployment URL
         const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
