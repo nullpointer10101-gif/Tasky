@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const { pool } = require('../db');
 
 /**
@@ -31,6 +33,26 @@ function getExplorerLink(txHash) {
     return clean;
   }
   return `https://tonviewer.com/transaction/${clean}`;
+}
+
+/**
+ * Fetches the dynamic OpenGraph transfer image card URL from Tonviewer for a transaction link
+ */
+async function fetchTonviewerOgImage(explorerLink) {
+  if (!explorerLink || !explorerLink.includes('tonviewer.com')) return null;
+  try {
+    const res = await fetch(explorerLink, {
+      headers: { 'User-Agent': 'TelegramBot (like TwitterBot)' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const match = html.match(/property=["']og:image["'][^>]+content=["']([^"']+)["']/i) || html.match(/content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+    if (match && match[1]) {
+      return match[1];
+    }
+  } catch (e) {}
+  return null;
 }
 
 /**
@@ -112,8 +134,10 @@ async function broadcastPayoutProof(bot, {
       recipientDisplay += ` <code>[ID: ${maskTelegramId(telegram_id)}]</code>`;
     }
 
-    // 3. Format Transaction Explorer Link
+    // 3. Format Transaction Explorer Link & Fetch OG Image Card
     const explorerLink = getExplorerLink(tx_hash);
+    const ogImageUrl = await fetchTonviewerOgImage(explorerLink);
+
     const txLine = explorerLink
       ? `🔗 <b>Tonviewer Transaction Link:</b>\n<a href="${explorerLink}">${explorerLink}</a>\n\n`
       : (wallet ? `🔗 <b>Tonviewer Explorer:</b>\n<a href="https://tonviewer.com/${wallet}">https://tonviewer.com/${maskWallet(wallet)}</a>\n\n` : '');
@@ -170,11 +194,30 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       inline_keyboard[0].push({ text: '🌐 View Wallet', url: `https://tonviewer.com/${wallet}` });
     }
 
-    // 6. Send to Channel
-    const result = await bot.sendMessage(channelId, messageHtml, {
+    // 6. Send to Channel via sendPhoto (Primary: Full image card banner, Fallback: sendMessage)
+    const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+    let result = null;
+
+    if (fs.existsSync(bannerPath)) {
+      try {
+        const stream = fs.createReadStream(bannerPath);
+        result = await bot.sendPhoto(channelId, stream, {
+          caption: messageHtml,
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard }
+        });
+        console.log(`[PayoutChannel] Successfully posted payout proof photo to ${channelId} (msg_id: ${result?.message_id})`);
+        return { success: true, message_id: result?.message_id };
+      } catch (photoErr) {
+        console.error(`[PayoutChannel] sendPhoto failed, falling back to sendMessage:`, photoErr.message);
+      }
+    }
+
+    // Fallback to sendMessage with link_preview_options if photo not available
+    result = await bot.sendMessage(channelId, messageHtml, {
       parse_mode: 'HTML',
-      link_preview_options: explorerLink ? {
-        url: explorerLink,
+      link_preview_options: (ogImageUrl || explorerLink) ? {
+        url: ogImageUrl || explorerLink,
         is_disabled: false,
         prefer_large_media: true,
         show_above_text: false
@@ -182,7 +225,7 @@ ${txLine}━━━━━━━━━━━━━━━━━━━━
       reply_markup: { inline_keyboard }
     });
 
-    console.log(`[PayoutChannel] Successfully posted payout proof to ${channelId} (msg_id: ${result?.message_id})`);
+    console.log(`[PayoutChannel] Successfully posted payout proof text to ${channelId} (msg_id: ${result?.message_id})`);
     return { success: true, message_id: result?.message_id };
   } catch (err) {
     console.error(`[PayoutChannel] Failed to post payout proof to channel:`, err.message);
