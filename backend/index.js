@@ -101,23 +101,29 @@ app.get('/', (req, res) => {
   res.json({ status: 'Tasky Bot Backend is running', db: global.dbConnected ? 'connected' : 'disconnected' });
 });
 
-// Global Maintenance Middleware (Skip /api/admin)
+// Global Maintenance Middleware (Skip /api/admin) with 15s in-memory cache
+let _lastMaintenanceCheck = 0;
+let _cachedMaintenanceActive = false;
+
 app.use(async (req, res, next) => {
   if (req.path.startsWith('/api/admin')) {
     return next();
   }
 
-  // If DB is connected, check system_settings for maintenance
-  if (global.dbConnected) {
+  const now = Date.now();
+  if (global.dbConnected && now - _lastMaintenanceCheck > 15000) {
+    _lastMaintenanceCheck = now;
     try {
       const { pool } = require('./db');
       const { rows } = await pool.query("SELECT value FROM system_settings WHERE key = 'maintenance'");
-      if (rows.length > 0 && rows[0].value.active) {
-        return res.status(503).json({ error: 'MAINTENANCE_MODE', message: 'Tasky is currently under maintenance. We will be back shortly!' });
-      }
+      _cachedMaintenanceActive = Boolean(rows.length > 0 && rows[0].value && rows[0].value.active);
     } catch (e) {
       console.error('Maintenance check error:', e.message);
     }
+  }
+
+  if (_cachedMaintenanceActive) {
+    return res.status(503).json({ error: 'MAINTENANCE_MODE', message: 'Tasky is currently under maintenance. We will be back shortly!' });
   }
   next();
 });
