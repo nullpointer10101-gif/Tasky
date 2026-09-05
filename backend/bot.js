@@ -76,10 +76,12 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                         }
                     }
 
+                    const userRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
+
                     await client.query(
-                        `INSERT INTO users (telegram_id, username, first_name, referred_by, balance, task_earnings, referral_earnings)
-                         VALUES ($1, $2, $3, $4, 0, 0, 0)`,
-                        [msg.from.id, msg.from.username, msg.from.first_name, referred_by]
+                        `INSERT INTO users (telegram_id, username, first_name, referral_code, referred_by, balance)
+                         VALUES ($1, $2, $3, $4, $5, 0)`,
+                        [msg.from.id, msg.from.username || null, msg.from.first_name || 'User', userRefCode, referred_by]
                     );
                     await client.query('COMMIT');
                 }
