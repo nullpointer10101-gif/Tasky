@@ -115,11 +115,14 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             console.error('Failed to set chat menu button:', e.message);
         }
 
-        const captionText = `🚀 *Welcome to TASKY, ${msg.from.first_name}!*\n\nStart earning crypto instantly with the ultimate Web3 bot.\n\n✅ *Complete Tasks*\n🤝 *Invite Friends*\n⛏ *Mine & Grow*\n🎁 *Daily Rewards*\n\nTap below to launch your rig and start earning! 👇`;
+        const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const firstNameEscaped = escapeHtml(msg.from.first_name || 'User');
+
+        const captionText = `🚀 <b>Welcome to TASKY, ${firstNameEscaped}!</b>\n\nStart earning crypto instantly with the ultimate Web3 bot.\n\n✅ <b>Complete Tasks</b>\n🤝 <b>Invite Friends</b>\n⛏ <b>Mine & Grow</b>\n🎁 <b>Daily Rewards</b>\n\nTap below to launch your rig and start earning! 👇`;
 
         const opts = {
             caption: captionText,
-            parse_mode: 'Markdown',
+            parse_mode: 'HTML',
             reply_markup: {
                 inline_keyboard: [
                     [{ text: '🐾 Launch TASKY', web_app: { url: webAppUrl } }],
@@ -139,12 +142,25 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const imagePath = path.join(__dirname, 'assets', 'welcome_promo.png');
         
         if (fs.existsSync(imagePath)) {
-            bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+            try {
+                await bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+            } catch (photoErr) {
+                console.error('[Bot /start] sendPhoto error:', photoErr.message);
+                await bot.sendMessage(chatId, captionText, opts);
+            }
         } else {
-            bot.sendMessage(chatId, opts.caption, opts);
+            await bot.sendMessage(chatId, captionText, opts);
         }
     } catch (e) {
-         bot.sendMessage(chatId, 'Error connecting to the server. Please try again later.');
+        console.error('[Bot /start] Uncaught error:', e.message);
+        try {
+            await bot.sendMessage(chatId, `🚀 <b>Welcome to TASKY!</b>\n\nTap below to start earning!`, {
+                parse_mode: 'HTML',
+                reply_markup: {
+                    inline_keyboard: [[{ text: '🐾 Launch TASKY', web_app: { url: 'https://tasky-kohl-six.vercel.app' } }]]
+                }
+            });
+        } catch (_) {}
     }
 });
 
