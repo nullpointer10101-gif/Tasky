@@ -1,11 +1,99 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Sparkles, Code, CheckCircle2, AlertCircle, RefreshCw, Gift, Rocket, Zap, Image as ImageIcon, Gem, Coins } from 'lucide-react';
+import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem } from 'lucide-react';
+
+const StatusWidget = ({ status, themeColor = 'purple' }) => {
+  if (!status) return null;
+
+  const total = status.total || 0;
+  const currentIdx = status.currentIdx || 0;
+  const success = status.success || 0;
+  const failed = status.failed || 0;
+  const isRunning = status.status === 'running';
+  const progressPct = total > 0 ? Math.min(100, Math.round((currentIdx / total) * 100)) : (isRunning ? 0 : 100);
+
+  const themeMap = {
+    purple: {
+      border: 'border-purple-500/30',
+      text: 'text-purple-300',
+      bar: 'bg-gradient-to-r from-purple-500 to-indigo-500',
+      percent: 'text-purple-400'
+    },
+    emerald: {
+      border: 'border-emerald-500/30',
+      text: 'text-emerald-300',
+      bar: 'bg-gradient-to-r from-emerald-500 to-teal-400',
+      percent: 'text-emerald-400'
+    },
+    indigo: {
+      border: 'border-indigo-500/30',
+      text: 'text-indigo-300',
+      bar: 'bg-gradient-to-r from-indigo-500 to-cyan-400',
+      percent: 'text-indigo-400'
+    },
+    amber: {
+      border: 'border-amber-500/30',
+      text: 'text-amber-300',
+      bar: 'bg-gradient-to-r from-amber-500 to-orange-500',
+      percent: 'text-amber-400'
+    }
+  };
+
+  const t = themeMap[themeColor] || themeMap.purple;
+
+  return (
+    <div className={`bg-black/40 border ${t.border} rounded-2xl p-3.5 space-y-2.5 shadow-inner transition-all`}>
+      <div className="flex items-center justify-between text-[11px] font-bold">
+        <span className={`${t.text} uppercase tracking-wider truncate max-w-[210px]`} title={status.lastError || ''}>
+          {isRunning 
+            ? '🚀 Broadcasting in progress...' 
+            : failed > 0 && success === 0 
+              ? `❌ ${status.lastError || 'Send Failed'}` 
+              : '✅ Broadcast Completed'}
+        </span>
+        <span className={`font-mono ${t.percent}`}>{progressPct}%</span>
+      </div>
+
+      <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/10">
+        <div
+          className={`h-full rounded-full transition-all duration-300 ${
+            failed > 0 && success === 0 ? 'bg-rose-500' : t.bar
+          }`}
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      <div className="grid grid-cols-3 gap-1.5 text-center font-bold pt-0.5">
+        <div className="bg-white/5 p-2 rounded-xl border border-white/5">
+          <p className="text-ink-soft text-[10px] uppercase tracking-wider">Target Users</p>
+          <p className="text-white text-xs font-mono font-black mt-0.5">{total}</p>
+        </div>
+        <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20">
+          <p className="text-emerald-400 text-[10px] uppercase tracking-wider">Sent (Success)</p>
+          <p className="text-emerald-300 text-xs font-mono font-black mt-0.5">{success}</p>
+        </div>
+        <div className="bg-rose-500/10 p-2 rounded-xl border border-rose-500/20">
+          <p className="text-rose-400 text-[10px] uppercase tracking-wider">Failed</p>
+          <p className="text-rose-300 text-xs font-mono font-black mt-0.5">{failed}</p>
+        </div>
+      </div>
+
+      {status.lastError && failed > 0 && (
+        <div className="text-[10px] text-rose-300/90 font-mono bg-rose-500/10 border border-rose-500/20 p-2 rounded-lg truncate">
+          Error: {status.lastError}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function Broadcast() {
+  // Custom Global Broadcast State
   const [message, setMessage] = useState('');
-  const [isSending, setIsSending] = useState(false);
+  const [customTarget, setCustomTarget] = useState('admin'); // 'admin' or 'all'
+  const [customStatus, setCustomStatus] = useState(null);
+  const [isBroadcastingCustom, setIsBroadcastingCustom] = useState(false);
 
   // Promo Code Broadcast State
   const [promoCode, setPromoCode] = useState('');
@@ -92,10 +180,11 @@ export default function Broadcast() {
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const [nftRes, promoRes, gramRes] = await Promise.allSettled([
+        const [nftRes, promoRes, gramRes, customRes] = await Promise.allSettled([
           api.get('/broadcast/nft-status'),
           api.get('/broadcast/promo-status'),
-          api.get('/broadcast/gram-reminder-status')
+          api.get('/broadcast/gram-reminder-status'),
+          api.get('/broadcast/custom-status')
         ]);
 
         if (nftRes.status === 'fulfilled' && nftRes.value.data) {
@@ -116,6 +205,12 @@ export default function Broadcast() {
             setIsBroadcastingGram(true);
           }
         }
+        if (customRes.status === 'fulfilled' && customRes.value.data) {
+          setCustomStatus(customRes.value.data);
+          if (customRes.value.data.status === 'running') {
+            setIsBroadcastingCustom(true);
+          }
+        }
       } catch (_) {}
     };
     fetchStatuses();
@@ -130,7 +225,7 @@ export default function Broadcast() {
           const res = await api.get('/broadcast/promo-status');
           if (res.data) {
             setPromoStatus(res.data);
-            if (res.data.status === 'completed') {
+            if (res.data.status === 'completed' || res.data.status === 'done') {
               setIsBroadcastingPromo(false);
               toast.success('Promo Code Broadcast completed successfully!');
             }
@@ -150,7 +245,7 @@ export default function Broadcast() {
           const res = await api.get('/broadcast/nft-status');
           if (res.data) {
             setNftStatus(res.data);
-            if (res.data.status === 'completed') {
+            if (res.data.status === 'completed' || res.data.status === 'done') {
               setIsBroadcastingNft(false);
               toast.success('NFT Broadcast completed successfully!');
             }
@@ -170,7 +265,7 @@ export default function Broadcast() {
           const res = await api.get('/broadcast/gram-reminder-status');
           if (res.data) {
             setGramStatus(res.data);
-            if (res.data.status === 'completed') {
+            if (res.data.status === 'completed' || res.data.status === 'done') {
               setIsBroadcastingGram(false);
               toast.success('GRAM Currency Broadcast completed successfully!');
             }
@@ -181,27 +276,59 @@ export default function Broadcast() {
     return () => clearInterval(interval);
   }, [isBroadcastingGram]);
 
+  // Poll Custom Broadcast Status
+  useEffect(() => {
+    let interval;
+    if (isBroadcastingCustom) {
+      interval = setInterval(async () => {
+        try {
+          const res = await api.get('/broadcast/custom-status');
+          if (res.data) {
+            setCustomStatus(res.data);
+            if (res.data.status === 'completed' || res.data.status === 'done') {
+              setIsBroadcastingCustom(false);
+              toast.success('Custom Global Broadcast completed successfully!');
+            }
+          }
+        } catch (_) {}
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isBroadcastingCustom]);
+
   const handleSelectNftTemplate = (idx) => {
     setNftTemplateIndex(idx);
     setNftCustomText(nftTemplates[idx].text);
   };
 
-  const handleSend = async () => {
+  const handleSendCustom = async () => {
     if (!message.trim()) {
       toast.error('Message cannot be empty');
       return;
     }
-    if (!window.confirm('Are you sure you want to send this message to ALL unbanned users?')) return;
+    const confirmMsg = customTarget === 'admin'
+      ? 'Send custom broadcast to ADMIN ONLY (8823265955)?'
+      : 'Broadcast custom message to ALL active users?';
 
-    setIsSending(true);
+    if (!window.confirm(confirmMsg)) return;
+
     try {
-      const res = await api.post('/broadcast', { message });
-      toast.success(res.data.message || 'Broadcast started successfully!');
+      setCustomStatus({
+        target: customTarget,
+        total: 0,
+        success: 0,
+        failed: 0,
+        status: 'running',
+        currentIdx: 0
+      });
+      setIsBroadcastingCustom(true);
+      await api.post('/broadcast', { message, target: customTarget });
+      toast.success('Custom broadcast started!');
       setMessage('');
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to send broadcast');
-    } finally {
-      setIsSending(false);
+      setIsBroadcastingCustom(false);
+      setCustomStatus(null);
     }
   };
 
@@ -301,23 +428,11 @@ export default function Broadcast() {
     }
   };
 
-  const promoProgressPct = promoStatus?.total > 0 
-    ? Math.round((promoStatus.currentIdx / promoStatus.total) * 100) 
-    : 0;
-
-  const nftProgressPct = nftStatus?.total > 0
-    ? Math.round((nftStatus.currentIdx / nftStatus.total) * 100)
-    : 0;
-
-  const gramProgressPct = gramStatus?.total > 0
-    ? Math.round((gramStatus.currentIdx / gramStatus.total) * 100)
-    : 0;
-
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">Global Broadcasts</h1>
-        <p className="text-ink-soft text-sm md:text-base">Push notifications and announcements directly to every user's Telegram.</p>
+        <p className="text-ink-soft text-sm md:text-base">Push notifications and announcements directly to every user's Telegram account.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -440,44 +555,7 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              {nftStatus && (
-                <div className="bg-black/40 border border-purple-500/30 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold">
-                    <span className="text-purple-300 uppercase tracking-wider truncate max-w-[220px]" title={nftStatus.lastError || ''}>
-                      {nftStatus.status === 'running' 
-                        ? '🚀 Broadcasting NFT...' 
-                        : nftStatus.failed > 0 && nftStatus.success === 0 
-                          ? `❌ ${nftStatus.lastError || 'Send Failed'}` 
-                          : '✅ Completed'}
-                    </span>
-                    <span className="font-mono text-purple-400">{nftProgressPct}%</span>
-                  </div>
-
-                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                    <div
-                      className={`h-full rounded-full transition-all duration-300 ${
-                        nftStatus.failed > 0 && nftStatus.success === 0 ? 'bg-rose-500' : 'bg-gradient-to-r from-purple-500 to-amber-400'
-                      }`}
-                      style={{ width: `${nftProgressPct}%` }}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-1 text-center text-[10px] font-bold pt-1">
-                    <div className="bg-white/5 p-1.5 rounded-lg">
-                      <p className="text-ink-soft">Target</p>
-                      <p className="text-white text-xs font-mono">{nftStatus.total}</p>
-                    </div>
-                    <div className="bg-emerald-500/10 p-1.5 rounded-lg border border-emerald-500/20">
-                      <p className="text-emerald-400">Sent</p>
-                      <p className="text-emerald-300 text-xs font-mono">{nftStatus.success}</p>
-                    </div>
-                    <div className="bg-rose-500/10 p-1.5 rounded-lg border border-rose-500/20">
-                      <p className="text-rose-400">Failed</p>
-                      <p className="text-rose-300 text-xs font-mono">{nftStatus.failed}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
+              <StatusWidget status={nftStatus} themeColor="purple" />
             </div>
 
             {/* Action Button */}
@@ -576,23 +654,7 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              {gramStatus && (
-                <div className="bg-black/40 border border-emerald-500/30 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold">
-                    <span className="text-emerald-300 uppercase tracking-wider">
-                      {gramStatus.status === 'running' ? '🚀 Broadcasting GRAM...' : '✅ Completed'}
-                    </span>
-                    <span className="font-mono text-emerald-400">{gramProgressPct}%</span>
-                  </div>
-
-                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                    <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-300"
-                      style={{ width: `${gramProgressPct}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+              <StatusWidget status={gramStatus} themeColor="emerald" />
             </div>
 
             {/* Action Button */}
@@ -623,11 +685,11 @@ export default function Broadcast() {
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-border rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
+          <div className="bg-surface-soft border border-indigo-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               <div>
                 <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
-                  Promo Code
+                  1. Promo Code
                 </label>
                 <input
                   type="text"
@@ -640,7 +702,7 @@ export default function Broadcast() {
 
               <div>
                 <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
-                  Target Audience
+                  2. Target Audience
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <button
@@ -668,29 +730,14 @@ export default function Broadcast() {
                 </div>
               </div>
 
-              {promoStatus && (
-                <div className="bg-black/40 border border-indigo-500/30 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold">
-                    <span className="text-indigo-300 uppercase tracking-wider">
-                      {promoStatus.status === 'running' ? '🚀 Broadcasting Code...' : '✅ Completed'}
-                    </span>
-                    <span className="font-mono text-indigo-400">{promoProgressPct}%</span>
-                  </div>
-
-                  <div className="w-full h-1.5 bg-black/50 rounded-full overflow-hidden border border-white/10">
-                    <div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-teal-400 rounded-full transition-all duration-300"
-                      style={{ width: `${promoProgressPct}%` }}
-                    />
-                  </div>
-                </div>
-              )}
+              {/* Live Status Widget */}
+              <StatusWidget status={promoStatus} themeColor="indigo" />
             </div>
 
             <button
               onClick={handleSendPromo}
               disabled={isBroadcastingPromo || !promoCode.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
             >
               {isBroadcastingPromo ? <RefreshCw size={14} className="animate-spin" /> : <Gift size={14} />}
               <span>{target === 'admin' ? 'Test Promo Broadcast (Admin)' : 'Broadcast Promo Code to ALL'}</span>
@@ -709,32 +756,67 @@ export default function Broadcast() {
             <div>
               <h3 className="text-amber-500 font-bold mb-0.5 text-sm leading-tight">Custom Global Broadcast</h3>
               <p className="text-amber-500/80 text-[11px]">
-                Send custom raw HTML messages to all active users in database.
+                Send custom raw HTML messages to active users in database.
               </p>
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-border rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
-            <div>
-              <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
-                Custom Message (HTML)
-              </label>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Write custom message here..."
-                rows={7}
-                className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-xs font-mono focus:outline-none focus:border-amber-500 resize-none"
-              />
+          <div className="bg-surface-soft border border-amber-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 flex-1 flex flex-col justify-between space-y-4">
+            <div className="space-y-4">
+              <div>
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  1. Target Audience
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCustomTarget('admin')}
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
+                      customTarget === 'admin'
+                        ? 'bg-amber-600 text-white border-amber-400 shadow-md'
+                        : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
+                    }`}
+                  >
+                    🧪 Admin Only
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCustomTarget('all')}
+                    className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
+                      customTarget === 'all'
+                        ? 'bg-amber-600 text-white border-amber-400 shadow-md'
+                        : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
+                    }`}
+                  >
+                    📢 All Users
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
+                  2. Custom Message (HTML)
+                </label>
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="Write custom message here..."
+                  rows={5}
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-xs font-mono focus:outline-none focus:border-amber-500 resize-none"
+                />
+              </div>
+
+              {/* Live Status Widget */}
+              <StatusWidget status={customStatus} themeColor="amber" />
             </div>
 
             <button
-              onClick={handleSend}
-              disabled={isSending || !message.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
+              onClick={handleSendCustom}
+              disabled={isBroadcastingCustom || !message.trim()}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-95 disabled:opacity-50 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
             >
-              {isSending ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-              <span>Send Custom Broadcast</span>
+              {isBroadcastingCustom ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
+              <span>{customTarget === 'admin' ? 'Test Custom Broadcast (Admin)' : 'Broadcast Custom to ALL'}</span>
             </button>
           </div>
         </div>

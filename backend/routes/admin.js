@@ -1021,34 +1021,68 @@ router.post('/users/:id/reset-ads', async (req, res) => {
 // 7. BROADCAST
 // ==========================================
 router.post('/broadcast', async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Message is required' });
+  const { message, target } = req.body;
+  if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
   
-  try {
-    const insertRes = await pool.query(
-      "INSERT INTO pending_broadcasts (message) VALUES ($1) RETURNING id",
-      [message]
-    );
-    const broadcastId = insertRes.rows[0].id;
+  if (global.customBroadcast && global.customBroadcast.status === 'running' && (Date.now() - (global.customBroadcast.startTime || 0) < 60000)) {
+    return res.status(400).json({ error: 'Another custom broadcast is currently in progress.' });
+  }
 
-    if (bot && bot.sendMessage) {
-      try {
-        const adminId = '8823265955';
-        const msg = `📢 *Global Broadcast Preview*\n\nMessage:\n\`\`\`\n${message}\n\`\`\`\n\nDo you want to send this to ALL users?`;
-        bot.sendMessage(adminId, msg, {
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '✅ Approve & Send to All', callback_data: `broadcast_global_${broadcastId}` }]
-            ]
-          }
-        });
-      } catch (e) {
-        console.error('Failed to send broadcast preview:', e.message);
-      }
+  try {
+    const adminIds = ['8823265955'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
+    let targets = [];
+    if (target === 'admin') {
+      targets = adminIds;
+    } else {
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
+      targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    res.json({ success: true, message: 'Broadcast preview sent to your Telegram Admin Bot for approval!' });
+    console.log(`[CUSTOM BROADCAST] Target: ${target || 'admin'}, Targets Count: ${targets.length}`);
+
+    global.customBroadcast = {
+      message,
+      target: target || 'admin',
+      total: targets.length,
+      success: 0,
+      failed: 0,
+      status: 'running',
+      currentIdx: 0,
+      startTime: Date.now()
+    };
+
+    // Process asynchronously in background
+    (async () => {
+      const BATCH_SIZE = 25;
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            const activeBot = getActiveTelegramBot();
+            if (activeBot && typeof activeBot.sendMessage === 'function') {
+              await activeBot.sendMessage(tid, message, { parse_mode: 'HTML' });
+              global.customBroadcast.success++;
+            } else {
+              global.customBroadcast.failed++;
+              global.customBroadcast.lastError = 'Telegram bot is not initialized';
+            }
+          } catch (err) {
+            console.error(`[CUSTOM BROADCAST] Failed to send to ${tid}:`, err.message);
+            global.customBroadcast.failed++;
+            global.customBroadcast.lastError = err.message;
+          }
+        }));
+        global.customBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      global.customBroadcast.status = 'completed';
+      console.log(`[CUSTOM BROADCAST] Finished! Success: ${global.customBroadcast.success}, Failed: ${global.customBroadcast.failed}`);
+    })();
+
+    res.json({ success: true, message: `Custom broadcast started for ${targets.length} target(s).` });
   } catch (error) {
     console.error('Broadcast Error:', error);
     res.status(500).json({ error: 'Failed to start broadcast' });
@@ -1528,9 +1562,10 @@ router.post('/gram/claims/review', async (req, res) => {
   }
 });
 
-// Global tracking variables for promo & nft broadcasts
+// Global tracking variables for broadcasts
 global.promoBroadcast = null;
 global.nftBroadcast = null;
+global.customBroadcast = null;
 
 router.get('/broadcast/promo-status', (req, res) => {
   res.json(global.promoBroadcast);
@@ -1538,6 +1573,10 @@ router.get('/broadcast/promo-status', (req, res) => {
 
 router.get('/broadcast/nft-status', (req, res) => {
   res.json(global.nftBroadcast);
+});
+
+router.get('/broadcast/custom-status', (req, res) => {
+  res.json(global.customBroadcast);
 });
 
 router.get('/broadcast/diagnostics', (req, res) => {
@@ -1697,7 +1736,7 @@ router.post('/broadcast/promo', async (req, res) => {
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}, Targets List:`, targets);
+    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
 
     global.promoBroadcast = {
       code: code.toUpperCase(),
@@ -1706,7 +1745,8 @@ router.post('/broadcast/promo', async (req, res) => {
       success: 0,
       failed: 0,
       status: 'running',
-      currentIdx: 0
+      currentIdx: 0,
+      startTime: Date.now()
     };
 
     // Process asynchronously in background
@@ -1716,8 +1756,9 @@ router.post('/broadcast/promo', async (req, res) => {
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            if (bot && bot.sendMessage) {
-              await bot.sendMessage(tid, text, { 
+            const activeBot = getActiveTelegramBot();
+            if (activeBot && typeof activeBot.sendMessage === 'function') {
+              await activeBot.sendMessage(tid, text, { 
                 parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [
@@ -1727,17 +1768,19 @@ router.post('/broadcast/promo', async (req, res) => {
               });
               global.promoBroadcast.success++;
             } else {
-              throw new Error('Telegram Bot is not initialized');
+              global.promoBroadcast.failed++;
+              global.promoBroadcast.lastError = 'Telegram bot is not initialized';
             }
           } catch (err) {
             console.error(`[PROMO BROADCAST] Failed to send to ${tid}:`, err.message);
             global.promoBroadcast.failed++;
+            global.promoBroadcast.lastError = err.message;
           }
         }));
         global.promoBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
-      global.promoBroadcast.status = 'done';
+      global.promoBroadcast.status = 'completed';
       console.log(`[PROMO BROADCAST] Finished! Success: ${global.promoBroadcast.success}, Failed: ${global.promoBroadcast.failed}`);
     })();
 
@@ -1832,7 +1875,8 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
       failed: 0,
       status: 'running',
       currentIdx: 0,
-      templateIndex: idx
+      templateIndex: idx,
+      startTime: Date.now()
     };
 
     // Process asynchronously in background
@@ -1843,7 +1887,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
         await Promise.all(batch.map(async (tid) => {
           try {
             const activeBot = getActiveTelegramBot();
-            if (activeBot) {
+            if (activeBot && typeof activeBot.sendMessage === 'function') {
               await activeBot.sendMessage(tid, text, { 
                 parse_mode: 'HTML',
                 reply_markup: {
@@ -1855,10 +1899,12 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
               global.gramReminderBroadcast.success++;
             } else {
               global.gramReminderBroadcast.failed++;
+              global.gramReminderBroadcast.lastError = 'Telegram bot is not initialized';
             }
           } catch (err) {
             console.error(`[GRAM BROADCAST] Failed for ${tid}:`, err.message);
             global.gramReminderBroadcast.failed++;
+            global.gramReminderBroadcast.lastError = err.message;
           }
         }));
         global.gramReminderBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
