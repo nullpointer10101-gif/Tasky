@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CheckCircle2, XCircle, Copy, Clock, History, Coins, ArrowUpRight, AlertTriangle } from 'lucide-react';
 import api from '../api';
 import toast from 'react-hot-toast';
+import ApprovePayoutModal from '../components/ApprovePayoutModal';
 
 export default function GramClaims() {
   const [claims, setClaims] = useState([]);
@@ -58,9 +59,10 @@ export default function GramClaims() {
     }
   };
 
-  const handleReview = async (id, action) => {
+  const [approveModalItem, setApproveModalItem] = useState(null);
+
+  const handleReview = async (id, action, targetClaim = null) => {
     let reason = '';
-    let txHash = '';
     if (action === 'reject') {
       reason = prompt('Enter rejection reason:', "Kindly add | Tasky 🐾 to your Telegram profile name.");
       if (reason === null) return;
@@ -68,23 +70,35 @@ export default function GramClaims() {
         reason = "Kindly add | Tasky 🐾 to your Telegram profile name.";
       }
     } else if (action === 'approve') {
-      txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
-      if (txHash === null) return; // User cancelled
-      if (!txHash.trim()) {
-        toast.error('Transaction hash or Tonviewer link is compulsory to mark as Paid!');
-        return;
-      }
-      txHash = txHash.trim();
+      setApproveModalItem(targetClaim);
+      return;
     }
  
     setProcessingId(id);
     try {
-      await api.post('/gram/claims/review', { claim_id: id, action, rejection_reason: reason, tx_hash: txHash });
+      await api.post('/gram/claims/review', { claim_id: id, action, rejection_reason: reason });
       toast.success("Gram claim " + action + "d successfully");
       setClaims(claims.filter(c => c.claim_id !== id));
       fetchHistory();
     } catch (e) {
       toast.error(e.response?.data?.error || "Failed to " + action + " Gram claim");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleApproveConfirm = async (txHash) => {
+    if (!approveModalItem) return;
+    const id = approveModalItem.claim_id;
+    setProcessingId(id);
+    try {
+      await api.post('/gram/claims/review', { claim_id: id, action: 'approve', tx_hash: txHash });
+      toast.success("Gram claim marked as Paid successfully!");
+      setClaims(prev => prev.filter(c => c.claim_id !== id));
+      fetchHistory();
+      setApproveModalItem(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Failed to mark Gram claim as Paid");
     } finally {
       setProcessingId(null);
     }
@@ -290,7 +304,7 @@ export default function GramClaims() {
                     <XCircle size={18} />
                   </button>
                   <button
-                    onClick={() => handleReview(c.claim_id, 'approve')}
+                    onClick={() => handleReview(c.claim_id, 'approve', c)}
                     disabled={processingId === c.claim_id}
                     className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-400 text-slate-900 font-black text-sm transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
@@ -515,6 +529,17 @@ export default function GramClaims() {
           </div>
         </div>
       )}
+
+      <ApprovePayoutModal
+        isOpen={!!approveModalItem}
+        onClose={() => setApproveModalItem(null)}
+        onConfirm={handleApproveConfirm}
+        walletAddress={approveModalItem?.gram_wallet_address || ''}
+        amount={approveModalItem?.amount || '0.02'}
+        token="GRAM"
+        userName={approveModalItem?.username ? `@${approveModalItem.username}` : (approveModalItem?.first_name || 'User')}
+        isProcessing={!!processingId}
+      />
     </div>
   );
 }

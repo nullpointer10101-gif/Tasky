@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Gem, RefreshCw, CheckCircle, XCircle, Clock, Wallet, User, AlertCircle, ArrowUpRight, Copy } from 'lucide-react';
 import api from '../api';
 
+import ApprovePayoutModal from '../components/ApprovePayoutModal';
+
 function timeSince(dateStr) {
   if (!dateStr) return '—';
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
@@ -17,6 +19,7 @@ export default function GramWithdrawals() {
   const [processing, setProcessing] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [approveModalItem, setApproveModalItem] = useState(null);
 
   const fetchWithdrawals = useCallback(async () => {
     setLoading(true);
@@ -34,19 +37,14 @@ export default function GramWithdrawals() {
     fetchWithdrawals();
   }, [fetchWithdrawals]);
 
-  const handleApprove = async (id) => {
-    let txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
-    if (txHash === null) return; // User cancelled
-    if (!txHash.trim()) {
-      alert('Transaction hash or Tonviewer link is compulsory to approve this withdrawal!');
-      return;
-    }
-    txHash = txHash.trim();
-
+  const handleApproveConfirm = async (txHash) => {
+    if (!approveModalItem) return;
+    const id = approveModalItem.id;
     setProcessing(id);
     try {
       await api.post(`/gram-withdrawals/${id}/approve`, { tx_hash: txHash });
       setWithdrawals(prev => prev.map(w => w.id === id ? { ...w, status: 'approved', processed_at: new Date().toISOString(), tx_hash: txHash } : w));
+      setApproveModalItem(null);
     } catch (err) {
       alert('Failed to approve: ' + (err.response?.data?.error || err.message));
     } finally {
@@ -230,7 +228,7 @@ export default function GramWithdrawals() {
                     {w.status === 'pending' ? (
                       <>
                         <button
-                          onClick={() => handleApprove(w.id)}
+                          onClick={() => setApproveModalItem(w)}
                           disabled={processing === w.id}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-black hover:bg-emerald-500/30 transition-colors disabled:opacity-50"
                         >
@@ -300,6 +298,17 @@ export default function GramWithdrawals() {
           </div>
         </div>
       )}
+
+      <ApprovePayoutModal
+        isOpen={!!approveModalItem}
+        onClose={() => setApproveModalItem(null)}
+        onConfirm={handleApproveConfirm}
+        walletAddress={approveModalItem?.wallet_address || ''}
+        amount={parseFloat(approveModalItem?.amount || 0).toFixed(4)}
+        token="GRAM"
+        userName={approveModalItem?.username ? `@${approveModalItem.username}` : (approveModalItem?.first_name || 'User')}
+        isProcessing={!!processing}
+      />
     </div>
   );
 }

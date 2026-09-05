@@ -3,6 +3,8 @@ import { CheckCircle2, XCircle, Copy, Clock, History, Search, ArrowUpRight } fro
 import api from '../api';
 import toast from 'react-hot-toast';
 
+import ApprovePayoutModal from '../components/ApprovePayoutModal';
+
 export default function Withdrawals() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [history, setHistory] = useState([]);
@@ -13,6 +15,7 @@ export default function Withdrawals() {
   const [tokenFilter, setTokenFilter] = useState('all');
   const [fraudFilter, setFraudFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [approveModalItem, setApproveModalItem] = useState(null);
 
   useEffect(() => {
     fetchWithdrawals(true);
@@ -44,30 +47,41 @@ export default function Withdrawals() {
     }
   };
 
-  const handleReview = async (id, action) => {
+  const handleReview = async (id, action, targetWithdrawal = null) => {
     let reason = '';
-    let txHash = '';
     if (action === 'reject') {
       reason = prompt('Enter rejection reason (User will be refunded):');
       if (reason === null) return;
     } else if (action === 'approve') {
-      txHash = prompt('Enter transaction hash or Tonviewer link (COMPULSORY):');
-      if (txHash === null) return; // User cancelled
-      if (!txHash.trim()) {
-        toast.error('Transaction hash or Tonviewer link is compulsory to approve this withdrawal!');
-        return;
-      }
-      txHash = txHash.trim();
+      setApproveModalItem(targetWithdrawal);
+      return;
     }
 
     setProcessingId(id);
     try {
-      await api.post('/withdrawals/review', { withdrawal_id: id, action, rejection_reason: reason, tx_hash: txHash });
+      await api.post('/withdrawals/review', { withdrawal_id: id, action, rejection_reason: reason });
       toast.success("Withdrawal " + action + "d successfully");
       setWithdrawals(withdrawals.filter(w => w.withdrawal_id !== id));
       fetchHistory();
     } catch (e) {
       toast.error(e.response?.data?.error || "Failed to " + action + " withdrawal");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleApproveConfirm = async (txHash) => {
+    if (!approveModalItem) return;
+    const id = approveModalItem.withdrawal_id;
+    setProcessingId(id);
+    try {
+      await api.post('/withdrawals/review', { withdrawal_id: id, action: 'approve', tx_hash: txHash });
+      toast.success("Withdrawal marked as Paid successfully!");
+      setWithdrawals(prev => prev.filter(w => w.withdrawal_id !== id));
+      fetchHistory();
+      setApproveModalItem(null);
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Failed to mark withdrawal as Paid");
     } finally {
       setProcessingId(null);
     }
@@ -267,7 +281,7 @@ export default function Withdrawals() {
                     <XCircle size={18} />
                   </button>
                   <button
-                    onClick={() => handleReview(w.withdrawal_id, 'approve')}
+                    onClick={() => handleReview(w.withdrawal_id, 'approve', w)}
                     disabled={processingId === w.withdrawal_id}
                     className="flex-[2] py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-400 text-slate-900 font-black text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
                   >
@@ -332,6 +346,17 @@ export default function Withdrawals() {
           </div>
         )
       )}
+
+      <ApprovePayoutModal
+        isOpen={!!approveModalItem}
+        onClose={() => setApproveModalItem(null)}
+        onConfirm={handleApproveConfirm}
+        walletAddress={approveModalItem?.wallet_address || ''}
+        amount={Number(approveModalItem?.usdt_amount || 0).toFixed(4)}
+        token={approveModalItem?.token || 'USDT'}
+        userName={approveModalItem?.username ? `@${approveModalItem.username}` : (approveModalItem?.first_name || 'User')}
+        isProcessing={!!processingId}
+      />
     </div>
   );
 }
