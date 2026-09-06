@@ -305,7 +305,7 @@ export default function Gram({ user, refreshUser }) {
     setSuffixError('');
     try {
       if (status?.requires_referrals && !status?.referral_requirement_met) {
-        showToast(`Invite at least 2 friends to unlock claim #${status?.current_claim_seq || 3}! (${status?.total_referrals || 0}/2 invited)`, 'error');
+        showToast(`Invite at least 2 friends to unlock your 0.02 GRAM reward! (${status?.total_referrals || 0}/2 invited)`, 'error');
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
         setIsSubmitting(false);
         return;
@@ -705,7 +705,7 @@ export default function Gram({ user, refreshUser }) {
                   </motion.div>
                 )}
 
-                {/* 3rd Claim Milestone: Invite 2 Friends Verification */}
+                {/* Invite 2 Friends Verification Gate (Required for all users) */}
                 {status?.requires_referrals && (
                   !status?.referral_requirement_met ? (
                     <motion.div
@@ -720,14 +720,14 @@ export default function Gram({ user, refreshUser }) {
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="text-xs font-black text-amber-400 uppercase tracking-wider">
-                              Claim #{status?.current_claim_seq || 3} Verification
+                              Claim Requirement: Invite 2 Friends
                             </p>
                             <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
                               {status?.total_referrals || 0}/2 Friends Invited
                             </span>
                           </div>
                           <p className="text-[11px] text-white/80 font-bold leading-relaxed mt-1">
-                            To unlock your <strong className="text-white">3rd claim & beyond</strong>, invite at least <strong className="text-amber-300">2 friends</strong> using your link.
+                            To claim your <strong className="text-white">0.02 GRAM reward</strong>, invite at least <strong className="text-amber-300">2 friends</strong> using your referral link.
                           </p>
                         </div>
                       </div>
@@ -785,7 +785,7 @@ export default function Gram({ user, refreshUser }) {
                   {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Claim...</> :
                    !status?.gram_wallet_address ? <>Connect TON Wallet First</> :
                    !suffixOk ? <>Add | Tasky 🐾 to Name First ↑</> :
-                   (status?.requires_referrals && !status?.referral_requirement_met) ? <>Invite 2 Friends to Unlock Claim #{status?.current_claim_seq || 3} ↑</> :
+                   (status?.requires_referrals && !status?.referral_requirement_met) ? <>Invite 2 Friends to Unlock 0.02 GRAM ↑</> :
                    <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}
                 </motion.button>
               </div>
