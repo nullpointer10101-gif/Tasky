@@ -128,49 +128,59 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   initGigaAds();
 
-  // Wait up to 5 seconds for GigaPub SDK to attach trigger function
+  const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
+
+  // Wait up to 7 seconds for GigaPub SDK to attach trigger function
   let waited = 0;
-  while (!window.showGiga && !window.showGigaPubAd && !window.showGigaAd && !window.GigaPub?.showAd && !window.showAd && waited < 5000) {
+  while (!getFn() && waited < 7000) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
-  const startTime = Date.now();
-  const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
-  const fn = getFn();
+  let fn = getFn();
+  if (typeof fn !== 'function') {
+    // If still not available, try to re-inject the script once
+    const oldScript = document.getElementById(GIGAPUB_SCRIPT_ID);
+    if (oldScript) oldScript.remove();
+    initGigaAds();
+    await new Promise(r => setTimeout(r, 1200));
+    fn = getFn();
+  }
 
   if (typeof fn !== 'function') {
     console.warn('[AdManager] GigaPub SDK not available after wait');
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad network is loading. Please try again in a few seconds.'
+      error: 'Ad is loading from sponsor network. Please tap again in a moment!'
     };
   }
+
+  const startTime = Date.now();
 
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Placement: ${placement})...`);
     
-    // Call showGiga with a 45s max timeout guard
+    // Call showGiga with a 30s timeout guard
     const adExecutionPromise = Promise.resolve().then(() => {
       return fn.call(window.GigaPub || window, placement);
     });
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Ad session timeout')), 45000);
+      setTimeout(() => reject(new Error('Ad session timeout')), 30000);
     });
 
     // Await GigaPub ad completion
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
     const elapsed = (Date.now() - startTime) / 1000;
-    // Rewarded video ads must last at least 14.5 seconds
-    if (elapsed < 14.5) {
+    // Rewarded video ads must last at least 14.0 seconds
+    if (elapsed < 14.0) {
       console.warn(`[AdManager] Ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
       return {
         success: false,
         network: 'gigapub',
-        error: 'Ad was closed too early. You must watch the entire video ad to get progress.'
+        error: 'Ad was closed early. You must watch the entire video ad to get progress.'
       };
     }
 
@@ -184,13 +194,13 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       return { success: false, network: 'gigapub', error: 'An ad is already in progress. Please wait a moment.' };
     }
     if (errMsg.includes('timeout')) {
-      return { success: false, network: 'gigapub', error: 'Ad timed out. Please try again.' };
+      return { success: false, network: 'gigapub', error: 'Ad network took too long. Please tap to try again.' };
     }
 
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad was closed early or skipped. You must watch the entire ad to completion!'
+      error: 'Ad was closed early or skipped. Please watch the entire ad to completion!'
     };
   }
 }
