@@ -21,6 +21,17 @@ if (token) {
     bot.on('polling_error', (error) => {
         console.error('Polling error:', error.code, error.message);
     });
+
+    // Set Global Default Menu Button for All Users (Required for Telegram MAU tracking)
+    const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
+    bot.setChatMenuButton({
+        menu_button: {
+            type: 'web_app',
+            text: 'Launch TASKY',
+            web_app: { url: STABLE_APP_URL }
+        }
+    }).then(() => console.log('✅ Global WebApp Menu Button configured for MAU tracking'))
+      .catch(e => console.warn('Failed to set global menu button:', e.message));
 } else {
     // dummy bot fallback
     bot = {
