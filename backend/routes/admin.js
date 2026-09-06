@@ -68,37 +68,64 @@ const adminAuth = (req, res, next) => {
 router.use(adminAuth);
 
 // ==========================================
-// 1. DASHBOARD STATS
+// 1. DASHBOARD STATS (High-Speed Optimized & Cached)
 // ==========================================
+let cachedDashboardStats = null;
+let lastDashboardStatsTime = 0;
+
 router.get('/stats', async (req, res) => {
   try {
-    const usersRes = await pool.query('SELECT COUNT(*) FROM users');
-    const tasksRes = await pool.query("SELECT COUNT(*) FROM user_tasks WHERE status = 'pending'");
-    const withdrawalsRes = await pool.query("SELECT COUNT(*) FROM withdrawals WHERE status = 'pending'");
-    const balanceRes = await pool.query('SELECT SUM(balance) FROM users');
-    const gramBalanceRes = await pool.query("SELECT COALESCE(SUM(gram_balance), 0) as sum FROM users");
-
-    const gramAdsRes = await pool.query(`
-      SELECT 
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday,
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as today_gigapub,
-        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as today_monetag
-      FROM ad_views
-      WHERE ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
-    `);
-    const todayGramAds = parseInt(gramAdsRes.rows[0].today, 10) || 0;
-    const yesterdayGramAds = parseInt(gramAdsRes.rows[0].yesterday, 10) || 0;
-    const todayGigapubAds = parseInt(gramAdsRes.rows[0].today_gigapub, 10) || 0;
-    const todayMonetagAds = parseInt(gramAdsRes.rows[0].today_monetag, 10) || 0;
+    const now = Date.now();
+    if (cachedDashboardStats && (now - lastDashboardStatsTime < 4000)) {
+      return res.json(cachedDashboardStats);
+    }
 
     const onlineIds = global.onlineUsers ? Array.from(global.onlineUsers.keys()) : [];
-    let activeUsersList = [];
-    if (onlineIds.length > 0) {
-      const usersDetailsRes = await pool.query(
+
+    const [userStatsRes, pendingRes, gramAdsRes, newUsersRes, usersDetailsRes] = await Promise.all([
+      pool.query(`
+        SELECT 
+          COUNT(*) as total_users, 
+          COALESCE(SUM(balance), 0) as total_tasky, 
+          COALESCE(SUM(gram_balance), 0) as total_gram,
+          COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as new_users_today
+        FROM users
+      `),
+      pool.query(`
+        SELECT 
+          (SELECT COUNT(*) FROM user_tasks WHERE status = 'pending') as pending_tasks,
+          (SELECT COUNT(*) FROM withdrawals WHERE status = 'pending') as pending_withdrawals,
+          (SELECT COUNT(*) FROM gram_claims WHERE status = 'pending') as pending_gram_claims,
+          (SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending') as pending_gram_withdrawals
+      `),
+      pool.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
+          COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday,
+          COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as today_gigapub,
+          COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as today_monetag
+        FROM ad_views
+        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+      `),
+      pool.query(`
+        SELECT telegram_id, username, first_name, created_at
+        FROM users
+        WHERE created_at >= CURRENT_DATE
+        ORDER BY created_at DESC
+        LIMIT 500
+      `),
+      onlineIds.length > 0 ? pool.query(
         'SELECT telegram_id, username, first_name, balance FROM users WHERE telegram_id = ANY($1)',
         [onlineIds.map(id => parseInt(id, 10))]
-      );
+      ) : Promise.resolve({ rows: [] })
+    ]);
+
+    const uRow = userStatsRes.rows[0] || {};
+    const pRow = pendingRes.rows[0] || {};
+    const gRow = gramAdsRes.rows[0] || {};
+
+    let activeUsersList = [];
+    if (onlineIds.length > 0) {
       activeUsersList = usersDetailsRes.rows.map(u => {
         const tracker = global.onlineUsers.get(u.telegram_id.toString());
         return {
@@ -118,52 +145,29 @@ router.get('/stats', async (req, res) => {
       };
     });
 
-    // Pending gram claims & withdrawals for sidebar badges
-    let pendingGramClaims = 0;
-    let pendingGramWithdrawals = 0;
-    try {
-      const gcRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE status = 'pending'");
-      pendingGramClaims = parseInt(gcRes.rows[0].count, 10) || 0;
-    } catch (_) {}
-    try {
-      const gwRes = await pool.query("SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending'");
-      pendingGramWithdrawals = parseInt(gwRes.rows[0].count, 10) || 0;
-    } catch (_) {}
-
-    // New users count today
-    const newUsersCountRes = await pool.query(`
-      SELECT COUNT(*) FROM users WHERE created_at >= CURRENT_DATE
-    `);
-    const newUsersToday = parseInt(newUsersCountRes.rows[0].count, 10) || 0;
-
-    // New users list (increased limit to 2000)
-    const newUsersRes = await pool.query(`
-      SELECT telegram_id, username, first_name, created_at
-      FROM users
-      WHERE created_at >= CURRENT_DATE
-      ORDER BY created_at DESC
-      LIMIT 2000
-    `);
-    const newUsersList = newUsersRes.rows;
-
-    res.json({
-      totalUsers: parseInt(usersRes.rows[0].count),
+    const result = {
+      totalUsers: parseInt(uRow.total_users || 0, 10),
       onlineUsers: global.onlineUsers ? global.onlineUsers.size : 0,
-      pendingTasks: parseInt(tasksRes.rows[0].count),
-      pendingWithdrawals: parseInt(withdrawalsRes.rows[0].count),
-      pendingGramClaims,
-      pendingGramWithdrawals,
-      totalCirculatingTasky: parseFloat(balanceRes.rows[0].sum || 0),
-      totalCirculatingGram: parseFloat(gramBalanceRes.rows[0].sum || 0),
-      todayGramAds,
-      yesterdayGramAds,
-      todayGigapubAds,
-      todayMonetagAds,
+      pendingTasks: parseInt(pRow.pending_tasks || 0, 10),
+      pendingWithdrawals: parseInt(pRow.pending_withdrawals || 0, 10),
+      pendingGramClaims: parseInt(pRow.pending_gram_claims || 0, 10),
+      pendingGramWithdrawals: parseInt(pRow.pending_gram_withdrawals || 0, 10),
+      totalCirculatingTasky: parseFloat(uRow.total_tasky || 0),
+      totalCirculatingGram: parseFloat(uRow.total_gram || 0),
+      todayGramAds: parseInt(gRow.today || 0, 10),
+      yesterdayGramAds: parseInt(gRow.yesterday || 0, 10),
+      todayGigapubAds: parseInt(gRow.today_gigapub || 0, 10),
+      todayMonetagAds: parseInt(gRow.today_monetag || 0, 10),
       activeUsersList,
       recentLogsList,
-      newUsersToday,
-      newUsersList
-    });
+      newUsersToday: parseInt(uRow.new_users_today || 0, 10),
+      newUsersList: newUsersRes.rows
+    };
+
+    cachedDashboardStats = result;
+    lastDashboardStatsTime = Date.now();
+
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
