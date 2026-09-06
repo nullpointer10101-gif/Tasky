@@ -35,7 +35,8 @@ pool.query(`
   VALUES 
     (1, 'Gram Mini Miner #01', 'Entry-level digital miner. (Discontinued from Marketplace)', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, false),
     (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true),
-    (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true)
+    (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true),
+    (4, 'Gram Titan God Miner #04', 'Ultimate powerhouse digital miner. Earn 7.50 GRAM daily for 10 days.', 50.0, 7.50, 10, 75.0, 'celestial', 'crown', 1000, true)
   ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -152,8 +153,8 @@ router.post('/buy', async (req, res) => {
     const nft = nftRes.rows[0];
     const priceGram = parseFloat(nft.price_gram);
 
-    // 2. Check maximum purchase limit per miner (10 for 5 GRAM Mega Miner #3, 2 for #1 & #2)
-    const maxAllowed = (Number(nft_id) === 3 || parseFloat(nft.price_gram) >= 5) ? 10 : 2;
+    // 2. Check maximum purchase limit per miner (10 for 5 GRAM & 50 GRAM miners, 2 for #1 & #2)
+    const maxAllowed = (Number(nft_id) >= 3 || parseFloat(nft.price_gram) >= 5) ? 10 : 2;
 
     const ownedCardsRes = await client.query(
       `SELECT COUNT(*) as count FROM user_nft_cards WHERE telegram_id::text = $1::text AND nft_id = $2`,

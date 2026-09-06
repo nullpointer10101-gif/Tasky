@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, 
   Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, 
-  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2 
+  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown 
 } from 'lucide-react';
 import { getNftMarketplace, buyNft, getMyNftCards, claimNftYield, autoVerifyDeposit } from '../api';
 import { useToast } from '../App';
@@ -271,11 +271,12 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
             className="space-y-4"
           >
             {cards.map((nft) => {
-              const isMega = nft.id === 3 || parseFloat(nft.price_gram) >= 5;
+              const isTitan = nft.id === 4 || parseFloat(nft.price_gram) >= 50;
+              const isMega = (nft.id === 3 || parseFloat(nft.price_gram) >= 5) && !isTitan;
               const isTurbo = nft.id === 2;
               const price = parseFloat(nft.price_gram);
               const directCommission = (price * 0.30).toFixed(2);
-              const maxAllowed = isMega ? 10 : 2;
+              const maxAllowed = (isTitan || isMega) ? 10 : 2;
               const ownedCount = myCards
                 .filter(c => Number(c.nft_id) === Number(nft.id))
                 .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
@@ -285,7 +286,9 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                 <div
                   key={nft.id}
                   className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
-                    isMega
+                    isTitan
+                      ? 'bg-gradient-to-b from-[#381f02] via-[#221200] to-[#0d0700] border-amber-400/60 shadow-[0_0_35px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
+                      : isMega
                       ? 'bg-gradient-to-b from-[#2a0e05] via-[#1a0802] to-[#0d0401] border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.15)]'
                       : isTurbo
                       ? 'bg-gradient-to-b from-[#1b103c] via-[#120a2b] to-[#090417] border-purple-500/40 shadow-[0_0_25px_rgba(168,85,247,0.12)]'
@@ -296,14 +299,16 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="flex items-center gap-2">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                        isMega
+                        isTitan
+                          ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-black shadow-md font-black'
+                          : isMega
                           ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-sm'
                           : isTurbo
                           ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
                           : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                       }`}>
-                        {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
-                        {nft.rarity || (isMega ? 'MYTHIC MINER' : isTurbo ? 'TURBO MINER' : 'STARTER MINER')}
+                        {isTitan ? <Crown size={12} className="animate-bounce" /> : isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
+                        {isTitan ? '👑 TITAN GOD MINER' : nft.rarity || (isMega ? 'MYTHIC MINER' : isTurbo ? 'TURBO MINER' : 'STARTER MINER')}
                       </span>
                       
                       <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-full border ${
@@ -323,13 +328,15 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   {/* Title & Description */}
                   <div className="flex items-start gap-3.5 mb-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
-                      isMega
+                      isTitan
+                        ? 'bg-amber-400/20 border-amber-400/50 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)]'
+                        : isMega
                         ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
                         : isTurbo
                         ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
                         : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
                     }`}>
-                      {isMega ? <Flame size={24} className="animate-pulse" /> : isTurbo ? <Rocket size={22} /> : <Zap size={22} />}
+                      {isTitan ? <Crown size={26} className="animate-pulse text-amber-300" /> : isMega ? <Flame size={24} className="animate-pulse" /> : isTurbo ? <Rocket size={22} /> : <Zap size={22} />}
                     </div>
                     <div>
                       <h3 className="text-base font-black text-white">{nft.name}</h3>
@@ -366,6 +373,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                       className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
                         isMaxOwned
                           ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
+                          : isTitan
+                          ? 'bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 text-black shadow-[0_0_25px_rgba(245,158,11,0.4)]'
                           : isMega
                           ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]'
                           : isTurbo
@@ -438,7 +447,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
-                          {card.nft_id === 3 ? <Flame size={20} /> : card.nft_id === 2 ? <Rocket size={20} /> : <Zap size={20} />}
+                          {card.nft_id === 4 ? <Crown size={20} className="text-amber-300" /> : card.nft_id === 3 ? <Flame size={20} className="text-orange-400" /> : card.nft_id === 2 ? <Rocket size={20} /> : <Zap size={20} />}
                         </div>
                         <div>
                           <h4 className="text-sm font-black text-white">{card.name}</h4>
@@ -523,7 +532,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                 <Zap size={14} className="text-cyan-400" /> 1-Tap Tonkeeper Top-Up
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {[1.0, 5.0, 10.0, 20.0].map((amt) => (
+                {[1.0, 5.0, 10.0, 50.0].map((amt) => (
                   <button
                     key={amt}
                     onClick={() => handlePayViaWallet(amt, 'tonkeeper')}
@@ -579,7 +588,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                 onClick={handleAutoVerifyDeposit}
                 disabled={verifyingDeposit}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(160,185,129,0.3)] transition-all"
               >
                 {verifyingDeposit ? (
                   <><RefreshCw size={14} className="animate-spin" /> Verifying on Blockchain...</>
@@ -625,12 +634,12 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-mono text-[11px] text-white">
-                  <tr>
-                    <td className="p-2.5 font-bold text-purple-300">Turbo</td>
-                    <td className="p-2.5 text-amber-300 font-black">1.00 G</td>
-                    <td className="p-2.5 text-emerald-400 font-black">+0.30</td>
-                    <td className="p-2.5 text-purple-300">+0.10</td>
-                    <td className="p-2.5 text-indigo-300">+0.04</td>
+                  <tr className="bg-amber-500/15">
+                    <td className="p-2.5 font-bold text-amber-300 flex items-center gap-1"><Crown size={12} /> Titan God</td>
+                    <td className="p-2.5 text-amber-300 font-black">50.00 G</td>
+                    <td className="p-2.5 text-emerald-400 font-black">+15.00</td>
+                    <td className="p-2.5 text-purple-300">+5.00</td>
+                    <td className="p-2.5 text-indigo-300">+2.00</td>
                   </tr>
                   <tr className="bg-orange-500/10">
                     <td className="p-2.5 font-bold text-orange-300">Mega</td>
@@ -638,6 +647,13 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                     <td className="p-2.5 text-emerald-400 font-black">+1.50</td>
                     <td className="p-2.5 text-purple-300">+0.50</td>
                     <td className="p-2.5 text-indigo-300">+0.20</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-bold text-purple-300">Turbo</td>
+                    <td className="p-2.5 text-amber-300 font-black">1.00 G</td>
+                    <td className="p-2.5 text-emerald-400 font-black">+0.30</td>
+                    <td className="p-2.5 text-purple-300">+0.10</td>
+                    <td className="p-2.5 text-indigo-300">+0.04</td>
                   </tr>
                 </tbody>
               </table>

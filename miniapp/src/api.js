@@ -148,8 +148,9 @@ export const getNftMarketplace = withMock(
   { 
     success: true, 
     cards: [
-      { id: 2, name: 'Tasky Turbo Miner #02', description: 'High-speed Tasky digital miner. Earn 0.15 GRAM daily for 10 days.', price_gram: 1.0, daily_yield_gram: 0.15, duration_days: 10, total_yield_gram: 1.5, rarity: 'legendary', icon_key: 'rocket' }, 
-      { id: 1, name: 'Tasky Mini Miner #01', description: 'Entry-level Tasky digital miner. Earn 0.07 GRAM daily for 10 days.', price_gram: 0.5, daily_yield_gram: 0.07, duration_days: 10, total_yield_gram: 0.70, rarity: 'rare', icon_key: 'bolt' }
+      { id: 4, name: 'Gram Titan God Miner #04', description: 'Ultimate powerhouse digital miner. Earn 7.50 GRAM daily for 10 days.', price_gram: 50.0, daily_yield_gram: 7.50, duration_days: 10, total_yield_gram: 75.0, rarity: 'celestial', icon_key: 'crown' },
+      { id: 3, name: 'Gram Mega Miner #03', description: 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', price_gram: 5.0, daily_yield_gram: 0.70, duration_days: 10, total_yield_gram: 7.0, rarity: 'mythic', icon_key: 'flame' },
+      { id: 2, name: 'Gram Turbo Miner #02', description: 'High-speed Tasky digital miner. Earn 0.15 GRAM daily for 10 days.', price_gram: 1.0, daily_yield_gram: 0.15, duration_days: 10, total_yield_gram: 1.5, rarity: 'legendary', icon_key: 'rocket' }
     ], 
     deposit_wallet: 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR' 
   },
