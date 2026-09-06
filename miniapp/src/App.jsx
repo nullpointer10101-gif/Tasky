@@ -95,11 +95,6 @@ export default function App() {
     initGigaAds()
   }, [tgUser])
 
-  useEffect(() => {
-    if (user) {
-      triggerStartupAd()
-    }
-  }, [user])
 
   const refreshUser = async () => {
     const { getUser } = await import('./api')
