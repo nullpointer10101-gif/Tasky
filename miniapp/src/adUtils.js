@@ -157,46 +157,11 @@ export async function showGigaPubAdFallback() {
 }
 
 /**
- * Triggers a GigaPub startup ad on opening the Mini App
- */
-let _startupAdTriggered = false;
-
-/**
- * Triggers a GigaPub startup ad on opening the Mini App.
- * Persistently retries until GigaPub SDK is initialized and ad displays!
+ * Startup and periodic automatic ads are completely disabled.
+ * Ads are only shown when user explicitly taps a watch ad button.
  */
 export function triggerStartupAd() {
-  if (typeof window === 'undefined') return;
-  initGigaAds();
-
-  if (_startupAdTriggered) return;
-  _startupAdTriggered = true;
-
-  let attempts = 0;
-  const maxAttempts = 15;
-
-  const attemptAdShow = async () => {
-    attempts++;
-    console.log(`[AdManager] 🚀 Startup GigaPub ad attempt #${attempts}...`);
-
-    try {
-      const result = await showRewardedAd('startup');
-      if (result && result.success) {
-        console.log('[AdManager] ✅ Startup GigaPub ad displayed successfully!');
-        return;
-      }
-    } catch (err) {
-      console.warn(`[AdManager] Startup ad attempt #${attempts} notice:`, err);
-    }
-
-    // If ad failed to display and under max attempts, retry in 2 seconds
-    if (attempts < maxAttempts) {
-      setTimeout(attemptAdShow, 2000);
-    }
-  };
-
-  // Start initial attempt 1s after launch
-  setTimeout(attemptAdShow, 1000);
+  // Disabled: No automatic startup ads
 }
 
 export function startPeriodicAdLoop() {

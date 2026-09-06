@@ -16,7 +16,7 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
-import { initGigaAds, triggerStartupAd } from './adUtils'
+import { initGigaAds } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
@@ -91,9 +91,8 @@ export default function App() {
       }
     }
     boot()
-    // Initialize GigaPub SDK and trigger startup ad on opening app
+    // Initialize GigaPub SDK (only initializes script, no automatic ads)
     initGigaAds()
-    triggerStartupAd()
   }, [tgUser])
 
   useEffect(() => {
