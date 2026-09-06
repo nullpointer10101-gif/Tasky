@@ -180,7 +180,7 @@ export function initMonetagAds() {
     try {
       const s = document.createElement('script');
       s.id = 'monetag-ad-sdk';
-      s.src = '//libtl.com/sdk.js';
+      s.src = 'https://libtl.com/sdk.js';
       s.setAttribute('data-zone', MONETAG_ZONE_ID);
       s.setAttribute('data-sdk', MONETAG_SDK_FN);
       s.async = true;
@@ -196,7 +196,7 @@ export function initMonetagAds() {
 initMonetagAds();
 
 /**
- * Executes a Monetag rewarded ad session
+ * Executes a Monetag rewarded interstitial ad session using show_11395836()
  */
 export async function showMonetagAd() {
   if (typeof window === 'undefined') {
@@ -213,12 +213,12 @@ export async function showMonetagAd() {
 
   // Wait up to 5 seconds for Monetag SDK to attach trigger function
   let waited = 0;
-  while (typeof window[MONETAG_SDK_FN] !== 'function' && waited < 5000) {
+  while (typeof window[MONETAG_SDK_FN] !== 'function' && typeof window.show_11395836 !== 'function' && waited < 5000) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
-  const fn = window[MONETAG_SDK_FN];
+  const fn = window[MONETAG_SDK_FN] || window.show_11395836;
   if (typeof fn !== 'function') {
     console.warn('[AdManager] Monetag SDK not available after wait');
     return {
@@ -231,27 +231,13 @@ export async function showMonetagAd() {
   const startTime = Date.now();
 
   try {
-    console.log('[AdManager] 🚀 Executing Monetag rewarded ad...');
+    console.log('[AdManager] 🚀 Executing Monetag rewarded interstitial (show_11395836)...');
 
-    const adExecutionPromise = Promise.resolve().then(() => fn());
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Monetag ad session timeout')), 45000);
-    });
-
-    await Promise.race([adExecutionPromise, timeoutPromise]);
+    // Monetag returns a promise that resolves when the user finishes viewing the rewarded ad
+    await fn();
 
     const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed < 14.5) {
-      console.warn(`[AdManager] Monetag ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
-      return {
-        success: false,
-        network: 'monetag',
-        error: 'Monetag ad was closed too early. You must watch the entire ad (15s) to get credit.'
-      };
-    }
-
-    console.log(`[AdManager] ✅ Monetag ad session completed successfully! (${elapsed.toFixed(1)}s)`);
+    console.log(`[AdManager] ✅ Monetag rewarded interstitial completed! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'monetag' };
   } catch (err) {
     console.error('[AdManager] Monetag ad execution error / closed:', err);
