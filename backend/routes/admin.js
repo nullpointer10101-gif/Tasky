@@ -1463,6 +1463,127 @@ router.delete('/promos/:id', async (req, res) => {
   }
 });
 
+// Helper to enrich Gram claim row with real-time Telegram verification & anti-fraud analytics
+async function enrichGramClaimRow(row) {
+  let liveName = row.first_name || '';
+  let liveUsername = row.username || '';
+  let hasSuffix = false;
+  let inCommunity = false;
+  let inChannel = false;
+
+  const tid = row.telegram_id;
+
+  if (bot && typeof bot.getChat === 'function') {
+    try {
+      const chat = await bot.getChat(tid);
+      const fName = chat?.first_name || '';
+      const lName = chat?.last_name || '';
+      liveName = `${fName} ${lName}`.trim() || row.first_name || '';
+      if (chat?.username) liveUsername = chat.username;
+      
+      const fullNameLower = `${fName} ${lName}`.toLowerCase();
+      hasSuffix = fullNameLower.includes('tasky');
+    } catch (e) {}
+
+    try {
+      const cm = await bot.getChatMember('@TaskyOfficialCommunity', tid);
+      if (cm && ['member', 'administrator', 'creator'].includes(cm.status)) {
+        inCommunity = true;
+      }
+    } catch (e) {}
+
+    try {
+      const ch = await bot.getChatMember('@Tasky_Official', tid);
+      if (ch && ['member', 'administrator', 'creator'].includes(ch.status)) {
+        inChannel = true;
+      }
+    } catch (e) {}
+  }
+
+  const adsCount = parseInt(row.today_gram_ads_watched || 0, 10);
+  const gigaAds = parseInt(row.today_giga_ads || 0, 10);
+  const monetagAds = parseInt(row.today_monetag_ads || 0, 10);
+  const durationMins = parseFloat(row.watch_duration_mins || 0);
+  const avgSec = parseFloat(row.avg_interval_sec || 0);
+  const tasksDone = parseInt(row.tasks_completed_count || 0, 10);
+  const pastPayouts = parseInt(row.approved_gram_claims_count || 0, 10);
+
+  // Calculate Trust Score & Anti-Fraud Verdict
+  let trustScore = 100;
+  const riskFlags = [];
+  const goodFlags = [];
+
+  if (!hasSuffix) {
+    trustScore -= 25;
+    riskFlags.push('No | Tasky 🐾 Suffix in Profile Name');
+  } else {
+    goodFlags.push('Suffix Active');
+  }
+
+  if (!inCommunity) {
+    trustScore -= 20;
+    riskFlags.push('Not in Official Community Group');
+  } else {
+    goodFlags.push('Community Member');
+  }
+
+  if (!inChannel) {
+    trustScore -= 10;
+    riskFlags.push('Not in Official Channel');
+  } else {
+    goodFlags.push('Channel Member');
+  }
+
+  if (adsCount < 60) {
+    trustScore -= 40;
+    riskFlags.push(`Incomplete Ads: Only ${adsCount}/60 in 24h window`);
+  } else {
+    goodFlags.push('60/60 Ads Completed');
+  }
+
+  if (adsCount >= 30 && durationMins < 3.0 && durationMins > 0) {
+    trustScore -= 45;
+    riskFlags.push(`Suspicious Fast Pace: 60 ads in ${durationMins}m (Avg ${avgSec}s/ad)`);
+  } else if (durationMins >= 10.0) {
+    goodFlags.push(`Realistic Pace: ${durationMins}m watch time`);
+  }
+
+  if (pastPayouts > 0) {
+    goodFlags.push(`${pastPayouts} past payouts approved`);
+  }
+  if (tasksDone > 5) {
+    goodFlags.push(`${tasksDone} app tasks completed`);
+  }
+
+  trustScore = Math.max(0, Math.min(100, trustScore));
+
+  let trustVerdict = 'VERIFIED_REAL';
+  if (trustScore < 50 || riskFlags.some(f => f.includes('Suspicious Fast Pace') || f.includes('Incomplete Ads'))) {
+    trustVerdict = 'HIGH_RISK';
+  } else if (trustScore < 80 || riskFlags.length > 0) {
+    trustVerdict = 'NEEDS_REVIEW';
+  }
+
+  return {
+    ...row,
+    live_name: liveName,
+    live_username: liveUsername,
+    has_suffix: hasSuffix,
+    in_community: inCommunity,
+    in_channel: inChannel,
+    today_gram_ads_watched: adsCount,
+    today_giga_ads: gigaAds,
+    today_monetag_ads: monetagAds,
+    watch_duration_mins: durationMins,
+    avg_interval_sec: avgSec,
+    tasks_completed_count: tasksDone,
+    trust_score: trustScore,
+    trust_verdict: trustVerdict,
+    risk_flags: riskFlags,
+    good_flags: goodFlags
+  };
+}
+
 // ==========================================
 // 11. GRAM CLAIMS (0.02 GRAM REWARD)
 // ==========================================
@@ -1476,7 +1597,15 @@ router.get('/gram/claims/pending', async (req, res) => {
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
         (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
-        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= NOW() - INTERVAL '24 hours') as today_gram_ads_watched,
+        (SELECT COUNT(*) FROM user_tasks WHERE telegram_id = gc.telegram_id AND status = 'approved') as tasks_completed_count,
+        (SELECT COUNT(*) FROM user_nft_cards WHERE telegram_id = gc.telegram_id AND is_completed = false) as active_nfts_count,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_gram_ads_watched,
+        (SELECT COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) FROM ad_views WHERE telegram_id = gc.telegram_id AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_giga_ads,
+        (SELECT COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') FROM ad_views WHERE telegram_id = gc.telegram_id AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_monetag_ads,
+        (SELECT ROUND(EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::numeric / 60, 1) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as watch_duration_mins,
+        (SELECT ROUND((EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::numeric / NULLIF(COUNT(*) - 1, 0))::numeric, 1) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as avg_interval_sec,
+        (SELECT MIN(created_at) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as first_ad_at,
+        (SELECT MAX(created_at) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as last_ad_at,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
@@ -1486,32 +1615,7 @@ router.get('/gram/claims/pending', async (req, res) => {
     `;
     const { rows } = await pool.query(query);
 
-    // Fetch live Telegram chat info to provide the latest real Telegram name
-    const enrichedRows = await Promise.all(rows.map(async (row) => {
-      let liveName = row.first_name || '';
-      let liveUsername = row.username || '';
-      let hasSuffix = false;
-      try {
-        if (bot && bot.getChat) {
-          const chat = await bot.getChat(row.telegram_id);
-          const fName = chat?.first_name || '';
-          const lName = chat?.last_name || '';
-          liveName = `${fName} ${lName}`.trim() || row.first_name || '';
-          if (chat?.username) liveUsername = chat.username;
-          
-          const fullNameLower = `${fName} ${lName}`.toLowerCase();
-          hasSuffix = fullNameLower.includes('tasky');
-        }
-      } catch (e) {
-        // ignore bot errors
-      }
-      return {
-        ...row,
-        live_name: liveName,
-        live_username: liveUsername,
-        has_suffix: hasSuffix
-      };
-    }));
+    const enrichedRows = await Promise.all(rows.map(enrichGramClaimRow));
 
     res.json(enrichedRows);
   } catch (error) {
@@ -1529,7 +1633,15 @@ router.get('/gram/claims/history', async (req, res) => {
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
         (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
+        (SELECT COUNT(*) FROM user_tasks WHERE telegram_id = gc.telegram_id AND status = 'approved') as tasks_completed_count,
+        (SELECT COUNT(*) FROM user_nft_cards WHERE telegram_id = gc.telegram_id AND is_completed = false) as active_nfts_count,
         (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_gram_ads_watched,
+        (SELECT COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) FROM ad_views WHERE telegram_id = gc.telegram_id AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_giga_ads,
+        (SELECT COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') FROM ad_views WHERE telegram_id = gc.telegram_id AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_monetag_ads,
+        (SELECT ROUND(EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::numeric / 60, 1) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as watch_duration_mins,
+        (SELECT ROUND((EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::numeric / NULLIF(COUNT(*) - 1, 0))::numeric, 1) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as avg_interval_sec,
+        (SELECT MIN(created_at) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as first_ad_at,
+        (SELECT MAX(created_at) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as last_ad_at,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id AND (processed_at < gc.processed_at OR gc.processed_at IS NULL) ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
@@ -1539,7 +1651,8 @@ router.get('/gram/claims/history', async (req, res) => {
       LIMIT 500
     `;
     const { rows } = await pool.query(query);
-    res.json(rows);
+    const enrichedRows = await Promise.all(rows.map(enrichGramClaimRow));
+    res.json(enrichedRows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
