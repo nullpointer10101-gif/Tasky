@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Coins, Wallet, CheckCircle2, Clock, AlertCircle, Loader2, Sparkles, 
   Play, Lock, ArrowUpRight, Gem, Wifi, Trophy, Copy, RefreshCw, 
-  ShieldCheck, Flame, ExternalLink, X, ChevronRight, Check
+  ShieldCheck, Flame, ExternalLink, X, ChevronRight, Check, Users
 } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
@@ -60,7 +60,29 @@ export default function Gram({ user, refreshUser }) {
   const [adPulse, setAdPulse] = useState(false);
   const [streakCount, setStreakCount] = useState(0);
   const [rewardCelebration, setRewardCelebration] = useState(null);
+  const [copiedRef, setCopiedRef] = useState(false);
   const { showToast } = useToast();
+
+  const refCode = status?.referral_code || user?.referral_code || user?.telegram_id || '';
+  const refLink = `https://t.me/TaskyAppbot?start=${refCode}`;
+
+  const handleShareReferral = () => {
+    const text = encodeURIComponent("🚀 Join Tasky & claim free 0.02 GRAM daily directly to your TON wallet! Tap below to start now 💎");
+    const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=${text}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(shareUrl);
+    } else {
+      window.open(shareUrl, '_blank');
+    }
+  };
+
+  const handleCopyReferral = () => {
+    navigator.clipboard.writeText(refLink).then(() => {
+      setCopiedRef(true);
+      showToast('Referral link copied!', 'success');
+      setTimeout(() => setCopiedRef(false), 2500);
+    }).catch(() => showToast('Failed to copy link', 'error'));
+  };
 
   // ── NAME SUFFIX STATE ──
   const [suffixOk, setSuffixOk] = useState(false);
@@ -282,6 +304,13 @@ export default function Gram({ user, refreshUser }) {
     setIsSubmitting(true);
     setSuffixError('');
     try {
+      if (status?.requires_referrals && !status?.referral_requirement_met) {
+        showToast(`Invite at least 2 friends to unlock claim #${status?.current_claim_seq || 3}! (${status?.total_referrals || 0}/2 invited)`, 'error');
+        try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
+        setIsSubmitting(false);
+        return;
+      }
+
       const ok = await checkSuffix(true);
       if (!ok) {
         setSuffixError("Suffix not found in your Telegram Last Name. Please make sure to add '| Tasky 🐾' to the end of your name.");
@@ -676,6 +705,64 @@ export default function Gram({ user, refreshUser }) {
                   </motion.div>
                 )}
 
+                {/* 3rd Claim Milestone: Invite 2 Friends Verification */}
+                {status?.requires_referrals && (
+                  !status?.referral_requirement_met ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border-2 border-amber-500/40 rounded-2xl p-4 space-y-3 shadow-lg"
+                    >
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+                          <Users size={16} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <p className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                              Claim #{status?.current_claim_seq || 3} Verification
+                            </p>
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
+                              {status?.total_referrals || 0}/2 Friends Invited
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-white/80 font-bold leading-relaxed mt-1">
+                            To unlock your <strong className="text-white">3rd claim & beyond</strong>, invite at least <strong className="text-amber-300">2 friends</strong> using your link.
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Invite & Copy Buttons */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handleShareReferral}
+                          className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+                        >
+                          <Users size={13} />
+                          <span>Invite Friends ({2 - Math.min(2, status?.total_referrals || 0)} Left)</span>
+                        </button>
+
+                        <button
+                          onClick={handleCopyReferral}
+                          className="px-3 py-2.5 rounded-xl bg-white/10 border border-white/15 text-white text-xs font-bold flex items-center gap-1 hover:bg-white/20 active:scale-95 transition-all cursor-pointer"
+                          title="Copy Link"
+                        >
+                          {copiedRef ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={16} className="text-emerald-400" />
+                      <p className="text-xs font-black text-emerald-400">Invite Requirement Verified ✓ ({status?.total_referrals || 0} friends invited)</p>
+                    </motion.div>
+                  )
+                )}
+
                 {suffixOk && (
                   <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -689,15 +776,16 @@ export default function Gram({ user, refreshUser }) {
 
                 <motion.button
                   onClick={handleClaim}
-                  disabled={!status?.gram_wallet_address || isSubmitting || !suffixOk}
+                  disabled={!status?.gram_wallet_address || isSubmitting || !suffixOk || (status?.requires_referrals && !status?.referral_requirement_met)}
                   whileTap={{ scale: 0.96 }}
-                  animate={status?.gram_wallet_address && suffixOk ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
+                  animate={status?.gram_wallet_address && suffixOk && (!status?.requires_referrals || status?.referral_requirement_met) ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
                   transition={{ repeat: Infinity, duration: 1.8 }}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:active:scale-100 border border-emerald-400/20"
                 >
                   {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Claim...</> :
                    !status?.gram_wallet_address ? <>Connect TON Wallet First</> :
                    !suffixOk ? <>Add | Tasky 🐾 to Name First ↑</> :
+                   (status?.requires_referrals && !status?.referral_requirement_met) ? <>Invite 2 Friends to Unlock Claim #{status?.current_claim_seq || 3} ↑</> :
                    <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}
                 </motion.button>
               </div>

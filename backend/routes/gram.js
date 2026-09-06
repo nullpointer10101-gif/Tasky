@@ -54,9 +54,21 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         `, [telegram_id]);
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
+        // 4.5 Claim sequence and 3rd attempt referral check (min 2 invited friends)
+        const claimsCountRes = await pool.query('SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1', [telegram_id]);
+        const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
+        const current_claim_seq = total_previous_claims + 1;
+
+        const userRefRes = await pool.query('SELECT total_referrals, referral_code FROM users WHERE telegram_id = $1', [telegram_id]);
+        const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
+        const referral_code = userRefRes.rows[0]?.referral_code || '';
+
+        const requires_referrals = current_claim_seq >= 3;
+        const referral_requirement_met = !requires_referrals || total_referrals >= 2;
+
         // 5. Determine if they can claim (30 gigapub + 30 monetag, or 60 total)
         const activeWallet = gram_wallet_address || wallet_address || '';
-        const can_claim = gigapub_ads_watched_today >= 30 && monetag_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet;
+        const can_claim = gigapub_ads_watched_today >= 30 && monetag_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet && referral_requirement_met;
 
         res.json({
             gram_wallet_address: activeWallet,
@@ -67,6 +79,12 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
             last_ad_time,
             claimed_in_last_24h,
             can_claim,
+            current_claim_seq,
+            total_previous_claims,
+            requires_referrals,
+            referral_requirement_met,
+            total_referrals,
+            referral_code,
             recent_claim,
             claims_history
         });
@@ -314,6 +332,21 @@ router.post('/claim', async (req, res) => {
         if (!has_suffix) {
             await client.query('ROLLBACK');
             return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and try again." });
+        }
+
+        // 1.8 Verify Referral Requirement for 3rd Attempt & beyond (min 2 invited friends)
+        const claimsCountRes = await client.query('SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1', [telegram_id]);
+        const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
+        const current_claim_seq = total_previous_claims + 1;
+
+        const userRefRes = await client.query('SELECT total_referrals FROM users WHERE telegram_id = $1', [telegram_id]);
+        const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
+
+        if (current_claim_seq >= 3 && total_referrals < 2) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+                error: `⚠️ Active Status Verification: Claim #${current_claim_seq} requires inviting at least 2 friends (You currently have ${total_referrals}/2 invited friends). Please share your invite link to unlock!` 
+            });
         }
 
         // 2. Verify ads watched count in the last 24 hours (from ad_views)
