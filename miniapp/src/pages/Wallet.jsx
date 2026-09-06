@@ -383,7 +383,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 </div>
 
                 <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
-                  <span>Daily Limit: 1 / Day (Max {gramInfo?.max_withdrawal || 0.02} GRAM)</span>
+                  <span>Daily Limit: 1 Withdrawal / Day</span>
                   {gramInfo?.withdrawals_today_count !== undefined && (
                     <span>Today: {gramInfo.withdrawals_today_count}/1</span>
                   )}
