@@ -58,45 +58,49 @@ export default function App() {
     }
   }, [activePage])
 
-  useEffect(() => {
-    const boot = async () => {
-      // Get ref code from Telegram start_param or URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || urlParams.get('ref') || null;
-      const { data, error } = await registerUser({
-        telegram_id: tgUser.id,
-        username: tgUser.username,
-        first_name: tgUser.first_name,
-        ref,
-      })
-      if (error) {
-        console.error("Boot error:", error);
-        if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
-          setMaintenance(true)
-        } else if (String(error).includes('Network Error')) {
-          setNetworkError(true)
-        } else {
-          // If it's another error, just set user to a blank state so it doesn't hang infinitely
-          setUser({ 
-            ...tgUser, 
-            telegram_id: tgUser.id,
-            balance: 0,
-            total_earned: 0,
-            task_earnings: 0,
-            referral_earnings: 0,
-            streak_days: 0,
-            created_at: new Date().toISOString(),
-            tasks_done: 0,
-            spins_available: 0,
-            spins_used_today: 0,
-            is_banned: false
-          }) 
-          setToast({ message: String(error), type: 'error' })
-        }
-      } else if (data) {
-        setUser(data)
+  const boot = async () => {
+    // Get ref code from Telegram start_param or URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || urlParams.get('ref') || null;
+    
+    setNetworkError(false);
+    const { data, error } = await registerUser({
+      telegram_id: tgUser.id,
+      username: tgUser.username,
+      first_name: tgUser.first_name,
+      ref,
+    })
+    if (error) {
+      console.error("Boot error:", error);
+      if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
+        setMaintenance(true)
+      } else if (String(error).includes('Network Error') || String(error).includes('timeout') || String(error).includes('502') || String(error).includes('504')) {
+        setNetworkError(true)
+      } else {
+        // If it's another error, just set user to a fallback state so it doesn't hang infinitely
+        setUser({ 
+          ...tgUser, 
+          telegram_id: tgUser.id,
+          balance: 0,
+          total_earned: 0,
+          task_earnings: 0,
+          referral_earnings: 0,
+          streak_days: 0,
+          created_at: new Date().toISOString(),
+          tasks_done: 0,
+          spins_available: 0,
+          spins_used_today: 0,
+          is_banned: false
+        }) 
+        setToast({ message: String(error), type: 'error' })
       }
+    } else if (data) {
+      setUser(data)
+      setNetworkError(false)
     }
+  }
+
+  useEffect(() => {
     boot()
     // Initialize GigaPub SDK (only initializes script, no automatic ads)
     initGigaAds()
@@ -104,14 +108,17 @@ export default function App() {
 
 
   const refreshUser = async () => {
-    const { getUser } = await import('./api')
-    const { data, error } = await getUser(tgUser.id)
-    if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
-      setMaintenance(true)
-    } else if (String(error).includes('Network Error')) {
-      setNetworkError(true)
-    } else if (data) {
-      setUser(data)
+    try {
+      const { getUser } = await import('./api')
+      const { data, error } = await getUser(tgUser.id)
+      if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
+        setMaintenance(true)
+      } else if (data) {
+        setUser(data)
+        setNetworkError(false)
+      }
+    } catch (e) {
+      console.warn('[App] Background refreshUser error ignored:', e);
     }
   }
 
@@ -201,7 +208,7 @@ export default function App() {
         </div>
         <h1 className="text-2xl font-black text-white mb-3">Connection Error</h1>
         <p className="text-ink-soft mb-8">We couldn't connect to the server. Please check your internet connection or disable any active VPN/Proxy and try again.</p>
-        <button onClick={() => window.location.reload()} className="px-6 py-3 rounded-full bg-white/10 text-white font-bold text-sm">
+        <button onClick={() => { setNetworkError(false); boot(); }} className="px-6 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 transition-colors text-white font-bold text-sm shadow-lg shadow-indigo-600/30">
           Try Again
         </button>
       </div>

@@ -1,9 +1,12 @@
 import axios from 'axios'
 
-export const BACKEND_URL = 'https://tasky3.onrender.com';
+export const BACKEND_URL = typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('onrender.com') 
+  ? '' 
+  : 'https://tasky3.onrender.com';
 
 const api = axios.create({
   baseURL: BACKEND_URL,
+  timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -36,13 +39,23 @@ api.get = async (url, config) => {
   };
 });
 
-const wrap = async (fn) => {
-  try {
-    const res = await fn()
-    return { data: res.data, error: null }
-  } catch (err) {
-    const error = err.response?.data?.error || err.message || 'Something went wrong'
-    return { data: null, error }
+const wrap = async (fn, maxRetries = 2) => {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    try {
+      const res = await fn();
+      return { data: res.data, error: null };
+    } catch (err) {
+      attempt++;
+      const isNetworkOrServerRestart = !err.response || (err.response.status >= 500 && err.response.status <= 504);
+      if (isNetworkOrServerRestart && attempt <= maxRetries) {
+        console.warn(`[API] Transient connection error on attempt ${attempt}, retrying in ${attempt * 900}ms...`);
+        await new Promise(r => setTimeout(r, attempt * 900));
+        continue;
+      }
+      const error = err.response?.data?.error || err.message || 'Something went wrong';
+      return { data: null, error };
+    }
   }
 }
 
