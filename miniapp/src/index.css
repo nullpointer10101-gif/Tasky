@@ -4,9 +4,8 @@
 
 @layer base {
   html, body {
-    overscroll-behavior-y: none;
+    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
     width: 100%;
@@ -41,7 +40,7 @@
   scrollbar-width: none;
 }
 
-/* GPU Acceleration and 60fps smoothing */
+/* GPU Acceleration */
 .transform-gpu {
   transform: translate3d(0, 0, 0);
   -webkit-transform: translate3d(0, 0, 0);
@@ -49,13 +48,6 @@
   -webkit-backface-visibility: hidden;
   perspective: 1000px;
   -webkit-perspective: 1000px;
-  will-change: transform, opacity;
-}
-
-/* Smooth Interactive Elements */
-button, a {
-  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  -webkit-touch-callout: none;
 }
 
 

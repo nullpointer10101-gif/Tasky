@@ -268,24 +268,21 @@ export default function App() {
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header user={user} navigate={setActivePage} activePage={activePage} />
 
-          <main className="flex-1 w-full overflow-y-auto hide-scrollbar pb-20 relative" style={{ WebkitOverflowScrolling: 'touch', touchAction: 'pan-y' }}>
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activePage}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2, ease: [0.25, 0.1, 0.25, 1] }}
-                className="w-full min-h-full"
-              >
-                <ActivePage
-                  user={user}
-                  tgUser={tgUser}
-                  refreshUser={refreshUser}
-                  navigate={setActivePage}
-                />
-              </motion.div>
-            </AnimatePresence>
+          <main className="flex-1 w-full overflow-y-auto hide-scrollbar pb-20 relative" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}>
+            <motion.div
+              key={activePage}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.12, ease: 'easeOut' }}
+              className="w-full min-h-full"
+            >
+              <ActivePage
+                user={user}
+                tgUser={tgUser}
+                refreshUser={refreshUser}
+                navigate={setActivePage}
+              />
+            </motion.div>
           </main>
 
           <BottomNav active={activePage} onChange={setActivePage} user={user} />
