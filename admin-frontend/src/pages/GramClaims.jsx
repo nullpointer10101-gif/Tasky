@@ -21,6 +21,26 @@ export default function GramClaims() {
   const [loadingAds, setLoadingAds] = useState(false);
   const [auditItem, setAuditItem] = useState(null);
 
+  const formatClaimTime = (dateStr) => {
+    if (!dateStr) return null;
+    const d = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffHours / 24);
+    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const dateFormatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+    if (diffHours < 1) {
+      const diffMins = Math.max(1, Math.floor(diffMs / (1000 * 60)));
+      return `${diffMins}m ago (${timeStr})`;
+    }
+    if (diffHours < 24) {
+      return `${diffHours}h ago (${timeStr})`;
+    }
+    return `${diffDays}d ago (${dateFormatted}, ${timeStr})`;
+  };
+
   const handleViewAds = async (telegram_id, username, first_name, isHistory = false, requested_at = null, fullClaim = null) => {
     setSelectedUserAds({ 
       telegram_id, 
@@ -431,9 +451,23 @@ export default function GramClaims() {
                         <p className="text-amber-400 font-black text-xs">
                           #{c.claim_seq || 1} Attempt
                         </p>
-                        <p className="text-[10px] text-ink-soft mt-0.5">
+                        <p className="text-[10px] text-ink-soft mt-0.5 font-medium">
                           {c.approved_gram_claims_count ? `${c.approved_gram_claims_count} Paid Before` : '1st Payout'}
                         </p>
+                        {c.last_claim_at ? (
+                          <div className="mt-1.5 pt-1 border-t border-border/20">
+                            <span className="text-[8.5px] uppercase font-bold text-ink-soft block">Last Paid</span>
+                            <p className="text-[9.5px] text-cyan-300 font-semibold leading-tight mt-0.5">
+                              {formatClaimTime(c.last_claim_at)}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="mt-1.5 pt-1 border-t border-border/20">
+                            <span className="text-[9px] text-emerald-400 font-bold block">
+                              ✨ 1st Claim Ever
+                            </span>
+                          </div>
+                        )}
                       </div>
 
                       {/* 6. Referrals */}
@@ -586,6 +620,11 @@ export default function GramClaims() {
                     <div className="bg-[#0b1329]/30 p-2 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold">Claim Seq</span>
                       <span className="text-amber-400 font-bold">#{h.claim_seq || 1}</span>
+                      {h.last_claim_at && (
+                        <span className="text-[8.5px] text-cyan-300 block mt-0.5 font-medium leading-tight">
+                          Prev: {formatClaimTime(h.last_claim_at)}
+                        </span>
+                      )}
                     </div>
                     <div className="bg-[#0b1329]/30 p-2 rounded-xl border border-border/30">
                       <span className="text-ink-soft block text-[9px] uppercase font-bold">Referrals</span>
