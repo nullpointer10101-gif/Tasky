@@ -108,36 +108,33 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Placement: ${placement})...`);
     
-    // Call showGiga with a 35s max timeout guard so user is never stuck
+    // Call showGiga with a 45s max timeout guard
     const adExecutionPromise = Promise.resolve().then(() => {
       return fn.call(window.GigaPub || window, placement);
     });
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Ad session timeout')), 35000);
+      setTimeout(() => reject(new Error('Ad session timeout')), 45000);
     });
 
     // Await GigaPub ad completion
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
-    // Ensure at least 4.5s elapsed so backend watch-time verification succeeds
     const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed < 4.5) {
-      const waitExtra = Math.ceil((4.5 - elapsed) * 1000);
-      await new Promise(r => setTimeout(r, waitExtra));
+    // Rewarded video ads must last at least 14.5 seconds
+    if (elapsed < 14.5) {
+      console.warn(`[AdManager] Ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
+      return {
+        success: false,
+        network: 'gigapub',
+        error: 'Ad was closed too early. You must watch the entire video ad to get progress.'
+      };
     }
 
-    console.log(`[AdManager] ✅ GigaPub ad session completed successfully! (${((Date.now() - startTime) / 1000).toFixed(1)}s)`);
+    console.log(`[AdManager] ✅ GigaPub ad session completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
-    console.error('[AdManager] GigaPub ad execution error / closed:', err);
-
-    // If ad was shown for >= 5s before closing or throwing a non-critical error, consider it watched
-    const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed >= 5) {
-      console.log(`[AdManager] ✅ Watched ad for ${elapsed.toFixed(1)}s, granting completion.`);
-      return { success: true, network: 'gigapub' };
-    }
+    console.error('[AdManager] GigaPub ad closed early or failed:', err);
 
     const errMsg = err?.message || '';
     if (errMsg.includes('already showing')) {
@@ -150,7 +147,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad was closed early or could not be loaded. Please watch the full ad.'
+      error: 'Ad was closed early or skipped. You must watch the entire ad to completion!'
     };
   }
 }
@@ -274,33 +271,30 @@ export async function showMonetagAd() {
     const adExecutionPromise = Promise.resolve().then(() => fn());
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Monetag ad session timeout')), 40000);
+      setTimeout(() => reject(new Error('Monetag ad session timeout')), 45000);
     });
 
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
-    // Ensure at least 4.5s elapsed
     const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed < 4.5) {
-      const waitExtra = Math.ceil((4.5 - elapsed) * 1000);
-      await new Promise(r => setTimeout(r, waitExtra));
+    if (elapsed < 14.5) {
+      console.warn(`[AdManager] Monetag ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
+      return {
+        success: false,
+        network: 'monetag',
+        error: 'Monetag ad was closed too early. You must watch the entire ad (15s) to get credit.'
+      };
     }
 
-    console.log(`[AdManager] ✅ Monetag ad session completed successfully! (${((Date.now() - startTime) / 1000).toFixed(1)}s)`);
+    console.log(`[AdManager] ✅ Monetag ad session completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'monetag' };
   } catch (err) {
     console.error('[AdManager] Monetag ad execution error / closed:', err);
 
-    const elapsed = (Date.now() - startTime) / 1000;
-    if (elapsed >= 5) {
-      console.log(`[AdManager] ✅ Watched Monetag ad for ${elapsed.toFixed(1)}s, granting completion.`);
-      return { success: true, network: 'monetag' };
-    }
-
     return {
       success: false,
       network: 'monetag',
-      error: 'Monetag ad was closed early or could not be loaded. Please watch the full ad.'
+      error: 'Monetag ad was closed early or skipped. You must watch the entire ad to completion!'
     };
   }
 }

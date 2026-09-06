@@ -157,29 +157,30 @@ router.post('/watch-ad', async (req, res) => {
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         if (userRes.rows[0].is_banned) return res.status(403).json({ error: 'Account suspended' });
 
-        // Validate session token
+        // Strict Server-Side Validation: session_token is mandatory
         global.gramAdSessions = global.gramAdSessions || new Map();
-        let sessionData = null;
-        if (session_token) {
-            sessionData = global.gramAdSessions.get(session_token);
+        const sessionData = session_token ? global.gramAdSessions.get(session_token) : null;
+
+        if (!session_token || !sessionData) {
+            return res.status(400).json({ error: 'Invalid or expired ad session. Please watch the ad properly.' });
         }
 
-        let elapsedSec = 0;
-        if (sessionData) {
-            if (sessionData.telegram_id !== telegram_id.toString()) {
-                return res.status(403).json({ error: 'Session user mismatch' });
-            }
-            elapsedSec = (Date.now() - sessionData.created_at) / 1000;
-            // Invalidate session immediately to prevent replay attacks
-            global.gramAdSessions.delete(session_token);
-        } else {
-            // Fallback for reconnection/reloads
-            elapsedSec = 5.0;
+        if (sessionData.telegram_id !== telegram_id.toString()) {
+            return res.status(403).json({ error: 'Session user mismatch' });
         }
 
-        if (elapsedSec < 4.0) {
-            const remaining = Math.ceil(4.0 - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short! Please watch the full ad. Wait ${remaining}s.` });
+        const requestedProvider = provider === 'monetag' ? 'monetag' : 'gigapub';
+        if (sessionData.provider && sessionData.provider !== requestedProvider) {
+            return res.status(400).json({ error: 'Ad provider mismatch' });
+        }
+
+        const elapsedSec = (Date.now() - sessionData.created_at) / 1000;
+        // Invalidate session immediately to prevent replay attacks
+        global.gramAdSessions.delete(session_token);
+
+        if (elapsedSec < 14.0) {
+            const remaining = Math.ceil(14.0 - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! Please watch the full 15s video ad. Wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours

@@ -237,11 +237,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
       const networkName = provider === 'monetag' ? 'Monetag' : 'GigaPub';
       showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
 
-      let res = await watchGramAd(user?.telegram_id, provider, sessionToken);
-      if (res.error && (res.error.includes('wait') || res.error.includes('short'))) {
-        await new Promise(r => setTimeout(r, 2000));
-        res = await watchGramAd(user?.telegram_id, provider, sessionToken);
-      }
+      const res = await watchGramAd(user?.telegram_id, provider, sessionToken);
 
       if (res.error) {
         showToast(res.error, 'error');
