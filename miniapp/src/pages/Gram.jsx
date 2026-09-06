@@ -218,8 +218,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       
-      // Ping backend that user is currently watching an ad
-      await startWatchGramAd(user?.telegram_id, provider);
+      // Start server session token
+      const startRes = await startWatchGramAd(user?.telegram_id, provider);
+      const sessionToken = startRes?.data?.session_token || null;
 
       let adResult;
       if (provider === 'monetag') {
@@ -234,12 +235,12 @@ export default function Gram({ user, refreshUser, tgUser }) {
       }
 
       const networkName = provider === 'monetag' ? 'Monetag' : 'GigaPub';
-      showToast(`✅ ${networkName} ad watched successfully!`, 'success');
+      showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
 
-      let res = await watchGramAd(user?.telegram_id, provider);
+      let res = await watchGramAd(user?.telegram_id, provider, sessionToken);
       if (res.error && (res.error.includes('wait') || res.error.includes('short'))) {
         await new Promise(r => setTimeout(r, 2000));
-        res = await watchGramAd(user?.telegram_id, provider);
+        res = await watchGramAd(user?.telegram_id, provider, sessionToken);
       }
 
       if (res.error) {

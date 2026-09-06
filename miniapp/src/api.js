@@ -287,12 +287,12 @@ export const saveGramWalletAddress = withMock(
   (telegram_id, gram_wallet_address) => () => api.post('/api/gram/save-address', { telegram_id, gram_wallet_address })
 )
 export const startWatchGramAd = withMock(
-  { success: true },
+  { success: true, session_token: 'mock_token' },
   (telegram_id, provider = 'gigapub') => () => api.post('/api/gram/start-watch', { telegram_id, provider })
 )
 export const watchGramAd = withMock(
-  (telegram_id, provider = 'gigapub') => ({ success: true, ads_watched_today: 46 }),
-  (telegram_id, provider = 'gigapub') => () => api.post('/api/gram/watch-ad', { telegram_id, provider })
+  (telegram_id, provider = 'gigapub', session_token = null) => ({ success: true, ads_watched_today: 46 }),
+  (telegram_id, provider = 'gigapub', session_token = null) => () => api.post('/api/gram/watch-ad', { telegram_id, provider, session_token })
 )
 export const verifyGramSuffix = withMock(
   () => ({ success: true, has_suffix: false, last_name: '' }),

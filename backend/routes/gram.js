@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { pool } = require('../db');
 const bot = require('../bot');
 const { checkFraud } = require('../utils/fraud');
@@ -111,39 +112,74 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
     }
 });
 
-// Ping that user started watching an ad (for analytics & watch time verification)
+// Ping that user started watching an ad (generates server-side cryptographic session token)
 router.post('/start-watch', async (req, res) => {
-    const { telegram_id, provider = 'gigapub' } = req.body;
-    if (telegram_id) {
-        global.gramAdStartTimes = global.gramAdStartTimes || new Map();
-        global.gramAdStartTimes.set(`${telegram_id}_${provider}`, Date.now());
-        global.gramAdStartTimes.set(telegram_id.toString(), Date.now());
-    }
-    res.json({ success: true });
-});
-
-// Record a Gram Ad Watch
-router.post('/watch-ad', async (req, res) => {
     const { telegram_id, provider = 'gigapub' } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     try {
-        // Check user exists
-        const userRes = await pool.query('SELECT id FROM users WHERE telegram_id = $1', [telegram_id]);
-        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        global.gramAdSessions = global.gramAdSessions || new Map();
 
-        // Enforce server-side watch time verification with multi-instance/Render restart fallback
-        global.gramAdStartTimes = global.gramAdStartTimes || new Map();
-        let adStartTime = global.gramAdStartTimes.get(`${telegram_id}_${provider}`) || global.gramAdStartTimes.get(telegram_id.toString());
-        if (!adStartTime) {
-            // Fallback if missing due to server restart or process routing: 10s default buffer
-            adStartTime = Date.now() - 10000;
+        // Generate cryptographically secure one-time session token
+        const session_token = crypto.randomBytes(24).toString('hex');
+        const now = Date.now();
+
+        global.gramAdSessions.set(session_token, {
+            telegram_id: telegram_id.toString(),
+            provider: provider === 'monetag' ? 'monetag' : 'gigapub',
+            created_at: now
+        });
+
+        // Auto-cleanup stale sessions older than 5 minutes
+        if (global.gramAdSessions.size > 2000) {
+            for (const [tok, data] of global.gramAdSessions.entries()) {
+                if (now - data.created_at > 300000) {
+                    global.gramAdSessions.delete(tok);
+                }
+            }
         }
 
-        const watchDurationSec = (Date.now() - adStartTime) / 1000;
-        if (watchDurationSec < 4) {
-            const remaining = Math.ceil(4 - watchDurationSec);
-            return res.status(429).json({ error: `Ad session too short! Please watch the full ad. Wait ${remaining}s.` });
+        res.json({ success: true, session_token });
+    } catch (err) {
+        console.error('Error in /start-watch:', err);
+        res.status(500).json({ error: 'Failed to initiate ad session' });
+    }
+});
+
+// Record a Gram Ad Watch (Enforces server-side acknowledgement & session validation)
+router.post('/watch-ad', async (req, res) => {
+    const { telegram_id, provider = 'gigapub', session_token } = req.body;
+    if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    try {
+        // Check user exists
+        const userRes = await pool.query('SELECT id, is_banned FROM users WHERE telegram_id = $1', [telegram_id]);
+        if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
+        if (userRes.rows[0].is_banned) return res.status(403).json({ error: 'Account suspended' });
+
+        // Validate session token
+        global.gramAdSessions = global.gramAdSessions || new Map();
+        let sessionData = null;
+        if (session_token) {
+            sessionData = global.gramAdSessions.get(session_token);
+        }
+
+        let elapsedSec = 0;
+        if (sessionData) {
+            if (sessionData.telegram_id !== telegram_id.toString()) {
+                return res.status(403).json({ error: 'Session user mismatch' });
+            }
+            elapsedSec = (Date.now() - sessionData.created_at) / 1000;
+            // Invalidate session immediately to prevent replay attacks
+            global.gramAdSessions.delete(session_token);
+        } else {
+            // Fallback for reconnection/reloads
+            elapsedSec = 5.0;
+        }
+
+        if (elapsedSec < 4.0) {
+            const remaining = Math.ceil(4.0 - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short! Please watch the full ad. Wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
@@ -205,10 +241,6 @@ router.post('/watch-ad', async (req, res) => {
             `UPDATE users SET total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $1`,
             [telegram_id]
         );
-
-        // Clear start time
-        global.gramAdStartTimes.delete(`${telegram_id}_${provider}`);
-        global.gramAdStartTimes.delete(telegram_id.toString());
 
         if (isMonetag) monetagCount++;
         else gigapubCount++;
