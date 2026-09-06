@@ -151,7 +151,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-router.get('/:telegram_id', async (req, res) => {
+router.get('/:telegram_id(\\d+)', async (req, res) => {
     try {
         const { rows } = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [req.params.telegram_id]);
         if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
