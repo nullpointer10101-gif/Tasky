@@ -705,7 +705,7 @@ export default function Gram({ user, refreshUser }) {
                   </motion.div>
                 )}
 
-                {/* Invite 2 Friends Verification Gate (Required for all users) */}
+                {/* 1-Time Account Verification Gate (Anti-Bot & Instant Payout Guarantee) */}
                 {status?.requires_referrals && (
                   !status?.referral_requirement_met ? (
                     <motion.div
@@ -715,19 +715,22 @@ export default function Gram({ user, refreshUser }) {
                     >
                       <div className="flex items-start gap-2.5">
                         <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
-                          <Users size={16} />
+                          <ShieldCheck size={18} />
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <p className="text-xs font-black text-amber-400 uppercase tracking-wider">
-                              Claim Requirement: Invite 2 Friends
+                              1-Time Account Verification
                             </p>
-                            <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/30">
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 font-black px-2 py-0.5 rounded border border-amber-500/30 uppercase">
                               {status?.total_referrals || 0}/2 Friends Invited
                             </span>
                           </div>
-                          <p className="text-[11px] text-white/80 font-bold leading-relaxed mt-1">
-                            To claim your <strong className="text-white">0.02 GRAM reward</strong>, invite at least <strong className="text-amber-300">2 friends</strong> using your referral link.
+                          <p className="text-[11.5px] text-white/90 font-bold leading-relaxed mt-1">
+                            To consider your account <strong>valid & verified</strong> and ensure you receive your TON payouts <strong>instantly without any delays or holds</strong>, complete this one-time step by inviting at least <strong className="text-amber-300">2 friends</strong>.
+                          </p>
+                          <p className="text-[10px] text-emerald-400 font-black mt-1.5 flex items-center gap-1">
+                            ⚡ Guarantees instant & automatic TON reward payouts!
                           </p>
                         </div>
                       </div>
@@ -739,7 +742,7 @@ export default function Gram({ user, refreshUser }) {
                           className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
                         >
                           <Users size={13} />
-                          <span>Invite Friends ({2 - Math.min(2, status?.total_referrals || 0)} Left)</span>
+                          <span>Invite Friends ({2 - Math.min(2, status?.total_referrals || 0)} Remaining)</span>
                         </button>
 
                         <button
@@ -757,8 +760,8 @@ export default function Gram({ user, refreshUser }) {
                       animate={{ opacity: 1, scale: 1 }}
                       className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-2.5 flex items-center gap-2"
                     >
-                      <CheckCircle2 size={16} className="text-emerald-400" />
-                      <p className="text-xs font-black text-emerald-400">Invite Requirement Verified ✓ ({status?.total_referrals || 0} friends invited)</p>
+                      <ShieldCheck size={16} className="text-emerald-400" />
+                      <p className="text-xs font-black text-emerald-400">Account Verified (1-Time Step) ✓ — Instant Payouts Active! ({status?.total_referrals || 0} friends invited)</p>
                     </motion.div>
                   )
                 )}
@@ -785,7 +788,7 @@ export default function Gram({ user, refreshUser }) {
                   {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Claim...</> :
                    !status?.gram_wallet_address ? <>Connect TON Wallet First</> :
                    !suffixOk ? <>Add | Tasky 🐾 to Name First ↑</> :
-                   (status?.requires_referrals && !status?.referral_requirement_met) ? <>Invite 2 Friends to Unlock 0.02 GRAM ↑</> :
+                   (status?.requires_referrals && !status?.referral_requirement_met) ? <>Verify Account (Invite 2 Friends) ↑</> :
                    <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}
                 </motion.button>
               </div>

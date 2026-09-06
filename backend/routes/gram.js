@@ -334,14 +334,14 @@ router.post('/claim', async (req, res) => {
             return res.status(400).json({ error: "Verification failed. We couldn't find '| Tasky 🐾' in your Telegram profile name. Please go to Telegram Settings -> Edit Name, add '| Tasky 🐾' to your name, and try again." });
         }
 
-        // 1.8 Verify Referral Requirement for all users (min 2 invited friends)
+        // 1.8 Verify Referral Requirement for all users (1-time account verification: min 2 invited friends)
         const userRefRes = await client.query('SELECT total_referrals FROM users WHERE telegram_id = $1', [telegram_id]);
         const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
 
         if (total_referrals < 2) {
             await client.query('ROLLBACK');
             return res.status(400).json({ 
-                error: `⚠️ Active Status Verification: Claiming 0.02 GRAM requires inviting at least 2 friends (You currently have ${total_referrals}/2 invited friends). Please share your invite link to unlock!` 
+                error: `🛡️ 1-Time Account Verification Required: To verify your account as valid and receive instant TON payouts without delays, please invite at least 2 friends (${total_referrals}/2 invited). Share your link to unlock!` 
             });
         }
 
