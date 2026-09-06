@@ -169,7 +169,7 @@ export default function GramClaims() {
     }
     setWarningAll(true);
     try {
-      const res = await api.post('/admin/broadcast/warn-gram-history');
+      const res = await api.post('/broadcast/warn-gram-history');
       toast.success(res.data?.message || 'Warning broadcast started for all users in history!');
     } catch (e) {
       toast.error(e.response?.data?.error || 'Failed to broadcast warning');
