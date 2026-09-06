@@ -356,20 +356,7 @@ router.post('/complete', async (req, res) => {
 
             await client.query('COMMIT');
 
-            const adminId = process.env.ADMIN_TELEGRAM_ID;
-            if (bot && bot.sendMessage && adminId) {
-                const opts = {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                { text: '✅ Approve', callback_data: `approve_${userTaskId}` },
-                                { text: '❌ Reject', callback_data: `reject_${userTaskId}` }
-                            ]
-                        ]
-                    }
-                };
-                try { bot.sendMessage(adminId, adminMessage, opts); } catch (e) {}
-            }
+            // Task verification is reviewed directly in Admin Panel (DM notifications disabled)
             return res.json({ status: 'pending', message: 'Submitted for review' });
 
         } else {
@@ -398,20 +385,7 @@ router.post('/complete', async (req, res) => {
 
             await client.query('COMMIT');
 
-            const adminId = process.env.ADMIN_TELEGRAM_ID;
-            if (bot && bot.sendMessage && adminId) {
-                const opts = {
-                    reply_markup: {
-                        inline_keyboard: [
-                            [
-                                { text: '✅ Approve', callback_data: `approve_${userTaskId}` },
-                                { text: '❌ Reject', callback_data: `reject_${userTaskId}` }
-                            ]
-                        ]
-                    }
-                };
-                try { bot.sendMessage(adminId, `📋 New screenshot submission from @${user.username || user.first_name} for task: ${task.title}`, opts); } catch (e) {}
-            }
+            // Task verification is reviewed directly in Admin Panel (DM notifications disabled)
             return res.json({ status: 'pending', message: 'Submitted for review' });
         }
 
