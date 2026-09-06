@@ -81,12 +81,16 @@ router.get('/stats', async (req, res) => {
     const gramAdsRes = await pool.query(`
       SELECT 
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as today_gigapub,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as today_monetag
       FROM ad_views
-      WHERE ad_type = 'gram_ad'
+      WHERE ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
     `);
     const todayGramAds = parseInt(gramAdsRes.rows[0].today, 10) || 0;
     const yesterdayGramAds = parseInt(gramAdsRes.rows[0].yesterday, 10) || 0;
+    const todayGigapubAds = parseInt(gramAdsRes.rows[0].today_gigapub, 10) || 0;
+    const todayMonetagAds = parseInt(gramAdsRes.rows[0].today_monetag, 10) || 0;
 
     const onlineIds = global.onlineUsers ? Array.from(global.onlineUsers.keys()) : [];
     let activeUsersList = [];
@@ -153,6 +157,8 @@ router.get('/stats', async (req, res) => {
       totalCirculatingGram: parseFloat(gramBalanceRes.rows[0].sum || 0),
       todayGramAds,
       yesterdayGramAds,
+      todayGigapubAds,
+      todayMonetagAds,
       activeUsersList,
       recentLogsList,
       newUsersToday,
@@ -174,10 +180,12 @@ router.get('/gram-watchers', async (req, res) => {
         SELECT 
           av.telegram_id,
           COUNT(*) FILTER (WHERE av.claimed = FALSE) as ads_watched,
+          COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_ads,
+          COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type = 'gram_monetag') as monetag_ads,
           MAX(av.created_at) as last_watch_time,
           MIN(av.created_at) as first_watch_time
         FROM ad_views av
-        WHERE av.ad_type = 'gram_ad'
+        WHERE av.ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
           AND av.created_at >= NOW() - INTERVAL '48 hours'
         GROUP BY av.telegram_id
       ),
@@ -196,6 +204,8 @@ router.get('/gram-watchers', async (req, res) => {
         u.gram_wallet_address,
         u.wallet_address,
         COALESCE(aw_data.ads_watched, 0) as ads_watched,
+        COALESCE(aw_data.gigapub_ads, 0) as gigapub_ads,
+        COALESCE(aw_data.monetag_ads, 0) as monetag_ads,
         aw_data.last_watch_time,
         aw_data.first_watch_time,
         EXISTS (
@@ -231,17 +241,23 @@ router.get('/gram-watchers', async (req, res) => {
 
     const watchers = watchersRes.rows.map(r => {
       let adsWatched = parseInt(r.ads_watched, 10);
+      let gigaWatched = parseInt(r.gigapub_ads, 10);
+      let monetagWatched = parseInt(r.monetag_ads, 10);
       const hasClaimedToday = claimedIds.has(r.telegram_id.toString());
       if (hasClaimedToday || r.has_pending_claim) {
         adsWatched = 60; // Force 60/60 if already claimed or pending
+        gigaWatched = 30;
+        monetagWatched = 30;
       } else {
-        adsWatched = Math.min(adsWatched, 60); // Cap at 60 max
+        adsWatched = Math.min(adsWatched, 60);
       }
       return {
         telegram_id: r.telegram_id,
         first_name: r.first_name || 'Unknown',
         username: r.username || null,
         ads_watched: adsWatched,
+        gigapub_ads: gigaWatched,
+        monetag_ads: monetagWatched,
         last_watch_time: r.last_watch_time,
         first_watch_time: r.first_watch_time,
         wallet: r.gram_wallet_address || r.wallet_address || null,
@@ -785,7 +801,11 @@ router.get('/ads/stats', async (req, res) => {
       SELECT
         COUNT(*) as total_ads,
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as ads_today,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_total,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_total,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as gigapub_today,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as monetag_today
       FROM ad_views
     `;
     const { rows } = await pool.query(query);
@@ -794,7 +814,9 @@ router.get('/ads/stats', async (req, res) => {
     const chartQuery = `
       SELECT 
         DATE(created_at) as date,
-        COUNT(*) as count
+        COUNT(*) as count,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count
       FROM ad_views
       WHERE created_at >= CURRENT_DATE - INTERVAL '6 days'
       GROUP BY DATE(created_at)
@@ -871,14 +893,28 @@ router.get('/users/:id/ad-views', async (req, res) => {
   const telegramId = req.params.id;
   const { ad_type } = req.query;
   try {
-    const query = `
-      SELECT id, created_at, claimed
-      FROM ad_views
-      WHERE telegram_id = $1 AND ad_type = $2
-      ORDER BY created_at DESC
-      LIMIT 200
-    `;
-    const { rows } = await pool.query(query, [telegramId, ad_type || 'gram_ad']);
+    let query;
+    let params;
+    if (!ad_type || ad_type === 'gram_all' || ad_type === 'gram' || ad_type === 'gram_ad') {
+      query = `
+        SELECT id, ad_type, created_at, claimed
+        FROM ad_views
+        WHERE telegram_id = $1 AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+        ORDER BY created_at DESC
+        LIMIT 300
+      `;
+      params = [telegramId];
+    } else {
+      query = `
+        SELECT id, ad_type, created_at, claimed
+        FROM ad_views
+        WHERE telegram_id = $1 AND ad_type = $2
+        ORDER BY created_at DESC
+        LIMIT 300
+      `;
+      params = [telegramId, ad_type];
+    }
+    const { rows } = await pool.query(query, params);
     res.json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -1899,7 +1935,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
           AND telegram_id NOT IN (
             SELECT telegram_id FROM ad_views
             WHERE telegram_id IS NOT NULL
-              AND ad_type = 'gram_ad'
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
             GROUP BY telegram_id

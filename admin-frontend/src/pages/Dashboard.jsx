@@ -137,6 +137,16 @@ export default function Dashboard() {
               <div className="relative z-10">
                 <p className={`text-4xl font-black mb-1 tracking-tight ${card.color}`}>{card.value.toLocaleString()}</p>
                 <p className="text-sm font-bold text-ink-soft uppercase tracking-wider">{card.title}</p>
+                {card.badge === 'TODAY' && (
+                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/50 text-[11px] font-bold">
+                    <span className="text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                      GigaPub: {Number(stats.todayGigapubAds || 0).toLocaleString()}
+                    </span>
+                    <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      Monetag: {Number(stats.todayMonetagAds || 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           ))}

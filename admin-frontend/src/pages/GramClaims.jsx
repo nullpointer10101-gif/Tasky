@@ -20,7 +20,7 @@ export default function GramClaims() {
     setLoadingAds(true);
     setAdsList([]);
     try {
-      const { data } = await api.get(`/users/${telegram_id}/ad-views`, { params: { ad_type: 'gram_ad' } });
+      const { data } = await api.get(`/users/${telegram_id}/ad-views`, { params: { ad_type: 'gram_all' } });
       setAdsList(data);
     } catch (e) {
       toast.error('Failed to load ad view list');
@@ -464,9 +464,23 @@ export default function GramClaims() {
             <h3 className="text-xl font-black text-ink mb-1 flex items-center gap-2">
               <Coins className="text-amber-400" size={20} /> Gram Ads Logs
             </h3>
-            <p className="text-xs text-ink-soft mb-4">
+            <p className="text-xs text-ink-soft mb-3">
               Viewing ad view history for <span className="text-amber-400 font-bold">{selectedUserAds.name}</span>
             </p>
+
+            {/* Provider Breakdown Summary */}
+            {!loadingAds && adsList.length > 0 && (
+              <div className="flex items-center gap-2 mb-4 p-2.5 rounded-xl bg-surface-soft border border-border/50 text-xs font-bold">
+                <span className="text-ink-soft">Total: <span className="text-ink font-black">{adsList.length}</span></span>
+                <span className="text-ink-faint">•</span>
+                <span className="text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">
+                  GigaPub: {adsList.filter(a => a.ad_type !== 'gram_monetag').length}
+                </span>
+                <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                  Monetag: {adsList.filter(a => a.ad_type === 'gram_monetag').length}
+                </span>
+              </div>
+            )}
             
             <div className="max-h-[300px] overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-border/50">
               {loadingAds ? (
@@ -491,12 +505,21 @@ export default function GramClaims() {
                       inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
                     }
                     
+                    const isMonetag = ad.ad_type === 'gram_monetag';
+
                     return (
                       <div key={ad.id} className="py-3 flex items-center justify-between text-xs hover:bg-[#0a0f1c]/30 px-2 rounded-lg transition-colors">
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-ink-faint font-bold w-6">#{idx + 1}</span>
                           <div className="flex flex-col">
-                            <span className="font-semibold text-ink">{new Date(ad.created_at).toLocaleString()}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-ink">{new Date(ad.created_at).toLocaleString()}</span>
+                              <span className={`text-[9px] font-black uppercase px-1.5 py-0.5 rounded border ${
+                                isMonetag ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                              }`}>
+                                {isMonetag ? 'Monetag' : 'GigaPub'}
+                              </span>
+                            </div>
                             <span className="text-[9px] text-ink-faint font-mono mt-0.5">ID: {ad.id}</span>
                           </div>
                         </div>

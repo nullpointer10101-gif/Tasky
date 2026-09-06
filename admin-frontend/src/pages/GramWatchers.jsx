@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Tv, RefreshCw, Wifi, WifiOff, Trophy, Clock, Wallet, CheckCircle, AlertCircle, Zap, User, Bell } from 'lucide-react';
+import { Tv, RefreshCw, Wifi, WifiOff, Trophy, Clock, Wallet, CheckCircle, AlertCircle, Zap, User, Bell, Layers, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../api';
 
@@ -23,6 +23,8 @@ function getProgressColor(count) {
 
 function WatcherCard({ watcher, onRemind }) {
   const adsWatchedCount = Math.min(watcher.ads_watched, ADS_GOAL);
+  const gigapubCount = Math.min(watcher.gigapub_ads || 0, 30);
+  const monetagCount = Math.min(watcher.monetag_ads || 0, 30);
   const pct = Math.min((adsWatchedCount / ADS_GOAL) * 100, 100);
   const colors = getProgressColor(adsWatchedCount);
   const isNearGoal = adsWatchedCount >= 50 && adsWatchedCount < 60;
@@ -63,7 +65,6 @@ function WatcherCard({ watcher, onRemind }) {
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${colors.bar} bg-opacity-10 border border-current/20 ${colors.text}`}>
             <User size={16} />
           </div>
-          {/* Yellow online dot */}
           {watcher.isOnline && (
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-yellow-400 border-2 border-surface-soft shadow-sm shadow-yellow-400/50" title="Online now" />
           )}
@@ -74,7 +75,7 @@ function WatcherCard({ watcher, onRemind }) {
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Total Progress bar */}
       <div className="mb-2">
         <div className="flex justify-between items-center mb-1">
           <span className={`text-xs font-black ${colors.text}`}>{adsWatchedCount} / {ADS_GOAL} ads</span>
@@ -88,6 +89,28 @@ function WatcherCard({ watcher, onRemind }) {
         </div>
       </div>
 
+      {/* Provider Dual Breakdown (GigaPub + Monetag) */}
+      <div className="grid grid-cols-2 gap-2 my-2.5 p-2 rounded-xl bg-surface/50 border border-border/40 text-[10px] font-bold">
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-indigo-400">
+            <span className="flex items-center gap-1"><Layers size={10} /> GigaPub</span>
+            <span className="font-mono font-black">{gigapubCount}/30</span>
+          </div>
+          <div className="w-full h-1 bg-surface-soft rounded-full overflow-hidden">
+            <div className="h-full bg-indigo-400 rounded-full transition-all" style={{ width: `${(gigapubCount / 30) * 100}%` }} />
+          </div>
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-amber-400">
+            <span className="flex items-center gap-1"><Sparkles size={10} /> Monetag</span>
+            <span className="font-mono font-black">{monetagCount}/30</span>
+          </div>
+          <div className="w-full h-1 bg-surface-soft rounded-full overflow-hidden">
+            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${(monetagCount / 30) * 100}%` }} />
+          </div>
+        </div>
+      </div>
+
       {/* Meta row */}
       <div className="flex items-center justify-between mt-2.5 gap-2 flex-wrap">
         <div className="flex items-center gap-1 text-[10px] text-ink-soft font-bold">
@@ -98,7 +121,7 @@ function WatcherCard({ watcher, onRemind }) {
           {!watcher.claimed_today && watcher.ads_watched < 60 && (
             <button
               onClick={() => onRemind(watcher.telegram_id)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/20 transition-all"
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/20 transition-all cursor-pointer"
               title="Send Reminder"
             >
               <Bell size={10} /> Remind
@@ -113,7 +136,6 @@ function WatcherCard({ watcher, onRemind }) {
     </div>
   );
 }
-
 
 export default function GramWatchers() {
   const [data, setData] = useState(null);
@@ -151,12 +173,15 @@ export default function GramWatchers() {
     return true;
   });
 
+  const watchersList = data?.watchers || [];
   const stats = data ? {
     total: data.total,
-    near: data.watchers.filter(w => w.ads_watched >= 50 && w.ads_watched < 60).length,
-    ready: data.watchers.filter(w => w.ads_watched >= 60 && !w.claimed_today).length,
-    claimed: data.watchers.filter(w => w.claimed_today).length,
-  } : { total: 0, near: 0, ready: 0, claimed: 0 };
+    near: watchersList.filter(w => w.ads_watched >= 50 && w.ads_watched < 60).length,
+    ready: watchersList.filter(w => w.ads_watched >= 60 && !w.claimed_today).length,
+    claimed: watchersList.filter(w => w.claimed_today).length,
+    totalGigapub: watchersList.reduce((acc, w) => acc + (w.gigapub_ads || 0), 0),
+    totalMonetag: watchersList.reduce((acc, w) => acc + (w.monetag_ads || 0), 0),
+  } : { total: 0, near: 0, ready: 0, claimed: 0, totalGigapub: 0, totalMonetag: 0 };
 
   const handleRemind = async (telegramId) => {
     try {
@@ -201,7 +226,7 @@ export default function GramWatchers() {
             </div>
             Gram Watchers
           </h1>
-          <p className="text-ink-soft text-sm">Last 24h gram ad watchers — real-time progress to 60 ads</p>
+          <p className="text-ink-soft text-sm">Active 48h viewers across GigaPub & Monetag networks — 60 total ads cap</p>
         </div>
 
         {/* Controls */}
@@ -213,7 +238,7 @@ export default function GramWatchers() {
           )}
           <button
             onClick={() => setIsLive(l => !l)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border transition-all duration-200
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black border transition-all duration-200 cursor-pointer
               ${isLive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25 hover:bg-emerald-500/20' : 
                 'bg-surface-soft text-ink-soft border-border hover:border-indigo-500/30'}`}
           >
@@ -222,7 +247,7 @@ export default function GramWatchers() {
           </button>
           <button
             onClick={fetchWatchers}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black bg-surface-soft border border-border text-ink-soft hover:text-ink hover:border-indigo-500/30 transition-all duration-200"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-black bg-surface-soft border border-border text-ink-soft hover:text-ink hover:border-indigo-500/30 transition-all duration-200 cursor-pointer"
           >
             <RefreshCw size={13} />
             Refresh
@@ -240,20 +265,22 @@ export default function GramWatchers() {
       )}
 
       {/* Summary cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         {[
           { label: 'Total Watchers', value: stats.total, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', icon: Tv },
           { label: 'Close (50+ ads)', value: stats.near, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: AlertCircle },
           { label: 'Ready to Claim', value: stats.ready, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Trophy },
           { label: 'Claimed Today', value: stats.claimed, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', icon: CheckCircle },
+          { label: 'GigaPub Views', value: stats.totalGigapub, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', icon: Layers },
+          { label: 'Monetag Views', value: stats.totalMonetag, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Sparkles },
         ].map((s, i) => (
           <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-4 flex items-center gap-3`}>
             <div className={`w-9 h-9 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center ${s.color} shrink-0`}>
               <s.icon size={18} />
             </div>
             <div>
-              <p className={`text-2xl font-black leading-none ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-0.5">{s.label}</p>
+              <p className={`text-xl font-black leading-none ${s.color}`}>{s.value.toLocaleString()}</p>
+              <p className="text-[10px] text-ink-soft font-bold uppercase tracking-wider mt-1">{s.label}</p>
             </div>
           </div>
         ))}
@@ -265,7 +292,7 @@ export default function GramWatchers() {
           <button
             key={tab.key}
             onClick={() => setFilter(tab.key)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black border transition-all duration-200
+            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-black border transition-all duration-200 cursor-pointer
               ${filter === tab.key ? tab.color : 'text-ink-soft bg-surface-soft border-border hover:border-indigo-500/20'}`}
           >
             {tab.label}
@@ -281,7 +308,7 @@ export default function GramWatchers() {
         <div className="text-center py-20 text-ink-soft">
           <Tv size={48} className="mx-auto mb-4 opacity-20" />
           <p className="font-black text-sm uppercase tracking-widest">No watchers found</p>
-          <p className="text-xs mt-1">Nobody has watched gram ads today yet in this category</p>
+          <p className="text-xs mt-1">Nobody has watched gram ads in this category</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -294,7 +321,7 @@ export default function GramWatchers() {
       {/* Footer */}
       {data && (
         <p className="text-center text-[10px] text-ink-soft font-mono mt-8 opacity-50">
-          Showing {filtered.length} of {data.total} users · Data as of {new Date(data.asOf).toLocaleTimeString()}
+          Showing {filtered.length} of {data.total} users · Real-time tracking
         </p>
       )}
     </div>
