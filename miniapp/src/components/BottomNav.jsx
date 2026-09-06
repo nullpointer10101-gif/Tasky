@@ -50,10 +50,13 @@ export default function BottomNav({ active, onChange, user }) {
           return (
             <motion.button
               key={id}
-              onClick={() => onChange(id)}
-              whileTap={{ scale: 0.93 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-              className="flex-1 flex flex-col items-center justify-center gap-0.5 focus:outline-none relative py-1"
+              onClick={() => {
+                try { window.Telegram?.WebApp?.HapticFeedback?.selectionChanged(); } catch(e){}
+                onChange(id);
+              }}
+              whileTap={{ scale: 0.90 }}
+              transition={{ type: 'spring', stiffness: 450, damping: 25 }}
+              className="flex-1 flex flex-col items-center justify-center gap-0.5 focus:outline-none relative py-1 cursor-pointer"
             >
               {isActive && (
                 <motion.span

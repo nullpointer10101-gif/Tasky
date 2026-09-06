@@ -14,6 +14,7 @@
     margin: 0;
     padding: 0;
     background-color: #090615;
+    scroll-behavior: smooth;
   }
   #root {
     width: 100%;
@@ -22,13 +23,16 @@
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
   body {
     @apply bg-bg text-ink font-sans antialiased;
   }
 }
 
-/* Hide scrollbar for clean app feel */
+/* Hide scrollbar for clean native app feel */
 .hide-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -45,6 +49,13 @@
   -webkit-backface-visibility: hidden;
   perspective: 1000px;
   -webkit-perspective: 1000px;
+  will-change: transform, opacity;
+}
+
+/* Smooth Interactive Elements */
+button, a {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.15s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-touch-callout: none;
 }
 
 
