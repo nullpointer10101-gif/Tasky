@@ -1686,7 +1686,17 @@ router.post('/gram/claims/review', async (req, res) => {
     await client.query('BEGIN');
 
     const claimRes = await client.query('SELECT telegram_id, amount, gram_wallet_address FROM gram_claims WHERE id = $1 AND status = \'pending\'', [claim_id]);
-    if (claimRes.rows.length === 0) throw new Error('Claim not found or already processed');
+    if (claimRes.rows.length === 0) {
+      const existingRes = await client.query('SELECT status, tx_hash FROM gram_claims WHERE id = $1', [claim_id]);
+      if (existingRes.rows.length > 0 && existingRes.rows[0].status === 'approved') {
+        if (tx_hash && tx_hash.trim()) {
+          await client.query('UPDATE gram_claims SET tx_hash = $2 WHERE id = $1', [claim_id, tx_hash.trim()]);
+        }
+        await client.query('COMMIT');
+        return res.json({ success: true, message: 'Claim was already approved and is marked as Paid!' });
+      }
+      throw new Error('Claim not found or already processed');
+    }
 
     const { telegram_id, amount, gram_wallet_address } = claimRes.rows[0];
 

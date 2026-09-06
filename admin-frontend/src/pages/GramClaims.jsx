@@ -125,13 +125,16 @@ export default function GramClaims() {
     const id = approveModalItem.claim_id;
     setProcessingId(id);
     try {
-      await api.post('/gram/claims/review', { claim_id: id, action: 'approve', rejection_reason: '', tx_hash: txHash });
-      toast.success("Gram claim marked as Paid successfully!");
+      const res = await api.post('/gram/claims/review', { claim_id: id, action: 'approve', rejection_reason: '', tx_hash: txHash });
+      toast.success(res.data?.message || "Gram claim marked as Paid successfully!");
       setClaims(prev => prev.filter(c => c.claim_id !== id));
+      fetchClaims();
       fetchHistory();
       setApproveModalItem(null);
     } catch (e) {
       toast.error(e.response?.data?.error || "Failed to mark Gram claim as Paid");
+      fetchClaims();
+      fetchHistory();
     } finally {
       setProcessingId(null);
     }
