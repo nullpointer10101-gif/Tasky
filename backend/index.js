@@ -104,6 +104,19 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'Tasky Bot Backend is running', db: global.dbConnected ? 'connected' : 'disconnected' });
 });
 
+// TonConnect Manifest (Strictly required for Telegram @wallet, Tonkeeper, MyTonWallet)
+app.get('/tonconnect-manifest.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.json({
+    url: 'https://tasky3.onrender.com',
+    name: 'TASKY',
+    iconUrl: 'https://tasky3.onrender.com/assets/tasky-coin-CftrDQ6_.jpg',
+    termsOfUseUrl: 'https://tasky3.onrender.com',
+    privacyPolicyUrl: 'https://tasky3.onrender.com'
+  });
+});
+
 // Global Maintenance Middleware (Skip /api/admin) with 15s in-memory cache
 let _lastMaintenanceCheck = 0;
 let _cachedMaintenanceActive = false;
