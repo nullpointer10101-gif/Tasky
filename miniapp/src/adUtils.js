@@ -375,15 +375,16 @@ export async function showAdexiumAd() {
     console.log('[AdManager] 🚀 Requesting real on-demand Adexium ad...');
 
     // Explicitly request real ad from Adexium bid server
-    const ads = await widget.requestAd('interstitial', true);
+    let ads = [];
+    try {
+      ads = await widget.requestAd('interstitial', true);
+    } catch(e) {
+      console.warn('[AdManager] Adexium requestAd error:', e);
+    }
 
     if (!ads || !Array.isArray(ads) || ads.length === 0) {
-      console.warn('[AdManager] Adexium returned no fill on bid-request.');
-      return {
-        success: false,
-        network: 'adexium',
-        error: 'Adexium has no ad available right now. Please tap again in 5 seconds.'
-      };
+      console.warn('[AdManager] Adexium returned no fill on bid-request. Seamlessly showing live backup ad...');
+      return await showMonetagAd();
     }
 
     // Display the real ad overlay in the Mini App DOM

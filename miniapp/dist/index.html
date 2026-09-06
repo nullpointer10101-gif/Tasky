@@ -19,8 +19,20 @@
     <!-- Monetag SDK (Zone 11395836) -->
     <script id="monetag-ad-sdk" type="text/javascript" src="https://libtl.com/sdk.js" data-zone="11395836" data-sdk="show_11395836" async></script>
     <!-- Adexium Ad SDK (wid: e93d690f-bdc3-4ed5-8d9f-8f208afa3774) -->
-    <script id="adexium-ad-sdk" type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js" async></script>
-    <script type="module" crossorigin src="/assets/index-BSb7qcx0.js"></script>
+    <script id="adexium-ad-sdk" type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', () => {
+        try {
+          if (window.AdexiumWidget) {
+            window.adexiumWidget = new AdexiumWidget({ wid: 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774', adFormat: 'interstitial' });
+            window.adexiumWidget.autoMode();
+          }
+        } catch(e) {
+          console.error('Adexium autoMode error:', e);
+        }
+      });
+    </script>
+    <script type="module" crossorigin src="/assets/index-DdXiEDS-.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-CnOLJX3x.css">
   </head>
   <body>
