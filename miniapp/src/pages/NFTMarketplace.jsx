@@ -648,13 +648,6 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                     <td className="p-2.5 text-purple-300">+0.50</td>
                     <td className="p-2.5 text-indigo-300">+0.20</td>
                   </tr>
-                  <tr>
-                    <td className="p-2.5 font-bold text-purple-300">Turbo</td>
-                    <td className="p-2.5 text-amber-300 font-black">1.00 G</td>
-                    <td className="p-2.5 text-emerald-400 font-black">+0.30</td>
-                    <td className="p-2.5 text-purple-300">+0.10</td>
-                    <td className="p-2.5 text-indigo-300">+0.04</td>
-                  </tr>
                 </tbody>
               </table>
             </div>

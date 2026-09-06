@@ -34,9 +34,9 @@ pool.query(`
   INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
   VALUES 
     (1, 'Gram Mini Miner #01', 'Entry-level digital miner. (Discontinued from Marketplace)', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, false),
-    (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true),
+    (2, 'Gram Turbo Miner #02', 'High-speed digital miner. (Discontinued from Marketplace)', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, false),
     (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true),
-    (4, 'Gram Titan God Miner #04', 'Ultimate powerhouse digital miner. Earn 7.50 GRAM daily for 10 days.', 50.0, 7.50, 10, 75.0, 'celestial', 'crown', 1000, true)
+    (4, 'Gram Titan God Miner #04', 'Ultimate powerhouse digital miner. Earn 25.0 GRAM daily for 3 days.', 50.0, 25.0, 3, 75.0, 'celestial', 'crown', 1000, true)
   ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
@@ -48,7 +48,7 @@ pool.query(`
     icon_key = EXCLUDED.icon_key,
     is_active = EXCLUDED.is_active;
 `).then(() => {
-  return pool.query("UPDATE nft_cards SET is_active = FALSE WHERE id = 1 OR rarity = 'rare'");
+  return pool.query("UPDATE nft_cards SET is_active = FALSE WHERE id IN (1, 2) OR rarity IN ('rare', 'legendary')");
 }).catch(err => console.error('Error seeding/updating nft_cards:', err.message));
 
 /**
