@@ -97,7 +97,10 @@ setInterval(() => {
 const PORT = process.env.PORT || 3000;
 
 // Health check
-app.get('/', (req, res) => {
+app.get('/health', (req, res) => {
+  res.json({ status: 'Tasky Bot Backend is running', db: global.dbConnected ? 'connected' : 'disconnected' });
+});
+app.get('/api/health', (req, res) => {
   res.json({ status: 'Tasky Bot Backend is running', db: global.dbConnected ? 'connected' : 'disconnected' });
 });
 
@@ -176,20 +179,26 @@ app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI
 // Serve Admin Panel Static Build directly from Backend (No Vercel deployment limit!)
-const adminDistPath = path.join(__dirname, '../admin-frontend/dist');
+const adminDistPath = fs.existsSync(path.join(__dirname, 'public/admin')) 
+  ? path.join(__dirname, 'public/admin') 
+  : path.join(__dirname, '../admin-frontend/dist');
+
 if (fs.existsSync(adminDistPath)) {
   app.use('/admin', express.static(adminDistPath));
-  app.get('/admin/*', (req, res) => {
+  app.get('/admin*', (req, res) => {
     res.sendFile(path.join(adminDistPath, 'index.html'));
   });
 }
 
 // Serve Miniapp Static Build directly from Backend (Bypasses Vercel 100/day limit!)
-const miniappDistPath = path.join(__dirname, '../miniapp/dist');
+const miniappDistPath = fs.existsSync(path.join(__dirname, 'public/app')) 
+  ? path.join(__dirname, 'public/app') 
+  : path.join(__dirname, '../miniapp/dist');
+
 if (fs.existsSync(miniappDistPath)) {
   app.use(express.static(miniappDistPath));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) return next();
     res.sendFile(path.join(miniappDistPath, 'index.html'));
   });
 }
