@@ -1464,36 +1464,41 @@ router.delete('/promos/:id', async (req, res) => {
 });
 
 // Helper to enrich Gram claim row with real-time Telegram verification & anti-fraud analytics
-async function enrichGramClaimRow(row) {
+async function enrichGramClaimRow(row, isHistory = false) {
   let liveName = row.first_name || '';
   let liveUsername = row.username || '';
-  let hasSuffix = false;
+  const fullName = `${row.first_name || ''} ${row.username || ''}`.toLowerCase();
+  let hasSuffix = fullName.includes('tasky');
   let inCommunity = false;
   let inChannel = false;
 
   const tid = row.telegram_id;
 
-  if (bot && typeof bot.getChat === 'function') {
+  if (!isHistory && bot && typeof bot.getChat === 'function') {
     try {
-      const chat = await bot.getChat(tid);
-      const fName = chat?.first_name || '';
-      const lName = chat?.last_name || '';
-      liveName = `${fName} ${lName}`.trim() || row.first_name || '';
-      if (chat?.username) liveUsername = chat.username;
-      
-      const fullNameLower = `${fName} ${lName}`.toLowerCase();
-      hasSuffix = fullNameLower.includes('tasky');
+      const chatPromise = bot.getChat(tid);
+      const chat = await Promise.race([chatPromise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 2500))]).catch(() => null);
+      if (chat) {
+        const fName = chat?.first_name || '';
+        const lName = chat?.last_name || '';
+        liveName = `${fName} ${lName}`.trim() || row.first_name || '';
+        if (chat?.username) liveUsername = chat.username;
+        const fullNameLower = `${fName} ${lName}`.toLowerCase();
+        hasSuffix = fullNameLower.includes('tasky');
+      }
     } catch (e) {}
 
     try {
-      const cm = await bot.getChatMember('@TaskyOfficialCommunity', tid);
+      const cmPromise = bot.getChatMember('@TaskyOfficialCommunity', tid);
+      const cm = await Promise.race([cmPromise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 2500))]).catch(() => null);
       if (cm && ['member', 'administrator', 'creator'].includes(cm.status)) {
         inCommunity = true;
       }
     } catch (e) {}
 
     try {
-      const ch = await bot.getChatMember('@Tasky_Official', tid);
+      const chPromise = bot.getChatMember('@Tasky_Official', tid);
+      const ch = await Promise.race([chPromise, new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 2500))]).catch(() => null);
       if (ch && ['member', 'administrator', 'creator'].includes(ch.status)) {
         inChannel = true;
       }
@@ -1520,24 +1525,24 @@ async function enrichGramClaimRow(row) {
     goodFlags.push('Suffix Active');
   }
 
-  if (!inCommunity) {
+  if (!inCommunity && !isHistory) {
     trustScore -= 20;
     riskFlags.push('Not in Official Community Group');
-  } else {
+  } else if (inCommunity) {
     goodFlags.push('Community Member');
   }
 
-  if (!inChannel) {
+  if (!inChannel && !isHistory) {
     trustScore -= 10;
     riskFlags.push('Not in Official Channel');
-  } else {
+  } else if (inChannel) {
     goodFlags.push('Channel Member');
   }
 
-  if (adsCount < 60) {
+  if (adsCount < 60 && !isHistory) {
     trustScore -= 40;
     riskFlags.push(`Incomplete Ads: Only ${adsCount}/60 in 24h window`);
-  } else {
+  } else if (adsCount >= 60) {
     goodFlags.push('60/60 Ads Completed');
   }
 
@@ -1615,7 +1620,7 @@ router.get('/gram/claims/pending', async (req, res) => {
     `;
     const { rows } = await pool.query(query);
 
-    const enrichedRows = await Promise.all(rows.map(enrichGramClaimRow));
+    const enrichedRows = await Promise.all(rows.map(r => enrichGramClaimRow(r, false)));
 
     res.json(enrichedRows);
   } catch (error) {
@@ -1647,11 +1652,11 @@ router.get('/gram/claims/history', async (req, res) => {
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
       WHERE gc.status IN ('approved', 'rejected')
-      ORDER BY gc.processed_at DESC
+      ORDER BY COALESCE(gc.processed_at, gc.requested_at) DESC
       LIMIT 500
     `;
     const { rows } = await pool.query(query);
-    const enrichedRows = await Promise.all(rows.map(enrichGramClaimRow));
+    const enrichedRows = await Promise.all(rows.map(r => enrichGramClaimRow(r, true)));
     res.json(enrichedRows);
   } catch (error) {
     res.status(500).json({ error: error.message });
