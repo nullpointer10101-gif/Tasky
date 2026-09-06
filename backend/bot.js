@@ -50,6 +50,7 @@ const isAdmin = (msg) => {
 };
 
 const userStates = {};
+let cachedWelcomePhotoId = null;
 
 // =======================
 // User-Facing Commands
@@ -76,9 +77,13 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                     }
                     await client.query('COMMIT');
                 } else {
+                    const countRes = await client.query('SELECT COUNT(*) FROM users');
+                    const count = parseInt(countRes.rows[0].count, 10);
+                    const genesis_member = count < 1000;
+                    const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
+
                     let referred_by = null;
                     if (refCode) {
-                        const refId = parseInt(refCode);
                         const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1 OR telegram_id::text = $1', [refCode]);
                         if (refUser.rows.length > 0 && refUser.rows[0].telegram_id !== chatId) {
                             referred_by = refUser.rows[0].telegram_id;
