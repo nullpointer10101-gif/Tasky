@@ -75,6 +75,31 @@ router.get('/balance/:telegram_id', async (req, res) => {
         const remainingDailyLimit = Math.max(0, maxLimit - withdrawnToday);
         const hasReachedDailyCount = countToday >= 1;
 
+        // Check if user completed today's daily 60 ads claim (0.02 GRAM claim) in the last 24h
+        const dailyClaimRes = await pool.query(`
+            SELECT COUNT(*) as count, MAX(requested_at) as last_claim_time
+            FROM gram_claims
+            WHERE telegram_id = $1 
+              AND requested_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('pending', 'approved', 'done')
+        `, [telegram_id]);
+        const has_completed_daily_claim = parseInt(dailyClaimRes.rows[0].count, 10) > 0;
+
+        // Count ads watched today
+        const adCountRes = await pool.query(`
+            SELECT 
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count
+            FROM ad_views
+            WHERE telegram_id = $1
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+              AND claimed = FALSE
+              AND created_at >= NOW() - INTERVAL '24 hours'
+        `, [telegram_id]);
+        const gigapub_ads_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
+        const monetag_ads_today = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
+        const ads_watched_today = gigapub_ads_today + monetag_ads_today;
+
         // Recent withdrawal history
         const historyRes = await pool.query(
             `SELECT id, amount, status, wallet_address, requested_at, processed_at, rejection_reason
@@ -98,7 +123,11 @@ router.get('/balance/:telegram_id', async (req, res) => {
             has_pending_withdrawal: has_pending,
             withdrawals_today_count: countToday,
             has_reached_daily_limit: hasReachedDailyCount,
-            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && !hasReachedDailyCount && remainingDailyLimit >= MIN_WITHDRAWAL,
+            has_completed_daily_claim,
+            gigapub_ads_today,
+            monetag_ads_today,
+            ads_watched_today,
+            can_withdraw: parseFloat(gram_balance || 0) >= MIN_WITHDRAWAL && !!activeWallet && !has_pending && !hasReachedDailyCount && remainingDailyLimit >= MIN_WITHDRAWAL && has_completed_daily_claim,
             min_withdrawal: MIN_WITHDRAWAL,
             max_withdrawal: maxLimit,
             withdrawn_today: withdrawnToday,
@@ -129,6 +158,24 @@ router.post('/withdraw', async (req, res) => {
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
+
+        // 0. Enforce Daily 60-ad Claim requirement: user must have completed today's 0.02 GRAM claim (60 ads)
+        const dailyClaimRes = await client.query(`
+            SELECT COUNT(*) as count
+            FROM gram_claims
+            WHERE telegram_id = $1 
+              AND requested_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('pending', 'approved', 'done')
+        `, [telegram_id]);
+        const has_completed_daily_claim = parseInt(dailyClaimRes.rows[0].count, 10) > 0;
+
+        if (!has_completed_daily_claim) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ 
+                error: "Daily Requirement: You must complete today's 60 Ads Claim (0.02 GRAM) on the Gram page first before placing a GRAM withdrawal!",
+                requires_daily_claim: true
+            });
+        }
 
         const userRes = await client.query(
             'SELECT gram_balance, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE',
