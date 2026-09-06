@@ -22,42 +22,45 @@ function getProgressColor(count) {
 }
 
 function WatcherCard({ watcher, onRemind }) {
-  const adsWatchedCount = Math.min(watcher.ads_watched, ADS_GOAL);
   const gigapubCount = Math.min(watcher.gigapub_ads || 0, 30);
   const monetagCount = Math.min(watcher.monetag_ads || 0, 30);
+  const adsWatchedCount = Math.min(watcher.ads_watched ?? (gigapubCount + monetagCount), ADS_GOAL);
   const pct = Math.min((adsWatchedCount / ADS_GOAL) * 100, 100);
   const colors = getProgressColor(adsWatchedCount);
-  const isNearGoal = adsWatchedCount >= 50 && adsWatchedCount < 60;
-  const isComplete = adsWatchedCount >= 60;
+  const isReady = (watcher.is_ready || (gigapubCount >= 30 && monetagCount >= 30)) && !watcher.claimed_today && !watcher.has_pending_claim;
+  const isNearGoal = !isReady && (adsWatchedCount >= 50 && adsWatchedCount < 60) && !watcher.claimed_today && !watcher.has_pending_claim;
   const displayName = watcher.username ? `@${watcher.username}` : watcher.first_name;
 
   return (
     <div className={`relative bg-surface-soft border rounded-2xl p-4 transition-all duration-300 overflow-hidden group
-      ${isComplete ? 'border-emerald-500/40 shadow-lg shadow-emerald-500/10' : 
-        isNearGoal ? 'border-amber-500/40 shadow-lg shadow-amber-500/10' : 
+      ${isReady ? 'border-amber-500/40 shadow-lg shadow-amber-500/10' : 
+        watcher.claimed_today ? 'border-emerald-500/40 shadow-lg shadow-emerald-500/10' :
+        isNearGoal ? 'border-blue-500/40 shadow-lg shadow-blue-500/10' : 
         'border-border hover:border-indigo-500/30'}`}>
 
       {/* Glow bg */}
-      {(isComplete || isNearGoal) && (
-        <div className={`absolute inset-0 opacity-5 ${isComplete ? 'bg-emerald-400' : 'bg-amber-400'} rounded-2xl`} />
+      {(isReady || watcher.claimed_today || isNearGoal) && (
+        <div className={`absolute inset-0 opacity-5 ${isReady ? 'bg-amber-400' : watcher.claimed_today ? 'bg-emerald-400' : 'bg-blue-400'} rounded-2xl`} />
       )}
 
       {/* Status badge */}
-      {watcher.claimed_today && (
+      {watcher.has_pending_claim ? (
+        <div className="absolute top-3 right-3 flex items-center gap-1 bg-amber-500/15 text-amber-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-500/25">
+          <Clock size={9} /> Pending Claim
+        </div>
+      ) : watcher.claimed_today ? (
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-emerald-500/15 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-emerald-500/25">
           <CheckCircle size={9} /> Claimed
         </div>
-      )}
-      {isComplete && !watcher.claimed_today && (
+      ) : isReady ? (
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-amber-500/15 text-amber-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-amber-500/25 animate-pulse">
           <Zap size={9} /> Ready!
         </div>
-      )}
-      {isNearGoal && !watcher.claimed_today && (
+      ) : isNearGoal ? (
         <div className="absolute top-3 right-3 flex items-center gap-1 bg-blue-500/15 text-blue-400 text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border border-blue-500/25">
           <AlertCircle size={9} /> Close
         </div>
-      )}
+      ) : null}
 
       {/* User info */}
       <div className="flex items-center gap-3 mb-3 pr-16">
@@ -83,7 +86,7 @@ function WatcherCard({ watcher, onRemind }) {
         </div>
         <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
           <div
-            className={`h-full rounded-full transition-all duration-700 ${colors.bar} ${isComplete || isNearGoal ? `shadow-sm ${colors.glow}` : ''}`}
+            className={`h-full rounded-full transition-all duration-700 ${colors.bar} ${isReady || watcher.claimed_today || isNearGoal ? `shadow-sm ${colors.glow}` : ''}`}
             style={{ width: `${pct}%` }}
           />
         </div>
@@ -118,7 +121,7 @@ function WatcherCard({ watcher, onRemind }) {
           {timeSince(watcher.last_watch_time)}
         </div>
         <div className="flex items-center gap-2">
-          {!watcher.claimed_today && watcher.ads_watched < 60 && (
+          {!watcher.claimed_today && !watcher.has_pending_claim && !isReady && (
             <button
               onClick={() => onRemind(watcher.telegram_id)}
               className="flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-violet-500/10 text-violet-400 hover:bg-violet-500/20 border border-violet-500/20 transition-all cursor-pointer"
@@ -166,19 +169,24 @@ export default function GramWatchers() {
     return () => clearInterval(interval);
   }, [isLive, fetchWatchers]);
 
-  const filtered = (data?.watchers || []).filter(w => {
-    if (filter === 'near') return w.ads_watched >= 50 && w.ads_watched < 60;
-    if (filter === 'ready') return w.ads_watched >= 60 && !w.claimed_today;
-    if (filter === 'claimed') return w.claimed_today;
+  const watchersList = data?.watchers || [];
+
+  const isWatcherReady = (w) => (w.is_ready || (w.gigapub_ads >= 30 && w.monetag_ads >= 30)) && !w.claimed_today && !w.has_pending_claim;
+  const isWatcherNear = (w) => !isWatcherReady(w) && w.ads_watched >= 50 && w.ads_watched < 60 && !w.claimed_today && !w.has_pending_claim;
+  const isWatcherClaimed = (w) => !!(w.claimed_today || w.has_pending_claim);
+
+  const filtered = watchersList.filter(w => {
+    if (filter === 'near') return isWatcherNear(w);
+    if (filter === 'ready') return isWatcherReady(w);
+    if (filter === 'claimed') return isWatcherClaimed(w);
     return true;
   });
 
-  const watchersList = data?.watchers || [];
   const stats = data ? {
     total: data.total,
-    near: watchersList.filter(w => w.ads_watched >= 50 && w.ads_watched < 60).length,
-    ready: watchersList.filter(w => w.ads_watched >= 60 && !w.claimed_today).length,
-    claimed: watchersList.filter(w => w.claimed_today).length,
+    near: watchersList.filter(isWatcherNear).length,
+    ready: watchersList.filter(isWatcherReady).length,
+    claimed: watchersList.filter(isWatcherClaimed).length,
     totalGigapub: watchersList.reduce((acc, w) => acc + (w.gigapub_ads || 0), 0),
     totalMonetag: watchersList.reduce((acc, w) => acc + (w.monetag_ads || 0), 0),
   } : { total: 0, near: 0, ready: 0, claimed: 0, totalGigapub: 0, totalMonetag: 0 };
@@ -226,7 +234,7 @@ export default function GramWatchers() {
             </div>
             Gram Watchers
           </h1>
-          <p className="text-ink-soft text-sm">Active 48h viewers across GigaPub & Monetag networks — 60 total ads cap</p>
+          <p className="text-ink-soft text-sm">Active 24h viewers across GigaPub & Monetag networks — 60 total ads cap (30 + 30)</p>
         </div>
 
         {/* Controls */}

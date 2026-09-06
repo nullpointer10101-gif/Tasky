@@ -174,28 +174,30 @@ router.get('/stats', async (req, res) => {
 // ==========================================
 router.get('/gram-watchers', async (req, res) => {
   try {
-    // Get all users who watched gram ads in the last 48 hours or have pending claims
+    // Get all users who watched gram ads in the last 24 hours or have recent claims
     const query = `
       WITH active_watchers AS (
         SELECT 
           av.telegram_id,
-          COUNT(*) FILTER (WHERE av.claimed = FALSE) as ads_watched,
           COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_ads,
           COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type = 'gram_monetag') as monetag_ads,
           MAX(av.created_at) as last_watch_time,
           MIN(av.created_at) as first_watch_time
         FROM ad_views av
         WHERE av.ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
-          AND av.created_at >= NOW() - INTERVAL '48 hours'
+          AND av.created_at >= NOW() - INTERVAL '24 hours'
         GROUP BY av.telegram_id
       ),
-      pending_claims AS (
-        SELECT telegram_id FROM gram_claims WHERE requested_at >= NOW() - INTERVAL '48 hours'
+      recent_claims AS (
+        SELECT DISTINCT telegram_id
+        FROM gram_claims
+        WHERE requested_at >= NOW() - INTERVAL '24 hours'
+          AND status IN ('pending', 'approved')
       ),
       all_watchers AS (
         SELECT telegram_id FROM active_watchers
         UNION
-        SELECT telegram_id FROM pending_claims
+        SELECT telegram_id FROM recent_claims
       )
       SELECT 
         aw.telegram_id,
@@ -203,54 +205,38 @@ router.get('/gram-watchers', async (req, res) => {
         u.username,
         u.gram_wallet_address,
         u.wallet_address,
-        COALESCE(aw_data.ads_watched, 0) as ads_watched,
-        COALESCE(aw_data.gigapub_ads, 0) as gigapub_ads,
-        COALESCE(aw_data.monetag_ads, 0) as monetag_ads,
+        COALESCE(aw_data.gigapub_ads, 0)::int as raw_gigapub,
+        COALESCE(aw_data.monetag_ads, 0)::int as raw_monetag,
         aw_data.last_watch_time,
         aw_data.first_watch_time,
         EXISTS (
           SELECT 1 FROM gram_claims gc 
           WHERE gc.telegram_id = aw.telegram_id 
             AND gc.status = 'pending'
-        ) as has_pending_claim
+            AND gc.requested_at >= NOW() - INTERVAL '24 hours'
+        ) as has_pending_claim,
+        EXISTS (
+          SELECT 1 FROM gram_claims gc 
+          WHERE gc.telegram_id = aw.telegram_id 
+            AND gc.status IN ('pending', 'approved')
+            AND gc.requested_at >= NOW() - INTERVAL '24 hours'
+        ) as claimed_today
       FROM all_watchers aw
       LEFT JOIN active_watchers aw_data ON aw_data.telegram_id = aw.telegram_id
       LEFT JOIN users u ON u.telegram_id = aw.telegram_id
       ORDER BY 
-        EXISTS (
-          SELECT 1 FROM gram_claims gc 
-          WHERE gc.telegram_id = aw.telegram_id 
-            AND gc.status = 'pending'
-        ) DESC,
-        COALESCE(aw_data.ads_watched, 0) DESC
+        claimed_today ASC,
+        (LEAST(30, COALESCE(aw_data.gigapub_ads, 0)) + LEAST(30, COALESCE(aw_data.monetag_ads, 0))) DESC,
+        aw_data.last_watch_time DESC NULLS LAST
     `;
     const watchersRes = await pool.query(query);
 
-    // For each watcher, also check if they claimed in last 24h
-    const telegramIds = watchersRes.rows.map(r => r.telegram_id);
-    let claimedIds = new Set();
-    if (telegramIds.length > 0) {
-      const claimsRes = await pool.query(`
-        SELECT DISTINCT telegram_id::text FROM gram_claims
-        WHERE telegram_id = ANY($1::bigint[])
-          AND requested_at >= NOW() - INTERVAL '24 hours'
-          AND status IN ('pending', 'approved')
-      `, [telegramIds]);
-      claimedIds = new Set(claimsRes.rows.map(r => r.telegram_id));
-    }
-
     const watchers = watchersRes.rows.map(r => {
-      let adsWatched = parseInt(r.ads_watched, 10);
-      let gigaWatched = parseInt(r.gigapub_ads, 10);
-      let monetagWatched = parseInt(r.monetag_ads, 10);
-      const hasClaimedToday = claimedIds.has(r.telegram_id.toString());
-      if (hasClaimedToday || r.has_pending_claim) {
-        adsWatched = 60; // Force 60/60 if already claimed or pending
-        gigaWatched = 30;
-        monetagWatched = 30;
-      } else {
-        adsWatched = Math.min(adsWatched, 60);
-      }
+      const gigaWatched = Math.min(30, parseInt(r.raw_gigapub, 10) || 0);
+      const monetagWatched = Math.min(30, parseInt(r.raw_monetag, 10) || 0);
+      const adsWatched = gigaWatched + monetagWatched;
+      const isReady = gigaWatched >= 30 && monetagWatched >= 30 && !r.claimed_today && !r.has_pending_claim;
+
       return {
         telegram_id: r.telegram_id,
         first_name: r.first_name || 'Unknown',
@@ -262,8 +248,9 @@ router.get('/gram-watchers', async (req, res) => {
         first_watch_time: r.first_watch_time,
         wallet: r.gram_wallet_address || r.wallet_address || null,
         has_wallet: !!(r.gram_wallet_address || r.wallet_address),
-        claimed_today: hasClaimedToday,
-        has_pending_claim: r.has_pending_claim
+        claimed_today: !!r.claimed_today,
+        has_pending_claim: !!r.has_pending_claim,
+        is_ready: isReady
       };
     });
 
