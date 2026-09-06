@@ -523,13 +523,13 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                 <Zap size={14} className="text-cyan-400" /> 1-Tap Tonkeeper Top-Up
               </div>
               <div className="grid grid-cols-2 gap-2">
-                {[0.5, 1.0, 5.0, 10.0].map((amt) => (
+                {[1.0, 5.0, 10.0, 20.0].map((amt) => (
                   <button
                     key={amt}
                     onClick={() => handlePayViaWallet(amt, 'tonkeeper')}
                     className="py-3 px-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-white font-black text-xs flex items-center justify-between transition-all active:scale-95"
                   >
-                    <span>{amt} GRAM</span>
+                    <span>{amt.toFixed(1)} GRAM</span>
                     <span className="text-[10px] text-indigo-300 font-mono">Tonkeeper 💎</span>
                   </button>
                 ))}
@@ -625,13 +625,6 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5 font-mono text-[11px] text-white">
-                  <tr>
-                    <td className="p-2.5 font-bold text-indigo-300">Starter</td>
-                    <td className="p-2.5 text-amber-300 font-black">0.50 G</td>
-                    <td className="p-2.5 text-emerald-400 font-black">+0.15</td>
-                    <td className="p-2.5 text-purple-300">+0.05</td>
-                    <td className="p-2.5 text-indigo-300">+0.02</td>
-                  </tr>
                   <tr>
                     <td className="p-2.5 font-bold text-purple-300">Turbo</td>
                     <td className="p-2.5 text-amber-300 font-black">1.00 G</td>

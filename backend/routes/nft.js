@@ -33,7 +33,7 @@ pool.query('ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT D
 pool.query(`
   INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
   VALUES 
-    (1, 'Gram Mini Miner #01', 'Entry-level digital miner. Earn 0.07 GRAM daily for 10 days.', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, true),
+    (1, 'Gram Mini Miner #01', 'Entry-level digital miner. (Discontinued from Marketplace)', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, false),
     (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true),
     (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true)
   ON CONFLICT (id) DO UPDATE SET
@@ -46,7 +46,9 @@ pool.query(`
     rarity = EXCLUDED.rarity,
     icon_key = EXCLUDED.icon_key,
     is_active = EXCLUDED.is_active;
-`).catch(err => console.error('Error seeding nft_cards:', err.message));
+`).then(() => {
+  return pool.query("UPDATE nft_cards SET is_active = FALSE WHERE id = 1 OR rarity = 'rare'");
+}).catch(err => console.error('Error seeding/updating nft_cards:', err.message));
 
 /**
  * Helper to distribute 3-Level Team Referral Commissions on NFT Purchases
