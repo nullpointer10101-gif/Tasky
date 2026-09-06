@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, 
+  Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Timer,
   Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, 
   ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown 
 } from 'lucide-react';
@@ -31,6 +31,43 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
   const [txHashInput, setTxHashInput] = useState('');
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
   const [showCommModal, setShowCommModal] = useState(false);
+
+  // ── SEASON 1 7-DAY DEADLINE COUNTDOWN ──
+  const [s1TimeLeft, setS1TimeLeft] = useState({ days: 7, hours: 0, minutes: 0, seconds: 0, totalMs: 7 * 86400000 });
+
+  useEffect(() => {
+    const S1_KEY = 'tasky_nft_s1_deadline_ts';
+    let targetTs;
+    try {
+      const saved = localStorage.getItem(S1_KEY);
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          targetTs = parsed;
+        }
+      }
+    } catch (e) {}
+
+    if (!targetTs) {
+      targetTs = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      try {
+        localStorage.setItem(S1_KEY, targetTs.toString());
+      } catch (e) {}
+    }
+
+    const updateTimer = () => {
+      const diff = Math.max(0, targetTs - Date.now());
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+      const minutes = Math.floor((diff / (1000 * 60)) % 60);
+      const seconds = Math.floor((diff / 1000) % 60);
+      setS1TimeLeft({ days, hours, minutes, seconds, totalMs: diff });
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const memoText = `TASKY_${telegramId}`;
   const gramBalance = parseFloat(user?.gram_balance || user?.balance || 0);
@@ -270,6 +307,50 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
             exit={{ opacity: 0, y: -10 }} 
             className="space-y-4"
           >
+            {/* ── SEASON 1 CLOSING COUNTDOWN HERO BANNER ── */}
+            <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#2a0815] via-[#1a051d] to-[#0d0315] border border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.18)]">
+              <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-2 relative z-10">
+                <div className="flex items-center gap-2">
+                  <span className="flex h-2.5 w-2.5 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                    <Flame size={14} className="text-rose-400" /> Season 1 Ending Soon
+                  </span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                  <Clock size={11} /> Closing in 7 Days
+                </span>
+              </div>
+
+              <p className="text-[11.5px] text-white/80 font-medium leading-snug mb-3 relative z-10">
+                Season 1 NFT Digital Miners will close permanently when the countdown expires. Deployed miners continue generating full daily yield for their 10-day lifecycle!
+              </p>
+
+              {/* 4 Digital Timer Capsules */}
+              <div className="grid grid-cols-4 gap-2 text-center relative z-10">
+                <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+                  <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.days).padStart(2, '0')}</p>
+                  <p className="text-[9px] font-black uppercase text-rose-300/70">Days</p>
+                </div>
+                <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+                  <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.hours).padStart(2, '0')}</p>
+                  <p className="text-[9px] font-black uppercase text-rose-300/70">Hours</p>
+                </div>
+                <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+                  <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.minutes).padStart(2, '0')}</p>
+                  <p className="text-[9px] font-black uppercase text-rose-300/70">Mins</p>
+                </div>
+                <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+                  <p className="text-lg font-black font-mono text-amber-300 tracking-tight animate-pulse">{String(s1TimeLeft.seconds).padStart(2, '0')}</p>
+                  <p className="text-[9px] font-black uppercase text-amber-400/80">Secs</p>
+                </div>
+              </div>
+            </div>
+
             {cards.map((nft) => {
               const isTitan = nft.id === 4 || parseFloat(nft.price_gram) >= 50;
               const isMega = (nft.id === 3 || parseFloat(nft.price_gram) >= 5) && !isTitan;
@@ -298,6 +379,10 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   {/* Top Badge Row */}
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.8 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        S1
+                      </span>
+
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                         isTitan
                           ? 'bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-500 text-black shadow-md font-black'

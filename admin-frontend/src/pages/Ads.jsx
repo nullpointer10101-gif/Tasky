@@ -4,6 +4,25 @@ import { PlaySquare, TrendingUp, Calendar, Clock, Layers, Sparkles } from 'lucid
 import api from '../api';
 import { format, parseISO } from 'date-fns';
 
+function formatChartDate(dateStr) {
+  if (!dateStr) return '';
+  try {
+    if (typeof dateStr === 'string' && dateStr.includes('-')) {
+      const parts = dateStr.split('T')[0].split('-');
+      if (parts.length === 3) {
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        const day = parseInt(parts[2], 10);
+        const d = new Date(year, month, day);
+        return format(d, 'MMM d');
+      }
+    }
+    return format(parseISO(dateStr), 'MMM d');
+  } catch (e) {
+    return String(dateStr);
+  }
+}
+
 const Ads = () => {
   const [data, setData] = useState({ stats: null, chart: [] });
   const [loading, setLoading] = useState(true);
@@ -36,6 +55,8 @@ const Ads = () => {
   };
 
   const stats = data.stats || {};
+  const chartData = data.chart || [];
+  const maxCount = Math.max(1, ...chartData.map(d => parseInt(d.count || 0, 10)));
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -185,54 +206,82 @@ const Ads = () => {
                 </div>
                 <div className="flex items-center gap-4 text-xs font-bold">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-indigo-500"></span>
+                    <span className="w-3 h-3 rounded-sm bg-indigo-500 shadow-sm"></span>
                     <span className="text-ink-soft">GigaPub</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-amber-400"></span>
+                    <span className="w-3 h-3 rounded-sm bg-amber-400 shadow-sm"></span>
                     <span className="text-ink-soft">Monetag</span>
                   </div>
                 </div>
               </div>
               
-              <div className="flex items-end gap-3 h-64 mt-4">
-                {data.chart?.length > 0 ? (
-                  data.chart.map((day, idx) => {
-                    const totalDay = parseInt(day.count || 0);
-                    const gigaCount = parseInt(day.gigapub_count || 0);
-                    const monetagCount = parseInt(day.monetag_count || 0);
-                    const maxCount = Math.max(...data.chart.map(d => parseInt(d.count || 0)));
-                    const heightPercent = maxCount > 0 ? (totalDay / maxCount) * 100 : 0;
+              <div className="flex items-stretch gap-3 h-72 mt-4 pt-6 pb-2 px-2">
+                {chartData.length > 0 ? (
+                  chartData.map((day, idx) => {
+                    const totalDay = parseInt(day.count || 0, 10);
+                    const gigaCount = parseInt(day.gigapub_count || 0, 10);
+                    const monetagCount = parseInt(day.monetag_count || 0, 10);
+                    const heightPercent = maxCount > 0 ? Math.round((totalDay / maxCount) * 100) : 0;
                     
-                    const gigaPct = totalDay > 0 ? (gigaCount / totalDay) * 100 : 100;
+                    const gigaPct = totalDay > 0 ? (gigaCount / totalDay) * 100 : 0;
                     const monetagPct = totalDay > 0 ? (monetagCount / totalDay) * 100 : 0;
 
                     return (
-                      <div key={idx} className="flex-1 flex flex-col items-center justify-end gap-2 group relative">
-                        {/* Tooltip */}
-                        <div className="opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity absolute -top-12 z-20 bg-surface-soft border border-border text-ink text-[11px] py-1.5 px-2.5 rounded-xl font-bold shadow-xl whitespace-nowrap">
-                          <div>Total: <span className="text-indigo-400">{totalDay}</span></div>
-                          <div className="text-[10px] text-ink-soft">G: {gigaCount} | M: {monetagCount}</div>
+                      <div key={idx} className="h-full flex-1 flex flex-col justify-end items-center group relative">
+                        {/* Hover Tooltip */}
+                        <div className="opacity-0 group-hover:opacity-100 pointer-events-none transition-all duration-200 absolute -top-14 z-30 bg-[#16122b] border border-indigo-500/30 text-white text-[11px] py-2 px-3 rounded-2xl font-bold shadow-2xl whitespace-nowrap backdrop-blur-md">
+                          <div className="font-mono text-xs text-white flex items-center justify-between gap-3">
+                            <span>{formatChartDate(day.date)}</span>
+                            <span className="text-indigo-300 font-black">{totalDay.toLocaleString()} ads</span>
+                          </div>
+                          <div className="text-[10px] text-white/70 mt-1 flex items-center gap-3">
+                            <span className="text-indigo-400">🟣 Giga: {gigaCount.toLocaleString()}</span>
+                            <span className="text-amber-300">🟡 Monetag: {monetagCount.toLocaleString()}</span>
+                          </div>
                         </div>
 
-                        {/* Stacked bar */}
-                        <div 
-                          className="w-full rounded-t-lg overflow-hidden flex flex-col-reverse transition-all group-hover:brightness-110"
-                          style={{ height: `${Math.max(6, heightPercent)}%` }}
-                        >
+                        {/* Total Count Label above bar */}
+                        <span className="text-[11px] font-black font-mono text-ink-soft group-hover:text-indigo-400 transition-colors mb-1.5">
+                          {totalDay > 0 ? (totalDay >= 1000 ? `${(totalDay / 1000).toFixed(1)}k` : totalDay) : '0'}
+                        </span>
+
+                        {/* Bar Track Container */}
+                        <div className="w-full flex-1 flex items-end justify-center">
                           <div 
-                            className="w-full bg-indigo-500/80 transition-colors"
-                            style={{ height: `${gigaPct}%` }}
-                            title={`GigaPub: ${gigaCount}`}
-                          />
-                          <div 
-                            className="w-full bg-amber-400 transition-colors"
-                            style={{ height: `${monetagPct}%` }}
-                            title={`Monetag: ${monetagCount}`}
-                          />
+                            className="w-full max-w-[48px] rounded-t-xl overflow-hidden flex flex-col justify-end transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_20px_rgba(99,102,241,0.35)] border border-white/5 bg-white/5"
+                            style={{ 
+                              height: totalDay > 0 ? `${Math.max(10, heightPercent)}%` : '4px' 
+                            }}
+                          >
+                            {totalDay > 0 ? (
+                              <>
+                                {/* Monetag (Top) */}
+                                {monetagCount > 0 && (
+                                  <div 
+                                    className="w-full bg-gradient-to-t from-amber-500 to-amber-400 transition-all"
+                                    style={{ height: `${monetagPct}%` }}
+                                    title={`Monetag: ${monetagCount}`}
+                                  />
+                                )}
+                                {/* GigaPub (Bottom) */}
+                                {gigaCount > 0 && (
+                                  <div 
+                                    className="w-full bg-gradient-to-t from-indigo-600 to-indigo-500 transition-all"
+                                    style={{ height: `${gigaPct}%` }}
+                                    title={`GigaPub: ${gigaCount}`}
+                                  />
+                                )}
+                              </>
+                            ) : (
+                              <div className="w-full h-full bg-white/10" />
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs font-bold text-ink-soft truncate w-full text-center">
-                          {format(parseISO(day.date), 'MMM d')}
+
+                        {/* Day Label at bottom */}
+                        <span className="text-xs font-bold text-ink-soft truncate w-full text-center mt-2 group-hover:text-ink transition-colors">
+                          {formatChartDate(day.date)}
                         </span>
                       </div>
                     );
