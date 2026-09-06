@@ -10,6 +10,9 @@ const CACHE_TTL = 30000; // 30 seconds
 
 const originalGet = api.get;
 api.get = async (url, config) => {
+  if (url.includes('_t=') || (config && config.params && config.params._t)) {
+    return originalGet(url, config);
+  }
   const key = url + JSON.stringify(config || {});
   if (getCache.has(key)) {
     const cached = getCache.get(key);

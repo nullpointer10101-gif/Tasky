@@ -5,68 +5,70 @@ const bot = require('../bot'); // for notifications
 const https = require('https');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
 
-// Direct Telegram Bot API call â€” no polling conflicts, works in production
+// Direct Telegram Bot API call — no polling conflicts, works in production
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const checkTelegramMembership = (handle, telegramId, retryCount = 1) => new Promise((resolve) => {
-    if (!BOT_TOKEN) return resolve(false);
-    const chatId = handle.startsWith('@') ? handle : `@${handle}`;
-    const userId = Number(telegramId) || telegramId;
-    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(chatId)}&user_id=${userId}`;
+
+const CHANNEL_TARGETS = {
+    tasky_official: { handle: '@Tasky_Official', chatId: '-1004403506848' },
+    tasky_payouts:  { handle: '@TaskyPayouts',   chatId: '-1003930113168' },
+    alphadrop:      { handle: '@AlphaDropDaily', chatId: '-1003567019988' },
+    community:      { handle: '@TaskyOfficialCommunity', chatId: '-1003892981144' }
+};
+
+const queryTelegramChatMember = (identifier, userId) => new Promise((resolve) => {
+    if (!BOT_TOKEN) return resolve({ ok: false, error: 'NO_BOT_TOKEN' });
+    const formattedId = identifier.toString().startsWith('@') || identifier.toString().startsWith('-') ? identifier.toString() : `@${identifier}`;
+    const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${encodeURIComponent(formattedId)}&user_id=${userId}`;
     const req = https.get(url, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
             try {
                 const json = JSON.parse(data);
-                if (json.ok && json.result) {
-                    const status = json.result.status;
-                    // In Telegram, valid members are 'creator', 'administrator', 'member', or 'restricted' (with is_member !== false)
-                    const isMember = ['member', 'administrator', 'creator'].includes(status) || 
-                                     (status === 'restricted' && json.result.is_member !== false);
-                    resolve(isMember);
-                } else if (json.error_code === 429 && retryCount > 0) {
-                    // Rate limited: wait 1s and retry
-                    setTimeout(() => {
-                        checkTelegramMembership(handle, telegramId, retryCount - 1).then(resolve);
-                    }, 1000);
-                } else {
-                    console.log(`[TgCheck] ${handle} for ${telegramId}: not ok ->`, json.description || json.error_code);
-                    resolve(false);
-                }
+                resolve(json);
             } catch (e) {
-                console.log(`[TgCheck] ${handle} parse error:`, e.message);
-                if (retryCount > 0) {
-                    setTimeout(() => {
-                        checkTelegramMembership(handle, telegramId, retryCount - 1).then(resolve);
-                    }, 500);
-                } else {
-                    resolve(false);
-                }
+                resolve({ ok: false, error: e.message });
             }
         });
     });
-    req.on('error', (e) => {
-        console.log(`[TgCheck] ${handle} request error:`, e.message);
-        if (retryCount > 0) {
-            setTimeout(() => {
-                checkTelegramMembership(handle, telegramId, retryCount - 1).then(resolve);
-            }, 500);
-        } else {
-            resolve(false);
-        }
-    });
-    req.setTimeout(6000, () => {
+    req.on('error', (e) => resolve({ ok: false, error: e.message }));
+    req.setTimeout(5000, () => {
         req.destroy();
-        console.log(`[TgCheck] ${handle} request timeout`);
-        if (retryCount > 0) {
-            setTimeout(() => {
-                checkTelegramMembership(handle, telegramId, retryCount - 1).then(resolve);
-            }, 500);
-        } else {
-            resolve(false);
-        }
+        resolve({ ok: false, error: 'TIMEOUT' });
     });
 });
+
+const checkTelegramMembership = async (channelKeyOrHandle, telegramId) => {
+    if (!BOT_TOKEN) return false;
+    const userId = Number(telegramId) || telegramId;
+    
+    // Resolve channel config
+    const target = CHANNEL_TARGETS[channelKeyOrHandle] || { handle: channelKeyOrHandle, chatId: null };
+    
+    // 1. Try numeric chat ID first if available (fastest and most authoritative in Telegram)
+    if (target.chatId) {
+        const res = await queryTelegramChatMember(target.chatId, userId);
+        if (res.ok && res.result) {
+            const status = res.result.status;
+            const isMember = ['member', 'administrator', 'creator'].includes(status) || 
+                             (status === 'restricted' && res.result.is_member !== false);
+            return isMember;
+        }
+    }
+
+    // 2. Try handle if chat ID check was not successful
+    if (target.handle) {
+        const res = await queryTelegramChatMember(target.handle, userId);
+        if (res.ok && res.result) {
+            const status = res.result.status;
+            const isMember = ['member', 'administrator', 'creator'].includes(status) || 
+                             (status === 'restricted' && res.result.is_member !== false);
+            return isMember;
+        }
+    }
+
+    return false;
+};
 
 router.post('/register', async (req, res) => {
     const { telegram_id, username, first_name, ref } = req.body;
@@ -478,10 +480,10 @@ router.get('/channel-status', async (req, res) => {
         const alreadyVerified = userRes.rows[0]?.has_verified_channels === true;
 
         const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
-            checkTelegramMembership('@Tasky_Official', telegram_id),
-            checkTelegramMembership('@TaskyPayouts', telegram_id),
-            checkTelegramMembership('@AlphaDropDaily', telegram_id),
-            checkTelegramMembership('@TaskyOfficialCommunity', telegram_id)
+            checkTelegramMembership('tasky_official', telegram_id),
+            checkTelegramMembership('tasky_payouts', telegram_id),
+            checkTelegramMembership('alphadrop', telegram_id),
+            checkTelegramMembership('community', telegram_id)
         ]);
 
         const allJoined = Boolean(joinedChannel && joinedPayouts && joinedAlphaDrop && joinedCommunity);
@@ -520,10 +522,10 @@ router.post('/verify-channels', async (req, res) => {
         const wasVerified = userRes.rows[0].has_verified_channels;
 
         const [joinedChannel, joinedPayouts, joinedAlphaDrop, joinedCommunity] = await Promise.all([
-            checkTelegramMembership('@Tasky_Official', telegram_id),
-            checkTelegramMembership('@TaskyPayouts', telegram_id),
-            checkTelegramMembership('@AlphaDropDaily', telegram_id),
-            checkTelegramMembership('@TaskyOfficialCommunity', telegram_id)
+            checkTelegramMembership('tasky_official', telegram_id),
+            checkTelegramMembership('tasky_payouts', telegram_id),
+            checkTelegramMembership('alphadrop', telegram_id),
+            checkTelegramMembership('community', telegram_id)
         ]);
 
         const notJoined = [];

@@ -32,14 +32,13 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
           await refreshUser();
         }
       } else if (retries > 0) {
-        // Backend spinning up / busy - silent retry after 2s
-        setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
+        setTimeout(() => checkLiveStatus(silent, retries - 1), 1500);
         return;
       }
     } catch (e) {
       console.error('Channel status check error:', e);
       if (retries > 0) {
-        setTimeout(() => checkLiveStatus(silent, retries - 1), 2000);
+        setTimeout(() => checkLiveStatus(silent, retries - 1), 1500);
         return;
       }
     } finally {
@@ -48,15 +47,40 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
   }, [telegramId, refreshUser]);
 
   useEffect(() => {
+    // Initial check
     checkLiveStatus(false);
 
-    // Recheck whenever user comes back to window after opening Telegram links
-    const onFocus = () => {
-      setTimeout(() => checkLiveStatus(true), 1000);
+    // Active periodic poll every 3.5 seconds while verification is incomplete
+    const pollInterval = setInterval(() => {
+      if (!channelStatus.all_joined) {
+        checkLiveStatus(true, 0);
+      }
+    }, 3500);
+
+    // Recheck whenever user comes back to window/app after opening Telegram links
+    const handleRecheck = () => {
+      if (document.visibilityState === 'visible' || document.visibilityState === undefined) {
+        checkLiveStatus(true, 1);
+        setTimeout(() => checkLiveStatus(true, 1), 1200);
+      }
     };
-    window.addEventListener('focus', onFocus);
-    return () => window.removeEventListener('focus', onFocus);
-  }, [checkLiveStatus]);
+
+    document.addEventListener('visibilitychange', handleRecheck);
+    window.addEventListener('focus', handleRecheck);
+
+    if (window.Telegram?.WebApp?.onEvent) {
+      window.Telegram.WebApp.onEvent('viewportChanged', handleRecheck);
+    }
+
+    return () => {
+      clearInterval(pollInterval);
+      document.removeEventListener('visibilitychange', handleRecheck);
+      window.removeEventListener('focus', handleRecheck);
+      if (window.Telegram?.WebApp?.offEvent) {
+        window.Telegram.WebApp.offEvent('viewportChanged', handleRecheck);
+      }
+    };
+  }, [checkLiveStatus, channelStatus.all_joined]);
 
   const openChannelLink = (url) => {
     try {
@@ -68,8 +92,10 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } catch (_) {
       window.open(url, '_blank');
     }
-    setTimeout(() => checkLiveStatus(true), 1500);
-    setTimeout(() => checkLiveStatus(true), 4000);
+    // Quick bursts of status checks when returning
+    setTimeout(() => checkLiveStatus(true), 1200);
+    setTimeout(() => checkLiveStatus(true), 3000);
+    setTimeout(() => checkLiveStatus(true), 6000);
   };
 
   const handleVerify = async () => {
@@ -77,7 +103,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     try {
       const { data, error } = await verifyChannels(telegramId);
       if (error) {
-        showToast(error, 'error');
+        showToast(typeof error === 'string' ? error : 'Please join all 4 channels to unlock!', 'error');
         await checkLiveStatus(true);
       } else if (data && data.success) {
         triggerConfetti({ particleCount: 150, spread: 90 });
