@@ -6,7 +6,16 @@ require("dotenv").config({ path: path.join(__dirname, ".env") });
 
 const bot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
 
-const caption = `🔥 <b>Season 1 NFT Miners will close permanently in 7 days — Claim & activate your miner before the deadline!</b>`;
+const caption = `🔥 <b>SEASON 1 GENESIS ERA — CLOSING PERMANENTLY IN 7 DAYS</b>
+
+The initial Genesis distribution window is reaching its final countdown. Early supporters who hold tokens and active Season 1 NFT Miners are locked into the highest lifetime earning tier.
+
+⚡ <b>What happens when Season 1 ends:</b>
+• <b>Permanent Scarcity:</b> S1 Titan & Mega Miners will never be minted again.
+• <b>Halving Ahead:</b> Public mining difficulty increases drastically after listing, reducing rewards for new incoming users.
+• <b>Lifetime Advantage:</b> Genesis miners retain their maximum daily GRAM yield and priority in the 60% early allocation pool.
+
+💎 <i>Top holders are locking in their daily passive yields before the final 7-day timer hits zero.</i>`;
 
 const options = {
   caption,
@@ -14,7 +23,7 @@ const options = {
   reply_markup: {
     inline_keyboard: [
       [
-        { text: "💎 Claim S1 Miner Now 🚀", web_app: { url: "https://tasky-kohl-six.vercel.app" } }
+        { text: "💎 Claim S1 Miner Now 🚀", web_app: { url: "https://tasky3.onrender.com" } }
       ]
     ]
   }

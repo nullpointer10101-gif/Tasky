@@ -19,7 +19,10 @@ export default function TaskManagement() {
     icon: 'Default',
     category: 'internal',
     telegram_chat_id: '',
-    x_subtype: ''
+    x_subtype: '',
+    target_audience: 'all', // 'all' | 'new_users' | 'specific_users'
+    target_user_ids: '',
+    new_user_days: 7
   });
   const [loading, setLoading] = useState(false);
 
@@ -61,7 +64,20 @@ export default function TaskManagement() {
     try {
       await api.post('/tasks/create', formData);
       toast.success('Task created successfully!');
-      setFormData({ ...formData, title: '', subtitle: '', action_url: '', telegram_chat_id: '', category: 'internal', reward_tasky: 500, reward_gram: 0, x_subtype: '' });
+      setFormData({ 
+        ...formData, 
+        title: '', 
+        subtitle: '', 
+        action_url: '', 
+        telegram_chat_id: '', 
+        category: 'internal', 
+        reward_tasky: 500, 
+        reward_gram: 0, 
+        x_subtype: '',
+        target_audience: 'all',
+        target_user_ids: '',
+        new_user_days: 7
+      });
     } catch (e) {
       toast.error('Failed to create task');
     } finally {
@@ -245,6 +261,81 @@ export default function TaskManagement() {
                   <p className="text-xs text-ink-faint px-1">Ensure the bot is an admin in this channel.</p>
                 </div>
               )}
+
+              {/* Audience Targeting Configuration */}
+              <div className="space-y-3 md:col-span-2 bg-[#060b16] p-5 rounded-2xl border border-border/60">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-ink-soft uppercase tracking-wider pl-1">
+                    Audience Targeting (Who Can View & Complete)
+                  </label>
+                  <span className="text-[11px] font-semibold text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 w-fit">
+                    {formData.target_audience === 'all' && '👥 Visible to All Members'}
+                    {formData.target_audience === 'new_users' && `🐣 New Users Only (≤${formData.new_user_days}d old)`}
+                    {formData.target_audience === 'specific_users' && '🎯 Specific Accounts Only'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {[
+                    { id: 'all', label: 'All Users (Default)', desc: 'Visible to every active member in the app' },
+                    { id: 'new_users', label: 'New Users Only', desc: 'Target only freshly registered accounts' },
+                    { id: 'specific_users', label: 'Specific Person / IDs', desc: 'Target specific Telegram IDs or usernames' }
+                  ].map(aud => (
+                    <div
+                      key={aud.id}
+                      onClick={() => setFormData({ ...formData, target_audience: aud.id })}
+                      className={`cursor-pointer p-4 rounded-2xl border transition-all ${
+                        formData.target_audience === aud.id
+                          ? 'bg-indigo-500/15 border-indigo-500 text-white font-bold shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                          : 'bg-[#0a0f1c] border-border/50 text-ink-soft hover:bg-white/5'
+                      }`}
+                    >
+                      <p className="text-sm font-bold text-ink mb-1">{aud.label}</p>
+                      <p className="text-[11px] text-ink-soft font-normal">{aud.desc}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {formData.target_audience === 'new_users' && (
+                  <div className="mt-4 p-4 bg-[#0a0f1c] rounded-xl border border-border/50 space-y-2">
+                    <label className="text-xs font-bold text-amber-400 uppercase tracking-wider">
+                      New User Threshold (Max Account Age in Days)
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min="1"
+                        max="90"
+                        value={formData.new_user_days}
+                        onChange={e => setFormData({ ...formData, new_user_days: Number(e.target.value) })}
+                        className="w-32 bg-[#060b16] border border-border/60 rounded-xl px-4 py-2.5 text-amber-400 font-bold focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                      />
+                      <span className="text-xs text-ink-soft">
+                        Only users registered in the last <strong>{formData.new_user_days} days</strong> will see this task.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {formData.target_audience === 'specific_users' && (
+                  <div className="mt-4 p-4 bg-[#0a0f1c] rounded-xl border border-border/50 space-y-2">
+                    <label className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                      Target Telegram IDs or Usernames (Comma-separated)
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 8823265955, 12345678, @username1, @crypto_user"
+                      value={formData.target_user_ids}
+                      onChange={e => setFormData({ ...formData, target_user_ids: e.target.value })}
+                      className="w-full bg-[#060b16] border border-border/60 rounded-xl px-4 py-2.5 text-indigo-300 font-mono text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                    />
+                    <p className="text-xs text-ink-faint">
+                      Only users matching these Telegram User IDs or @usernames will see and be able to complete this task.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="pt-4 border-t border-border/50">
@@ -297,6 +388,16 @@ export default function TaskManagement() {
                     <div className="flex justify-between">
                       <span className="uppercase font-bold tracking-wider text-ink-faint text-[10px]">Type</span>
                       <span className="text-indigo-400 font-medium">{task.type} {task.x_subtype ? `(${task.x_subtype})` : ''}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="uppercase font-bold tracking-wider text-ink-faint text-[10px]">Audience</span>
+                      <span className="text-emerald-400 font-medium">
+                        {task.target_audience === 'new_users' 
+                          ? `🐣 New Users (≤${task.new_user_days || 7}d)` 
+                          : task.target_audience === 'specific_users' 
+                          ? `🎯 Specific (${(task.target_user_ids || '').split(',').filter(Boolean).length} targets)` 
+                          : '👥 All Users'}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="uppercase font-bold tracking-wider text-ink-faint text-[10px]">Verification</span>

@@ -745,11 +745,19 @@ router.get('/tasks/live', async (req, res) => {
 });
 
 router.post('/tasks/create', async (req, res) => {
-  const { title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category, reward_gram, x_subtype } = req.body;
+  const { 
+    title, subtitle, type, reward_tasky, action_url, verification_type, 
+    icon, telegram_chat_id, category, reward_gram, x_subtype,
+    target_audience, target_user_ids, new_user_days 
+  } = req.body;
   try {
     const query = `
-      INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, telegram_chat_id, category, reward_gram, x_subtype)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      INSERT INTO tasks (
+        title, subtitle, type, reward_tasky, action_url, verification_type, 
+        icon, telegram_chat_id, category, reward_gram, x_subtype,
+        target_audience, target_user_ids, new_user_days
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
       RETURNING *
     `;
     const { rows } = await pool.query(query, [
@@ -763,7 +771,10 @@ router.post('/tasks/create', async (req, res) => {
       telegram_chat_id || null, 
       category || 'internal',
       reward_gram || 0,
-      x_subtype || null
+      x_subtype || null,
+      target_audience || 'all',
+      target_user_ids || null,
+      new_user_days ? parseInt(new_user_days, 10) : 7
     ]);
     res.json(rows[0]);
   } catch (error) {

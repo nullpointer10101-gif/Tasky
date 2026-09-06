@@ -52,9 +52,36 @@ router.get('/', async (req, res) => {
         }
         queryStr += ' ORDER BY is_featured DESC, created_at DESC';
         const tasksRes = await pool.query(queryStr);
-        const tasks = tasksRes.rows;
+        let tasks = tasksRes.rows;
 
         if (telegram_id) {
+            // Fetch user info for audience targeting
+            const uRes = await pool.query('SELECT created_at, username FROM users WHERE telegram_id = $1', [telegram_id]);
+            const userRecord = uRes.rows[0] || null;
+
+            // Filter tasks by target audience
+            tasks = tasks.filter(t => {
+                const audience = t.target_audience || 'all';
+                if (audience === 'all') return true;
+
+                if (audience === 'new_users') {
+                    if (!userRecord || !userRecord.created_at) return true;
+                    const daysOld = (Date.now() - new Date(userRecord.created_at).getTime()) / (1000 * 60 * 60 * 24);
+                    const maxDays = t.new_user_days != null ? parseInt(t.new_user_days, 10) : 7;
+                    return daysOld <= maxDays;
+                }
+
+                if (audience === 'specific_users') {
+                    if (!t.target_user_ids) return false;
+                    const targets = t.target_user_ids.split(',').map(s => s.trim().toLowerCase().replace(/^@/, ''));
+                    const userTid = telegram_id.toString().toLowerCase();
+                    const userName = (userRecord?.username || '').toLowerCase().replace(/^@/, '');
+                    return targets.includes(userTid) || (userName && targets.includes(userName));
+                }
+
+                return true;
+            });
+
             // Return task_id + status + submitted_at so frontend knows pending/approved too
             const completedRes = await pool.query(
                 `SELECT ut.task_id, ut.status, ut.submitted_at, t.is_daily 
@@ -557,12 +584,26 @@ router.post('/admin/review', isAdmin, async (req, res) => {
 
 // ─── POST /api/tasks/admin/create ─────────────────────────────────────────
 router.post('/admin/create', isAdmin, async (req, res) => {
-    const { title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype, category } = req.body;
+    const { 
+        title, subtitle, type, reward_tasky, action_url, is_featured, 
+        verification_type, telegram_chat_id, x_subtype, category,
+        target_audience, target_user_ids, new_user_days
+    } = req.body;
     try {
         const insertRes = await pool.query(`
-            INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, is_featured, verification_type, telegram_chat_id, x_subtype, category)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *
-        `, [title, subtitle, type, reward_tasky, action_url, is_featured || false, verification_type || 'proof_screenshot', telegram_chat_id || null, x_subtype || null, category || 'internal']);
+            INSERT INTO tasks (
+                title, subtitle, type, reward_tasky, action_url, is_featured, 
+                verification_type, telegram_chat_id, x_subtype, category,
+                target_audience, target_user_ids, new_user_days
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *
+        `, [
+            title, subtitle, type, reward_tasky, action_url, is_featured || false, 
+            verification_type || 'proof_screenshot', telegram_chat_id || null, 
+            x_subtype || null, category || 'internal',
+            target_audience || 'all', target_user_ids || null,
+            new_user_days ? parseInt(new_user_days, 10) : 7
+        ]);
         res.json(insertRes.rows[0]);
     } catch (err) {
         console.error(err);

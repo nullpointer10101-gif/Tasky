@@ -119,6 +119,9 @@ const initDB = async () => {
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS x_subtype VARCHAR(20);
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS admin_only BOOLEAN DEFAULT FALSE;
       ALTER TABLE tasks ADD COLUMN IF NOT EXISTS category VARCHAR(50) DEFAULT 'internal';
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS target_audience VARCHAR(50) DEFAULT 'all';
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS target_user_ids TEXT;
+      ALTER TABLE tasks ADD COLUMN IF NOT EXISTS new_user_days INT DEFAULT 7;
 
       CREATE TABLE IF NOT EXISTS user_tasks (
         id SERIAL PRIMARY KEY,
