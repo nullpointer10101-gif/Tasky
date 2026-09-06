@@ -27,21 +27,47 @@ export function initGigaAds() {
 // Auto-initialize GigaPub immediately on module load
 initGigaAds();
 
-// Auto-dismiss Adsgram origin mismatch error dialogs if triggered by mediation
+// Block Adsgram script injection completely so only GigaPub Direct and Monetag run
 if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  const dismissAdsgramErrors = () => {
+  // Prevent any Adsgram script tags from being added
+  const origAppendChild = document.head.appendChild.bind(document.head);
+  document.head.appendChild = function(node) {
+    if (node && node.tagName === 'SCRIPT' && node.src && node.src.includes('adsgram')) {
+      console.log('[AdManager] 🚫 Adsgram script blocked from loading');
+      return node;
+    }
+    return origAppendChild(node);
+  };
+
+  const origInsertBefore = document.head.insertBefore.bind(document.head);
+  document.head.insertBefore = function(node, ref) {
+    if (node && node.tagName === 'SCRIPT' && node.src && node.src.includes('adsgram')) {
+      console.log('[AdManager] 🚫 Adsgram script blocked from insertion');
+      return node;
+    }
+    return origInsertBefore(node, ref);
+  };
+
+  // Block Adsgram global object
+  try {
+    Object.defineProperty(window, 'Adsgram', {
+      get: () => undefined,
+      set: () => {},
+      configurable: false
+    });
+  } catch(e) {}
+
+  // Auto-remove any Adsgram dialogs if dynamically rendered
+  setInterval(() => {
     try {
       const dialogs = document.querySelectorAll('div, section, dialog');
       for (const el of dialogs) {
         if (el.textContent && el.textContent.includes('AdsgramError')) {
-          el.style.display = 'none';
-          const btn = el.querySelector('button, a');
-          if (btn) btn.click();
+          el.remove();
         }
       }
     } catch (e) {}
-  };
-  setInterval(dismissAdsgramErrors, 1000);
+  }, 500);
 }
 
 export function prefetchGramAd() {
