@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Timer,
   Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, 
-  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown, Send
+  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown 
 } from 'lucide-react';
 import { getNftMarketplace, buyNft, getMyNftCards, claimNftYield, autoVerifyDeposit } from '../api';
 import { useToast } from '../App';
@@ -264,8 +264,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
       <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#2a0815] via-[#1a051d] to-[#0d0315] border border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.18)]">
         <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
         
-        {/* Top Header Pill */}
-        <div className="flex items-center justify-between mb-2.5 relative z-10">
+        <div className="flex items-center justify-between mb-2 relative z-10">
           <div className="flex items-center gap-2">
             <span className="flex h-2.5 w-2.5 relative">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
@@ -280,22 +279,12 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
           </span>
         </div>
 
-        {/* Season 1 Promotional Poster Image */}
-        <div className="relative z-10 rounded-2xl overflow-hidden border border-rose-500/30 shadow-[0_0_20px_rgba(244,63,94,0.2)] mb-3 bg-black/40">
-          <img 
-            src="/s1-closing-banner.png" 
-            alt="Season 1 NFT Miners Closing Soon" 
-            className="w-full h-auto object-cover block"
-          />
-        </div>
-
-        {/* 1 Line Text Below Image */}
-        <p className="text-[11.5px] text-rose-100/90 font-semibold leading-relaxed mb-3 relative z-10 text-center">
-          Season 1 NFT Digital Miners close permanently when timer ends. Contact Admin to claim or activate your S1 Miner!
+        <p className="text-[11.5px] text-white/80 font-medium leading-snug mb-3 relative z-10">
+          Season 1 NFT Digital Miners will close permanently when the countdown expires. Deployed miners continue generating full daily yield for their 10-day lifecycle!
         </p>
 
         {/* 4 Digital Timer Capsules */}
-        <div className="grid grid-cols-4 gap-2 text-center relative z-10 mb-3">
+        <div className="grid grid-cols-4 gap-2 text-center relative z-10">
           <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
             <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.days).padStart(2, '0')}</p>
             <p className="text-[9px] font-black uppercase text-rose-300/70">Days</p>
@@ -313,23 +302,6 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
             <p className="text-[9px] font-black uppercase text-amber-400/80">Secs</p>
           </div>
         </div>
-
-        {/* Claim S1 Miner Button (Sends to Admin only) */}
-        <button
-          onClick={() => {
-            const url = 'https://t.me/TaskyAppbot';
-            if (window.Telegram?.WebApp?.openTelegramLink) {
-              window.Telegram.WebApp.openTelegramLink(url);
-            } else {
-              window.open(url, '_blank');
-            }
-          }}
-          className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-rose-500 via-pink-600 to-purple-600 text-white font-black text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(244,63,94,0.4)] flex items-center justify-center gap-2 active:scale-98 transition-all hover:brightness-110 relative z-10"
-        >
-          <Send size={15} />
-          <span>Claim S1 Miner on @TaskyAppBot</span>
-          <ChevronRight size={14} className="opacity-70" />
-        </button>
       </div>
 
       {/* ── NAVIGATION PILL TABS ── */}
