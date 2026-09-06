@@ -345,6 +345,20 @@ router.post('/claim', async (req, res) => {
             });
         }
 
+        // 1.9 Verify no claims in the last 24 hours (checked before ad count check)
+        const last24hClaimRes = await client.query(`
+            SELECT COUNT(*) FROM gram_claims
+            WHERE telegram_id = $1 
+              AND requested_at >= NOW() - INTERVAL '24 hours'
+              AND status IN ('pending', 'approved')
+        `, [telegram_id]);
+        const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
+
+        if (claimed_in_last_24h) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'You have already submitted a claim in the last 24 hours.' });
+        }
+
         // 2. Verify ads watched count in the last 24 hours (from ad_views)
         const adCountRes = await client.query(`
             SELECT 
@@ -365,20 +379,6 @@ router.post('/claim', async (req, res) => {
             return res.status(400).json({ 
                 error: `Please complete all 30 GigaPub ads (${Math.min(30, gigaWatched)}/30) and 30 Monetag ads (${Math.min(30, monetagWatched)}/30) to claim!` 
             });
-        }
-
-        // 3. Verify no claims in the last 24 hours
-        const last24hClaimRes = await client.query(`
-            SELECT COUNT(*) FROM gram_claims
-            WHERE telegram_id = $1 
-              AND requested_at >= NOW() - INTERVAL '24 hours'
-              AND status IN ('pending', 'approved')
-        `, [telegram_id]);
-        const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
-
-        if (claimed_in_last_24h) {
-            await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'You have already submitted a claim in the last 24 hours.' });
         }
 
         // 4. Update the user's gram_wallet_address if not set
@@ -409,9 +409,10 @@ router.post('/claim', async (req, res) => {
         // Notify admin about the new Gram claim
         try {
             const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
-            const displayName = username ? `@${username}` : first_name;
-            const flagNote = fraud.flagged ? `\n🚩 FLAGGED: ${fraud.reason}` : '';
-            const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${displayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`${flagNote}\n\n📋 Review in Admin Panel → Gram section.`;
+            const safeDisplayName = (username ? `@${username}` : (first_name || 'User')).replace(/[_*`[\]()]/g, ' ');
+            const safeReason = (fraud.reason || '').replace(/[_*`[\]()]/g, ' ');
+            const flagNote = fraud.flagged ? `\n🚩 FLAGGED: ${safeReason}` : '';
+            const msg = `💎 *New GRAM Claim!*\n\nID: \`${claimRes.rows[0].id}\`\n👤 User: ${safeDisplayName} (\`${telegram_id}\`)\n💰 Amount: 0.02 GRAM\n🏦 Wallet: \`${cleanAddress}\`${flagNote}\n\n📋 Review in Admin Panel → Gram section.`;
             if (bot && bot.sendMessage) {
                 bot.sendMessage(adminId, msg, { 
                     parse_mode: 'Markdown',
@@ -420,7 +421,7 @@ router.post('/claim', async (req, res) => {
                             [{ text: '✅ Approve & Notify User', callback_data: `approve_gram_${claimRes.rows[0].id}` }]
                         ]
                     }
-                });
+                }).catch(e => console.log('Telegram admin notification ignored:', e.message));
             }
         } catch (e) {
             console.error('Failed to notify admin of gram claim:', e.message);
