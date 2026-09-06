@@ -59,9 +59,23 @@ export default function App() {
   }, [activePage])
 
   const boot = async () => {
-    // Get ref code from Telegram start_param or URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || urlParams.get('ref') || null;
+    // Robust ref extraction supporting Telegram Mobile SDK, query params, and URL hash
+    let ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+    
+    if (!ref) {
+      const urlParams = new URLSearchParams(window.location.search);
+      ref = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || urlParams.get('start') || urlParams.get('ref') || null;
+    }
+
+    if (!ref && window.location.hash) {
+      const hashClean = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : window.location.hash;
+      const hashParams = new URLSearchParams(hashClean);
+      ref = hashParams.get('tgWebAppStartParam') || hashParams.get('startapp') || hashParams.get('start') || hashParams.get('ref') || null;
+    }
+
+    if (ref) {
+      ref = String(ref).trim();
+    }
     
     setNetworkError(false);
     const { data, error } = await registerUser({

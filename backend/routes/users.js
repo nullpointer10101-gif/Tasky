@@ -108,8 +108,9 @@ router.post('/register', async (req, res) => {
         const refCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
         
         let referred_by = null;
-        if (ref && ref !== telegram_id.toString()) {
-            const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1 OR telegram_id::text = $1', [ref]);
+        const cleanRef = ref ? String(ref).trim() : '';
+        if (cleanRef && cleanRef !== telegram_id.toString()) {
+            const refUser = await client.query('SELECT telegram_id FROM users WHERE UPPER(referral_code) = UPPER($1) OR telegram_id::text = $1', [cleanRef]);
             if (refUser.rows.length > 0 && refUser.rows[0].telegram_id !== telegram_id) {
                 referred_by = refUser.rows[0].telegram_id;
             }

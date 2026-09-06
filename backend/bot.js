@@ -83,8 +83,9 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                     const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
 
                     let referred_by = null;
-                    if (refCode) {
-                        const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1 OR telegram_id::text = $1', [refCode]);
+                    const cleanRef = refCode ? String(refCode).trim() : '';
+                    if (cleanRef && cleanRef !== chatId.toString()) {
+                        const refUser = await client.query('SELECT telegram_id FROM users WHERE UPPER(referral_code) = UPPER($1) OR telegram_id::text = $1', [cleanRef]);
                         if (refUser.rows.length > 0 && refUser.rows[0].telegram_id !== chatId) {
                             referred_by = refUser.rows[0].telegram_id;
                         }
