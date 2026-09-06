@@ -1066,13 +1066,13 @@ router.post('/users/:id/reset-ads', async (req, res) => {
 });
 
 // ==========================================
-// 7. BROADCAST
+// 7. BROADCAST (Custom Global)
 // ==========================================
 router.post('/broadcast', async (req, res) => {
   const { message, target } = req.body;
   if (!message || !message.trim()) return res.status(400).json({ error: 'Message is required' });
   
-  if (global.customBroadcast && global.customBroadcast.status === 'running' && (Date.now() - (global.customBroadcast.startTime || 0) < 60000)) {
+  if (global.customBroadcast && global.customBroadcast.status === 'running') {
     return res.status(400).json({ error: 'Another custom broadcast is currently in progress.' });
   }
 
@@ -1102,35 +1102,44 @@ router.post('/broadcast', async (req, res) => {
       startTime: Date.now()
     };
 
-    // Process asynchronously in background
-    (async () => {
-      const BATCH_SIZE = 30;
+    // Run in background worker
+    setImmediate(async () => {
+      const BATCH_SIZE = 25;
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        if (global.customBroadcast && global.customBroadcast.status === 'cancelled') break;
+
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
             const activeBot = getActiveTelegramBot();
             if (activeBot && typeof activeBot.sendMessage === 'function') {
               await sendWithRetry(() => activeBot.sendMessage(tid, message, { parse_mode: 'HTML' }));
-              global.customBroadcast.success++;
+              if (global.customBroadcast) global.customBroadcast.success++;
             } else {
-              global.customBroadcast.failed++;
-              global.customBroadcast.lastError = 'Telegram bot is not initialized';
+              if (global.customBroadcast) {
+                global.customBroadcast.failed++;
+                global.customBroadcast.lastError = 'Telegram bot is not initialized';
+              }
             }
           } catch (err) {
-            console.error(`[CUSTOM BROADCAST] Failed to send to ${tid}:`, err.message);
-            global.customBroadcast.failed++;
-            if (!isUserBlockError(err.message)) {
-              global.customBroadcast.lastError = err.message;
+            if (global.customBroadcast) {
+              global.customBroadcast.failed++;
+              if (!isUserBlockError(err.message)) {
+                global.customBroadcast.lastError = err.message;
+              }
             }
           }
         }));
-        global.customBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(r => setTimeout(r, 400));
+        if (global.customBroadcast) {
+          global.customBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        }
+        await new Promise(r => setTimeout(r, 350));
       }
-      global.customBroadcast.status = 'completed';
-      console.log(`[CUSTOM BROADCAST] Finished! Success: ${global.customBroadcast.success}, Failed: ${global.customBroadcast.failed}`);
-    })();
+      if (global.customBroadcast && global.customBroadcast.status === 'running') {
+        global.customBroadcast.status = 'completed';
+      }
+      console.log(`[CUSTOM BROADCAST] Finished! Success: ${global.customBroadcast?.success}, Failed: ${global.customBroadcast?.failed}`);
+    });
 
     res.json({ success: true, message: `Custom broadcast started for ${targets.length} target(s).` });
   } catch (error) {
@@ -1624,6 +1633,8 @@ router.post('/gram/claims/review', async (req, res) => {
 global.promoBroadcast = null;
 global.nftBroadcast = null;
 global.customBroadcast = null;
+global.gramReminderBroadcast = null;
+let cachedBannerPhotoId = null;
 
 router.get('/broadcast/promo-status', (req, res) => {
   res.json(global.promoBroadcast);
@@ -1635,6 +1646,26 @@ router.get('/broadcast/nft-status', (req, res) => {
 
 router.get('/broadcast/custom-status', (req, res) => {
   res.json(global.customBroadcast);
+});
+
+router.get('/broadcast/gram-reminder-status', (req, res) => {
+  res.json(global.gramReminderBroadcast);
+});
+
+router.post('/broadcast/cancel/:type', (req, res) => {
+  const { type } = req.params;
+  const map = {
+    nft: 'nftBroadcast',
+    promo: 'promoBroadcast',
+    gram: 'gramReminderBroadcast',
+    custom: 'customBroadcast'
+  };
+  const key = map[type];
+  if (key && global[key]) {
+    global[key].status = 'cancelled';
+    return res.json({ success: true, message: `Broadcast ${type} cancelled.` });
+  }
+  res.status(404).json({ error: 'No active broadcast found for type' });
 });
 
 router.get('/broadcast/diagnostics', (req, res) => {
@@ -1664,8 +1695,8 @@ router.post('/broadcast/nft', async (req, res) => {
   const { message, target, image_url } = req.body;
   if (!message) return res.status(400).json({ error: 'Message content is required' });
 
-  if (global.nftBroadcast && global.nftBroadcast.status === 'running' && (Date.now() - (global.nftBroadcast.startTime || 0) < 60000)) {
-    return res.status(400).json({ error: 'Another NFT broadcast is currently in progress. Please wait 60s.' });
+  if (global.nftBroadcast && global.nftBroadcast.status === 'running') {
+    return res.status(400).json({ error: 'Another NFT broadcast is currently in progress.' });
   }
 
   try {
@@ -1677,11 +1708,11 @@ router.post('/broadcast/nft', async (req, res) => {
     if (target === 'admin') {
       targets = adminIds;
     } else {
-      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[NFT BROADCAST] Target: ${target}, Image: ${image_url || 'None'}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
+    console.log(`[NFT BROADCAST] Target: ${target}, Image: ${image_url || 'None'}, Targets Count: ${targets.length}`);
 
     global.nftBroadcast = {
       target,
@@ -1694,84 +1725,86 @@ router.post('/broadcast/nft', async (req, res) => {
       startTime: Date.now()
     };
 
-    // Process asynchronously in background
-    (async () => {
-      const BATCH_SIZE = 30;
+    // Run high-speed background worker
+    setImmediate(async () => {
+      const BATCH_SIZE = 25;
+      const activeBot = getActiveTelegramBot();
+      if (!activeBot) {
+        if (global.nftBroadcast) {
+          global.nftBroadcast.status = 'failed';
+          global.nftBroadcast.lastError = 'Telegram Bot token not provided on server';
+        }
+        return;
+      }
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
+        ]
+      };
+
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        if (global.nftBroadcast && global.nftBroadcast.status === 'cancelled') break;
+
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            const activeBot = getActiveTelegramBot();
-            if (activeBot) {
-              const replyMarkup = {
-                inline_keyboard: [
-                  [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
-                ]
-              };
+            let sent = false;
+            if (image_url && typeof activeBot.sendPhoto === 'function') {
+              const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+              const photoSource = cachedBannerPhotoId || (fs.existsSync(bannerPath) ? fs.createReadStream(bannerPath) : image_url);
 
-              let sent = false;
-              if (image_url && typeof activeBot.sendPhoto === 'function') {
-                const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
-                const photoSource = (fs.existsSync(bannerPath)) 
-                  ? fs.createReadStream(bannerPath) 
-                  : image_url;
-
-                try {
-                  await sendWithRetry(() => activeBot.sendPhoto(tid, photoSource, {
-                    caption: message,
-                    parse_mode: 'HTML',
-                    reply_markup: replyMarkup
-                  }));
-                  sent = true;
-                } catch (photoErr) {
+              try {
+                const resPhoto = await sendWithRetry(() => activeBot.sendPhoto(tid, photoSource, {
+                  caption: message,
+                  parse_mode: 'HTML',
+                  reply_markup: replyMarkup
+                }));
+                sent = true;
+                if (!cachedBannerPhotoId && resPhoto && resPhoto.photo && resPhoto.photo.length > 0) {
+                  cachedBannerPhotoId = resPhoto.photo[resPhoto.photo.length - 1].file_id;
+                }
+              } catch (photoErr) {
+                if (!isUserBlockError(photoErr.message)) {
                   console.warn(`[NFT BROADCAST] photo send error for ${tid}, falling back to text:`, photoErr.message);
-                  if (!isUserBlockError(photoErr.message)) {
-                    global.nftBroadcast.lastError = photoErr.message;
-                  }
                 }
               }
+            }
 
-              if (!sent && typeof activeBot.sendMessage === 'function') {
-                try {
-                  await sendWithRetry(() => activeBot.sendMessage(tid, message, {
-                    parse_mode: 'HTML',
-                    reply_markup: replyMarkup
-                  }));
-                  sent = true;
-                } catch (sendErr) {
-                  console.error(`[NFT BROADCAST] text send error for ${tid}:`, sendErr.message);
-                  if (!isUserBlockError(sendErr.message)) {
-                    global.nftBroadcast.lastError = sendErr.message;
-                  }
-                }
-              }
+            if (!sent && typeof activeBot.sendMessage === 'function') {
+              await sendWithRetry(() => activeBot.sendMessage(tid, message, {
+                parse_mode: 'HTML',
+                reply_markup: replyMarkup
+              }));
+              sent = true;
+            }
 
-              if (sent) {
-                global.nftBroadcast.success++;
-              } else {
-                global.nftBroadcast.failed++;
-              }
-            } else {
-              console.error(`[NFT BROADCAST] Bot instance missing or dummy bot for tid ${tid}`);
+            if (sent && global.nftBroadcast) {
+              global.nftBroadcast.success++;
+            } else if (global.nftBroadcast) {
               global.nftBroadcast.failed++;
-              global.nftBroadcast.lastError = 'Telegram Bot token not provided on server';
             }
           } catch (e) {
-            console.error(`[NFT BROADCAST] Outer catch error for ${tid}:`, e.message, e.stack);
             if (global.nftBroadcast) {
               global.nftBroadcast.failed++;
               if (!isUserBlockError(e.message)) {
-                global.nftBroadcast.lastError = `[outer] ${e.message}`;
+                global.nftBroadcast.lastError = e.message;
               }
             }
           }
         }));
 
-        global.nftBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(r => setTimeout(r, 400));
+        if (global.nftBroadcast) {
+          global.nftBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        }
+        await new Promise(r => setTimeout(r, 350));
       }
-      global.nftBroadcast.status = 'completed';
-    })();
+
+      if (global.nftBroadcast && global.nftBroadcast.status === 'running') {
+        global.nftBroadcast.status = 'completed';
+      }
+      console.log(`[NFT BROADCAST] Finished! Success: ${global.nftBroadcast?.success}, Failed: ${global.nftBroadcast?.failed}`);
+    });
 
     res.json({ success: true, message: `NFT Broadcast started for ${targets.length} target(s).` });
   } catch (err) {
@@ -1784,7 +1817,7 @@ router.post('/broadcast/promo', async (req, res) => {
   const { code, target } = req.body;
   if (!code) return res.status(400).json({ error: 'Promo code is required' });
 
-  if (global.promoBroadcast && global.promoBroadcast.status === 'running' && (Date.now() - (global.promoBroadcast.startTime || 0) < 60000)) {
+  if (global.promoBroadcast && global.promoBroadcast.status === 'running') {
     return res.status(400).json({ error: 'Another broadcast is currently in progress.' });
   }
 
@@ -1799,11 +1832,11 @@ router.post('/broadcast/promo', async (req, res) => {
     if (target === 'admin') {
       targets = adminIds;
     } else {
-      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false');
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
+    console.log(`[PROMO BROADCAST] Code: ${code}, Target: ${target}, Targets Count: ${targets.length}`);
 
     global.promoBroadcast = {
       code: code.toUpperCase(),
@@ -1816,40 +1849,56 @@ router.post('/broadcast/promo', async (req, res) => {
       startTime: Date.now()
     };
 
-    // Process asynchronously in background
-    (async () => {
+    // Run high-speed background worker
+    setImmediate(async () => {
       const BATCH_SIZE = 25;
+      const activeBot = getActiveTelegramBot();
+      if (!activeBot) {
+        if (global.promoBroadcast) {
+          global.promoBroadcast.status = 'failed';
+          global.promoBroadcast.lastError = 'Telegram bot is not initialized';
+        }
+        return;
+      }
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: '🎁 Open App & Claim Reward 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+        ]
+      };
+
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        if (global.promoBroadcast && global.promoBroadcast.status === 'cancelled') break;
+
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            const activeBot = getActiveTelegramBot();
-            if (activeBot && typeof activeBot.sendMessage === 'function') {
-              await activeBot.sendMessage(tid, text, { 
-                parse_mode: 'HTML',
-                reply_markup: {
-                  inline_keyboard: [
-                    [{ text: '🎁 Open App & Claim Reward 🚀', url: 'https://t.me/TaskyAppbot/app' }]
-                  ]
-                }
-              });
-              global.promoBroadcast.success++;
-            } else {
-              global.promoBroadcast.failed++;
-              global.promoBroadcast.lastError = 'Telegram bot is not initialized';
-            }
+            await sendWithRetry(() => activeBot.sendMessage(tid, text, { 
+              parse_mode: 'HTML',
+              reply_markup: replyMarkup
+            }));
+            if (global.promoBroadcast) global.promoBroadcast.success++;
           } catch (err) {
-            console.error(`[PROMO BROADCAST] Failed to send to ${tid}:`, err.message);
-            global.promoBroadcast.failed++;
-            global.promoBroadcast.lastError = err.message;
+            if (global.promoBroadcast) {
+              global.promoBroadcast.failed++;
+              if (!isUserBlockError(err.message)) {
+                global.promoBroadcast.lastError = err.message;
+              }
+            }
           }
         }));
-        global.promoBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (global.promoBroadcast) {
+          global.promoBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        }
+        await new Promise(r => setTimeout(r, 350));
       }
-      global.promoBroadcast.status = 'completed';
-      console.log(`[PROMO BROADCAST] Finished! Success: ${global.promoBroadcast.success}, Failed: ${global.promoBroadcast.failed}`);
-    })();
+
+      if (global.promoBroadcast && global.promoBroadcast.status === 'running') {
+        global.promoBroadcast.status = 'completed';
+      }
+      console.log(`[PROMO BROADCAST] Finished! Success: ${global.promoBroadcast?.success}, Failed: ${global.promoBroadcast?.failed}`);
+    });
 
     res.json({ success: true, message: 'Broadcast started' });
   } catch (error) {
@@ -1858,17 +1907,10 @@ router.post('/broadcast/promo', async (req, res) => {
   }
 });
 
-// Global tracking variables for gram reminder broadcasts
-global.gramReminderBroadcast = null;
-
-router.get('/broadcast/gram-reminder-status', (req, res) => {
-  res.json(global.gramReminderBroadcast);
-});
-
 router.post('/broadcast/gram-reminder', async (req, res) => {
   const { target, templateIndex } = req.body;
 
-  if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running' && (Date.now() - (global.gramReminderBroadcast.startTime || 0) < 60000)) {
+  if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running') {
     return res.status(400).json({ error: 'Another Gram reminder broadcast is currently in progress.' });
   }
 
@@ -1919,21 +1961,12 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
               AND requested_at >= NOW() - INTERVAL '24 hours'
               AND status IN ('pending', 'approved')
           )
-          AND telegram_id NOT IN (
-            SELECT telegram_id FROM ad_views
-            WHERE telegram_id IS NOT NULL
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
-              AND claimed = FALSE
-              AND created_at >= NOW() - INTERVAL '24 hours'
-            GROUP BY telegram_id
-            HAVING COUNT(*) >= 60
-          )
       `;
       const usersRes = await pool.query(query);
       targets = usersRes.rows.map(r => r.telegram_id);
     }
 
-    console.log(`[GRAM REMINDER BROADCAST] Target: ${target}, AdminIDs: ${adminIds.join(',')}, Targets Count: ${targets.length}`);
+    console.log(`[GRAM REMINDER BROADCAST] Target: ${target}, Targets Count: ${targets.length}`);
 
     global.gramReminderBroadcast = {
       target,
@@ -1946,40 +1979,56 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
       startTime: Date.now()
     };
 
-    // Process asynchronously in background
-    (async () => {
+    // Run high-speed background worker
+    setImmediate(async () => {
       const BATCH_SIZE = 25;
+      const activeBot = getActiveTelegramBot();
+      if (!activeBot) {
+        if (global.gramReminderBroadcast) {
+          global.gramReminderBroadcast.status = 'failed';
+          global.gramReminderBroadcast.lastError = 'Telegram bot is not initialized';
+        }
+        return;
+      }
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: buttonText, url: "https://t.me/TaskyAppbot/app" }]
+        ]
+      };
+
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'cancelled') break;
+
         const batch = targets.slice(i, i + BATCH_SIZE);
         await Promise.all(batch.map(async (tid) => {
           try {
-            const activeBot = getActiveTelegramBot();
-            if (activeBot && typeof activeBot.sendMessage === 'function') {
-              await activeBot.sendMessage(tid, text, { 
-                parse_mode: 'HTML',
-                reply_markup: {
-                  inline_keyboard: [
-                    [{ text: buttonText, url: "https://t.me/TaskyAppbot/app" }]
-                  ]
-                }
-              });
-              global.gramReminderBroadcast.success++;
-            } else {
-              global.gramReminderBroadcast.failed++;
-              global.gramReminderBroadcast.lastError = 'Telegram bot is not initialized';
-            }
+            await sendWithRetry(() => activeBot.sendMessage(tid, text, { 
+              parse_mode: 'HTML',
+              reply_markup: replyMarkup
+            }));
+            if (global.gramReminderBroadcast) global.gramReminderBroadcast.success++;
           } catch (err) {
-            console.error(`[GRAM BROADCAST] Failed for ${tid}:`, err.message);
-            global.gramReminderBroadcast.failed++;
-            global.gramReminderBroadcast.lastError = err.message;
+            if (global.gramReminderBroadcast) {
+              global.gramReminderBroadcast.failed++;
+              if (!isUserBlockError(err.message)) {
+                global.gramReminderBroadcast.lastError = err.message;
+              }
+            }
           }
         }));
-        global.gramReminderBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        if (global.gramReminderBroadcast) {
+          global.gramReminderBroadcast.currentIdx = Math.min(i + BATCH_SIZE, targets.length);
+        }
+        await new Promise(r => setTimeout(r, 350));
       }
-      global.gramReminderBroadcast.status = 'completed';
-      console.log(`[GRAM BROADCAST] Finished! Success: ${global.gramReminderBroadcast.success}, Failed: ${global.gramReminderBroadcast.failed}`);
-    })();
+
+      if (global.gramReminderBroadcast && global.gramReminderBroadcast.status === 'running') {
+        global.gramReminderBroadcast.status = 'completed';
+      }
+      console.log(`[GRAM BROADCAST] Finished! Success: ${global.gramReminderBroadcast?.success}, Failed: ${global.gramReminderBroadcast?.failed}`);
+    });
 
     res.json({ success: true, message: 'Gram reminder broadcast started' });
   } catch (error) {

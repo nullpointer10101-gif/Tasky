@@ -3,7 +3,7 @@ import api from '../api';
 import toast from 'react-hot-toast';
 import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem } from 'lucide-react';
 
-const StatusWidget = ({ status, themeColor = 'purple' }) => {
+const StatusWidget = ({ status, themeColor = 'purple', onCancel, type }) => {
   if (!status) return null;
 
   const total = status.total || 0;
@@ -11,6 +11,7 @@ const StatusWidget = ({ status, themeColor = 'purple' }) => {
   const success = status.success || 0;
   const failed = status.failed || 0;
   const isRunning = status.status === 'running';
+  const isCancelled = status.status === 'cancelled';
   const progressPct = total > 0 ? Math.min(100, Math.round((currentIdx / total) * 100)) : (isRunning ? 0 : 100);
 
   const themeMap = {
@@ -45,14 +46,27 @@ const StatusWidget = ({ status, themeColor = 'purple' }) => {
   return (
     <div className={`bg-black/40 border ${t.border} rounded-2xl p-3.5 space-y-2.5 shadow-inner transition-all`}>
       <div className="flex items-center justify-between text-[11px] font-bold">
-        <span className={`${t.text} uppercase tracking-wider truncate max-w-[210px]`} title={status.lastError || ''}>
+        <span className={`${t.text} uppercase tracking-wider truncate max-w-[190px]`} title={status.lastError || ''}>
           {isRunning 
             ? '🚀 Broadcasting in progress...' 
-            : failed > 0 && success === 0 
-              ? `❌ ${status.lastError || 'Send Failed'}` 
-              : '✅ Broadcast Completed'}
+            : isCancelled
+              ? '⏹️ Broadcast Stopped'
+              : failed > 0 && success === 0 
+                ? `❌ ${status.lastError || 'Send Failed'}` 
+                : '✅ Broadcast Completed'}
         </span>
-        <span className={`font-mono ${t.percent}`}>{progressPct}%</span>
+        <div className="flex items-center gap-2">
+          {isRunning && onCancel && (
+            <button
+              type="button"
+              onClick={() => onCancel(type)}
+              className="text-[10px] text-rose-400 hover:text-rose-300 font-bold underline cursor-pointer"
+            >
+              Stop
+            </button>
+          )}
+          <span className={`font-mono ${t.percent}`}>{progressPct}%</span>
+        </div>
       </div>
 
       <div className="w-full h-2 bg-black/60 rounded-full overflow-hidden border border-white/10">
@@ -176,125 +190,52 @@ export default function Broadcast() {
 
   const [nftCustomText, setNftCustomText] = useState(nftTemplates[0].text);
 
-  // Check initial broadcast status on component mount
-  useEffect(() => {
-    const fetchStatuses = async () => {
-      try {
-        const [nftRes, promoRes, gramRes, customRes] = await Promise.allSettled([
-          api.get('/broadcast/nft-status'),
-          api.get('/broadcast/promo-status'),
-          api.get('/broadcast/gram-reminder-status'),
-          api.get('/broadcast/custom-status')
-        ]);
+  const fetchAllStatuses = async () => {
+    try {
+      const [nftRes, promoRes, gramRes, customRes] = await Promise.allSettled([
+        api.get('/broadcast/nft-status'),
+        api.get('/broadcast/promo-status'),
+        api.get('/broadcast/gram-reminder-status'),
+        api.get('/broadcast/custom-status')
+      ]);
 
-        if (nftRes.status === 'fulfilled' && nftRes.value.data) {
-          setNftStatus(nftRes.value.data);
-          if (nftRes.value.data.status === 'running') {
-            setIsBroadcastingNft(true);
-          }
-        }
-        if (promoRes.status === 'fulfilled' && promoRes.value.data) {
-          setPromoStatus(promoRes.value.data);
-          if (promoRes.value.data.status === 'running') {
-            setIsBroadcastingPromo(true);
-          }
-        }
-        if (gramRes.status === 'fulfilled' && gramRes.value.data) {
-          setGramStatus(gramRes.value.data);
-          if (gramRes.value.data.status === 'running') {
-            setIsBroadcastingGram(true);
-          }
-        }
-        if (customRes.status === 'fulfilled' && customRes.value.data) {
-          setCustomStatus(customRes.value.data);
-          if (customRes.value.data.status === 'running') {
-            setIsBroadcastingCustom(true);
-          }
-        }
-      } catch (_) {}
-    };
-    fetchStatuses();
-  }, []);
+      if (nftRes.status === 'fulfilled') {
+        setNftStatus(nftRes.value.data);
+        setIsBroadcastingNft(nftRes.value.data?.status === 'running');
+      }
+      if (promoRes.status === 'fulfilled') {
+        setPromoStatus(promoRes.value.data);
+        setIsBroadcastingPromo(promoRes.value.data?.status === 'running');
+      }
+      if (gramRes.status === 'fulfilled') {
+        setGramStatus(gramRes.value.data);
+        setIsBroadcastingGram(gramRes.value.data?.status === 'running');
+      }
+      if (customRes.status === 'fulfilled') {
+        setCustomStatus(customRes.value.data);
+        setIsBroadcastingCustom(customRes.value.data?.status === 'running');
+      }
+    } catch (_) {}
+  };
 
-  // Poll Promo Status
+  // Heartbeat background sync
   useEffect(() => {
-    let interval;
-    if (isBroadcastingPromo) {
-      interval = setInterval(async () => {
-        try {
-          const res = await api.get('/broadcast/promo-status');
-          if (res.data) {
-            setPromoStatus(res.data);
-            if (res.data.status === 'completed' || res.data.status === 'done') {
-              setIsBroadcastingPromo(false);
-              toast.success('Promo Code Broadcast completed successfully!');
-            }
-          }
-        } catch (_) {}
-      }, 1000);
-    }
+    fetchAllStatuses();
+    const anyRunning = isBroadcastingNft || isBroadcastingPromo || isBroadcastingGram || isBroadcastingCustom;
+    const interval = setInterval(fetchAllStatuses, anyRunning ? 1500 : 4000);
     return () => clearInterval(interval);
-  }, [isBroadcastingPromo]);
+  }, [isBroadcastingNft, isBroadcastingPromo, isBroadcastingGram, isBroadcastingCustom]);
 
-  // Poll NFT Status
-  useEffect(() => {
-    let interval;
-    if (isBroadcastingNft) {
-      interval = setInterval(async () => {
-        try {
-          const res = await api.get('/broadcast/nft-status');
-          if (res.data) {
-            setNftStatus(res.data);
-            if (res.data.status === 'completed' || res.data.status === 'done') {
-              setIsBroadcastingNft(false);
-              toast.success('NFT Broadcast completed successfully!');
-            }
-          }
-        } catch (_) {}
-      }, 1000);
+  const handleCancel = async (type) => {
+    if (!window.confirm(`Stop and cancel the ${type.toUpperCase()} broadcast?`)) return;
+    try {
+      await api.post(`/broadcast/cancel/${type}`);
+      toast.success('Broadcast stop requested');
+      fetchAllStatuses();
+    } catch (err) {
+      toast.error('Failed to cancel broadcast');
     }
-    return () => clearInterval(interval);
-  }, [isBroadcastingNft]);
-
-  // Poll GRAM Status
-  useEffect(() => {
-    let interval;
-    if (isBroadcastingGram) {
-      interval = setInterval(async () => {
-        try {
-          const res = await api.get('/broadcast/gram-reminder-status');
-          if (res.data) {
-            setGramStatus(res.data);
-            if (res.data.status === 'completed' || res.data.status === 'done') {
-              setIsBroadcastingGram(false);
-              toast.success('GRAM Currency Broadcast completed successfully!');
-            }
-          }
-        } catch (_) {}
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isBroadcastingGram]);
-
-  // Poll Custom Broadcast Status
-  useEffect(() => {
-    let interval;
-    if (isBroadcastingCustom) {
-      interval = setInterval(async () => {
-        try {
-          const res = await api.get('/broadcast/custom-status');
-          if (res.data) {
-            setCustomStatus(res.data);
-            if (res.data.status === 'completed' || res.data.status === 'done') {
-              setIsBroadcastingCustom(false);
-              toast.success('Custom Global Broadcast completed successfully!');
-            }
-          }
-        } catch (_) {}
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isBroadcastingCustom]);
+  };
 
   const handleSelectNftTemplate = (idx) => {
     setNftTemplateIndex(idx);
@@ -437,9 +378,7 @@ export default function Broadcast() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
-        {/* ========================================================= */}
-        {/* CARD 1: NFT DIGITAL MINERS LAUNCH BROADCASTER             */}
-        {/* ========================================================= */}
+        {/* CARD 1: NFT DIGITAL MINERS LAUNCH BROADCASTER */}
         <div className="flex flex-col gap-4">
           <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-purple-500/5">
             <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 font-bold">
@@ -555,14 +494,14 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              <StatusWidget status={nftStatus} themeColor="purple" />
+              <StatusWidget status={nftStatus} themeColor="purple" onCancel={handleCancel} type="nft" />
             </div>
 
             {/* Action Button */}
             <button
               onClick={handleSendNft}
               disabled={isBroadcastingNft || !nftCustomText.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isBroadcastingNft ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
               <span>{nftTarget === 'admin' ? 'Test NFT Broadcast (Admin)' : 'Broadcast NFT to ALL'}</span>
@@ -570,9 +509,7 @@ export default function Broadcast() {
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* CARD 2: GRAM CURRENCY BROADCASTER                         */}
-        {/* ========================================================= */}
+        {/* CARD 2: GRAM CURRENCY BROADCASTER */}
         <div className="flex flex-col gap-4">
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-emerald-500/5">
             <div className="w-9 h-9 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0 font-bold">
@@ -654,14 +591,14 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              <StatusWidget status={gramStatus} themeColor="emerald" />
+              <StatusWidget status={gramStatus} themeColor="emerald" onCancel={handleCancel} type="gram" />
             </div>
 
             {/* Action Button */}
             <button
               onClick={handleSendGram}
               disabled={isBroadcastingGram}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isBroadcastingGram ? <RefreshCw size={14} className="animate-spin" /> : <Gem size={14} />}
               <span>{gramTarget === 'admin' ? 'Test GRAM Broadcast (Admin)' : 'Broadcast GRAM to ALL'}</span>
@@ -669,9 +606,7 @@ export default function Broadcast() {
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* CARD 3: PROMO CODE BROADCASTER                            */}
-        {/* ========================================================= */}
+        {/* CARD 3: PROMO CODE BROADCASTER */}
         <div className="flex flex-col gap-4">
           <div className="bg-indigo-500/10 border border-indigo-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-indigo-500/5">
             <div className="w-9 h-9 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 shrink-0 font-bold">
@@ -731,13 +666,13 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              <StatusWidget status={promoStatus} themeColor="indigo" />
+              <StatusWidget status={promoStatus} themeColor="indigo" onCancel={handleCancel} type="promo" />
             </div>
 
             <button
               onClick={handleSendPromo}
               disabled={isBroadcastingPromo || !promoCode.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-teal-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isBroadcastingPromo ? <RefreshCw size={14} className="animate-spin" /> : <Gift size={14} />}
               <span>{target === 'admin' ? 'Test Promo Broadcast (Admin)' : 'Broadcast Promo Code to ALL'}</span>
@@ -745,9 +680,7 @@ export default function Broadcast() {
           </div>
         </div>
 
-        {/* ========================================================= */}
-        {/* CARD 4: RAW CUSTOM BROADCASTER                            */}
-        {/* ========================================================= */}
+        {/* CARD 4: RAW CUSTOM BROADCASTER */}
         <div className="flex flex-col gap-4">
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-amber-500/5">
             <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0 font-bold">
@@ -807,13 +740,13 @@ export default function Broadcast() {
               </div>
 
               {/* Live Status Widget */}
-              <StatusWidget status={customStatus} themeColor="amber" />
+              <StatusWidget status={customStatus} themeColor="amber" onCancel={handleCancel} type="custom" />
             </div>
 
             <button
               onClick={handleSendCustom}
               disabled={isBroadcastingCustom || !message.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-95 disabled:opacity-50 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5"
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:opacity-95 disabled:opacity-50 text-black font-black text-xs uppercase tracking-wider shadow-lg flex items-center justify-center gap-1.5 cursor-pointer"
             >
               {isBroadcastingCustom ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
               <span>{customTarget === 'admin' ? 'Test Custom Broadcast (Admin)' : 'Broadcast Custom to ALL'}</span>
