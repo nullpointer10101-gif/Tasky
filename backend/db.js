@@ -385,6 +385,65 @@ const initDB = async () => {
       ALTER TABLE gram_claims ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
       ALTER TABLE gram_withdrawals ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
 
+      -- NFT CARDS & MINERS SUPPORT
+      CREATE TABLE IF NOT EXISTS nft_cards (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        description TEXT,
+        price_gram NUMERIC NOT NULL,
+        daily_yield_gram NUMERIC NOT NULL,
+        duration_days INT DEFAULT 10,
+        total_yield_gram NUMERIC NOT NULL,
+        rarity VARCHAR(30) DEFAULT 'rare',
+        icon_key VARCHAR(50) DEFAULT 'bolt',
+        max_supply INT DEFAULT 1000,
+        sold_count INT DEFAULT 0,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS user_nft_cards (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT NOT NULL,
+        nft_id INT REFERENCES nft_cards(id),
+        total_days INT DEFAULT 10,
+        purchased_at TIMESTAMPTZ DEFAULT NOW(),
+        last_claimed_at TIMESTAMPTZ,
+        claims_done INT DEFAULT 0,
+        total_earned_gram NUMERIC DEFAULT 0,
+        is_completed BOOLEAN DEFAULT FALSE
+      );
+
+      CREATE TABLE IF NOT EXISTS gram_deposits (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT NOT NULL,
+        amount_gram NUMERIC NOT NULL,
+        tx_hash VARCHAR(255) UNIQUE,
+        auto_verified BOOLEAN DEFAULT FALSE,
+        status VARCHAR(20) DEFAULT 'approved',
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS unclaimed_commission NUMERIC DEFAULT 0;
+      ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT 10;
+
+      INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
+      VALUES 
+        (1, 'Gram Mini Miner #01', 'Entry-level digital miner. (Discontinued from Marketplace)', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, false),
+        (2, 'Gram Turbo Miner #02', 'High-speed digital miner. Earn 0.15 GRAM daily for 10 days.', 1.0, 0.15, 10, 1.5, 'legendary', 'rocket', 1000, true),
+        (3, 'Gram Mega Miner #03', 'Ultra-powered digital miner. Earn 0.70 GRAM daily for 10 days.', 5.0, 0.70, 10, 7.0, 'mythic', 'flame', 1000, true),
+        (4, 'Gram Titan God Miner #04', 'Ultimate powerhouse digital miner. Earn 7.50 GRAM daily for 10 days.', 50.0, 7.50, 10, 75.0, 'celestial', 'crown', 1000, true)
+      ON CONFLICT (id) DO UPDATE SET
+        name = EXCLUDED.name,
+        description = EXCLUDED.description,
+        price_gram = EXCLUDED.price_gram,
+        daily_yield_gram = EXCLUDED.daily_yield_gram,
+        duration_days = EXCLUDED.duration_days,
+        total_yield_gram = EXCLUDED.total_yield_gram,
+        rarity = EXCLUDED.rarity,
+        icon_key = EXCLUDED.icon_key,
+        is_active = EXCLUDED.is_active;
+
       -- SEED NAME SUFFIX TASK FOR ADMIN TESTING
       INSERT INTO tasks (title, subtitle, type, reward_tasky, action_url, verification_type, icon, category, reward_gram, admin_only, is_active, is_featured)
       SELECT 'Support Tasky Name Suffix 🐾', 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!', 'social', 0, '', 'telegram_suffix', 'Telegram', 'internal', 0.0001, FALSE, TRUE, TRUE
