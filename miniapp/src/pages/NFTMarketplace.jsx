@@ -1,17 +1,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, ExternalLink, Flame, Users } from 'lucide-react';
-import Card, { cardVariants } from '../components/Card';
-import Button from '../components/Button';
-import EmptyState from '../components/EmptyState';
+import { 
+  Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, 
+  Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, 
+  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2 
+} from 'lucide-react';
 import { getNftMarketplace, buyNft, getMyNftCards, claimNftYield, autoVerifyDeposit } from '../api';
 import { useToast } from '../App';
+import triggerConfetti from '../confetti';
 
-export default function NFTMarketplace({ user, refreshUser, tgUser }) {
+const TABS = [
+  { key: 'marketplace', label: 'Marketplace', icon: Sparkles },
+  { key: 'inventory', label: 'My Miners', icon: Gem },
+  { key: 'deposit', label: 'Deposit', icon: ArrowDownLeft }
+];
+
+export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) {
   const telegramId = user?.telegram_id || tgUser?.id || tgUser?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   const { showToast } = useToast();
 
-  const [activeTab, setActiveTab] = useState('marketplace'); // marketplace | inventory | deposit
+  const [activeTab, setActiveTab] = useState('marketplace');
   const [cards, setCards] = useState([]);
   const [myCards, setMyCards] = useState([]);
   const [depositWallet, setDepositWallet] = useState('UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR');
@@ -63,7 +71,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
     }
     const price = parseFloat(nft.price_gram);
     if (gramBalance < price) {
-      showToast(`Insufficient GRAM! Price is ${price} GRAM. Pay directly with Tonkeeper or Top Up!`, 'error');
+      showToast(`Insufficient GRAM! You need ${price} GRAM. Top up via Deposit tab!`, 'error');
       return;
     }
 
@@ -73,7 +81,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       if (error) {
         showToast(error, 'error');
       } else if (data && data.success) {
-        showToast(data.message || '🎉 Purchased NFT Miner successfully!', 'success');
+        showToast(data.message || '🎉 NFT Miner activated successfully!', 'success');
+        triggerConfetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
         await refreshUser();
         await fetchData();
         setActiveTab('inventory');
@@ -89,12 +98,9 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
     const nanoAmount = Math.round(parseFloat(amountGram) * 1e9);
     const comment = encodeURIComponent(memoText);
 
-    let url = '';
-    if (walletType === 'tonkeeper') {
-      url = `https://app.tonkeeper.com/transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
-    } else {
-      url = `ton://transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
-    }
+    let url = walletType === 'tonkeeper'
+      ? `https://app.tonkeeper.com/transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`
+      : `ton://transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
 
     if (window.Telegram?.WebApp?.openLink) {
       window.Telegram.WebApp.openLink(url);
@@ -102,7 +108,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       window.open(url, '_blank');
     }
 
-    showToast(`Opening ${walletType === 'tonkeeper' ? 'Tonkeeper' : 'TON Wallet'} with pre-filled deposit payload...`, 'success');
+    showToast(`Opening ${walletType === 'tonkeeper' ? 'Tonkeeper' : 'TON Wallet'} with pre-filled deposit...`, 'success');
   };
 
   const handleClaim = async (instanceId) => {
@@ -113,7 +119,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       if (error) {
         showToast(error, 'error');
       } else if (data && data.success) {
-        showToast(data.message || '🎉 Daily yield claimed!', 'success');
+        showToast(data.message || '🎉 Daily GRAM yield claimed!', 'success');
+        triggerConfetti({ particleCount: 80, spread: 60, origin: { y: 0.6 } });
         await refreshUser();
         await fetchData();
       }
@@ -132,7 +139,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
       if (error) {
         showToast(error, 'error');
       } else if (data && data.success) {
-        showToast('🎉 Deposit verified & credited to Vault! Tap "Buy with Vault" to activate your NFT Miner.', 'success');
+        showToast('🎉 Deposit verified & credited to Vault!', 'success');
+        triggerConfetti({ particleCount: 150, spread: 90, origin: { y: 0.6 } });
         setTxHashInput('');
         await refreshUser();
         await fetchData();
@@ -150,16 +158,16 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
     if (type === 'wallet') {
       setCopiedWallet(true);
       setTimeout(() => setCopiedWallet(false), 2000);
-      showToast('Deposit wallet address copied!', 'success');
+      showToast('Wallet address copied!', 'success');
     } else {
       setCopiedMemo(true);
       setTimeout(() => setCopiedMemo(false), 2000);
-      showToast('Deposit Memo comment copied!', 'success');
+      showToast('Deposit Memo copied!', 'success');
     }
   };
 
   const renderCountdown = (seconds) => {
-    if (seconds <= 0) return 'Available Now!';
+    if (seconds <= 0) return 'Ready to Claim!';
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = Math.floor(seconds % 60);
@@ -167,243 +175,254 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
   };
 
   return (
-    <div className="p-4 space-y-4 pb-24 min-h-full relative">
-      {/* Header Banner */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-ink flex items-center gap-2">
-            <span className="p-1.5 rounded-xl bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <Sparkles size={20} />
+    <div className="p-4 space-y-4 pb-28 min-h-full relative max-w-md mx-auto">
+      
+      {/* ── TOP HERO HEADER ── */}
+      <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-[#1d123d] via-[#140b2b] to-[#0a0518] border border-indigo-500/30 shadow-[0_0_30px_rgba(99,102,241,0.12)]">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="flex items-center justify-between mb-3 relative z-10">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500/30 to-purple-500/30 border border-indigo-400/40 flex items-center justify-center text-indigo-300 shadow-inner">
+              <Sparkles size={20} className="animate-pulse" />
+            </div>
+            <div>
+              <h1 className="text-lg font-black text-white uppercase tracking-tight">NFT Miners</h1>
+              <p className="text-[11px] text-indigo-200/70 font-semibold">Automated Cloud Hashrate</p>
+            </div>
+          </div>
+
+          {/* Balance Capsule */}
+          <div className="flex items-center gap-2 bg-black/50 border border-white/10 px-3 py-1.5 rounded-2xl backdrop-blur-sm">
+            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <div className="text-right">
+              <p className="text-[9px] font-black uppercase text-white/40 leading-none">Vault Balance</p>
+              <p className="text-xs font-mono font-black text-emerald-300 leading-tight mt-0.5">
+                {gramBalance.toFixed(3)} <span className="text-[9px] text-emerald-400/60">GRAM</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-white/80 font-medium leading-relaxed relative z-10">
+          Deploy high-yield NFT Digital Miners to automatically generate passive GRAM rewards directly to your wallet.
+        </p>
+
+        {/* 3-Level Commission Bar */}
+        <div 
+          onClick={() => setShowCommModal(true)}
+          className="mt-3 bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30 rounded-2xl p-2.5 flex items-center justify-between cursor-pointer active:scale-98 transition-all"
+        >
+          <div className="flex items-center gap-2">
+            <Users size={14} className="text-amber-400" />
+            <span className="text-[11px] font-black text-amber-300">
+              3-Level Team Rewards: L1 (30%) • L2 (10%) • L3 (4%)
             </span>
-            NFT Digital Miners
-          </h1>
-          <p className="text-xs text-ink-soft font-medium">Own NFT miners & earn daily GRAM returns</p>
-        </div>
-
-        {/* GRAM Balance Capsule */}
-        <div className="flex items-center gap-1.5 bg-gradient-to-r from-purple-500/15 to-indigo-500/15 border border-purple-500/30 px-3 py-1.5 rounded-full shadow-sm">
-          <Zap size={14} className="text-amber-400 animate-pulse" />
-          <span className="text-xs font-black text-white">{gramBalance.toFixed(3)} GRAM</span>
+          </div>
+          <ChevronRight size={14} className="text-amber-300/70" />
         </div>
       </div>
 
-      {/* Tab Switcher */}
-      <div className="flex bg-surface-soft p-1 rounded-2xl relative shadow-inner border border-border/50">
-        {[
-          { key: 'marketplace', label: '🛍️ Marketplace' },
-          { key: 'inventory', label: `📦 My Miners (${myCards.length})` },
-          { key: 'deposit', label: '⚡ Deposit GRAM' }
-        ].map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex-1 py-2 text-xs font-black z-10 transition-all flex items-center justify-center gap-1.5 relative ${
-              activeTab === tab.key ? 'text-white' : 'text-ink-soft hover:text-ink'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-        <motion.div
-          layoutId="nftTabIndicator"
-          className="absolute top-1 bottom-1 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-xl shadow-md"
-          initial={false}
-          animate={{
-            left: activeTab === 'marketplace' ? '4px' : activeTab === 'inventory' ? 'calc(33.33% + 2px)' : 'calc(66.66% + 0px)',
-            width: 'calc(33.33% - 4px)'
-          }}
-          transition={{ type: 'spring', stiffness: 400, damping: 35 }}
-        />
+      {/* ── NAVIGATION PILL TABS ── */}
+      <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.key;
+          const count = tab.key === 'inventory' ? myCards.length : null;
+
+          return (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
+                isActive
+                  ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-[0_0_15px_rgba(99,102,241,0.35)] border border-indigo-400/30'
+                  : 'text-white/60 hover:text-white bg-transparent hover:bg-white/5'
+              }`}
+            >
+              <Icon size={13} />
+              <span>{tab.label}</span>
+              {count !== null && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${isActive ? 'bg-white/20 text-white' : 'bg-white/10 text-white/50'}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Main Content Area */}
+      {/* ── MAIN TAB CONTENT ── */}
       <AnimatePresence mode="wait">
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center gap-3 text-purple-400 animate-pulse">
+          <div className="py-24 flex flex-col items-center justify-center gap-3 text-indigo-400 animate-pulse">
             <RefreshCw size={32} className="animate-spin" />
-            <p className="text-xs font-black uppercase tracking-widest">Loading NFT System...</p>
+            <p className="text-xs font-black uppercase tracking-widest">Loading NFT Network...</p>
           </div>
         ) : activeTab === 'marketplace' ? (
           /* ========================================================= */
           /* TAB 1: NFT MARKETPLACE                                    */
           /* ========================================================= */
-          <motion.div key="marketplace" variants={cardVariants} initial="initial" animate="animate" className="space-y-4">
-            
-            {/* Promo Hero Banner */}
-            <div className="relative overflow-hidden rounded-3xl p-5 bg-gradient-to-br from-[#1E1B4B] via-[#311042] to-[#0F0D24] border border-purple-500/40 text-center shadow-xl">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-2xl" />
-              <div className="relative z-10">
-                <span className="inline-flex items-center gap-1.5 bg-amber-500/20 text-amber-300 text-[10px] font-black px-3 py-1 rounded-full border border-amber-500/30 uppercase tracking-widest mb-2">
-                  <Trophy size={12} /> High Yield NFT Miners
-                </span>
-                <h2 className="text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-amber-100 to-amber-300 tracking-tight leading-tight mb-1 py-0.5">Buy Once. Earn GRAM Daily for 10 Days!</h2>
-                <p className="text-xs text-purple-200/80 max-w-xs mx-auto">Purchase limited NFT miners to automatically generate guaranteed daily GRAM returns directly to your vault balance.</p>
-              </div>
-            </div>
+          <motion.div 
+            key="marketplace" 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }} 
+            className="space-y-4"
+          >
+            {cards.map((nft) => {
+              const isMega = nft.id === 3 || parseFloat(nft.price_gram) >= 5;
+              const isTurbo = nft.id === 2;
+              const price = parseFloat(nft.price_gram);
+              const directCommission = (price * 0.30).toFixed(2);
+              const maxAllowed = isMega ? 10 : 2;
+              const ownedCount = myCards
+                .filter(c => Number(c.nft_id) === Number(nft.id))
+                .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
+              const isMaxOwned = ownedCount >= maxAllowed;
 
-            {/* 3-Level Team Referral Rewards Notice Banner */}
-            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-purple-500/15 border border-amber-500/30 rounded-2xl p-3.5 flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shrink-0">
-                <Users size={20} />
-              </div>
-              <div className="text-left flex-1">
-                <h4 className="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
-                  🎁 3-Level Team Commissions Active!
-                </h4>
-                <p className="text-[11px] text-white/80 leading-snug mt-0.5">
-                  Earn instant GRAM commissions on <b>ALL NFT purchases</b>: <b className="text-amber-300">Level 1 (30%)</b> • <b className="text-amber-300">Level 2 (10%)</b> • <b className="text-amber-300">Level 3 (4%)</b>!
-                </p>
-                <button
-                  onClick={() => setShowCommModal(true)}
-                  className="mt-2 text-[10px] font-black text-amber-300 bg-amber-500/20 hover:bg-amber-500/30 px-3 py-1 rounded-xl border border-amber-500/30 transition-all flex items-center gap-1 active:scale-95"
+              return (
+                <div
+                  key={nft.id}
+                  className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
+                    isMega
+                      ? 'bg-gradient-to-b from-[#2a0e05] via-[#1a0802] to-[#0d0401] border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.15)]'
+                      : isTurbo
+                      ? 'bg-gradient-to-b from-[#1b103c] via-[#120a2b] to-[#090417] border-purple-500/40 shadow-[0_0_25px_rgba(168,85,247,0.12)]'
+                      : 'bg-gradient-to-b from-[#111638] via-[#0b0e24] to-[#060714] border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
+                  }`}
                 >
-                  📊 View Commission Breakdown Chart →
-                </button>
-              </div>
-            </div>
-
-            {/* NFT Cards List */}
-            <div className="grid grid-cols-1 gap-5">
-              {cards.map((nft) => {
-                const isMega = nft.id === 3 || parseFloat(nft.price_gram) >= 5;
-                const isTurbo = nft.id === 2;
-                const price = parseFloat(nft.price_gram);
-                const roiPercent = Math.round((parseFloat(nft.total_yield_gram) / price) * 100);
-                const directCommission = (price * 0.30).toFixed(2);
-                const maxDailyWithdraw = isMega ? '0.07' : isTurbo ? '0.05' : '0.03';
-                const maxAllowed = (isMega || nft.id === 3) ? 10 : 2;
-                const ownedCount = myCards
-                  .filter(c => Number(c.nft_id) === Number(nft.id))
-                  .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
-                const isMaxOwned = ownedCount >= maxAllowed;
-
-                return (
-                  <motion.div
-                    key={nft.id}
-                    whileHover={{ scale: 1.01 }}
-                    className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
-                      isMega
-                        ? 'bg-gradient-to-br from-[#2D0B00] via-[#5C1300] to-[#1F0800] border-orange-500/60 shadow-2xl shadow-orange-950/40 ring-1 ring-orange-500/30'
-                        : isTurbo
-                        ? 'bg-gradient-to-br from-[#1E1B4B] via-[#311075] to-[#1E1B4B] border-amber-500/50 shadow-2xl shadow-purple-900/30'
-                        : 'bg-surface-soft border-purple-500/30 hover:border-purple-500/60 shadow-xl'
-                    }`}
-                  >
-                    {/* Top Row: Rarity Badge & Duration & Ownership */}
-                    <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          isMega
-                            ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white shadow-md shadow-orange-500/30 animate-pulse'
-                            : isTurbo
-                            ? 'bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 text-black shadow-md shadow-amber-500/30'
-                            : 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
-                        }`}>
-                          {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
-                          {nft.rarity || 'LIMITED EDITION'}
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
-                          isMaxOwned ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                        }`}>
-                          {ownedCount > 0 ? `Owned: ${ownedCount}/${maxAllowed}` : `Max ${maxAllowed} / User`}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] font-extrabold text-amber-300/80 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">
-                        <Clock size={11} />
-                        <span>{nft.duration_days || 10} Days Mining Return</span>
-                      </div>
-                    </div>
-
-                    {/* Card Title & Icon */}
-                    <div className="flex items-center gap-3.5 mb-4">
-                      <div className={`w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 border shadow-inner ${
+                  {/* Top Badge Row */}
+                  <div className="flex items-center justify-between mb-3.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
                         isMega
-                          ? 'bg-gradient-to-tr from-orange-500/40 to-red-600/40 border-orange-400/60 text-orange-300 shadow-orange-500/30'
+                          ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-sm'
                           : isTurbo
-                          ? 'bg-gradient-to-tr from-amber-500/30 to-purple-600/40 border-amber-400/50 text-amber-300 shadow-amber-500/20'
-                          : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+                          ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white'
+                          : 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30'
                       }`}>
-                        {isMega ? <Flame size={28} className="text-orange-400 animate-pulse" /> : isTurbo ? <Rocket size={26} /> : <Zap size={26} />}
-                      </div>
-                      <div>
-                        <h3 className="text-base font-black text-white leading-tight">{nft.name}</h3>
-                        <p className="text-xs text-ink-soft leading-snug mt-0.5">{nft.description}</p>
-                      </div>
-                    </div>
-
-                    {/* Yield & Withdrawal Specs Box (Daily Yield | 10D Return | Max Daily Withdraw) */}
-                    <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-2.5 rounded-2xl border border-white/10 mb-3 text-center">
-                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-xl">
-                        <p className="text-[9px] font-bold text-emerald-400/80 uppercase tracking-wider">Daily Yield</p>
-                        <p className="text-xs font-black text-emerald-400 mt-0.5">+{nft.daily_yield_gram} GRAM</p>
-                      </div>
-                      <div className="bg-purple-500/10 border border-purple-500/20 p-2 rounded-xl">
-                        <p className="text-[9px] font-bold text-purple-300/80 uppercase tracking-wider">10D Return</p>
-                        <p className="text-xs font-black text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM</p>
-                      </div>
-                      <div className="bg-amber-500/10 border border-amber-500/20 p-2 rounded-xl">
-                        <p className="text-[9px] font-bold text-amber-400/80 uppercase tracking-wider">Max Withdraw</p>
-                        <p className="text-xs font-black text-amber-300 mt-0.5">{maxDailyWithdraw} GRAM/d</p>
-                      </div>
-                    </div>
-
-                    {/* Direct Referral Reward Badge */}
-                    <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/25 px-3 py-1.5 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-300 mb-3">
-                      <span className="flex items-center gap-1">
-                        <Users size={12} className="text-amber-400" /> Direct Ref Commission (30%):
+                        {isMega ? <Flame size={12} /> : isTurbo ? <Rocket size={12} /> : <Zap size={12} />}
+                        {nft.rarity || (isMega ? 'MYTHIC MINER' : isTurbo ? 'TURBO MINER' : 'STARTER MINER')}
                       </span>
-                      <span className="font-black text-amber-200">+{directCommission} GRAM</span>
+                      
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-0.8 rounded-full border ${
+                        isMaxOwned ? 'bg-red-500/20 text-red-300 border-red-500/30' : 'bg-white/5 text-white/60 border-white/10'
+                      }`}>
+                        {ownedCount > 0 ? `Owned: ${ownedCount}/${maxAllowed}` : `Limit: ${maxAllowed} Max`}
+                      </span>
                     </div>
 
-                    {/* Price & Buy Action Box */}
-                    <div className="bg-black/40 p-3.5 rounded-2xl border border-white/10 flex items-center justify-between gap-3 mb-2.5">
-                      <div>
-                        <p className="text-[10px] font-bold text-amber-400/80 uppercase tracking-wider">Miner Price</p>
-                        <p className="text-lg font-black text-amber-300 leading-none mt-1">{nft.price_gram} <span className="text-xs font-bold text-white/70">GRAM</span></p>
-                      </div>
-                      <Button
-                        onClick={() => handleBuy(nft)}
-                        disabled={isMaxOwned}
-                        loading={buyingId === nft.id}
-                        className={`px-4 py-3 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border-0 shadow-lg ${
-                          isMaxOwned
-                            ? 'bg-gray-700/50 text-white/40 cursor-not-allowed shadow-none'
-                            : isMega
-                            ? 'bg-gradient-to-r from-orange-500 via-red-500 to-amber-500 text-white hover:opacity-95 shadow-orange-500/30'
-                            : isTurbo
-                            ? 'bg-gradient-to-r from-amber-400 via-orange-500 to-amber-500 text-black hover:opacity-95 shadow-amber-500/20'
-                            : 'bg-gradient-to-r from-purple-600 to-emerald-600 text-white hover:opacity-95 shadow-purple-500/20'
-                        }`}
-                      >
-                        {isMega ? <Flame size={14} /> : <Zap size={14} />}
-                        <span>{isMaxOwned ? `Max Limit (${ownedCount}/${maxAllowed})` : 'Buy with Vault'}</span>
-                      </Button>
+                    <div className="text-right">
+                      <span className="text-base font-black font-mono text-amber-300">
+                        {nft.price_gram} <span className="text-xs text-white/50">GRAM</span>
+                      </span>
                     </div>
+                  </div>
 
-                    {/* Pay via Tonkeeper Direct Button */}
+                  {/* Title & Description */}
+                  <div className="flex items-start gap-3.5 mb-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${
+                      isMega
+                        ? 'bg-orange-500/20 border-orange-500/40 text-orange-400'
+                        : isTurbo
+                        ? 'bg-purple-500/20 border-purple-500/40 text-purple-400'
+                        : 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400'
+                    }`}>
+                      {isMega ? <Flame size={24} className="animate-pulse" /> : isTurbo ? <Rocket size={22} /> : <Zap size={22} />}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-black text-white">{nft.name}</h3>
+                      <p className="text-xs text-white/60 leading-snug mt-0.5">{nft.description}</p>
+                    </div>
+                  </div>
+
+                  {/* Clean Yield Stats Grid */}
+                  <div className="grid grid-cols-2 gap-2 bg-black/40 p-3 rounded-2xl border border-white/10 mb-3.5">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 p-2.5 rounded-xl text-left">
+                      <p className="text-[9.5px] font-black text-emerald-400/80 uppercase tracking-wider">Daily Output</p>
+                      <p className="text-sm font-black font-mono text-emerald-300 mt-0.5">+{nft.daily_yield_gram} GRAM/day</p>
+                    </div>
+                    <div className="bg-purple-500/10 border border-purple-500/20 p-2.5 rounded-xl text-left">
+                      <p className="text-[9.5px] font-black text-purple-300/80 uppercase tracking-wider">Total Return ({nft.duration_days || 10} Days)</p>
+                      <p className="text-sm font-black font-mono text-purple-200 mt-0.5">{nft.total_yield_gram} GRAM Total</p>
+                    </div>
+                  </div>
+
+                  {/* Direct Referral Bonus Pill */}
+                  <div className="bg-amber-500/10 border border-amber-500/20 px-3 py-2 rounded-xl flex items-center justify-between text-[11px] font-bold text-amber-300 mb-3.5">
+                    <span className="flex items-center gap-1.5">
+                      <Users size={13} className="text-amber-400" /> Direct Sponsor Reward (30%):
+                    </span>
+                    <span className="font-mono font-black text-amber-200">+{directCommission} GRAM</span>
+                  </div>
+
+                  {/* Purchase Action Buttons */}
+                  <div className="space-y-2">
+                    <motion.button
+                      onClick={() => handleBuy(nft)}
+                      disabled={isMaxOwned || buyingId === nft.id}
+                      whileTap={{ scale: 0.98 }}
+                      className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
+                        isMaxOwned
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
+                          : isMega
+                          ? 'bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]'
+                          : isTurbo
+                          ? 'bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.3)]'
+                          : 'bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white shadow-[0_0_20px_rgba(99,102,241,0.3)]'
+                      }`}
+                    >
+                      {buyingId === nft.id ? (
+                        <><RefreshCw size={14} className="animate-spin" /> Activating Miner...</>
+                      ) : isMaxOwned ? (
+                        <>Max Limit Reached ({ownedCount}/{maxAllowed})</>
+                      ) : (
+                        <><Zap size={14} /> Buy with Vault Balance ({nft.price_gram} GRAM)</>
+                      )}
+                    </motion.button>
+
                     <button
                       onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
-                      className="w-full py-2.5 px-3 rounded-xl font-bold text-[11px] flex items-center justify-center gap-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 transition-all active:scale-98"
+                      className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-98"
                     >
-                      <ExternalLink size={12} />
-                      <span>Pay {nft.price_gram} GRAM Direct via Tonkeeper Wallet 💎</span>
+                      <ExternalLink size={13} />
+                      <span>Pay {nft.price_gram} GRAM with Tonkeeper / TON Wallet</span>
                     </button>
-                  </motion.div>
-                );
-              })}
-            </div>
+                  </div>
+                </div>
+              );
+            })}
           </motion.div>
         ) : activeTab === 'inventory' ? (
           /* ========================================================= */
           /* TAB 2: MY INVENTORY & CLAIM YIELD                         */
           /* ========================================================= */
-          <motion.div key="inventory" variants={cardVariants} initial="initial" animate="animate" className="space-y-4">
+          <motion.div 
+            key="inventory" 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }} 
+            className="space-y-4"
+          >
             {myCards.length === 0 ? (
-              <EmptyState
-                icon={Zap}
-                title="No NFT Miners Owned Yet"
-                message="Purchase your first NFT Miner in the Marketplace to start earning daily GRAM passive returns!"
-              />
+              <div className="py-16 text-center space-y-4 bg-gradient-to-b from-[#180f33] to-[#0a051d] border border-white/10 rounded-3xl p-6">
+                <div className="w-16 h-16 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto">
+                  <Gem size={28} />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">No Active NFT Miners</h3>
+                  <p className="text-xs text-white/60 max-w-xs mx-auto mt-1">
+                    You haven't activated any NFT Digital Miners yet. Browse the Marketplace to deploy your first mining rig!
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab('marketplace')}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+                >
+                  Browse Marketplace →
+                </button>
+              </div>
             ) : (
               myCards.map((card) => {
                 const claimsDone = card.claims_done || 0;
@@ -412,190 +431,183 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
                 const isMaxedOut = claimsDone >= durationDays;
 
                 return (
-                  <Card key={card.instance_id} className="relative overflow-hidden border-purple-500/30">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
-                          {card.nft_id === 2 ? <Rocket size={18} /> : <Zap size={18} />}
+                  <div 
+                    key={card.instance_id} 
+                    className="p-5 rounded-3xl bg-gradient-to-b from-[#180f33] to-[#0a051d] border border-indigo-500/30 shadow-lg space-y-4"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                          {card.nft_id === 3 ? <Flame size={20} /> : card.nft_id === 2 ? <Rocket size={20} /> : <Zap size={20} />}
                         </div>
                         <div>
                           <h4 className="text-sm font-black text-white">{card.name}</h4>
-                          <p className="text-[11px] text-ink-soft">Yield: +{card.daily_yield_gram} GRAM / day</p>
+                          <p className="text-[11px] font-mono text-emerald-400">+{card.daily_yield_gram} GRAM/day</p>
                         </div>
                       </div>
-                      <span className={`text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${
+                      <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
                         isMaxedOut
-                          ? 'bg-gray-500/20 text-gray-400 border-gray-500/30'
+                          ? 'bg-white/10 text-white/50 border-white/10'
                           : card.can_claim
-                          ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse'
-                          : 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30 animate-pulse'
+                          : 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
                       }`}>
-                        {isMaxedOut ? 'Completed' : card.can_claim ? 'Ready to Claim!' : 'Mining Active'}
+                        {isMaxedOut ? 'Completed' : card.can_claim ? 'Ready to Claim' : 'Mining Active'}
                       </span>
                     </div>
 
                     {/* Progress Bar */}
-                    <div className="mb-3">
-                      <div className="flex justify-between items-center text-xs font-bold mb-1">
-                        <span className="text-ink-soft">Return Progress</span>
-                        <span className="text-purple-300 font-mono">{claimsDone} / {durationDays} Days Claimed</span>
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between items-center text-xs font-bold">
+                        <span className="text-white/50 text-[11px]">Yield Lifecycle</span>
+                        <span className="text-indigo-300 font-mono text-[11px]">{claimsDone} / {durationDays} Days</span>
                       </div>
-                      <div className="w-full h-2.5 bg-black/30 rounded-full overflow-hidden border border-white/10">
+                      <div className="w-full h-2.5 bg-black/50 rounded-full overflow-hidden border border-white/10 p-0.5">
                         <div
-                          className="h-full bg-gradient-to-r from-purple-500 to-emerald-400 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-400 rounded-full transition-all duration-500"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
                     </div>
 
-                    {/* Earnings Summary & Action */}
-                    <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    {/* Action & Yield Status */}
+                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
                       <div>
-                        <p className="text-[10px] font-bold text-ink-soft uppercase">Total Earned</p>
-                        <p className="text-xs font-black text-emerald-400">+{Number(card?.total_earned_gram || 0).toFixed(3)} GRAM</p>
+                        <p className="text-[10px] font-bold text-white/40 uppercase">Total Earned</p>
+                        <p className="text-xs font-mono font-black text-emerald-400">
+                          +{Number(card?.total_earned_gram || 0).toFixed(3)} GRAM
+                        </p>
                       </div>
 
                       {isMaxedOut ? (
-                        <span className="text-xs font-bold text-ink-soft/70">{claimsDone}/{durationDays} Days Complete</span>
+                        <span className="text-xs font-bold text-white/40">10/10 Days Complete ✓</span>
                       ) : card.can_claim ? (
-                        <Button
-                          size="sm"
+                        <motion.button
+                          whileTap={{ scale: 0.95 }}
                           onClick={() => handleClaim(card.instance_id)}
-                          loading={claimingId === card.instance_id}
-                          className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black text-xs px-4 py-2 rounded-xl border-0 shadow-lg shadow-emerald-500/20"
+                          disabled={claimingId === card.instance_id}
+                          className="bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs px-4 py-2.5 rounded-xl shadow-[0_0_15px_rgba(16,185,129,0.3)] flex items-center gap-1.5"
                         >
-                          <span>Claim +{card.daily_yield_gram} GRAM</span>
-                        </Button>
+                          {claimingId === card.instance_id ? (
+                            <><RefreshCw size={12} className="animate-spin" /> Claiming...</>
+                          ) : (
+                            <><Sparkles size={13} /> Claim +{card.daily_yield_gram} GRAM</>
+                          )}
+                        </motion.button>
                       ) : (
-                        <div className="flex items-center gap-1 text-xs font-mono text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
+                        <div className="flex items-center gap-1.5 text-xs font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-xl">
                           <Clock size={12} />
-                          <span>Next in {renderCountdown(card.next_claim_seconds)}</span>
+                          <span>{renderCountdown(card.next_claim_seconds)}</span>
                         </div>
                       )}
                     </div>
-                  </Card>
+                  </div>
                 );
               })
             )}
           </motion.div>
         ) : (
           /* ========================================================= */
-          /* TAB 3: INSTANT DEPOSIT & BLOCKCHAIN VERIFICATION          */
+          /* TAB 3: DEPOSIT GRAM                                       */
           /* ========================================================= */
-          <motion.div key="deposit" variants={cardVariants} initial="initial" animate="animate" className="space-y-4">
-            
-            {/* Header info */}
-            <div className="bg-gradient-to-br from-[#1E1B4B] to-[#311042] border border-purple-500/40 rounded-3xl p-5 text-center shadow-xl">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 mx-auto mb-3">
-                <ArrowDownLeft size={24} />
+          <motion.div 
+            key="deposit" 
+            initial={{ opacity: 0, y: 10 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -10 }} 
+            className="space-y-4"
+          >
+            {/* Quick 1-Tap Tonkeeper Presets */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-indigo-950/40 via-[#130d29] to-[#0c081c] border border-indigo-500/30 space-y-3">
+              <div className="flex items-center gap-2 text-indigo-300 text-xs font-black uppercase tracking-wider">
+                <Zap size={14} className="text-cyan-400" /> 1-Tap Tonkeeper Top-Up
               </div>
-              <h3 className="text-lg font-black text-white mb-1">Instant GRAM / TON Deposit</h3>
-              <p className="text-xs text-purple-200/80 max-w-xs mx-auto">
-                Transfer GRAM or TON directly using Tonkeeper or any TON wallet. The system automatically verifies your deposit on the blockchain with zero admin wait time!
+              <div className="grid grid-cols-2 gap-2">
+                {[0.5, 1.0, 5.0, 10.0].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => handlePayViaWallet(amt, 'tonkeeper')}
+                    className="py-3 px-3 rounded-2xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-white font-black text-xs flex items-center justify-between transition-all active:scale-95"
+                  >
+                    <span>{amt} GRAM</span>
+                    <span className="text-[10px] text-indigo-300 font-mono">Tonkeeper 💎</span>
+                  </button>
+                ))}
+              </div>
+              <p className="text-[10.5px] text-white/60 font-medium text-center">
+                Auto-fills recipient address, exact amount, and your personal verification memo!
               </p>
             </div>
 
-            {/* Direct Pay Button Options (OPTION A) */}
-            <Card className="bg-gradient-to-r from-blue-900/30 via-indigo-900/30 to-purple-900/30 border-blue-500/40">
-              <p className="text-xs font-black text-blue-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <ExternalLink size={14} className="text-blue-400" />
-                ⚡ OPTION A: 1-TAP INSTANT WALLET PAYMENT
-              </p>
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                <button
-                  onClick={() => handlePayViaWallet(0.5, 'tonkeeper')}
-                  className="py-3 px-3 bg-blue-600/30 hover:bg-blue-600/40 text-white rounded-2xl border border-blue-500/40 text-xs font-black flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-md"
-                >
-                  <span className="text-[11px] text-blue-300">Pay 0.5 GRAM</span>
-                  <span className="flex items-center gap-1 text-amber-300">Tonkeeper 💎</span>
-                </button>
-                <button
-                  onClick={() => handlePayViaWallet(1.0, 'tonkeeper')}
-                  className="py-3 px-3 bg-purple-600/30 hover:bg-purple-600/40 text-white rounded-2xl border border-purple-500/40 text-xs font-black flex flex-col items-center justify-center gap-1 transition-all active:scale-95 shadow-md"
-                >
-                  <span className="text-[11px] text-purple-300">Pay 1.0 GRAM</span>
-                  <span className="flex items-center gap-1 text-amber-300">Tonkeeper 💎</span>
-                </button>
-              </div>
-              <p className="text-[10px] text-blue-200/70 text-center font-medium">Auto-fills recipient address, amount & memo comment!</p>
-            </Card>
+            {/* Manual Deposit Details */}
+            <div className="p-5 rounded-3xl bg-black/40 border border-white/10 space-y-4">
+              <p className="text-xs font-black text-white uppercase tracking-wider">Manual Deposit Address & Memo</p>
 
-            {/* Manual Transfer Options (OPTION B) */}
-            <div className="pt-2 pb-1 text-center">
-              <span className="text-xs font-black text-amber-400 uppercase tracking-widest bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
-                OR OPTION B: MANUAL TRANSFER
-              </span>
-            </div>
-
-            {/* Step 1: Tasky Official Deposit Wallet Address */}
-            <Card>
-              <p className="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <Wallet size={14} className="text-amber-400" />
-                Step 1: Tasky Official Deposit Wallet Address
-              </p>
-              <div className="flex items-center justify-between bg-black/30 p-3 rounded-2xl border border-white/10 gap-2 mb-2">
-                <p className="text-xs font-mono text-white truncate flex-1">{depositWallet}</p>
-                <button
-                  onClick={() => copyToClipboard(depositWallet, 'wallet')}
-                  className="shrink-0 p-2 rounded-xl bg-purple-500/20 text-purple-300 hover:bg-purple-500/30 border border-purple-500/30 transition-all active:scale-95"
-                >
-                  {copiedWallet ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                </button>
+              {/* Step 1: Wallet Address */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold text-white/50 uppercase">Tasky Deposit Wallet</p>
+                <div className="flex items-center justify-between bg-black/60 p-3 rounded-2xl border border-white/10 gap-2">
+                  <p className="text-xs font-mono text-white truncate flex-1">{depositWallet}</p>
+                  <button
+                    onClick={() => copyToClipboard(depositWallet, 'wallet')}
+                    className="shrink-0 p-2 rounded-xl bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 border border-indigo-500/30 transition-all active:scale-95"
+                  >
+                    {copiedWallet ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                  </button>
+                </div>
               </div>
-              <p className="text-[11px] text-ink-soft">Send any amount of GRAM or TON to the official Tasky address above.</p>
-            </Card>
 
-            {/* Step 2: Deposit Comment / Memo */}
-            <Card>
-              <p className="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <ShieldCheck size={14} className="text-amber-400" />
-                Step 2: Include Your Unique Memo Comment
-              </p>
-              <div className="flex items-center justify-between bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 gap-2 mb-2">
-                <p className="text-sm font-black font-mono text-amber-300 truncate">{memoText}</p>
-                <button
-                  onClick={() => copyToClipboard(memoText, 'memo')}
-                  className="shrink-0 p-2 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition-all active:scale-95"
-                >
-                  {copiedMemo ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                </button>
+              {/* Step 2: Memo */}
+              <div className="space-y-1.5">
+                <p className="text-[10px] font-bold text-amber-400 uppercase">Required Memo / Comment</p>
+                <div className="flex items-center justify-between bg-amber-500/10 p-3 rounded-2xl border border-amber-500/30 gap-2">
+                  <p className="text-xs font-mono font-black text-amber-300 truncate">{memoText}</p>
+                  <button
+                    onClick={() => copyToClipboard(memoText, 'memo')}
+                    className="shrink-0 p-2 rounded-xl bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition-all active:scale-95"
+                  >
+                    {copiedMemo ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                  </button>
+                </div>
+                <p className="text-[10.5px] text-amber-300/80 font-semibold leading-tight">
+                  ⚠️ Always include your memo comment in the transfer so the blockchain verifies your account automatically.
+                </p>
               </div>
-              <div className="p-2.5 bg-warning-soft/60 text-warning text-[11px] font-medium rounded-xl border border-warning/20 leading-snug">
-                ⚠️ <strong>Crucial:</strong> You MUST include <code>{memoText}</code> in the transfer comment/memo so the system auto-identifies your deposit!
-              </div>
-            </Card>
 
-            {/* Direct Automatic Deposit Verifier Button */}
-            <div className="pt-2">
-              <Button
+              {/* Auto Verifier */}
+              <motion.button
                 onClick={handleAutoVerifyDeposit}
-                loading={verifyingDeposit}
-                className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 text-white font-black text-xs uppercase tracking-wider border-0 shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                disabled={verifyingDeposit}
+                whileTap={{ scale: 0.98 }}
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all"
               >
-                <Zap size={18} />
-                <span>Verify Deposit Automatically ⚡</span>
-              </Button>
+                {verifyingDeposit ? (
+                  <><RefreshCw size={14} className="animate-spin" /> Verifying on Blockchain...</>
+                ) : (
+                  <><Zap size={14} /> Verify Deposit Automatically ⚡</>
+                )}
+              </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Commission Details Modal */}
+      {/* ── 3-LEVEL TEAM COMMISSION MODAL ── */}
       {showCommModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-gradient-to-br from-[#1E1B4B] via-[#2A123D] to-[#0F0D24] p-5 rounded-3xl border border-amber-500/40 w-full max-w-lg shadow-2xl relative space-y-4"
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gradient-to-b from-[#1b103c] to-[#090417] p-5 rounded-3xl border border-amber-500/40 w-full max-w-sm shadow-2xl relative space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-black text-xs md:text-sm text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-                📊 Exact Commission Breakdown Across ALL NFTs
+              <h3 className="font-black text-xs text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                <Trophy size={14} /> 3-Level Team Rewards Chart
               </h3>
               <button
                 onClick={() => setShowCommModal(false)}
-                className="text-white/60 hover:text-white px-2 py-1 rounded-lg bg-white/10 text-xs font-bold"
+                className="text-white/60 hover:text-white px-2.5 py-1 rounded-xl bg-white/10 text-xs font-bold"
               >
                 ✕
               </button>
@@ -604,37 +616,35 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
             <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/40">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5 text-[11px] font-black text-ink-soft">
-                    <th className="p-3">NFT Card</th>
-                    <th className="p-3">Price</th>
-                    <th className="p-3 text-amber-300">🥇 Level 1 Direct Ref (30%)</th>
-                    <th className="p-3 text-purple-300">🥈 Level 2 Upline (10%)</th>
-                    <th className="p-3 text-indigo-300">🥉 Level 3 Upline (4%)</th>
+                  <tr className="border-b border-white/10 bg-white/5 text-[10px] font-black text-white/60 uppercase">
+                    <th className="p-2.5">Miner</th>
+                    <th className="p-2.5">Price</th>
+                    <th className="p-2.5 text-amber-300">L1 (30%)</th>
+                    <th className="p-2.5 text-purple-300">L2 (10%)</th>
+                    <th className="p-2.5 text-indigo-300">L3 (4%)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 font-semibold text-white">
-                  <tr className="hover:bg-white/5 transition-colors">
-                    <td className="p-3 font-bold text-purple-300">Starter Miner #01</td>
-                    <td className="p-3 text-amber-400 font-extrabold">0.50 GRAM</td>
-                    <td className="p-3 text-emerald-400 font-black">+0.15 GRAM</td>
-                    <td className="p-3 text-purple-200">+0.05 GRAM</td>
-                    <td className="p-3 text-indigo-200">+0.02 GRAM</td>
+                <tbody className="divide-y divide-white/5 font-mono text-[11px] text-white">
+                  <tr>
+                    <td className="p-2.5 font-bold text-indigo-300">Starter</td>
+                    <td className="p-2.5 text-amber-300 font-black">0.50 G</td>
+                    <td className="p-2.5 text-emerald-400 font-black">+0.15</td>
+                    <td className="p-2.5 text-purple-300">+0.05</td>
+                    <td className="p-2.5 text-indigo-300">+0.02</td>
                   </tr>
-                  <tr className="hover:bg-white/5 transition-colors">
-                    <td className="p-3 font-bold text-amber-300">Turbo Miner #02</td>
-                    <td className="p-3 text-amber-400 font-extrabold">1.00 GRAM</td>
-                    <td className="p-3 text-emerald-400 font-black">+0.30 GRAM</td>
-                    <td className="p-3 text-purple-200">+0.10 GRAM</td>
-                    <td className="p-3 text-indigo-200">+0.04 GRAM</td>
+                  <tr>
+                    <td className="p-2.5 font-bold text-purple-300">Turbo</td>
+                    <td className="p-2.5 text-amber-300 font-black">1.00 G</td>
+                    <td className="p-2.5 text-emerald-400 font-black">+0.30</td>
+                    <td className="p-2.5 text-purple-300">+0.10</td>
+                    <td className="p-2.5 text-indigo-300">+0.04</td>
                   </tr>
-                  <tr className="hover:bg-white/5 transition-colors bg-orange-500/10">
-                    <td className="p-3 font-bold text-orange-300 flex items-center gap-1">
-                      <Flame size={12} className="text-orange-400" /> Mega Miner #03
-                    </td>
-                    <td className="p-3 text-amber-400 font-extrabold">5.00 GRAM</td>
-                    <td className="p-3 text-emerald-400 font-black">+1.50 GRAM</td>
-                    <td className="p-3 text-purple-200">+0.50 GRAM</td>
-                    <td className="p-3 text-indigo-200">+0.20 GRAM</td>
+                  <tr className="bg-orange-500/10">
+                    <td className="p-2.5 font-bold text-orange-300">Mega</td>
+                    <td className="p-2.5 text-amber-300 font-black">5.00 G</td>
+                    <td className="p-2.5 text-emerald-400 font-black">+1.50</td>
+                    <td className="p-2.5 text-purple-300">+0.50</td>
+                    <td className="p-2.5 text-indigo-300">+0.20</td>
                   </tr>
                 </tbody>
               </table>
@@ -642,9 +652,9 @@ export default function NFTMarketplace({ user, refreshUser, tgUser }) {
 
             <button
               onClick={() => setShowCommModal(false)}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-98 transition-all"
+              className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 text-black font-black text-xs uppercase tracking-wider shadow-lg active:scale-98 transition-all"
             >
-              Close Details
+              Got it
             </button>
           </motion.div>
         </div>
