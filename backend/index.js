@@ -1,4 +1,13 @@
 require('dotenv').config();
+
+// Global crash protection to keep server always alive
+process.on('uncaughtException', (err) => {
+  console.error('[CRASH PREVENTION] Uncaught Exception:', err.message, err.stack);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[CRASH PREVENTION] Unhandled Rejection:', reason?.message || reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
