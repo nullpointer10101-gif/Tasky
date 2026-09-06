@@ -23,7 +23,7 @@ if (token) {
     });
 
     // Set Global Default Menu Button for All Users (Required for Telegram MAU tracking)
-    const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
+    const STABLE_APP_URL = 'https://tasky3.onrender.com';
     bot.setChatMenuButton({
         menu_button: {
             type: 'web_app',
@@ -107,7 +107,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         }
         
         // PERMANENT STABLE URL — always use the alias, never the hash deployment URL
-        const STABLE_APP_URL = 'https://tasky-kohl-six.vercel.app';
+        const STABLE_APP_URL = 'https://tasky3.onrender.com';
         let webAppUrl = STABLE_APP_URL;
         
         if (refCode) {
@@ -170,7 +170,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             await bot.sendMessage(chatId, `🚀 <b>Welcome to TASKY!</b>\n\nTap below to start earning!`, {
                 parse_mode: 'HTML',
                 reply_markup: {
-                    inline_keyboard: [[{ text: '🐾 Launch TASKY', web_app: { url: 'https://tasky-kohl-six.vercel.app' } }]]
+                    inline_keyboard: [[{ text: '🐾 Launch TASKY', web_app: { url: 'https://tasky3.onrender.com' } }]]
                 }
             });
         } catch (_) {}
