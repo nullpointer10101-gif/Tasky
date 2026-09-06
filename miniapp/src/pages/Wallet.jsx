@@ -62,17 +62,6 @@ export default function Wallet({ user, refreshUser, navigate }) {
     }
     return () => clearInterval(interval);
   }, [adCooldown]);
-  
-  useEffect(() => {
-    if (isUsdtTeaserOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'auto';
-    }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [isUsdtTeaserOpen]);
 
   const [walletInput, setWalletInput] = useState('');
   const [isSavingWallet, setIsSavingWallet] = useState(false);

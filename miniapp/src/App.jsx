@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, useRef, createContext, useContext } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import Header from './components/Header'
 import BottomNav from './components/BottomNav'
@@ -50,6 +50,13 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [maintenance, setMaintenance] = useState(false)
   const [networkError, setNetworkError] = useState(false)
+  const mainScrollRef = useRef(null)
+
+  useEffect(() => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [activePage])
 
   useEffect(() => {
     const boot = async () => {
@@ -259,7 +266,7 @@ export default function App() {
   return (
     <AdminProvider user={user} tgUser={tgUser}>
       <ToastContext.Provider value={{ showToast }}>
-        <div className="flex flex-col h-full overflow-hidden bg-bg">
+        <div className="flex flex-col h-full w-full overflow-hidden bg-bg relative">
           <AnimatePresence>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           </AnimatePresence>
@@ -268,13 +275,20 @@ export default function App() {
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header user={user} navigate={setActivePage} activePage={activePage} />
 
-          <main className="flex-1 w-full overflow-y-auto hide-scrollbar pb-20 relative" style={{ WebkitOverflowScrolling: 'touch', overscrollBehaviorY: 'contain' }}>
+          <main 
+            ref={mainScrollRef}
+            className="flex-1 w-full overflow-y-auto overflow-x-hidden hide-scrollbar pb-24 relative" 
+            style={{ 
+              WebkitOverflowScrolling: 'touch',
+              touchAction: 'pan-y'
+            }}
+          >
             <motion.div
               key={activePage}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.12, ease: 'easeOut' }}
-              className="w-full min-h-full"
+              className="w-full"
             >
               <ActivePage
                 user={user}
