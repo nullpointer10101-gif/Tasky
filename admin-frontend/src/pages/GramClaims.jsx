@@ -650,9 +650,19 @@ export default function GramClaims() {
                   )}
                 </div>
 
-                <div className="flex flex-col items-end justify-center shrink-0 md:border-l border-border/50 md:pl-6">
+                <div className="flex flex-col items-end justify-center shrink-0 md:border-l border-border/50 md:pl-6 gap-2">
                   <p className="text-xl font-black text-ink font-mono">{h.amount} <span className="text-xs text-ink-soft">GRAM</span></p>
-                  <div className="mt-2">
+                  <div className="flex items-center gap-2 flex-wrap justify-end">
+                    {/* Warn Button */}
+                    <button
+                      onClick={() => handleWarn(h)}
+                      title="Send warning to user about sharing proof in community"
+                      className="px-3 py-1.5 rounded-xl border border-amber-500/30 text-amber-400 hover:bg-amber-500/15 text-xs font-bold transition-all flex items-center gap-1.5 shrink-0"
+                    >
+                      <AlertTriangle size={14} />
+                      <span>Warn</span>
+                    </button>
+
                     {h.status === 'approved' ? (
                       <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-black px-3.5 py-1.5 rounded-xl text-xs uppercase tracking-wider">PAID</span>
                     ) : (
