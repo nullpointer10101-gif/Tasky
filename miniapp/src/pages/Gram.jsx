@@ -487,7 +487,7 @@ export default function Gram({ user, refreshUser }) {
                     Dual Sponsor Requirement
                   </p>
                   <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
-                    Complete <strong className="text-indigo-300">30 GigaPub Ads</strong> + <strong className="text-amber-300">30 Monetag Ads</strong> to unlock your daily 0.02 GRAM claim.
+                    Complete <strong className="text-amber-300">30 Monetag Ads</strong> + <strong className="text-indigo-300">30 GigaPub Ads</strong> to unlock your daily 0.02 GRAM claim.
                   </p>
                 </div>
               </div>
@@ -496,58 +496,14 @@ export default function Gram({ user, refreshUser }) {
             {/* ── DUAL PROVIDER ACTION CARDS ── */}
             {!isQuestFinished && (
               <div className="w-full space-y-3 pt-1 text-left">
-                {/* Option 1: GigaPub (30 Ads) */}
-                <div className={`p-4 rounded-2xl border transition-all ${gigaCount >= 30 ? 'bg-indigo-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-indigo-950/40 to-[#1b103c]/60 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]'}`}>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-xs flex items-center justify-center border border-indigo-500/30">1</span>
-                      <div>
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: GigaPub</p>
-                          <span className="text-[8.5px] bg-indigo-500/20 text-indigo-300 font-black px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase">30 Ads</span>
-                        </div>
-                        <p className="text-[9.5px] text-white/40 font-bold">Primary Sponsor Network</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <span className={`text-xs font-black ${gigaCount >= 30 ? 'text-emerald-400' : 'text-indigo-300'}`}>
-                        {gigaCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
-                    <div 
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (gigaCount / 30) * 100)}%` }}
-                    />
-                  </div>
-
-                  {gigaCount >= 30 ? (
-                    <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                      <CheckCircle2 size={14} /> GigaPub Quota Completed (30/30) ✓
-                    </div>
-                  ) : (
-                    <motion.button
-                      onClick={() => handleWatchAd('gigapub')}
-                      disabled={isWatchingAd}
-                      whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-50"
-                    >
-                      <Play size={13} fill="currentColor" />
-                      {isWatchingAd && watchingProvider === 'gigapub' ? 'Loading GigaPub Ad...' : `Watch GigaPub Ad — ${30 - gigaCount} Left`}
-                    </motion.button>
-                  )}
-                </div>
-
-                {/* Option 2: Monetag (30 Ads) */}
+                {/* Option 1: Monetag (30 Ads) */}
                 <div className={`p-4 rounded-2xl border transition-all ${monetagCount >= 30 ? 'bg-amber-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-amber-950/30 to-[#271510]/60 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">2</span>
+                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">1</span>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 2: Monetag</p>
+                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: Monetag</p>
                           <span className="text-[8.5px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/30 uppercase">30 Ads</span>
                         </div>
                         <p className="text-[9.5px] text-white/40 font-bold">Partner Sponsor Network</p>
@@ -580,6 +536,50 @@ export default function Gram({ user, refreshUser }) {
                     >
                       <Play size={13} fill="currentColor" />
                       {isWatchingAd && watchingProvider === 'monetag' ? 'Loading Monetag Ad...' : `Watch Monetag Ad — ${30 - monetagCount} Left`}
+                    </motion.button>
+                  )}
+                </div>
+
+                {/* Option 2: GigaPub (30 Ads) */}
+                <div className={`p-4 rounded-2xl border transition-all ${gigaCount >= 30 ? 'bg-indigo-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-indigo-950/40 to-[#1b103c]/60 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-xs flex items-center justify-center border border-indigo-500/30">2</span>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 2: GigaPub</p>
+                          <span className="text-[8.5px] bg-indigo-500/20 text-indigo-300 font-black px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase">30 Ads</span>
+                        </div>
+                        <p className="text-[9.5px] text-white/40 font-bold">Primary Sponsor Network</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-xs font-black ${gigaCount >= 30 ? 'text-emerald-400' : 'text-indigo-300'}`}>
+                        {gigaCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
+                    <div 
+                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (gigaCount / 30) * 100)}%` }}
+                    />
+                  </div>
+
+                  {gigaCount >= 30 ? (
+                    <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                      <CheckCircle2 size={14} /> GigaPub Quota Completed (30/30) ✓
+                    </div>
+                  ) : (
+                    <motion.button
+                      onClick={() => handleWatchAd('gigapub')}
+                      disabled={isWatchingAd}
+                      whileTap={{ scale: 0.96 }}
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-50"
+                    >
+                      <Play size={13} fill="currentColor" />
+                      {isWatchingAd && watchingProvider === 'gigapub' ? 'Loading GigaPub Ad...' : `Watch GigaPub Ad — ${30 - gigaCount} Left`}
                     </motion.button>
                   )}
                 </div>
@@ -708,8 +708,8 @@ export default function Gram({ user, refreshUser }) {
                   Receive 0.02 GRAM ({TOTAL_ADS - count} ads left)
                 </button>
                 <div className="flex justify-between items-center text-[10px] text-white/40 font-bold px-1">
-                  <span>GigaPub: {gigaCount}/30</span>
                   <span>Monetag: {monetagCount}/30</span>
+                  <span>GigaPub: {gigaCount}/30</span>
                 </div>
               </div>
             )}
