@@ -79,23 +79,26 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                     let referred_by = null;
                     if (refCode) {
                         const refId = parseInt(refCode);
-                        if (!isNaN(refId) && refId !== parseInt(msg.from.id)) {
-                            const referrerCheck = await client.query('SELECT telegram_id FROM users WHERE telegram_id = $1', [refId]);
-                            if (referrerCheck.rows.length > 0) {
-                                referred_by = refId;
-                            }
+                        const refUser = await client.query('SELECT telegram_id FROM users WHERE referral_code = $1 OR telegram_id::text = $1', [refCode]);
+                        if (refUser.rows.length > 0 && refUser.rows[0].telegram_id !== chatId) {
+                            referred_by = refUser.rows[0].telegram_id;
                         }
                     }
-
-                    const userRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000) + String(Date.now()).slice(-3);
-
-                    await client.query(
-                        `INSERT INTO users (telegram_id, username, first_name, referral_code, referred_by, balance)
-                         VALUES ($1, $2, $3, $4, $5, 0)`,
-                        [msg.from.id, msg.from.username || null, msg.from.first_name || 'User', userRefCode, referred_by]
-                    );
-                    await client.query('COMMIT');
+                    await client.query(`
+                        INSERT INTO users (telegram_id, username, first_name, referral_code, referred_by, genesis_member)
+                        VALUES ($1, $2, $3, $4, $5, $6)
+                    `, [chatId, msg.from.username, msg.from.first_name, newRefCode, referred_by, genesis_member]);
+                    if (referred_by) {
+                        await client.query('INSERT INTO referrals (referrer_telegram_id, referred_telegram_id) VALUES ($1, $2)', [referred_by, chatId]);
+                        await client.query('UPDATE users SET total_referrals = total_referrals + 1 WHERE telegram_id = $1', [referred_by]);
+                        
+                        // Notify referrer
+                        const name = msg.from.username ? `@${msg.from.username}` : (msg.from.first_name || 'Someone');
+                        const refMsg = `🎉 <b>New Referral Joined!</b>\n\n👤 <b>${name}</b> has joined Tasky using your link!\n\n⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete their first withdrawal (Gram Claim/Withdrawal)!</i>\n\n🔗 Keep sharing your link to earn more!`;
+                        bot.sendMessage(referred_by, refMsg, { parse_mode: 'HTML' }).catch(() => {});
+                    }
                 }
+                await client.query('COMMIT');
             } catch (dbErr) {
                 await client.query('ROLLBACK');
                 console.error('Error registering user in /start:', dbErr.message);
@@ -106,26 +109,21 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
             console.error('DB pool error in /start:', poolErr.message);
         }
         
-        // PERMANENT STABLE URL — always use the alias, never the hash deployment URL
+        // PERMANENT STABLE URL
         const STABLE_APP_URL = 'https://tasky3.onrender.com';
         let webAppUrl = STABLE_APP_URL;
         
         if (refCode) {
             webAppUrl = `${STABLE_APP_URL}?startapp=${refCode}`;
-        }
-        
-        // Set the permanent menu button to open the web app
-        try {
-            await bot.setChatMenuButton({
+            // Only update chat menu button if user joined with a custom referral code
+            bot.setChatMenuButton({
                 chat_id: chatId,
                 menu_button: {
                     type: 'web_app',
                     text: 'Launch Tasky',
                     web_app: { url: webAppUrl }
                 }
-            });
-        } catch (e) {
-            console.error('Failed to set chat menu button:', e.message);
+            }).catch(() => {});
         }
 
         const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -154,9 +152,20 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const fs = require('fs');
         const imagePath = path.join(__dirname, 'assets', 'welcome_promo.png');
         
-        if (fs.existsSync(imagePath)) {
+        // Use cached Telegram file_id if available to prevent re-uploading and 429 flood errors
+        if (cachedWelcomePhotoId) {
             try {
-                await bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+                await bot.sendPhoto(chatId, cachedWelcomePhotoId, opts);
+            } catch (err) {
+                cachedWelcomePhotoId = null; // Reset cache if stale
+                await bot.sendMessage(chatId, captionText, opts);
+            }
+        } else if (fs.existsSync(imagePath)) {
+            try {
+                const res = await bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+                if (res?.photo && res.photo.length > 0) {
+                    cachedWelcomePhotoId = res.photo[res.photo.length - 1].file_id;
+                }
             } catch (photoErr) {
                 console.error('[Bot /start] sendPhoto error:', photoErr.message);
                 await bot.sendMessage(chatId, captionText, opts);

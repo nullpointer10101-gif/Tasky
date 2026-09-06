@@ -81,14 +81,15 @@ router.post('/register', async (req, res) => {
         // check if user exists
         const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id]);
         if (userRes.rows.length > 0) {
+            let existingUser = userRes.rows[0];
             if (first_name || username) {
-                await client.query(
-                    'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id = $3',
+                const upRes = await client.query(
+                    'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id = $3 RETURNING *',
                     [first_name, username, telegram_id]
                 );
+                if (upRes.rows.length > 0) existingUser = upRes.rows[0];
             }
             await client.query('COMMIT');
-            const existingUser = (await pool.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id])).rows[0];
             const adminIds = process.env.ADMIN_TELEGRAM_ID ? process.env.ADMIN_TELEGRAM_ID.split(',').map(id => id.trim()) : [];
             adminIds.push('8823265955');
             existingUser.is_admin = adminIds.includes(existingUser.telegram_id.toString());
