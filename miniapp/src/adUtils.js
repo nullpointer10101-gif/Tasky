@@ -219,7 +219,106 @@ export function startPeriodicAdLoop() {
   }, 110000);
 }
 
+const MONETAG_ZONE_ID = '11395836';
+const MONETAG_SDK_FN = 'show_11395836';
+
+/**
+ * Initializes the Monetag Ad SDK script dynamically if not present
+ */
+export function initMonetagAds() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (!document.getElementById('monetag-ad-sdk')) {
+    try {
+      const s = document.createElement('script');
+      s.id = 'monetag-ad-sdk';
+      s.src = '//libtl.com/sdk.js';
+      s.setAttribute('data-zone', MONETAG_ZONE_ID);
+      s.setAttribute('data-sdk', MONETAG_SDK_FN);
+      s.async = true;
+      document.head.appendChild(s);
+      console.log('[AdManager] 🚀 Initialized Monetag ad SDK (Zone 11395836)');
+    } catch (e) {
+      console.error('[AdManager] Monetag script injection error:', e);
+    }
+  }
+}
+
+// Auto-initialize Monetag
+initMonetagAds();
+
+/**
+ * Executes a Monetag rewarded ad session
+ */
+export async function showMonetagAd() {
+  if (typeof window === 'undefined') {
+    return { success: false, error: 'Browser environment required' };
+  }
+
+  try {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+  } catch(e) {}
+
+  initMonetagAds();
+
+  // Wait up to 5 seconds for Monetag SDK to attach trigger function
+  let waited = 0;
+  while (typeof window[MONETAG_SDK_FN] !== 'function' && waited < 5000) {
+    await new Promise(r => setTimeout(r, 150));
+    waited += 150;
+  }
+
+  const fn = window[MONETAG_SDK_FN];
+  if (typeof fn !== 'function') {
+    console.warn('[AdManager] Monetag SDK not available after wait');
+    return {
+      success: false,
+      network: 'monetag',
+      error: 'Monetag ad network is loading. Please try again in a moment.'
+    };
+  }
+
+  const startTime = Date.now();
+
+  try {
+    console.log('[AdManager] 🚀 Executing Monetag rewarded ad...');
+
+    const adExecutionPromise = Promise.resolve().then(() => fn());
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Monetag ad session timeout')), 40000);
+    });
+
+    await Promise.race([adExecutionPromise, timeoutPromise]);
+
+    // Ensure at least 4.5s elapsed
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed < 4.5) {
+      const waitExtra = Math.ceil((4.5 - elapsed) * 1000);
+      await new Promise(r => setTimeout(r, waitExtra));
+    }
+
+    console.log(`[AdManager] ✅ Monetag ad session completed successfully! (${((Date.now() - startTime) / 1000).toFixed(1)}s)`);
+    return { success: true, network: 'monetag' };
+  } catch (err) {
+    console.error('[AdManager] Monetag ad execution error / closed:', err);
+
+    const elapsed = (Date.now() - startTime) / 1000;
+    if (elapsed >= 5) {
+      console.log(`[AdManager] ✅ Watched Monetag ad for ${elapsed.toFixed(1)}s, granting completion.`);
+      return { success: true, network: 'monetag' };
+    }
+
+    return {
+      success: false,
+      network: 'monetag',
+      error: 'Monetag ad was closed early or could not be loaded. Please watch the full ad.'
+    };
+  }
+}
+
 // Backwards compatibility stubs
 export function initAdexiumAds() {}
-export function initMonetagAds() {}
 export function waitForGiga() { return Promise.resolve(true); }
+

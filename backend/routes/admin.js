@@ -1437,7 +1437,7 @@ router.get('/gram/claims/pending', async (req, res) => {
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
         (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
-        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type = 'gram_ad' AND created_at >= NOW() - INTERVAL '24 hours') as today_gram_ads_watched,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= NOW() - INTERVAL '24 hours') as today_gram_ads_watched,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
@@ -1490,7 +1490,7 @@ router.get('/gram/claims/history', async (req, res) => {
         (SELECT COUNT(*) FROM withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_withdrawals_count,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_claims_count,
         (SELECT COUNT(*) FROM gram_withdrawals WHERE telegram_id = gc.telegram_id AND status = 'approved') as approved_gram_withdrawals_count,
-        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type = 'gram_ad' AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_gram_ads_watched,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = gc.telegram_id AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') AND created_at >= gc.requested_at - INTERVAL '24 hours' AND created_at <= gc.requested_at) as today_gram_ads_watched,
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id AND (processed_at < gc.processed_at OR gc.processed_at IS NULL) ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc

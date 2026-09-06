@@ -18,14 +18,19 @@ router.get('/status/:telegram_id', async (req, res) => {
 
         // 2. Count gram ads watched in the last 24 hours (tracked directly in ad_views)
         const adCountRes = await pool.query(`
-            SELECT COUNT(*), MAX(created_at) as last_ad_time
+            SELECT 
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count,
+                MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type = 'gram_ad'
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
-        const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
+        const gigapub_ads_watched_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
+        const monetag_ads_watched_today = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
+        const ads_watched_today = gigapub_ads_watched_today + monetag_ads_watched_today;
         const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
         // 3. Get the most recent Gram claim status
@@ -46,13 +51,15 @@ router.get('/status/:telegram_id', async (req, res) => {
         `, [telegram_id]);
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
-        // 5. Determine if they can claim
+        // 5. Determine if they can claim (30 gigapub + 30 monetag, or 60 total)
         const activeWallet = gram_wallet_address || wallet_address || '';
-        const can_claim = ads_watched_today >= 60 && !claimed_in_last_24h && !!activeWallet;
+        const can_claim = gigapub_ads_watched_today >= 30 && monetag_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet;
 
         res.json({
             gram_wallet_address: activeWallet,
             wallet_connected: !!wallet_address,
+            gigapub_ads_watched_today,
+            monetag_ads_watched_today,
             ads_watched_today,
             last_ad_time,
             claimed_in_last_24h,
@@ -106,9 +113,10 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
 
 // Ping that user started watching an ad (for analytics & watch time verification)
 router.post('/start-watch', async (req, res) => {
-    const { telegram_id } = req.body;
+    const { telegram_id, provider = 'gigapub' } = req.body;
     if (telegram_id) {
         global.gramAdStartTimes = global.gramAdStartTimes || new Map();
+        global.gramAdStartTimes.set(`${telegram_id}_${provider}`, Date.now());
         global.gramAdStartTimes.set(telegram_id.toString(), Date.now());
     }
     res.json({ success: true });
@@ -116,7 +124,7 @@ router.post('/start-watch', async (req, res) => {
 
 // Record a Gram Ad Watch
 router.post('/watch-ad', async (req, res) => {
-    const { telegram_id } = req.body;
+    const { telegram_id, provider = 'gigapub' } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     try {
@@ -126,7 +134,7 @@ router.post('/watch-ad', async (req, res) => {
 
         // Enforce server-side watch time verification with multi-instance/Render restart fallback
         global.gramAdStartTimes = global.gramAdStartTimes || new Map();
-        let adStartTime = global.gramAdStartTimes.get(telegram_id.toString());
+        let adStartTime = global.gramAdStartTimes.get(`${telegram_id}_${provider}`) || global.gramAdStartTimes.get(telegram_id.toString());
         if (!adStartTime) {
             // Fallback if missing due to server restart or process routing: 10s default buffer
             adStartTime = Date.now() - 10000;
@@ -150,20 +158,31 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: 'You have already claimed your daily reward. Please wait 24 hours before watching ads again.' });
         }
 
-        // Check daily limit (60 per 24h)
+        // Check provider counts
         const countRes = await pool.query(`
-            SELECT COUNT(*), MAX(created_at) as last_ad_time
+            SELECT 
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count,
+                MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type = 'gram_ad'
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
-        const count = parseInt(countRes.rows[0].count, 10);
+        
+        let gigapubCount = parseInt(countRes.rows[0].gigapub_count || 0, 10);
+        let monetagCount = parseInt(countRes.rows[0].monetag_count || 0, 10);
         const lastAdTime = countRes.rows[0].last_ad_time;
 
-        if (count >= 60) {
-            return res.status(429).json({ error: 'Daily ad limit reached (60 ads per 24 hours). Please wait.' });
+        const isMonetag = provider === 'monetag';
+        const targetAdType = isMonetag ? 'gram_monetag' : 'gram_gigapub';
+
+        if (isMonetag && monetagCount >= 30) {
+            return res.status(429).json({ error: 'Daily Monetag ad quota completed (30/30). Please complete GigaPub ads.' });
+        }
+        if (!isMonetag && gigapubCount >= 30) {
+            return res.status(429).json({ error: 'Daily GigaPub ad quota completed (30/30). Please complete Monetag ads.' });
         }
 
         // Enforce 4-second cooldown between consecutive ads
@@ -177,8 +196,8 @@ router.post('/watch-ad', async (req, res) => {
 
         // Record the ad view
         await pool.query(
-            `INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, 'gram_ad')`,
-            [telegram_id]
+            `INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)`,
+            [telegram_id, targetAdType]
         );
 
         // Increment total_ads_watched for user statistics
@@ -188,9 +207,19 @@ router.post('/watch-ad', async (req, res) => {
         );
 
         // Clear start time
+        global.gramAdStartTimes.delete(`${telegram_id}_${provider}`);
         global.gramAdStartTimes.delete(telegram_id.toString());
 
-        res.json({ success: true, ads_watched_today: count + 1 });
+        if (isMonetag) monetagCount++;
+        else gigapubCount++;
+
+        res.json({
+            success: true,
+            provider,
+            gigapub_ads_watched_today: gigapubCount,
+            monetag_ads_watched_today: monetagCount,
+            ads_watched_today: gigapubCount + monetagCount
+        });
     } catch (err) {
         console.error('Error recording gram ad watch:', err);
         res.status(500).json({ error: 'Internal server error' });
@@ -239,7 +268,7 @@ router.post('/claim', async (req, res) => {
             console.log('Bot getChat failed on claim (falling back to user payload):', e.message);
         }
 
-        const fName = (chat?.first_name || user.first_name || '').trim();
+        const fName = (chat?.first_name || userRes.rows[0].first_name || '').trim();
         const lName = (chat?.last_name || '').trim();
         const fullName = `${fName} ${lName}`.toLowerCase();
         const has_suffix = fullName.includes('tasky') || 
@@ -253,17 +282,24 @@ router.post('/claim', async (req, res) => {
 
         // 2. Verify ads watched count in the last 24 hours (from ad_views)
         const adCountRes = await client.query(`
-            SELECT COUNT(*) FROM ad_views
+            SELECT 
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count
+            FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type = 'gram_ad'
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
-        const ads_watched_today = parseInt(adCountRes.rows[0].count, 10);
+        const gigaWatched = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
+        const monetagWatched = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
+        const ads_watched_today = gigaWatched + monetagWatched;
 
-        if (ads_watched_today < 60) {
+        if (gigaWatched < 30 || monetagWatched < 30) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch all 60 ads to claim. Currently watched: ${ads_watched_today}/60` });
+            return res.status(400).json({ 
+                error: `Please complete all 30 GigaPub ads (${Math.min(30, gigaWatched)}/30) and 30 Monetag ads (${Math.min(30, monetagWatched)}/30) to claim!` 
+            });
         }
 
         // 3. Verify no claims in the last 24 hours
@@ -299,7 +335,7 @@ router.post('/claim', async (req, res) => {
             UPDATE ad_views 
             SET claimed = TRUE 
             WHERE telegram_id = $1 
-              AND ad_type = 'gram_ad' 
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') 
               AND claimed = FALSE
         `, [telegram_id]);
 

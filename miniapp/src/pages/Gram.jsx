@@ -5,7 +5,7 @@ import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, watchGramAd, getGramCurrencyBalance, requestGramWithdrawal, startWatchGramAd, verifyGramSuffix } from '../api';
-import { showRewardedAd, prefetchGramAd } from '../adUtils';
+import { showRewardedAd, showMonetagAd, prefetchGramAd } from '../adUtils';
 import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
@@ -55,6 +55,7 @@ function getProgressColor(count) {
 export default function Gram({ user, refreshUser, tgUser }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
+  const [watchingProvider, setWatchingProvider] = useState(null); // 'gigapub' | 'monetag' | null
   const [adLoadingStage, setAdLoadingStage] = useState(0);
   const adStageTimerRef = useRef(null);
   const [status, setStatus] = useState(null);
@@ -146,9 +147,13 @@ export default function Gram({ user, refreshUser, tgUser }) {
     if (user?.telegram_id) fetchStatus();
   }, [user]);
 
+  const currentGiga = Math.min(30, status?.gigapub_ads_watched_today ?? (status?.ads_watched_today ? Math.min(30, status.ads_watched_today) : 0));
+  const currentMonetag = Math.min(30, status?.monetag_ads_watched_today ?? 0);
+  const currentTotal = currentGiga + currentMonetag;
+
   useEffect(() => {
     if (!status) return;
-    const count = status.ads_watched_today || 0;
+    const count = currentTotal;
     const milestone = getMilestone(count);
     if (milestone && count > lastMilestoneShown && count > 0) {
       setLastMilestoneShown(count);
@@ -161,7 +166,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     }
     setAdPulse(true);
     setTimeout(() => setAdPulse(false), 600);
-  }, [status?.ads_watched_today]);
+  }, [currentTotal]);
 
   useEffect(() => {
     if (!status?.claimed_in_last_24h || !status?.recent_claim?.requested_at) {
@@ -185,7 +190,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
     return () => clearInterval(interval);
   }, [status]);
 
-  const handleWatchAd = async () => {
+  const handleWatchAd = async (provider = 'gigapub') => {
     if (status?.last_ad_time) {
       const secs = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
       if (secs < 4) {
@@ -193,7 +198,18 @@ export default function Gram({ user, refreshUser, tgUser }) {
         return;
       }
     }
+
+    if (provider === 'monetag' && currentMonetag >= 30) {
+      showToast('You have already completed 30 Monetag ads today!', 'info');
+      return;
+    }
+    if (provider === 'gigapub' && currentGiga >= 30) {
+      showToast('You have already completed 30 GigaPub ads today!', 'info');
+      return;
+    }
+
     setIsWatchingAd(true);
+    setWatchingProvider(provider);
     setAdLoadingStage(1);
     const t1 = setTimeout(() => setAdLoadingStage(2), 1500);
     const t2 = setTimeout(() => setAdLoadingStage(3), 4000);
@@ -202,23 +218,28 @@ export default function Gram({ user, refreshUser, tgUser }) {
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       
-      // Ping backend that user is currently watching an ad (for analytics / active users)
-      await startWatchGramAd(user?.telegram_id);
+      // Ping backend that user is currently watching an ad
+      await startWatchGramAd(user?.telegram_id, provider);
 
-      const adResult = await showRewardedAd('gram');
+      let adResult;
+      if (provider === 'monetag') {
+        adResult = await showMonetagAd();
+      } else {
+        adResult = await showRewardedAd('gram');
+      }
+
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         return;
       }
 
-      // Show confirmation toast
-      showToast('✅ GigaPub ad watched successfully!', 'success');
+      const networkName = provider === 'monetag' ? 'Monetag' : 'GigaPub';
+      showToast(`✅ ${networkName} ad watched successfully!`, 'success');
 
-      let res = await watchGramAd(user?.telegram_id);
+      let res = await watchGramAd(user?.telegram_id, provider);
       if (res.error && (res.error.includes('wait') || res.error.includes('short'))) {
-        // Auto-retry once after 2 seconds if backend requested a brief wait
         await new Promise(r => setTimeout(r, 2000));
-        res = await watchGramAd(user?.telegram_id);
+        res = await watchGramAd(user?.telegram_id, provider);
       }
 
       if (res.error) {
@@ -228,23 +249,35 @@ export default function Gram({ user, refreshUser, tgUser }) {
         const newStreak = streakCount + 1;
         setStreakCount(newStreak);
 
-        setStatus(prev => prev ? { ...prev, ads_watched_today: newCount, last_ad_time: new Date().toISOString() } : prev);
+        setStatus(prev => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            ads_watched_today: res.ads_watched_today || newCount,
+            gigapub_ads_watched_today: res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (provider === 'gigapub' ? (prev.gigapub_ads_watched_today || 0) + 1 : prev.gigapub_ads_watched_today),
+            monetag_ads_watched_today: res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (provider === 'monetag' ? (prev.monetag_ads_watched_today || 0) + 1 : prev.monetag_ads_watched_today),
+            last_ad_time: new Date().toISOString()
+          };
+        });
         
         try { 
           window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success'); 
           window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
         } catch(e){}
 
-        if (newCount >= TOTAL_ADS) {
+        const updatedGiga = res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (provider === 'gigapub' ? currentGiga + 1 : currentGiga);
+        const updatedMonetag = res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (provider === 'monetag' ? currentMonetag + 1 : currentMonetag);
+        const isComplete = updatedGiga >= 30 && updatedMonetag >= 30;
+
+        if (isComplete) {
           setShowCompletionBurst(true);
           triggerConfetti({ particleCount: 250, spread: 120, origin: { y: 0.5 } });
         } else {
           triggerConfetti({ particleCount: 70, spread: 65, origin: { y: 0.65 } });
         }
 
-        const networkName = 'GigaPub';
         const getEncouragement = (cnt, strk) => {
-          if (cnt >= TOTAL_ADS) return `🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!`;
+          if (isComplete) return `🏆 60/60 MAX REACHED! 0.02 GRAM is waiting for you to claim!`;
           if (cnt >= 50) return `⚡ ALMOST THERE! Only ${TOTAL_ADS - cnt} ads left to unlock 0.02 GRAM!`;
           if (cnt >= 40) return `🔥 Final Stretch! ${TOTAL_ADS - cnt} remaining! You're dominating!`;
           if (cnt >= 30) return `💎 HALFWAY MILESTONE! Big rewards getting closer!`;
@@ -255,11 +288,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
 
         setRewardCelebration({
           count: newCount,
-          left: Math.max(0, TOTAL_ADS - newCount),
-          pct: Math.min(100, Math.round((newCount / TOTAL_ADS) * 100)),
+          left: Math.max(0, TOTAL_ADS - (updatedGiga + updatedMonetag)),
+          pct: Math.min(100, Math.round(((updatedGiga + updatedMonetag) / TOTAL_ADS) * 100)),
           streak: newStreak,
           network: networkName,
-          message: getEncouragement(newCount, newStreak)
+          message: getEncouragement(updatedGiga + updatedMonetag, newStreak)
         });
 
         await fetchStatus();
@@ -273,7 +306,8 @@ export default function Gram({ user, refreshUser, tgUser }) {
       } else if (adStageTimerRef.current) {
         clearTimeout(adStageTimerRef.current);
       }
-      setIsWatchingAd(false); 
+      setIsWatchingAd(false);
+      setWatchingProvider(null);
       setAdLoadingStage(0);
     }
   };
@@ -360,7 +394,10 @@ export default function Gram({ user, refreshUser, tgUser }) {
   };
 
   const isBtnDisabled = isWithdrawing || (isWalletConnected && (gramInfo?.has_pending_withdrawal || gramInfo?.has_reached_daily_limit || !withdrawAmount || parseFloat(withdrawAmount) < 0.01));
-  const count = status?.ads_watched_today || 0;
+  const gigaCount = Math.min(30, status?.gigapub_ads_watched_today ?? (status?.ads_watched_today ? Math.min(30, status.ads_watched_today) : 0));
+  const monetagCount = Math.min(30, status?.monetag_ads_watched_today ?? 0);
+  const count = gigaCount + monetagCount;
+  const isReadyToClaim = gigaCount >= 30 && monetagCount >= 30;
   const pct = Math.min(100, (count / TOTAL_ADS) * 100);
   const adsLeft = getAdsLeft(count);
   const progressColor = getProgressColor(count);
@@ -528,7 +565,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
             <p className="text-xs text-amber-300/80 font-bold uppercase mt-0.5">Daily quota completed</p>
           </div>
           <div className="bg-black/40 rounded-2xl p-5 border border-white/5 font-mono text-3xl font-black text-amber-400 tracking-widest shadow-inner">{claimCountdown}</div>
-          <p className="text-[11.5px] text-white/60 font-bold leading-normal px-2">🎉 You watched all 60 ads and claimed your 0.02 GRAM daily reward! Come back in 24 hours.</p>
+          <p className="text-[11.5px] text-white/60 font-bold leading-normal px-2">🎉 You watched all 60 ads (30 GigaPub + 30 Monetag) and claimed your 0.02 GRAM daily reward! Come back in 24 hours.</p>
         </Card>
       ) : (
         <>
@@ -541,9 +578,9 @@ export default function Gram({ user, refreshUser, tgUser }) {
               <motion.div
                 animate={adPulse ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}
                 transition={{ duration: 0.5 }}
-                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-300/30 ${count >= TOTAL_ADS ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : 'bg-gradient-to-br from-amber-400 to-yellow-600'}`}
+                className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(245,158,11,0.3)] border border-amber-300/30 ${isReadyToClaim ? 'bg-gradient-to-br from-emerald-400 to-teal-500' : 'bg-gradient-to-br from-amber-400 to-yellow-600'}`}
               >
-                {count >= TOTAL_ADS ? <Trophy size={28} className="text-white" /> : <Coins size={28} className="text-white" />}
+                {isReadyToClaim ? <Trophy size={28} className="text-white" /> : <Coins size={28} className="text-white" />}
               </motion.div>
 
               <div>
@@ -551,11 +588,11 @@ export default function Gram({ user, refreshUser, tgUser }) {
                 <p className="text-xs text-amber-300 font-bold tracking-wider uppercase mt-0.5">0.02 GRAM Reward Pool</p>
               </div>
 
-              {/* Progress block */}
+              {/* Combined Progress block */}
               <div className="w-full bg-black/40 rounded-2xl p-4 border border-white/5 space-y-3">
                 {/* Count display */}
                 <div className="flex justify-between items-center">
-                  <span className="font-bold text-white/50 text-xs">Your Progress</span>
+                  <span className="font-bold text-white/50 text-xs">Total Quest Progress</span>
                   <motion.span
                     key={count}
                     initial={{ scale: 1.4, color: '#facc15' }}
@@ -578,7 +615,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
 
                 {/* Dopamine "X ads left" message */}
                 <AnimatePresence mode="wait">
-                  {count < TOTAL_ADS && adsLeft ? (
+                  {!isReadyToClaim && adsLeft ? (
                     <motion.p
                       key={adsLeft.text}
                       initial={{ opacity: 0, y: 6 }}
@@ -593,7 +630,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
                     >
                       {adsLeft.text}
                     </motion.p>
-                  ) : count >= TOTAL_ADS ? (
+                  ) : isReadyToClaim ? (
                     <motion.p
                       key="complete"
                       initial={{ opacity: 0, scale: 0.8 }}
@@ -620,74 +657,152 @@ export default function Gram({ user, refreshUser, tgUser }) {
                   <Sparkles size={17} className="text-amber-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
                     <p className="text-[11px] font-black text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
-                      💡 Quest Guidelines
+                      💡 Dual Provider Quest
                     </p>
                     <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
-                      Watch sponsored ads to complete your daily quest. Make sure to complete the view duration to validate your progress toward 0.02 GRAM!
+                      Complete <strong className="text-indigo-300">30 GigaPub Ads</strong> + <strong className="text-amber-300">30 Monetag Ads</strong> (60 total) to unlock your 0.02 GRAM claim!
                     </p>
                   </div>
                 </div>
               </div>
 
-              {/* Watch Ad button or loading */}
-              {count < TOTAL_ADS && (
-                <>
-                  <AnimatePresence>
-                    {isWatchingAd && (
-                      <motion.div
-                        key="ad-loading"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        className="w-full bg-black/60 border border-indigo-500/30 rounded-2xl p-5 flex flex-col items-center gap-3 backdrop-blur-sm"
-                      >
-                        <div className="relative">
-                          <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
-                            <Play size={22} className="text-indigo-400" fill="currentColor" />
+              {/* ── DUAL PROVIDER OPTIONS SECTION ── */}
+              {!isReadyToClaim && (
+                <div className="w-full space-y-3 pt-1 text-left">
+                  {/* Option 1: GigaPub (30 Ads) */}
+                  <div className={`p-4 rounded-2xl border transition-all ${gigaCount >= 30 ? 'bg-indigo-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-indigo-950/40 to-[#1b103c]/60 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-xs flex items-center justify-center border border-indigo-500/30">1</span>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: GigaPub</p>
+                            <span className="text-[8.5px] bg-indigo-500/20 text-indigo-300 font-black px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase">30 Ads</span>
                           </div>
-                          <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 animate-ping" />
+                          <p className="text-[9.5px] text-white/40 font-bold">Primary Sponsor Network</p>
                         </div>
-                        <div className="text-center space-y-1">
-                          <p className="text-sm font-black text-white">
-                            {adLoadingStage === 1 && '⚡ Preparing your ad...'}
-                            {adLoadingStage === 2 && '📡 Connecting to ad network...'}
-                            {adLoadingStage >= 3 && '🎬 Starting video ad...'}
-                          </p>
-                          <p className="text-[11px] text-amber-300/90 font-bold">👉 Please watch the ad to complete your quest</p>
-                        </div>
-                        <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                          <motion.div
-                            className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                            initial={{ width: '0%' }}
-                            animate={{ width: adLoadingStage === 1 ? '25%' : adLoadingStage === 2 ? '60%' : '85%' }}
-                            transition={{ duration: 1.2, ease: 'easeInOut' }}
-                          />
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">
-                          <Wifi size={10} /><span>Do not close or switch apps</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-black ${gigaCount >= 30 ? 'text-emerald-400' : 'text-indigo-300'}`}>
+                          {gigaCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
+                        </span>
+                      </div>
+                    </div>
 
-                  {!isWatchingAd && (
-                    <motion.button
-                      onClick={handleWatchAd}
-                      whileTap={{ scale: 0.95 }}
-                      className="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-purple-600 text-white font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(99,102,241,0.2)] border border-indigo-400/20 relative overflow-hidden"
-                    >
-                      <Play size={16} fill="currentColor" />
-                      Watch Ad — {TOTAL_ADS - count} Left!
-                    </motion.button>
-                  )}
-                </>
+                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (gigaCount / 30) * 100)}%` }}
+                      />
+                    </div>
+
+                    {gigaCount >= 30 ? (
+                      <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        <CheckCircle2 size={14} /> GigaPub Quota Completed (30/30) ✓
+                      </div>
+                    ) : (
+                      <motion.button
+                        onClick={() => handleWatchAd('gigapub')}
+                        disabled={isWatchingAd}
+                        whileTap={{ scale: 0.96 }}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-50"
+                      >
+                        <Play size={13} fill="currentColor" />
+                        {isWatchingAd && watchingProvider === 'gigapub' ? 'Loading GigaPub Ad...' : `Watch GigaPub Ad — ${30 - gigaCount} Left`}
+                      </motion.button>
+                    )}
+                  </div>
+
+                  {/* Option 2: Monetag (30 Ads) */}
+                  <div className={`p-4 rounded-2xl border transition-all ${monetagCount >= 30 ? 'bg-amber-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-amber-950/30 to-[#271510]/60 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'}`}>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">2</span>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-xs font-black text-white uppercase tracking-wider">Option 2: Monetag</p>
+                            <span className="text-[8.5px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/30 uppercase">30 Ads</span>
+                          </div>
+                          <p className="text-[9.5px] text-white/40 font-bold">Partner Sponsor Network</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-black ${monetagCount >= 30 ? 'text-emerald-400' : 'text-amber-300'}`}>
+                          {monetagCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
+                      <div 
+                        className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, (monetagCount / 30) * 100)}%` }}
+                      />
+                    </div>
+
+                    {monetagCount >= 30 ? (
+                      <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
+                        <CheckCircle2 size={14} /> Monetag Quota Completed (30/30) ✓
+                      </div>
+                    ) : (
+                      <motion.button
+                        onClick={() => handleWatchAd('monetag')}
+                        disabled={isWatchingAd}
+                        whileTap={{ scale: 0.96 }}
+                        className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-400/20 disabled:opacity-50"
+                      >
+                        <Play size={13} fill="currentColor" />
+                        {isWatchingAd && watchingProvider === 'monetag' ? 'Loading Monetag Ad...' : `Watch Monetag Ad — ${30 - monetagCount} Left`}
+                      </motion.button>
+                    )}
+                  </div>
+                </div>
               )}
+
+              {/* Active Loading Overlay */}
+              <AnimatePresence>
+                {isWatchingAd && (
+                  <motion.div
+                    key="ad-loading"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full bg-black/70 border border-indigo-500/30 rounded-2xl p-5 flex flex-col items-center gap-3 backdrop-blur-sm mt-2"
+                  >
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
+                        <Play size={22} className="text-indigo-400" fill="currentColor" />
+                      </div>
+                      <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 animate-ping" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm font-black text-white">
+                        {adLoadingStage === 1 && `⚡ Preparing ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} ad...`}
+                        {adLoadingStage === 2 && `📡 Connecting to ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} network...`}
+                        {adLoadingStage >= 3 && `🎬 Starting ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} ad...`}
+                      </p>
+                      <p className="text-[11px] text-amber-300/90 font-bold">👉 Please watch the ad to complete your quest</p>
+                    </div>
+                    <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
+                        initial={{ width: '0%' }}
+                        animate={{ width: adLoadingStage === 1 ? '25%' : adLoadingStage === 2 ? '60%' : '85%' }}
+                        transition={{ duration: 1.2, ease: 'easeInOut' }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">
+                      <Wifi size={10} /><span>Do not close or switch apps</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </Card>
 
           {/* ── COMPLETION BURST ── */}
           <AnimatePresence>
-            {showCompletionBurst && count >= TOTAL_ADS && (
+            {showCompletionBurst && isReadyToClaim && (
               <motion.div
                 key="completion-burst"
                 initial={{ opacity: 0, scale: 0.7 }}
@@ -705,7 +820,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
                 </motion.div>
                 <div>
                   <p className="text-2xl font-black text-white uppercase tracking-tight">🎉 Quest Complete!</p>
-                  <p className="text-sm text-emerald-300 font-bold mt-1">You watched all 60 ads! Your 0.02 GRAM is ready.</p>
+                  <p className="text-sm text-emerald-300 font-bold mt-1">You watched all 60 ads (30 GigaPub + 30 Monetag)! Your 0.02 GRAM is ready.</p>
                 </div>
                 <motion.div
                   animate={{ opacity: [0.6, 1, 0.6] }}
@@ -721,7 +836,7 @@ export default function Gram({ user, refreshUser, tgUser }) {
           {/* Claim Button Card */}
           <Card className="p-6 bg-gradient-to-b from-[#180f33]/90 to-[#0a051d]/90 border border-amber-500/20">
             <div className="space-y-4">
-              {count >= TOTAL_ADS ? (
+              {isReadyToClaim ? (
                 <div className="space-y-3">
                   {/* ── NAME SUFFIX GATE ── */}
                   {!status?.claimed_in_last_24h && !suffixOk && (
@@ -798,10 +913,16 @@ export default function Gram({ user, refreshUser, tgUser }) {
                   </motion.button>
                 </div>
               ) : (
-                <button disabled className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50">
-                  <Sparkles size={18} />
-                  Receive 0.02 GRAM ({TOTAL_ADS - count} ads left)
-                </button>
+                <div className="space-y-2">
+                  <button disabled className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50">
+                    <Sparkles size={18} />
+                    Receive 0.02 GRAM ({TOTAL_ADS - count} ads left)
+                  </button>
+                  <div className="flex justify-between items-center text-[10px] text-white/40 font-bold px-1">
+                    <span>GigaPub: {gigaCount}/30</span>
+                    <span>Monetag: {monetagCount}/30</span>
+                  </div>
+                </div>
               )}
             </div>
           </Card>
