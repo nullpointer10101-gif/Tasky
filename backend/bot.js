@@ -120,7 +120,7 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                 chat_id: chatId,
                 menu_button: {
                     type: 'web_app',
-                    text: 'Play Tasky',
+                    text: 'Launch Tasky',
                     web_app: { url: webAppUrl }
                 }
             });
