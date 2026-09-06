@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Gift, Share2, XCircle } from 'lucide-react';
 import { useToast } from '../App';
+import { BACKEND_URL } from '../api';
 
 export default function WithdrawalPopup({ user, refreshUser }) {
   const [isDismissing, setIsDismissing] = useState(false);
@@ -16,8 +17,7 @@ export default function WithdrawalPopup({ user, refreshUser }) {
   const handleShare = async () => {
     setIsDismissing(true);
     try {
-      const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
-      const res = await fetch(`${API_URL}/api/users/dismiss-withdrawal-popup`, {
+      const res = await fetch(`${BACKEND_URL}/api/users/dismiss-withdrawal-popup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: user.telegram_id })

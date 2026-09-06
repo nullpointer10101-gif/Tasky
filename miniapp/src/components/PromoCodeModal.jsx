@@ -4,6 +4,7 @@ import { Gift, X, Sparkles, Loader2 } from 'lucide-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { showRewardedAd } from '../adUtils';
+import { BACKEND_URL } from '../api';
 
 export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user }) {
   const [code, setCode] = useState('');
@@ -26,9 +27,8 @@ export default function PromoCodeModal({ isOpen, onClose, onRedeemSuccess, user 
         return;
       }
 
-      // Connect to the correct backend endpoint based on environment
-      const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
-      const res = await fetch(`${API_URL}/api/promo/redeem`, {
+      // Connect to the correct backend endpoint
+      const res = await fetch(`${BACKEND_URL}/api/promo/redeem`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ telegram_id: user?.telegram_id || '123456', code: cleanCode })

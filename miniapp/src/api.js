@@ -1,7 +1,11 @@
 import axios from 'axios'
 
+export const BACKEND_URL = import.meta.env.VITE_API_URL && import.meta.env.VITE_API_URL !== 'http://localhost:3000'
+  ? import.meta.env.VITE_API_URL
+  : 'https://tasky3.onrender.com';
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL,
+  baseURL: BACKEND_URL,
   headers: { 'Content-Type': 'application/json' },
 })
 

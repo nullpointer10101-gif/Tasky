@@ -6,7 +6,7 @@ import { PackageOpen, Clock, CheckCircle2, XCircle, ExternalLink, Image as Image
 import Card, { cardVariants } from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getTasks, getMySubmissions, completeTask, getGramStatus } from '../api';
+import { getTasks, getMySubmissions, completeTask, getGramStatus, BACKEND_URL } from '../api';
 import { useToast } from '../App';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
@@ -126,7 +126,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
           const channelParts = finalUrl.split('t.me/');
           if (channelParts.length > 1) {
             const channelName = channelParts[1].split('/')[0];
-            const API_URL = import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '' : import.meta.env.VITE_API_URL;
+            const API_URL = BACKEND_URL;
             const res = await fetch(`${API_URL}/api/tasks/latest-post?channel=${channelName}`);
             const data = await res.json();
             if (data.latestUrl) {
@@ -172,7 +172,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
       if (selectedTask.verification_type === 'proof_screenshot' && proofData) {
         const formData = new FormData();
         formData.append('image', proofData);
-        const imgRes = await fetch(import.meta.env.VITE_API_URL === 'http://localhost:3000' ? '/api/upload' : `${import.meta.env.VITE_API_URL}/api/upload`, {
+        const imgRes = await fetch(`${BACKEND_URL}/api/upload`, {
           method: 'POST',
           body: formData
         });
