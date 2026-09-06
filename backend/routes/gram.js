@@ -34,14 +34,16 @@ router.get('/status/:telegram_id', async (req, res) => {
         const ads_watched_today = gigapub_ads_watched_today + monetag_ads_watched_today;
         const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
-        // 3. Get the most recent Gram claim status
-        const recentClaimRes = await pool.query(`
-            SELECT * FROM gram_claims 
-            WHERE telegram_id = $1 
-            ORDER BY requested_at DESC 
-            LIMIT 1
+        // 3. Get recent Gram claims history
+        const claimsHistoryRes = await pool.query(`
+            SELECT id, telegram_id, gram_wallet_address, amount, status, requested_at, processed_at, rejection_reason, tx_hash, is_flagged
+            FROM gram_claims
+            WHERE telegram_id = $1
+            ORDER BY requested_at DESC
+            LIMIT 10
         `, [telegram_id]);
-        const recent_claim = recentClaimRes.rows[0] || null;
+        const claims_history = claimsHistoryRes.rows;
+        const recent_claim = claims_history[0] || null;
 
         // 4. Check if the user has claimed in the last 24 hours
         const last24hClaimRes = await pool.query(`
@@ -65,7 +67,8 @@ router.get('/status/:telegram_id', async (req, res) => {
             last_ad_time,
             claimed_in_last_24h,
             can_claim,
-            recent_claim
+            recent_claim,
+            claims_history
         });
     } catch (err) {
         console.error('Error fetching Gram status:', err);

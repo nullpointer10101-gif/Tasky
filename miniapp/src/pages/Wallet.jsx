@@ -5,12 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightLeft, History,
   CheckCircle2, Clock, Wallet as WalletIcon, ExternalLink, Coins,
-  Lock, X, ArrowDown
+  Lock, X, ArrowDown, Gem, ShieldCheck, AlertCircle, Loader2, ArrowUpRight, Copy, RefreshCw
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
 import EmptyState from '../components/EmptyState';
-import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock, watchWithdrawalAd } from '../api';
+import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdrawalSettings, notifyUsdtUnlock, watchWithdrawalAd, getGramCurrencyBalance, requestGramWithdrawal, verifyGramSuffix } from '../api';
+import triggerConfetti from '../confetti';
 import { useToast } from '../App';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import WalletDopamineTerminal from '../components/WalletDopamineTerminal';
@@ -36,6 +37,14 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const [showAdRequirement, setShowAdRequirement] = useState(false);
   const [localAdsWatched, setLocalAdsWatched] = useState(user?.withdrawal_ads_watched || 0);
   const [adCooldown, setAdCooldown] = useState(0);
+  
+  // ── GRAM WITHDRAWAL STATE ──
+  const [gramInfo, setGramInfo] = useState(null);
+  const [withdrawGramAmount, setWithdrawGramAmount] = useState('');
+  const [isWithdrawingGram, setIsWithdrawingGram] = useState(false);
+  const [suffixOk, setSuffixOk] = useState(false);
+  const [suffixChecking, setSuffixChecking] = useState(false);
+  const [suffixCopied, setSuffixCopied] = useState(false);
   const { showToast } = useToast();
 
   useEffect(() => {
@@ -102,6 +111,92 @@ export default function Wallet({ user, refreshUser, navigate }) {
     }
   };
 
+  const fetchGramData = async () => {
+    if (!user?.telegram_id) return;
+    try {
+      const [gramRes, suffixRes] = await Promise.all([
+        getGramCurrencyBalance(user.telegram_id),
+        verifyGramSuffix(user.telegram_id)
+      ]);
+      if (gramRes?.data) setGramInfo(gramRes.data);
+      if (suffixRes?.data) setSuffixOk(!!suffixRes.data.has_suffix);
+    } catch (e) {
+      console.error('Error fetching GRAM wallet info:', e);
+    }
+  };
+
+  const checkSuffixLive = async (silent = false) => {
+    if (!user?.telegram_id) return false;
+    setSuffixChecking(true);
+    try {
+      const { data, error } = await verifyGramSuffix(user.telegram_id);
+      if (error) {
+        setSuffixOk(false);
+        if (!silent) showToast(error, 'error');
+        return false;
+      }
+      const ok = !!data?.has_suffix;
+      setSuffixOk(ok);
+      if (!silent) {
+        if (ok) showToast('✅ Name suffix confirmed!', 'success');
+        else showToast("Suffix not found in your Telegram name. Please add '| Tasky 🐾' to your name.", 'error');
+      }
+      return ok;
+    } catch (e) {
+      setSuffixOk(false);
+      return false;
+    } finally {
+      setSuffixChecking(false);
+    }
+  };
+
+  const copySuffix = () => {
+    navigator.clipboard.writeText('| Tasky 🐾').then(() => {
+      setSuffixCopied(true);
+      setTimeout(() => setSuffixCopied(false), 2500);
+      showToast('Suffix copied! Add to your Telegram name.', 'success');
+    }).catch(() => showToast('Copy failed – paste manually: | Tasky 🐾', 'error'));
+  };
+
+  const handleWithdrawGram = async () => {
+    if (!isConnected && !gramInfo?.gram_wallet_address) {
+      try { tonConnectUI.openModal(); } catch(e){}
+      return;
+    }
+    const amt = parseFloat(withdrawGramAmount);
+    if (!amt || amt < 0.01) { showToast('Minimum withdrawal is 0.01 GRAM', 'error'); return; }
+    const maxLimit = gramInfo?.max_withdrawal || 0.02;
+    if (amt > maxLimit) { 
+      showToast(`Daily limit for this tier is ${maxLimit} GRAM.`, 'error'); 
+      return; 
+    }
+    if (gramInfo?.has_reached_daily_limit || (gramInfo?.withdrawals_today_count || 0) >= 1) {
+      showToast('Daily limit reached! Only 1 withdrawal allowed per day.', 'error');
+      return;
+    }
+    if (amt > (gramInfo?.gram_balance || 0)) { showToast('Insufficient GRAM balance', 'error'); return; }
+
+    const ok = await checkSuffixLive(true);
+    if (!ok) {
+      showToast("Verification failed. Please add '| Tasky 🐾' to your Telegram name before withdrawing!", 'error');
+      return;
+    }
+
+    setIsWithdrawingGram(true);
+    try {
+      const { data, error } = await requestGramWithdrawal(user?.telegram_id, amt);
+      if (error) showToast(error, 'error');
+      else if (data?.success) {
+        showToast('GRAM withdrawal request submitted successfully!', 'success');
+        triggerConfetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+        setWithdrawGramAmount('');
+        fetchGramData();
+        refreshUser();
+      }
+    } catch { showToast('Connection error. Please try again.', 'error'); }
+    finally { setIsWithdrawingGram(false); }
+  };
+
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -111,6 +206,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
       } else if (activeTab === 'withdraw') {
         const { data } = await getWithdrawalSettings();
         if (data) setWithdrawalSettings(data);
+        await fetchGramData();
       } else {
         const { data } = await getSwapHistory(user?.telegram_id || '123456');
         if (data) setHistory(data);
@@ -260,24 +356,139 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
       <div className="relative">
         {activeTab === 'withdraw' ? (
-          <motion.div    className="flex flex-col items-center justify-center min-h-full px-6 text-center space-y-6 mt-6">
-            <div className="relative flex items-center justify-center w-24 h-24">
-              <div className="absolute inset-0 bg-indigo-500/10 rounded-full scale-[1.5]" />
-              <div className="w-16 h-16 bg-surface-soft border border-border rounded-full flex items-center justify-center shadow-sm relative z-10">
-                <Lock size={28} className="text-indigo-400" />
+          <motion.div className="space-y-4 flex flex-col min-h-full">
+            {/* ── 1. GRAM CURRENCY CASHOUT CARD ── */}
+            <div className="p-5 rounded-3xl relative overflow-hidden bg-gradient-to-br from-emerald-950/40 via-[#130d29] to-[#0c081c] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.08)]">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[50px] rounded-full pointer-events-none" />
+              
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                    <Gem size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Instant TON Cashout</p>
+                    <h3 className="text-sm font-black text-white">GRAM Currency</h3>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[9px] font-black uppercase text-white/40">Available</p>
+                  <p className="text-base font-black text-emerald-300">
+                    {parseFloat(gramInfo?.gram_balance || 0).toFixed(4)} <span className="text-[10px] text-emerald-400/60">GRAM</span>
+                  </p>
+                </div>
               </div>
-            </div>
-            
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black text-ink">TASKY Isn't Live On-Chain Yet</h2>
-              <p className="text-sm text-ink-soft font-medium max-w-xs mx-auto leading-relaxed">
-                {withdrawalSettings?.unlock_message || 'Withdrawals unlock when TASKY launches on-chain'}
-              </p>
+
+              {/* Input Row */}
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.01"
+                      value={withdrawGramAmount}
+                      onChange={e => setWithdrawGramAmount(e.target.value)}
+                      placeholder="Min 0.01 GRAM"
+                      className="w-full bg-black/40 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-sm font-bold placeholder-white/20 focus:outline-none focus:border-emerald-500/50"
+                    />
+                  </div>
+                  <button
+                    onClick={() => setWithdrawGramAmount(String(gramInfo?.gram_balance || 0))}
+                    className="px-3.5 py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black hover:bg-emerald-500/20 active:scale-95 transition-all"
+                  >
+                    MAX
+                  </button>
+                </div>
+
+                <div className="flex justify-between items-center text-[10px] font-bold text-emerald-400/70 px-1">
+                  <span>Daily Limit: 1 / Day (Max {gramInfo?.max_withdrawal || 0.02} GRAM)</span>
+                  {gramInfo?.withdrawals_today_count !== undefined && (
+                    <span>Today: {gramInfo.withdrawals_today_count}/1</span>
+                  )}
+                </div>
+
+                {/* Suffix Live Badge */}
+                {suffixOk ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-emerald-400 shrink-0" />
+                      <span className="text-[11px] text-emerald-300 font-bold">Name Suffix Confirmed (| Tasky) ✓</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <AlertCircle size={14} className="text-amber-400 shrink-0" />
+                      <span className="text-[10.5px] text-amber-300 font-bold">Requires | Tasky in Telegram Name</span>
+                    </div>
+                    <button
+                      onClick={copySuffix}
+                      className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-lg font-black"
+                    >
+                      Copy Suffix
+                    </button>
+                  </div>
+                )}
+
+                {/* Submit button */}
+                <button
+                  onClick={handleWithdrawGram}
+                  disabled={isWithdrawingGram || !withdrawGramAmount || parseFloat(withdrawGramAmount) < 0.01 || gramInfo?.has_reached_daily_limit}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                >
+                  {isWithdrawingGram ? (
+                    <><Loader2 size={16} className="animate-spin" /> Processing...</>
+                  ) : gramInfo?.has_reached_daily_limit ? (
+                    <><Clock size={16} /> Daily Limit Reached (1/1)</>
+                  ) : (
+                    <><ArrowUpRight size={16} /> Withdraw to Connected TON Wallet</>
+                  )}
+                </button>
+              </div>
+
+              {/* Recent Withdrawals */}
+              {gramInfo?.history?.length > 0 && (
+                <div className="mt-3.5 space-y-1.5 border-t border-white/5 pt-3">
+                  <p className="text-[9.5px] font-black uppercase tracking-widest text-white/30">Recent GRAM Withdrawals</p>
+                  {gramInfo.history.slice(0, 3).map(w => (
+                    <div
+                      key={w.id}
+                      className={`flex items-center justify-between p-2 rounded-xl text-xs border ${
+                        w.status === 'approved' ? 'bg-emerald-500/10 border-emerald-500/20' :
+                        w.status === 'rejected' ? 'bg-red-500/10 border-red-500/20' :
+                        'bg-amber-500/10 border-amber-500/20'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {w.status === 'approved' ? <CheckCircle2 size={12} className="text-emerald-400" /> :
+                         w.status === 'rejected' ? <AlertCircle size={12} className="text-red-400" /> :
+                         <Clock size={12} className="text-amber-400" />}
+                        <span className={`font-black ${w.status === 'approved' ? 'text-emerald-400' : w.status === 'rejected' ? 'text-red-400' : 'text-amber-400'}`}>
+                          {w.amount} GRAM
+                        </span>
+                      </div>
+                      <span className="text-[10px] text-white/40 capitalize">{w.status}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
-            <div className="w-full max-w-sm mx-auto bg-surface border border-border rounded-3xl p-5 space-y-4 text-left shadow-sm">
-              <h3 className="font-bold text-sm text-ink mb-3">Token Launch Roadmap</h3>
-              <div className="space-y-4 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-border">
+            {/* ── 2. TASKY ON-CHAIN TOKEN ROADMAP ── */}
+            <div className="w-full bg-surface border border-border rounded-3xl p-5 space-y-4 text-left shadow-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-sm text-ink">TASKY Token Launch Roadmap</h3>
+                  <p className="text-xs text-ink-soft">On-Chain TON Deployment in progress</p>
+                </div>
+                <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-black uppercase">
+                  Stage 2/4
+                </span>
+              </div>
+
+              <div className="space-y-3.5 relative before:absolute before:inset-y-2 before:left-[11px] before:w-[2px] before:bg-border">
                 <div className="relative flex items-center gap-4 z-10">
                   <div className="w-6 h-6 rounded-full bg-success-soft border border-success flex items-center justify-center flex-shrink-0">
                     <CheckCircle2 size={12} className="text-success" />
@@ -286,7 +497,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 </div>
                 <div className="relative flex items-center gap-4 z-10">
                   <div className="w-6 h-6 rounded-full bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center flex-shrink-0">
-                    <div className="w-2 h-2 rounded-full bg-indigo-400 " />
+                    <div className="w-2 h-2 rounded-full bg-indigo-400 animate-ping" />
                   </div>
                   <span className="text-sm font-bold text-ink">Smart Contract Deployment</span>
                 </div>
@@ -303,14 +514,12 @@ export default function Wallet({ user, refreshUser, navigate }) {
                   <span className="text-sm font-medium text-ink-soft">Withdrawals Unlock</span>
                 </div>
               </div>
-            </div>
 
-            <div className="pt-4 pb-8">
-              <Button 
+              <Button
                 onClick={() => setActiveTab('swap')}
-                className="px-8 py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl font-black text-sm active:scale-95 transition-all shadow-lg shadow-indigo-500/25"
+                className="w-full py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider active:scale-95 transition-all shadow-lg shadow-indigo-500/25 mt-2"
               >
-                Swap to USDT Now
+                Instant Swap to USDT &rarr;
               </Button>
             </div>
           </motion.div>
