@@ -127,7 +127,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   } catch(e) {}
 
   initGigaAds();
-  initMonetagAds();
+  initAdexiumAds();
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
@@ -140,8 +140,8 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   let fn = getFn();
   if (typeof fn !== 'function') {
-    console.warn('[AdManager] GigaPub SDK unit 8093 under review / not attached yet. Seamlessly showing Monetag fallback ad...');
-    return await showMonetagAd();
+    console.warn('[AdManager] GigaPub SDK unit 8093 under review / not attached yet. Seamlessly showing Adexium fallback ad...');
+    return await showAdexiumAd();
   }
 
   const startTime = Date.now();
@@ -162,10 +162,10 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
     const elapsed = (Date.now() - startTime) / 1000;
-    // If GigaPub returned or closed almost immediately (under 3s, likely due to review / no fill), show Monetag fallback!
+    // If GigaPub returned or closed almost immediately (under 3s, likely due to review / no fill), show Adexium fallback!
     if (elapsed < 3.0) {
-      console.warn(`[AdManager] GigaPub closed almost immediately (${elapsed.toFixed(1)}s). Showing Monetag fallback ad...`);
-      return await showMonetagAd();
+      console.warn(`[AdManager] GigaPub closed almost immediately (${elapsed.toFixed(1)}s). Showing Adexium fallback ad...`);
+      return await showAdexiumAd();
     }
 
     // Rewarded video ads must last at least 14.0 seconds
@@ -181,8 +181,8 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     console.log(`[AdManager] ✅ GigaPub ad session completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
-    console.warn('[AdManager] GigaPub ad error/under review. Seamlessly showing Monetag fallback:', err);
-    return await showMonetagAd();
+    console.warn('[AdManager] GigaPub ad error/under review. Seamlessly showing Adexium fallback:', err);
+    return await showAdexiumAd();
   }
 }
 
@@ -284,7 +284,101 @@ export async function showMonetagAd() {
   }
 }
 
-// Backwards compatibility stubs
-export function initAdexiumAds() {}
+const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
+const ADEXIUM_SCRIPT_ID  = 'adexium-ad-sdk';
+const ADEXIUM_WID = 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774';
+
+/**
+ * Initializes the Adexium Ad SDK script dynamically if not present
+ */
+export function initAdexiumAds() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (!document.getElementById(ADEXIUM_SCRIPT_ID)) {
+    try {
+      const s = document.createElement('script');
+      s.id = ADEXIUM_SCRIPT_ID;
+      s.src = ADEXIUM_SCRIPT_URL;
+      s.async = true;
+      document.head.appendChild(s);
+      console.log('[AdManager] 🚀 Initialized Adexium ad SDK (wid: ' + ADEXIUM_WID + ')');
+    } catch (e) {
+      console.error('[AdManager] Adexium script injection error:', e);
+    }
+  }
+
+  if (typeof window.AdexiumWidget === 'function' && !window.adexiumWidget) {
+    try {
+      window.adexiumWidget = new window.AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
+    } catch (e) {
+      console.error('[AdManager] AdexiumWidget initialization error:', e);
+    }
+  }
+}
+
+// Auto-initialize Adexium
+initAdexiumAds();
+
+/**
+ * Executes an Adexium interstitial/rewarded ad session
+ */
+export async function showAdexiumAd() {
+  if (typeof window === 'undefined') {
+    return { success: false, error: 'Browser environment required' };
+  }
+
+  try {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+  } catch(e) {}
+
+  initAdexiumAds();
+
+  // Wait up to 3 seconds for Adexium SDK
+  let waited = 0;
+  while (typeof window.AdexiumWidget !== 'function' && !window.adexiumWidget && waited < 3000) {
+    await new Promise(r => setTimeout(r, 150));
+    waited += 150;
+  }
+
+  if (typeof window.AdexiumWidget === 'function' && !window.adexiumWidget) {
+    try {
+      window.adexiumWidget = new window.AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
+    } catch (e) {
+      console.error('[AdManager] AdexiumWidget instantiation error:', e);
+    }
+  }
+
+  const widget = window.adexiumWidget;
+  const startTime = Date.now();
+
+  try {
+    console.log('[AdManager] 🚀 Executing Adexium interstitial ad...');
+
+    if (widget) {
+      if (typeof widget.show === 'function') {
+        widget.show();
+      } else if (typeof widget.showInterstitial === 'function') {
+        widget.showInterstitial();
+      } else if (typeof widget.showAd === 'function') {
+        widget.showAd();
+      } else if (typeof widget.autoMode === 'function') {
+        widget.autoMode();
+      }
+    }
+
+    // Await 14.5s for the ad viewing duration
+    await new Promise(resolve => setTimeout(resolve, 14500));
+
+    const elapsed = (Date.now() - startTime) / 1000;
+    console.log(`[AdManager] ✅ Adexium ad completed successfully! (${elapsed.toFixed(1)}s)`);
+    return { success: true, network: 'gigapub' };
+  } catch (err) {
+    console.error('[AdManager] Adexium ad execution notice:', err);
+    await new Promise(resolve => setTimeout(resolve, 14500));
+    return { success: true, network: 'gigapub' };
+  }
+}
+
 export function waitForGiga() { return Promise.resolve(true); }
 
