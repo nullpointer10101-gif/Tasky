@@ -1,8 +1,8 @@
 /**
- * Ad Manager — Permanent Primary Ad Provider: GigaPub (Unit 7451)
+ * Ad Manager — Permanent Primary Ad Provider: GigaPub (Unit 8093) with Monetag Fallback
  */
 
-const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=7451';
+const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=8093';
 const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
 /**
@@ -17,7 +17,7 @@ export function initGigaAds() {
       s.src = GIGAPUB_SCRIPT_URL;
       s.async = true;
       document.head.appendChild(s);
-      console.log('[AdManager] 🚀 Initialized GigaPub primary ad SDK (Unit 7451)');
+      console.log('[AdManager] 🚀 Initialized GigaPub primary ad SDK (Unit 8093)');
     } catch (e) {
       console.error('[AdManager] GigaPub script injection error:', e);
     }
@@ -127,33 +127,21 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   } catch(e) {}
 
   initGigaAds();
+  initMonetagAds();
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Wait up to 7 seconds for GigaPub SDK to attach trigger function
+  // Wait up to 1.5 seconds for GigaPub SDK to attach trigger function
   let waited = 0;
-  while (!getFn() && waited < 7000) {
+  while (!getFn() && waited < 1500) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
   let fn = getFn();
   if (typeof fn !== 'function') {
-    // If still not available, try to re-inject the script once
-    const oldScript = document.getElementById(GIGAPUB_SCRIPT_ID);
-    if (oldScript) oldScript.remove();
-    initGigaAds();
-    await new Promise(r => setTimeout(r, 1200));
-    fn = getFn();
-  }
-
-  if (typeof fn !== 'function') {
-    console.warn('[AdManager] GigaPub SDK not available after wait');
-    return {
-      success: false,
-      network: 'gigapub',
-      error: 'Ad is loading from sponsor network. Please tap again in a moment!'
-    };
+    console.warn('[AdManager] GigaPub SDK unit 8093 under review / not attached yet. Seamlessly showing Monetag fallback ad...');
+    return await showMonetagAd();
   }
 
   const startTime = Date.now();
@@ -161,19 +149,25 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Placement: ${placement})...`);
     
-    // Call showGiga with a 30s timeout guard
+    // Call showGiga with a 25s timeout guard
     const adExecutionPromise = Promise.resolve().then(() => {
       return fn.call(window.GigaPub || window, placement);
     });
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Ad session timeout')), 30000);
+      setTimeout(() => reject(new Error('Ad session timeout')), 25000);
     });
 
     // Await GigaPub ad completion
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
     const elapsed = (Date.now() - startTime) / 1000;
+    // If GigaPub returned or closed almost immediately (under 3s, likely due to review / no fill), show Monetag fallback!
+    if (elapsed < 3.0) {
+      console.warn(`[AdManager] GigaPub closed almost immediately (${elapsed.toFixed(1)}s). Showing Monetag fallback ad...`);
+      return await showMonetagAd();
+    }
+
     // Rewarded video ads must last at least 14.0 seconds
     if (elapsed < 14.0) {
       console.warn(`[AdManager] Ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
@@ -187,21 +181,8 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     console.log(`[AdManager] ✅ GigaPub ad session completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
-    console.error('[AdManager] GigaPub ad closed early or failed:', err);
-
-    const errMsg = err?.message || '';
-    if (errMsg.includes('already showing')) {
-      return { success: false, network: 'gigapub', error: 'An ad is already in progress. Please wait a moment.' };
-    }
-    if (errMsg.includes('timeout')) {
-      return { success: false, network: 'gigapub', error: 'Ad network took too long. Please tap to try again.' };
-    }
-
-    return {
-      success: false,
-      network: 'gigapub',
-      error: 'Ad was closed early or skipped. Please watch the entire ad to completion!'
-    };
+    console.warn('[AdManager] GigaPub ad error/under review. Seamlessly showing Monetag fallback:', err);
+    return await showMonetagAd();
   }
 }
 
