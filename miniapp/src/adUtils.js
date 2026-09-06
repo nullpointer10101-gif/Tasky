@@ -305,21 +305,13 @@ export function initAdexiumAds() {
       console.error('[AdManager] Adexium script injection error:', e);
     }
   }
-
-  if (typeof window.AdexiumWidget === 'function' && !window.adexiumWidget) {
-    try {
-      window.adexiumWidget = new window.AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
-    } catch (e) {
-      console.error('[AdManager] AdexiumWidget initialization error:', e);
-    }
-  }
 }
 
 // Auto-initialize Adexium
 initAdexiumAds();
 
 /**
- * Executes an Adexium interstitial/rewarded ad session
+ * Executes a real on-demand Adexium interstitial/rewarded ad session
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
@@ -334,49 +326,122 @@ export async function showAdexiumAd() {
 
   initAdexiumAds();
 
-  // Wait up to 3 seconds for Adexium SDK
+  // Wait up to 3.5 seconds for Adexium SDK
   let waited = 0;
-  while (typeof window.AdexiumWidget !== 'function' && !window.adexiumWidget && waited < 3000) {
+  while (typeof window.AdexiumWidget !== 'function' && typeof window.TGAdsWidget !== 'function' && waited < 3500) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
-  if (typeof window.AdexiumWidget === 'function' && !window.adexiumWidget) {
-    try {
-      window.adexiumWidget = new window.AdexiumWidget({ wid: ADEXIUM_WID, adFormat: 'interstitial' });
-    } catch (e) {
-      console.error('[AdManager] AdexiumWidget instantiation error:', e);
-    }
+  const WidgetClass = window.AdexiumWidget || window.TGAdsWidget;
+  if (typeof WidgetClass !== 'function') {
+    return {
+      success: false,
+      network: 'adexium',
+      error: 'Adexium ad network is loading. Please tap again in a moment.'
+    };
   }
 
-  const widget = window.adexiumWidget;
+  let widget;
+  try {
+    widget = new WidgetClass({
+      wid: ADEXIUM_WID,
+      adFormat: 'interstitial',
+      adImpressionIntervalInSeconds: 0,
+      firstAdImpressionIntervalInSeconds: 0
+    });
+  } catch (err) {
+    console.error('[AdManager] AdexiumWidget initialization error:', err);
+    return {
+      success: false,
+      network: 'adexium',
+      error: 'Failed to initialize Adexium. Please try again.'
+    };
+  }
+
+  // Clear rate limit caches so each user tap can request an ad
+  try {
+    if (widget.ls) {
+      widget.ls.setItem('lastAdViewed', '1970-01-01T00:00:00.000Z');
+    }
+    if (widget.afV2) {
+      widget.afV2.clearShowState(ADEXIUM_WID);
+    }
+  } catch(e) {}
+
   const startTime = Date.now();
 
   try {
-    console.log('[AdManager] 🚀 Executing Adexium interstitial ad...');
+    console.log('[AdManager] 🚀 Requesting real on-demand Adexium ad...');
 
-    if (widget) {
-      if (typeof widget.show === 'function') {
-        widget.show();
-      } else if (typeof widget.showInterstitial === 'function') {
-        widget.showInterstitial();
-      } else if (typeof widget.showAd === 'function') {
-        widget.showAd();
-      } else if (typeof widget.autoMode === 'function') {
-        widget.autoMode();
-      }
+    // Explicitly request real ad from Adexium bid server
+    const ads = await widget.requestAd('interstitial', true);
+
+    if (!ads || !Array.isArray(ads) || ads.length === 0) {
+      console.warn('[AdManager] Adexium returned no fill on bid-request.');
+      return {
+        success: false,
+        network: 'adexium',
+        error: 'Adexium has no ad available right now. Please tap again in 5 seconds.'
+      };
     }
 
-    // Await 14.5s for the ad viewing duration
-    await new Promise(resolve => setTimeout(resolve, 14500));
+    // Display the real ad overlay in the Mini App DOM
+    widget.displayAd(ads, 'interstitial');
 
-    const elapsed = (Date.now() - startTime) / 1000;
-    console.log(`[AdManager] ✅ Adexium ad completed successfully! (${elapsed.toFixed(1)}s)`);
+    // Wait for the ad timer completion (Adexium built-in 15s countdown) or close event
+    const adResult = await new Promise((resolve) => {
+      let isCompleted = false;
+
+      const onCompleted = () => {
+        isCompleted = true;
+        console.log('[AdManager] Adexium adPlaybackCompleted fired.');
+      };
+
+      const onClosed = () => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (isCompleted || elapsed >= 14.0) {
+          resolve({ success: true });
+        } else {
+          resolve({
+            success: false,
+            error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch the entire 15-second ad!`
+          });
+        }
+      };
+
+      widget.on('adPlaybackCompleted', onCompleted);
+      widget.on('adClosed', onClosed);
+
+      // Timeout safety: if ad is watched for 16s, mark completed
+      setTimeout(() => {
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (elapsed >= 14.5) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: 'Ad session timed out. Please watch the full ad.' });
+        }
+      }, 20000);
+    });
+
+    if (!adResult.success) {
+      return {
+        success: false,
+        network: 'adexium',
+        error: adResult.error || 'Ad closed early.'
+      };
+    }
+
+    const totalElapsed = (Date.now() - startTime) / 1000;
+    console.log(`[AdManager] ✅ Adexium ad successfully watched & verified! (${totalElapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
-    console.error('[AdManager] Adexium ad execution notice:', err);
-    await new Promise(resolve => setTimeout(resolve, 14500));
-    return { success: true, network: 'gigapub' };
+    console.error('[AdManager] Adexium on-demand execution error:', err);
+    return {
+      success: false,
+      network: 'adexium',
+      error: 'Ad playback error. Please try again.'
+    };
   }
 }
 
