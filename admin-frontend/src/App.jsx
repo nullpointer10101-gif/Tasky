@@ -51,7 +51,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/admin">
       <Toaster position="top-right" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       <Routes>
         <Route path="/login" element={!auth ? <Login setAuth={setAuth} /> : <Navigate to="/" />} />
