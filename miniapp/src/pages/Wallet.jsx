@@ -14,7 +14,6 @@ import { getSwapRates, requestSwap, getSwapHistory, saveWalletAddress, getWithdr
 import triggerConfetti from '../confetti';
 import { useToast } from '../App';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
-import WalletDopamineTerminal from '../components/WalletDopamineTerminal';
 import { useIsAdmin } from '../AdminContext';
 
 const containerVariants = {
@@ -312,14 +311,6 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
   return (
     <div className="p-4 space-y-4 pb-20 min-h-full relative">
-      <WalletDopamineTerminal
-        user={user}
-        balance={user?.balance || 0}
-        swapRates={rates}
-        onWatchAdSuccess={refreshUser}
-        showToast={showToast}
-      />
-
       <div className="flex bg-surface-soft p-1 rounded-pill relative mb-2 shadow-inner">
         {tabs.map((tab) => {
           const Icon = tab.icon;
@@ -571,8 +562,10 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 <span className="text-sm font-black text-ink">USDT (TON)</span>
               </div>
 
-              <div className="text-[10px] text-ink-faint font-medium mt-4 bg-surface/50 px-3 py-1 rounded-full border border-border/50">
-                Rate: {taskyPerUnit} TASKY = 1 USDT
+              <div className="text-[10.5px] text-ink-faint font-semibold mt-4 bg-surface/50 px-3.5 py-1.5 rounded-full border border-border/50 flex items-center gap-2">
+                <span>Rate: {Number(taskyPerUnit).toLocaleString()} TASKY = 1 {selectedDestination}</span>
+                <span className="text-border">•</span>
+                <span className="text-amber-400/90 font-bold">Min: {Number(minSwap).toLocaleString()} TASKY</span>
               </div>
             </div>
 
