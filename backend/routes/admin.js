@@ -82,7 +82,7 @@ router.get('/stats', async (req, res) => {
 
     const onlineIds = global.onlineUsers ? Array.from(global.onlineUsers.keys()) : [];
 
-    const [userStatsRes, pendingRes, gramAdsRes, newUsersRes, usersDetailsRes] = await Promise.all([
+    const [userStatsRes, pendingRes, gramAdsRes, gramClaimsRes, newUsersRes, usersDetailsRes] = await Promise.all([
       pool.query(`
         SELECT 
           COUNT(*) as total_users, 
@@ -97,7 +97,7 @@ router.get('/stats', async (req, res) => {
           (SELECT COUNT(*) FROM withdrawals WHERE status = 'pending') as pending_withdrawals,
           (SELECT COUNT(*) FROM gram_claims WHERE status = 'pending') as pending_gram_claims,
           (SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending') as pending_gram_withdrawals
-      `),
+        `),
       pool.query(`
         SELECT 
           COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
@@ -106,6 +106,19 @@ router.get('/stats', async (req, res) => {
           COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as today_monetag
         FROM ad_views
         WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+      `),
+      pool.query(`
+        SELECT 
+          COUNT(*) FILTER (WHERE requested_at >= CURRENT_DATE) as today_claims,
+          COUNT(*) FILTER (WHERE status = 'approved' AND (processed_at >= CURRENT_DATE OR (processed_at IS NULL AND requested_at >= CURRENT_DATE))) as today_paid_claims,
+          COALESCE(SUM(amount) FILTER (WHERE requested_at >= CURRENT_DATE), 0) as today_claims_gram,
+          COALESCE(SUM(amount) FILTER (WHERE status = 'approved' AND (processed_at >= CURRENT_DATE OR (processed_at IS NULL AND requested_at >= CURRENT_DATE))), 0) as today_paid_gram,
+          COUNT(*) FILTER (WHERE requested_at >= CURRENT_DATE - INTERVAL '1 day' AND requested_at < CURRENT_DATE) as yesterday_claims,
+          COUNT(*) FILTER (WHERE status = 'approved' AND ((processed_at >= CURRENT_DATE - INTERVAL '1 day' AND processed_at < CURRENT_DATE) OR (processed_at IS NULL AND requested_at >= CURRENT_DATE - INTERVAL '1 day' AND requested_at < CURRENT_DATE))) as yesterday_paid_claims,
+          COALESCE(SUM(amount) FILTER (WHERE requested_at >= CURRENT_DATE - INTERVAL '1 day' AND requested_at < CURRENT_DATE), 0) as yesterday_claims_gram,
+          COALESCE(SUM(amount) FILTER (WHERE status = 'approved' AND ((processed_at >= CURRENT_DATE - INTERVAL '1 day' AND processed_at < CURRENT_DATE) OR (processed_at IS NULL AND requested_at >= CURRENT_DATE - INTERVAL '1 day' AND requested_at < CURRENT_DATE))), 0) as yesterday_paid_gram
+        FROM gram_claims
+        WHERE requested_at >= CURRENT_DATE - INTERVAL '1 day'
       `),
       pool.query(`
         SELECT telegram_id, username, first_name, created_at
@@ -123,6 +136,7 @@ router.get('/stats', async (req, res) => {
     const uRow = userStatsRes.rows[0] || {};
     const pRow = pendingRes.rows[0] || {};
     const gRow = gramAdsRes.rows[0] || {};
+    const gcRow = gramClaimsRes.rows[0] || {};
 
     let activeUsersList = [];
     if (onlineIds.length > 0) {
@@ -158,6 +172,14 @@ router.get('/stats', async (req, res) => {
       yesterdayGramAds: parseInt(gRow.yesterday || 0, 10),
       todayGigapubAds: parseInt(gRow.today_gigapub || 0, 10),
       todayMonetagAds: parseInt(gRow.today_monetag || 0, 10),
+      todayGramClaims: parseInt(gcRow.today_claims || 0, 10),
+      todayPaidGramClaims: parseInt(gcRow.today_paid_claims || 0, 10),
+      todayGramClaimsAmount: parseFloat(gcRow.today_claims_gram || 0),
+      todayPaidGramAmount: parseFloat(gcRow.today_paid_gram || 0),
+      yesterdayGramClaims: parseInt(gcRow.yesterday_claims || 0, 10),
+      yesterdayPaidGramClaims: parseInt(gcRow.yesterday_paid_claims || 0, 10),
+      yesterdayGramClaimsAmount: parseFloat(gcRow.yesterday_claims_gram || 0),
+      yesterdayPaidGramAmount: parseFloat(gcRow.yesterday_paid_gram || 0),
       activeUsersList,
       recentLogsList,
       newUsersToday: parseInt(uRow.new_users_today || 0, 10),

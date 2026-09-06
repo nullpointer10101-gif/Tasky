@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Users, CheckSquare, ArrowDownToLine, Coins, Activity, Tv,
   LogIn, Calendar, RotateCcw, ListChecks, Pickaxe, Wallet,
-  Eye, Gift, Upload, Zap, Star, Image, UserCheck, UserPlus, Clock, Gem
+  Eye, Gift, Upload, Zap, Star, Image, UserCheck, UserPlus, Clock, Gem, History
 } from 'lucide-react';
 import api from '../api';
 
@@ -44,7 +44,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchStats();
-    const interval = setInterval(() => fetchStats(), 10000);
+    const interval = setInterval(() => fetchStats(), 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -88,6 +88,46 @@ export default function Dashboard() {
     { title: "Today's Gram Ads", value: stats.todayGramAds ?? 0, icon: Tv, color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20', shadow: 'shadow-violet-500/5', badge: 'TODAY' },
     { title: "Yesterday's Gram Ads", value: stats.yesterdayGramAds ?? 0, icon: Tv, color: 'text-fuchsia-400', bg: 'bg-fuchsia-500/10', border: 'border-fuchsia-500/20', shadow: 'shadow-fuchsia-500/5', badge: 'YESTERDAY' },
     { title: "Currently Watching", value: watchingGramAdsCount, icon: Eye, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', shadow: 'shadow-emerald-500/5', badge: 'LIVE' },
+  ];
+
+  const gramClaimCards = [
+    {
+      title: "Today's Gram Claims",
+      value: stats.todayGramClaims ?? 0,
+      icon: Gem,
+      color: 'text-amber-400',
+      bg: 'bg-amber-500/10',
+      border: 'border-amber-500/20',
+      shadow: 'shadow-amber-500/5',
+      badge: 'TODAY',
+      paidCount: stats.todayPaidGramClaims || 0,
+      paidAmount: Number(stats.todayPaidGramAmount || 0).toFixed(2),
+      totalAmount: Number(stats.todayGramClaimsAmount || 0).toFixed(2)
+    },
+    {
+      title: "Yesterday's Gram Claims",
+      value: stats.yesterdayGramClaims ?? 0,
+      icon: History,
+      color: 'text-cyan-400',
+      bg: 'bg-cyan-500/10',
+      border: 'border-cyan-500/20',
+      shadow: 'shadow-cyan-500/5',
+      badge: 'YESTERDAY',
+      paidCount: stats.yesterdayPaidGramClaims || 0,
+      paidAmount: Number(stats.yesterdayPaidGramAmount || 0).toFixed(2),
+      totalAmount: Number(stats.yesterdayGramClaimsAmount || 0).toFixed(2)
+    },
+    {
+      title: "Pending Review",
+      value: stats.pendingGramClaims ?? 0,
+      icon: Clock,
+      color: stats.pendingGramClaims > 0 ? 'text-rose-400' : 'text-emerald-400',
+      bg: stats.pendingGramClaims > 0 ? 'bg-rose-500/10' : 'bg-emerald-500/10',
+      border: stats.pendingGramClaims > 0 ? 'border-rose-500/20' : 'border-emerald-500/20',
+      shadow: stats.pendingGramClaims > 0 ? 'shadow-rose-500/5' : 'shadow-emerald-500/5',
+      badge: stats.pendingGramClaims > 0 ? 'ACTION NEEDED' : 'CLEARED',
+      isPending: true
+    },
   ];
 
   return (
@@ -144,6 +184,59 @@ export default function Dashboard() {
                     </span>
                     <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
                       Monetag: {Number(stats.todayMonetagAds || 0).toLocaleString()}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Gram Daily Claims Stats */}
+      <div className="mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-black text-ink flex items-center gap-2">
+            <Gem className="text-amber-400" size={20} />
+            Gram Daily Claims
+          </h2>
+          <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">
+            Pending: {stats.pendingGramClaims ?? 0}
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6">
+          {gramClaimCards.map((card, i) => (
+            <div key={i} className={`bg-surface-soft border ${card.border} rounded-3xl p-6 flex flex-col justify-between shadow-xl ${card.shadow} relative overflow-hidden group`}>
+              <div className={`absolute -right-8 -top-8 w-32 h-32 ${card.bg} rounded-full blur-3xl opacity-50 group-hover:opacity-100 transition-opacity duration-500`}></div>
+              <div className="flex justify-between items-start mb-6 relative z-10">
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${card.bg} ${card.color} backdrop-blur-md`}>
+                  <card.icon size={28} />
+                </div>
+                <span className={`text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${card.bg} ${card.color} border ${card.border}`}>
+                  {card.badge}
+                </span>
+              </div>
+              <div className="relative z-10">
+                <p className={`text-4xl font-black mb-1 tracking-tight ${card.color}`}>
+                  {card.value.toLocaleString()} <span className="text-sm font-medium text-ink-soft uppercase">Claims</span>
+                </p>
+                <p className="text-sm font-bold text-ink-soft uppercase tracking-wider">{card.title}</p>
+                
+                {card.paidCount !== undefined && (
+                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/50 text-[11px] font-bold">
+                    <span className="text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      Paid: {card.paidCount} ({card.paidAmount} GRAM)
+                    </span>
+                    <span className="text-ink-soft bg-white/5 px-2 py-0.5 rounded-md border border-white/10">
+                      Total: {card.totalAmount} GRAM
+                    </span>
+                  </div>
+                )}
+                {card.isPending && (
+                  <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border/50 text-[11px] font-bold">
+                    <span className={`${card.value > 0 ? 'text-rose-400 bg-rose-500/10 border-rose-500/20' : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'} px-2 py-0.5 rounded-md border`}>
+                      {card.value > 0 ? `${card.value} Awaiting Review` : 'All Claims Processed'}
                     </span>
                   </div>
                 )}
