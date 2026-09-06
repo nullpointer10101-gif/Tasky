@@ -161,6 +161,23 @@ export default function GramClaims() {
     }
   };
 
+  const [warningAll, setWarningAll] = useState(false);
+
+  const handleWarnAll = async () => {
+    if (!window.confirm(`Are you sure you want to broadcast the Proof Warning message to all unique claimants in History?`)) {
+      return;
+    }
+    setWarningAll(true);
+    try {
+      const res = await api.post('/admin/broadcast/warn-gram-history');
+      toast.success(res.data?.message || 'Warning broadcast started for all users in history!');
+    } catch (e) {
+      toast.error(e.response?.data?.error || 'Failed to broadcast warning');
+    } finally {
+      setWarningAll(false);
+    }
+  };
+
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('Gram wallet address copied!');
@@ -564,6 +581,29 @@ export default function GramClaims() {
           </div>
         ) : (
           <div className="space-y-4">
+            {/* ── HISTORY TOP ACTION BAR ── */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-surface-soft p-4 px-5 rounded-2xl border border-border/80 shadow-md">
+              <div>
+                <h3 className="font-bold text-white text-sm flex items-center gap-2">
+                  <History size={16} className="text-amber-400" />
+                  Claim History ({history.length} Records)
+                </h3>
+                <p className="text-xs text-ink-soft mt-0.5">
+                  Send proof warning reminder to all unique claimants in history.
+                </p>
+              </div>
+
+              <button
+                onClick={handleWarnAll}
+                disabled={warningAll}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-amber-500/20 disabled:opacity-50 transition-all shrink-0 cursor-pointer"
+                title="Broadcast Proof Warning to all unique claimants in history"
+              >
+                <AlertTriangle size={15} />
+                <span>{warningAll ? 'Sending to All...' : '⚠️ Warn All in History'}</span>
+              </button>
+            </div>
+
             {history.map((h) => (
               <div key={h.claim_id} className={`bg-surface-soft border rounded-3xl p-6 flex flex-col md:flex-row items-start md:items-center gap-6 shadow-lg shadow-black/20 transition-colors ${h.status === 'approved' ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
                 

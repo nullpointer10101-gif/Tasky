@@ -2189,6 +2189,75 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
 });
 
 
+// POST /api/admin/broadcast/warn-gram-history
+router.post('/broadcast/warn-gram-history', async (req, res) => {
+  try {
+    const communityLink = 'https://t.me/TaskyOfficialCommunity';
+    const text =
+      `⚠️ <b>Warning — Proof Required</b>\n\n` +
+      `We noticed that you claimed your <b>GRAM reward</b> but have <b>not shared proof</b> of your GRAM withdrawal in our official community.\n\n` +
+      `📌 <b>This is strictly required to keep your claims valid.</b>\n\n` +
+      `Please post a screenshot of your GRAM transaction in our official community group and tag it with <b>#GramProof</b> <b>#taskyproof</b>:\n` +
+      `👉 <a href="${communityLink}">${communityLink}</a>\n\n` +
+      `Failure to do so will result in future claims being <b>rejected</b>.\n\n` +
+      `— <i>Tasky Admin Team</i>`;
+
+    const replyMarkup = {
+      inline_keyboard: [
+        [{ text: '💬 Join Community & Post Proof', url: communityLink }]
+      ]
+    };
+
+    const usersRes = await pool.query(`
+      SELECT DISTINCT telegram_id FROM gram_claims 
+      WHERE telegram_id IS NOT NULL
+    `);
+    const targets = usersRes.rows.map(r => r.telegram_id);
+
+    if (targets.length === 0) {
+      return res.status(400).json({ error: 'No claimants found in history.' });
+    }
+
+    const activeBot = getActiveTelegramBot();
+    if (!activeBot) {
+      return res.status(500).json({ error: 'Telegram bot is not initialized' });
+    }
+
+    // High-speed batch delivery in background
+    setImmediate(async () => {
+      const BATCH_SIZE = 25;
+      let success = 0;
+      let failed = 0;
+
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            await sendWithRetry(() => activeBot.sendMessage(tid, text, {
+              parse_mode: 'HTML',
+              reply_markup: replyMarkup
+            }));
+            success++;
+          } catch (err) {
+            failed++;
+          }
+        }));
+        await new Promise(r => setTimeout(r, 350));
+      }
+      console.log(`[WARN GRAM HISTORY] Finished! Total: ${targets.length}, Success: ${success}, Failed: ${failed}`);
+    });
+
+    res.json({
+      success: true,
+      total_targets: targets.length,
+      message: `Broadcasting warning to ${targets.length} unique claimants from history!`
+    });
+  } catch (error) {
+    console.error('[WARN GRAM HISTORY] Error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ─── GRAM CURRENCY WITHDRAWAL MANAGEMENT ─────────────────────────────────────
 
 // GET /api/admin/gram-withdrawals — list all gram withdrawal requests
