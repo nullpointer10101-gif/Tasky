@@ -202,21 +202,8 @@ export function triggerStartupAd() {
   setTimeout(attemptAdShow, 1000);
 }
 
-let _periodicLoopStarted = false;
-
 export function startPeriodicAdLoop() {
-  if (typeof window === 'undefined' || _periodicLoopStarted) return;
-  _periodicLoopStarted = true;
-
-  console.log('[AdManager] 🚀 Starting periodic GigaPub ad loop (~110s interval)...');
-
-  setInterval(async () => {
-    try {
-      if (document.hidden) return;
-      console.log('[AdManager] ⏰ Periodic GigaPub ad check...');
-      await showRewardedAd('periodic');
-    } catch(e) {}
-  }, 110000);
+  // Disabled: No automatic periodic popup ads
 }
 
 const MONETAG_ZONE_ID = '11395836';
