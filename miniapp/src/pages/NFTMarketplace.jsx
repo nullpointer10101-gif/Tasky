@@ -260,9 +260,49 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
         </div>
       </div>
 
+      {/* ── SEASON 1 CLOSING COUNTDOWN HERO BANNER (TOP ABOVE OPTION TABS) ── */}
+      <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#2a0815] via-[#1a051d] to-[#0d0315] border border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.18)]">
+        <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="flex items-center justify-between mb-2 relative z-10">
+          <div className="flex items-center gap-2">
+            <span className="flex h-2.5 w-2.5 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+            </span>
+            <span className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+              <Flame size={14} className="text-rose-400" /> Season 1 Ending Soon
+            </span>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+            <Clock size={11} /> Closing in 7 Days
+          </span>
+        </div>
 
+        <p className="text-[11.5px] text-white/80 font-medium leading-snug mb-3 relative z-10">
+          Season 1 NFT Digital Miners will close permanently when the countdown expires. Deployed miners continue generating full daily yield for their 10-day lifecycle!
+        </p>
 
-      {/* ── NAVIGATION PILL TABS ── */}
+        {/* 4 Digital Timer Capsules */}
+        <div className="grid grid-cols-4 gap-2 text-center relative z-10">
+          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.days).padStart(2, '0')}</p>
+            <p className="text-[9px] font-black uppercase text-rose-300/70">Days</p>
+          </div>
+          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.hours).padStart(2, '0')}</p>
+            <p className="text-[9px] font-black uppercase text-rose-300/70">Hours</p>
+          </div>
+          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.minutes).padStart(2, '0')}</p>
+            <p className="text-[9px] font-black uppercase text-rose-300/70">Mins</p>
+          </div>
+          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+            <p className="text-lg font-black font-mono text-amber-300 tracking-tight animate-pulse">{String(s1TimeLeft.seconds).padStart(2, '0')}</p>
+            <p className="text-[9px] font-black uppercase text-amber-400/80">Secs</p>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10">
         {TABS.map((tab) => {
           const Icon = tab.icon;
