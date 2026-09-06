@@ -1660,6 +1660,7 @@ router.get('/gram/claims/history', async (req, res) => {
 
 router.post('/gram/claims/review', async (req, res) => {
   const { claim_id, action, rejection_reason, tx_hash } = req.body;
+  const effectiveAction = action || (tx_hash ? 'approve' : (rejection_reason ? 'reject' : null));
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -1669,7 +1670,7 @@ router.post('/gram/claims/review', async (req, res) => {
 
     const { telegram_id, amount, gram_wallet_address } = claimRes.rows[0];
 
-    if (action === 'approve') {
+    if (effectiveAction === 'approve') {
       if (!tx_hash || !tx_hash.trim()) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Transaction hash or Tonviewer link is mandatory to approve this Gram claim.' });
@@ -1722,7 +1723,7 @@ router.post('/gram/claims/review', async (req, res) => {
         first_name: userFull?.first_name
       }).catch(e => console.error('[PayoutProof] Gram claim error:', e.message));
 
-    } else if (action === 'reject') {
+    } else if (effectiveAction === 'reject') {
       await client.query(`UPDATE gram_claims SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [claim_id, rejection_reason]);
       if (bot && bot.sendMessage) {
         try {
@@ -1740,7 +1741,7 @@ router.post('/gram/claims/review', async (req, res) => {
     }
 
     await client.query('COMMIT');
-    res.json({ success: true, message: "Claim " + action + "d successfully" });
+    res.json({ success: true, message: "Claim " + effectiveAction + "d successfully" });
   } catch (error) {
     await client.query('ROLLBACK');
     res.status(500).json({ error: error.message });
