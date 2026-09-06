@@ -27,6 +27,23 @@ export function initGigaAds() {
 // Auto-initialize GigaPub immediately on module load
 initGigaAds();
 
+// Auto-dismiss Adsgram origin mismatch error dialogs if triggered by mediation
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+  const dismissAdsgramErrors = () => {
+    try {
+      const dialogs = document.querySelectorAll('div, section, dialog');
+      for (const el of dialogs) {
+        if (el.textContent && el.textContent.includes('AdsgramError')) {
+          el.style.display = 'none';
+          const btn = el.querySelector('button, a');
+          if (btn) btn.click();
+        }
+      }
+    } catch (e) {}
+  };
+  setInterval(dismissAdsgramErrors, 1000);
+}
+
 export function prefetchGramAd() {
   initGigaAds();
 }
