@@ -50,7 +50,7 @@ function sendAdminBroadcast(message) {
 }
 
 // GET /api/referral/:telegram_id
-router.get('/:telegram_id', async (req, res) => {
+router.get('/:telegram_id(\\d+)', async (req, res) => {
     try {
         const userRes = await pool.query(
             'SELECT referral_code, total_referrals, valid_referrals, unclaimed_commission, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1',

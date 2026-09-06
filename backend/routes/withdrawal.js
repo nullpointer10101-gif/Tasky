@@ -136,7 +136,7 @@ router.post('/request', async (req, res) => {
 });
 
 // ─── GET /api/withdrawal/history/:telegram_id ─────────────────────────────
-router.get('/history/:telegram_id', async (req, res) => {
+router.get('/history/:telegram_id(\\d+)', async (req, res) => {
     try {
         const { rows } = await pool.query(
             'SELECT * FROM withdrawals WHERE telegram_id = $1 ORDER BY requested_at DESC',

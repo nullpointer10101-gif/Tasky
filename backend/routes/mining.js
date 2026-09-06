@@ -5,7 +5,7 @@ const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
 
 // GET /api/mining/status/:telegram_id
-router.get('/status/:telegram_id', async (req, res) => {
+router.get('/status/:telegram_id(\\d+)', async (req, res) => {
   const { telegram_id } = req.params;
   try {
     const { rows: users } = await pool.query(`
@@ -245,7 +245,7 @@ router.get('/levels', async (req, res) => {
 });
 
 // GET /api/mining/machines/:telegram_id
-router.get('/machines/:telegram_id', async (req, res) => {
+router.get('/machines/:telegram_id(\\d+)', async (req, res) => {
   const { telegram_id } = req.params;
   try {
     const { rows: users } = await pool.query('SELECT balance FROM users WHERE telegram_id = $1', [telegram_id]);

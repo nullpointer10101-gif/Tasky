@@ -7,7 +7,7 @@ const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 // Get Gram Reward Status
-router.get('/status/:telegram_id', async (req, res) => {
+router.get('/status/:telegram_id(\\d+)', async (req, res) => {
     const { telegram_id } = req.params;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 

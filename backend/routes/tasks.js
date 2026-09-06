@@ -426,7 +426,7 @@ router.post('/complete', async (req, res) => {
 });
 
 // ─── GET /api/tasks/my-submissions/:telegram_id ────────────────────────────
-router.get('/my-submissions/:telegram_id', async (req, res) => {
+router.get('/my-submissions/:telegram_id(\\d+)', async (req, res) => {
     try {
         const { rows } = await pool.query(`
             SELECT ut.id, ut.task_id, ut.status, ut.proof_screenshot_url,

@@ -163,20 +163,19 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                 await bot.sendPhoto(chatId, cachedWelcomePhotoId, opts);
             } catch (err) {
                 cachedWelcomePhotoId = null; // Reset cache if stale
-                await bot.sendMessage(chatId, captionText, opts);
+                await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
             }
         } else if (fs.existsSync(imagePath)) {
             try {
-                const res = await bot.sendPhoto(chatId, fs.createReadStream(imagePath), opts);
+                const res = await bot.sendPhoto(chatId, imagePath, opts);
                 if (res?.photo && res.photo.length > 0) {
                     cachedWelcomePhotoId = res.photo[res.photo.length - 1].file_id;
                 }
             } catch (photoErr) {
-                console.error('[Bot /start] sendPhoto error:', photoErr.message);
-                await bot.sendMessage(chatId, captionText, opts);
+                await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
             }
         } else {
-            await bot.sendMessage(chatId, captionText, opts);
+            await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
         }
     } catch (e) {
         console.error('[Bot /start] Uncaught error:', e.message);

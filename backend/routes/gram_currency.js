@@ -45,7 +45,7 @@ async function getUserMaxWithdrawalLimit(telegramId, dbClient = pool) {
 }
 
 // GET /api/gram-currency/balance/:telegram_id
-router.get('/balance/:telegram_id', async (req, res) => {
+router.get('/balance/:telegram_id(\\d+)', async (req, res) => {
     const { telegram_id } = req.params;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
