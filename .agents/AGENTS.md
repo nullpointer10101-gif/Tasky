@@ -4,14 +4,12 @@
 - Rule: The official Telegram bot handle is @TaskyAppbot. Always use this link when referring to the bot.
 - For complete architecture & deployment reference, see [HOSTING_AND_ARCHITECTURE.md](file:///d:/antigravity/Tasky/HOSTING_AND_ARCHITECTURE.md).
 
-# Backend & Direct App Hosting
-- **CRITICAL**: The backend (Express/Node.js in `backend/`) is hosted on **Render** (render.com — service `Tasky3`).
-- **Direct Mini App & Admin Hosting**: Render directly serves the Mini App at `https://tasky3.onrender.com/` (from `backend/public/app`) and the Admin Panel at `https://tasky3.onrender.com/admin` (from `backend/public/admin`).
-- **How Render deploys**: Render auto-deploys from GitHub pushes to the `main` branch. To deploy backend and direct app changes, commit and push to GitHub: `git commit` then `git push origin main`.
-- **Backend URL**: Stored as `VITE_API_URL` / direct proxy.
-
-# Vercel Deployment (Secondary Mirror)
-- **Vercel Hobby Plan Push Block**: Because the Vercel project is owned by `meelas-projects-784c876a` but commits are pushed under a collaborator profile, automatic Git deployment is blocked on Vercel.
-- **How to Deploy to Vercel**: Always deploy changes manually using the local Vercel CLI:
-  - **Deploy Admin Panel (tasky-d81s)**: Run `npx vercel --prod --yes --cwd admin-frontend` from the repository root.
-  - **Deploy Mini App (tasky)**: Run `npx vercel --prod --yes --cwd miniapp` from the repository root.
+# Hosting & Architecture (Render Only)
+- **Primary & Only Host**: The entire project (Backend, Mini App, and Admin Panel) is hosted on **Render** (service `Tasky3`).
+- **Direct Mini App Hosting**: Render directly serves the Mini App at `https://tasky3.onrender.com/` (from `backend/public/app`).
+- **Admin Panel Hosting**: Render directly serves the Admin Panel at `https://tasky3.onrender.com/admin` (from `backend/public/admin`).
+- **Deployment Process**: 
+  1. Build the Mini App (`npm run build` in `miniapp/`).
+  2. Copy `miniapp/dist/*` to `backend/public/app/`.
+  3. Commit and push to GitHub: `git commit` then `git push origin main`. Render auto-deploys from `main`.
+- **Note**: Vercel is NOT used. All traffic runs through Render.
