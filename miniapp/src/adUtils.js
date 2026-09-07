@@ -127,61 +127,57 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   } catch(e) {}
 
   initGigaAds();
-  initAdexiumAds();
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Wait up to 1.5 seconds for GigaPub SDK to attach trigger function
+  // Wait up to 3.0 seconds for GigaPub SDK to attach trigger function
   let waited = 0;
-  while (!getFn() && waited < 1500) {
+  while (!getFn() && waited < 3000) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
 
   let fn = getFn();
   if (typeof fn !== 'function') {
-    console.warn('[AdManager] GigaPub SDK unit 8093 under review / not attached yet. Seamlessly showing Adexium fallback ad...');
+    console.warn('[AdManager] GigaPub SDK unit 8093 not ready. Seamlessly attempting fallback ad...');
     return await showAdexiumAd();
   }
 
   const startTime = Date.now();
 
   try {
-    console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Placement: ${placement})...`);
+    console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
-    // Call showGiga with a 25s timeout guard
+    // Call window.showGiga() as per GigaPub official integration
     const adExecutionPromise = Promise.resolve().then(() => {
-      return fn.call(window.GigaPub || window, placement);
+      return fn.call(window.GigaPub || window);
     });
 
     const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Ad session timeout')), 25000);
+      setTimeout(() => reject(new Error('Ad session timeout')), 35000);
     });
 
     // Await GigaPub ad completion
     await Promise.race([adExecutionPromise, timeoutPromise]);
 
     const elapsed = (Date.now() - startTime) / 1000;
-    // If GigaPub returned or closed almost immediately (under 3s, likely due to review / no fill), show Adexium fallback!
-    if (elapsed < 3.0) {
-      console.warn(`[AdManager] GigaPub closed almost immediately (${elapsed.toFixed(1)}s). Showing Adexium fallback ad...`);
-      return await showAdexiumAd();
-    }
-
-    // Rewarded video ads must last at least 14.0 seconds
-    if (elapsed < 14.0) {
-      console.warn(`[AdManager] Ad closed too early: only ${elapsed.toFixed(1)}s elapsed.`);
+    console.log(`[AdManager] ✅ GigaPub ad completed successfully! (${elapsed.toFixed(1)}s)`);
+    return { success: true, network: 'gigapub' };
+  } catch (err) {
+    console.warn('[AdManager] GigaPub ad session caught:', err);
+    const errMessage = String(err?.message || err || '').toLowerCase();
+    
+    // If user cancelled or dismissed
+    if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss') || errMessage.includes('early')) {
       return {
         success: false,
         network: 'gigapub',
-        error: 'Ad was closed early. You must watch the entire video ad to get progress.'
+        error: 'Ad was closed early. You must watch the entire ad to get progress.'
       };
     }
 
-    console.log(`[AdManager] ✅ GigaPub ad session completed successfully! (${elapsed.toFixed(1)}s)`);
-    return { success: true, network: 'gigapub' };
-  } catch (err) {
-    console.warn('[AdManager] GigaPub ad error/under review. Seamlessly showing Adexium fallback:', err);
+    // If GigaPub failed with no-fill or error, use fallback
+    console.warn('[AdManager] GigaPub unfulfilled. Seamlessly trying backup ad...');
     return await showAdexiumAd();
   }
 }
