@@ -29,35 +29,6 @@ export function initGigaAds() {
 // Auto-initialize GigaPub immediately on module load
 initGigaAds();
 
-// Block Adsgram script injection completely
-if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-  const origAppendChild = document.head.appendChild.bind(document.head);
-  document.head.appendChild = function(node) {
-    if (node && node.tagName === 'SCRIPT' && node.src && node.src.includes('adsgram')) {
-      console.log('[AdManager] 🚫 Adsgram script blocked');
-      return node;
-    }
-    return origAppendChild(node);
-  };
-
-  const origInsertBefore = document.head.insertBefore.bind(document.head);
-  document.head.insertBefore = function(node, ref) {
-    if (node && node.tagName === 'SCRIPT' && node.src && node.src.includes('adsgram')) {
-      console.log('[AdManager] 🚫 Adsgram script blocked');
-      return node;
-    }
-    return origInsertBefore(node, ref);
-  };
-
-  try {
-    Object.defineProperty(window, 'Adsgram', {
-      get: () => undefined,
-      set: () => {},
-      configurable: false
-    });
-  } catch(e) {}
-}
-
 export function prefetchGramAd() {
   initGigaAds();
 }
