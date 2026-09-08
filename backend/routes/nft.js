@@ -418,12 +418,12 @@ router.post('/deposit/auto-verify', async (req, res) => {
     const userWallet = (userObj.gram_wallet_address || userObj.wallet_address || '').trim().toLowerCase();
     const username = (userObj.username || '').trim().toLowerCase();
 
-    // 1. Check if Tx Hash was already credited in DB
-    if (cleanTxHash) {
-      const existing = await pool.query('SELECT * FROM gram_deposits WHERE tx_hash = $1', [cleanTxHash]);
-      if (existing.rows.length > 0) {
-        return res.status(400).json({ error: 'This transaction hash has already been credited to your balance!' });
-      }
+    // 1. Fetch all already-credited tx hashes to avoid matching credited events
+    const existingRes = await pool.query('SELECT tx_hash FROM gram_deposits');
+    const creditedHashes = new Set(existingRes.rows.map(r => r.tx_hash));
+
+    if (cleanTxHash && creditedHashes.has(cleanTxHash)) {
+      return res.status(400).json({ error: 'This transaction hash has already been credited to your balance!' });
     }
 
     // 2. Query TON API for recent events on Admin Wallet (Events API decodes comments reliably)
@@ -437,12 +437,13 @@ router.post('/deposit/auto-verify', async (req, res) => {
           const json = JSON.parse(body);
           const events = json.events || [];
 
-          let matchedEvent = null;
-          let depositedGram = 0;
-          let matchedHash = cleanTxHash;
+          let matchedEvents = [];
+          let totalDepositedGram = 0;
 
           for (const ev of events) {
             const eventId = ev.event_id;
+            if (creditedHashes.has(eventId)) continue;
+
             for (const action of (ev.actions || [])) {
               if (action.type === 'TonTransfer') {
                 const transfer = action.TonTransfer;
@@ -461,29 +462,23 @@ router.post('/deposit/auto-verify', async (req, res) => {
 
                 if (isMemoMatch || isWalletMatch || isHashMatch) {
                   const nanoAmount = BigInt(transfer.amount || 0);
-                  depositedGram = Number(nanoAmount) / 1e9;
+                  const depositedGram = Number(nanoAmount) / 1e9;
 
                   if (depositedGram > 0) {
-                    matchedEvent = ev;
-                    matchedHash = eventId;
+                    matchedEvents.push({ eventId, depositedGram });
+                    totalDepositedGram += depositedGram;
+                    creditedHashes.add(eventId);
                     break;
                   }
                 }
               }
             }
-            if (matchedEvent) break;
           }
 
-          if (!matchedEvent || depositedGram <= 0) {
+          if (matchedEvents.length === 0 || totalDepositedGram <= 0) {
             return res.status(404).json({
               error: `No uncredited incoming deposit found for memo "${userMemo}". Make sure you transferred to ${ADMIN_WALLET} with comment "${userMemo}" and try again!`
             });
-          }
-
-          // Check DB again to ensure matchedHash wasn't credited concurrently
-          const dbCheck = await pool.query('SELECT * FROM gram_deposits WHERE tx_hash = $1', [matchedHash]);
-          if (dbCheck.rows.length > 0) {
-            return res.status(400).json({ error: 'Transaction has already been credited.' });
           }
 
           // Credit user's balance automatically!
@@ -491,43 +486,56 @@ router.post('/deposit/auto-verify', async (req, res) => {
           try {
             await client.query('BEGIN');
 
-            // Record deposit entry
-            await client.query(
-              `INSERT INTO gram_deposits (telegram_id, amount_gram, tx_hash, auto_verified, status)
-               VALUES ($1, $2, $3, TRUE, 'approved')`,
-              [telegram_id, depositedGram, matchedHash]
-            );
+            for (const m of matchedEvents) {
+              await client.query(
+                `INSERT INTO gram_deposits (telegram_id, amount_gram, tx_hash, auto_verified, status)
+                 VALUES ($1, $2, $3, TRUE, 'approved')
+                 ON CONFLICT DO NOTHING`,
+                [telegram_id, m.depositedGram, m.eventId]
+              );
+            }
 
             // Update user balance & fetch details for admin broadcast
-            const userRes = await client.query('SELECT username, first_name, gram_balance FROM users WHERE telegram_id = $1', [telegram_id]);
-            let updateQuery = 'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2 RETURNING balance';
-            if (userRes.rows[0]?.gram_balance !== null && userRes.rows[0]?.gram_balance !== undefined) {
-              updateQuery = 'UPDATE users SET gram_balance = gram_balance + $1 WHERE telegram_id = $2 RETURNING gram_balance as balance';
-            }
-            const updateRes = await client.query(updateQuery, [depositedGram, telegram_id]);
+            const updateRes = await client.query(
+              `UPDATE users 
+               SET gram_balance = COALESCE(gram_balance, 0) + $1
+               WHERE telegram_id = $2
+               RETURNING telegram_id, username, first_name, gram_balance, balance`,
+              [totalDepositedGram, telegram_id]
+            );
 
             await client.query('COMMIT');
 
             // Notify Admin of Deposit
-            const user = userRes.rows[0] || {};
+            const user = updateRes.rows[0] || {};
             const displayName = user.username ? `@${user.username}` : (user.first_name || telegram_id);
-            const txHashDisplay = matchedHash ? (matchedHash.length > 20 ? `${matchedHash.substring(0, 10)}...${matchedHash.substring(matchedHash.length - 6)}` : matchedHash) : 'N/A';
+            const firstHash = matchedEvents[0].eventId;
+            const txHashDisplay = firstHash ? (firstHash.length > 20 ? `${firstHash.substring(0, 10)}...${firstHash.substring(firstHash.length - 6)}` : firstHash) : 'N/A';
 
             sendAdminBroadcast(
               `💰 <b>NEW GRAM DEPOSIT VERIFIED!</b>\n\n` +
               `👤 <b>User:</b> ${displayName} (<code>${telegram_id}</code>)\n` +
-              `💎 <b>Amount Credited:</b> +${depositedGram.toFixed(3)} GRAM\n` +
+              `💎 <b>Amount Credited:</b> +${totalDepositedGram.toFixed(3)} GRAM (${matchedEvents.length} txs)\n` +
               `🔗 <b>Tx Hash:</b> <code>${txHashDisplay}</code>\n` +
               `⚡ <b>Verification:</b> TON Blockchain Auto-Verified\n` +
-              `💳 <b>New User Balance:</b> ${parseFloat(updateRes.rows[0].balance).toFixed(3)} GRAM`
+              `💳 <b>New User Balance:</b> ${parseFloat(user.gram_balance || 0).toFixed(3)} GRAM`
             );
+
+            if (bot && !bot.isDummy && typeof bot.sendMessage === 'function') {
+              bot.sendMessage(
+                telegram_id,
+                `🎉 <b>Deposit Verified & Credited!</b>\n\n` +
+                `Your deposit of <b>+${totalDepositedGram.toFixed(3)} GRAM</b> has been credited to your Vault balance.`,
+                { parse_mode: 'HTML' }
+              ).catch(() => {});
+            }
 
             return res.json({
               success: true,
-              message: `🎉 Automatic Deposit Verified! +${depositedGram.toFixed(3)} GRAM credited instantly to your account.`,
-              amount_gram: depositedGram,
-              new_balance: parseFloat(updateRes.rows[0].balance),
-              tx_hash: matchedHash
+              message: `🎉 Automatic Deposit Verified! +${totalDepositedGram.toFixed(3)} GRAM credited instantly to your account.`,
+              amount_gram: totalDepositedGram,
+              new_balance: parseFloat(user.gram_balance || 0),
+              tx_hash: firstHash
             });
           } catch (dbErr) {
             await client.query('ROLLBACK');
