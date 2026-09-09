@@ -361,14 +361,43 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
         console.error('[AutoPayout] Failed to broadcast payout proof:', proofErr.message);
       }
 
+      // 11. Notify Admin Telegram ID
+      const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
+      if (bot && bot.sendMessage && adminId) {
+        try {
+          const safeName = (userFull?.username ? `@${userFull.username}` : (userFull?.first_name || 'User')).replace(/[<>&]/g, '');
+          const txLink = txHash ? (txHash.startsWith('http') ? txHash : `https://tonviewer.com/transaction/${txHash}`) : null;
+          const adminMsg = `⚡ <b>Auto-Payout Processed & Paid!</b> ⚡\n\n` +
+            `🆔 <b>Record ID:</b> #${recordId} (<code>${tableName}</code>)\n` +
+            `👤 <b>User:</b> ${safeName} (<code>${telegramId}</code>)\n` +
+            `💰 <b>Amount:</b> <b>${receiveAmount} TON/GRAM</b>\n` +
+            `🏦 <b>Wallet:</b> <code>${walletAddress}</code>\n` +
+            (txLink ? `🔗 <b>Explorer:</b> <a href="${txLink}">View on Tonviewer</a>\n\n` : '\n') +
+            `✅ Funds sent on-chain & user notified.`;
+
+          await bot.sendMessage(adminId, adminMsg, {
+            parse_mode: 'HTML',
+            link_preview_options: txLink ? {
+              url: txLink,
+              is_disabled: false,
+              prefer_large_media: true,
+              show_above_text: false
+            } : { is_disabled: false }
+          }).catch(e => console.warn('[AutoPayout] Admin notify warning:', e.message));
+        } catch (adminErr) {
+          console.error('[AutoPayout] Failed to notify admin:', adminErr.message);
+        }
+      }
+
       console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed on-chain. TX: ${txHash}`);
       return { success: true, txHash };
     } else {
       console.error(`[AutoPayout] ❌ On-chain send failed for ${tableName} #${recordId}: ${result.error}`);
-      if (bot && bot.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+      const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
+      if (bot && bot.sendMessage && adminId) {
         bot.sendMessage(
-          process.env.ADMIN_TELEGRAM_ID,
-          `❌ <b>Auto-Payout FAILED:</b> Could not send ${receiveAmount} to ${walletAddress} for ${tableName} #${recordId}.\n<b>Error:</b> ${result.error}`,
+          adminId,
+          `❌ <b>Auto-Payout FAILED:</b> Could not send ${receiveAmount} to <code>${walletAddress}</code> for ${tableName} #${recordId}.\n<b>Error:</b> <code>${result.error}</code>`,
           { parse_mode: 'HTML' }
         ).catch(() => {});
       }
