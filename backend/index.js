@@ -43,6 +43,7 @@ const mapPathToAction = (path, method) => {
   if (path.includes('/gram/watch-ad')) return 'Watched Gram Ad';
   if (path.includes('/gram/claim')) return 'Claimed 0.02 GRAM Bounty';
   if (path.includes('/gram/save-address')) return 'Updated Gram Wallet';
+  if (path.includes('/offerwall/claim')) return 'Completed Offerwall Task';
   if (path.includes('/upload')) return 'Uploaded Proof Image';
   return `Visited ${path}`;
 };
@@ -198,6 +199,7 @@ app.use('/api/gram-currency', require('./routes/gram_currency'));
 app.use('/api/ads/postback', require('./routes/postback'));
 app.use('/api/postback', require('./routes/postback'));
 app.use('/api/nft', require('./routes/nft'));
+app.use('/api/offerwall', require('./routes/offerwall'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI

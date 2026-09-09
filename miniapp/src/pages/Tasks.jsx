@@ -11,6 +11,7 @@ import { useToast } from '../App';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
 import { useIsAdmin } from '../AdminContext';
+import { initOfferwall, openOfferwall } from '../offerwall';
 
 const containerVariants = {
   initial: { opacity: 0 },
@@ -91,6 +92,21 @@ export default function Tasks({ user, refreshUser, navigate }) {
     fetchData();
     return () => { isMounted = false; };
   }, [user]);
+
+  // Initialize GigaPub Offerwall SDK
+  useEffect(() => {
+    if (user?.telegram_id) {
+      initOfferwall(user.telegram_id, ({ amount, result }) => {
+        if (amount) {
+          showToast(`🎉 Offer completed! +${amount} TASKY credited!`, 'success');
+        } else {
+          showToast(`🎉 Offer reward credited successfully!`, 'success');
+        }
+        if (refreshUser) refreshUser();
+        reloadData();
+      });
+    }
+  }, [user?.telegram_id]);
 
   // Expose fetchData for other functions
   const reloadData = async () => {
@@ -372,6 +388,45 @@ export default function Tasks({ user, refreshUser, navigate }) {
                   
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 px-3.5 py-1.5 rounded-xl shadow-sm z-10 flex flex-col items-center justify-center bg-gradient-to-br from-amber-500 to-yellow-600 border border-amber-400/20">
                     <span className="text-[14px] font-black text-slate-900">0.02 GRAM</span>
+                  </div>
+                </motion.div>
+              )}
+
+              {placementCategory === 'partner' && (
+                <motion.div 
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => {
+                    const opened = openOfferwall();
+                    if (!opened) {
+                      showToast('Opening GigaPub Offerwall...', 'info');
+                    }
+                  }}
+                  className="relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-4 px-4 mb-4 overflow-hidden rounded-[1.25rem] bg-gradient-to-r from-violet-950/90 via-purple-900/70 to-indigo-950/90 border border-purple-500/30 border-b-[3px] border-b-purple-500/50 shadow-[0_4px_20px_rgba(147,51,234,0.18)]"
+                >
+                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-purple-500/20 blur-xl rounded-full" />
+                  <div className="absolute -left-6 -bottom-6 w-24 h-24 bg-indigo-500/20 blur-xl rounded-full" />
+                  
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shadow-lg shrink-0 bg-gradient-to-br from-purple-500 via-indigo-500 to-pink-500 border border-white/20">
+                    <Sparkles size={22} className="animate-pulse text-amber-300" />
+                  </div>
+                  
+                  <div className="flex-1 min-w-0 pr-2 relative z-10 text-left">
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <h3 className="font-black text-[15.5px] leading-tight text-white">
+                        GigaPub Offerwall
+                      </h3>
+                      <span className="text-[9.5px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
+                        🔥 High Rewards
+                      </span>
+                    </div>
+                    <p className="text-[12px] text-purple-200/90 font-medium leading-snug">
+                      Channel Subscriptions, Surveys & Apps
+                    </p>
+                  </div>
+                  
+                  <div className="relative z-10 shrink-0 px-3 py-2 rounded-xl shadow-sm flex items-center gap-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 border border-white/20 text-white font-black text-xs">
+                    <span>Open</span>
+                    <ExternalLink size={13} />
                   </div>
                 </motion.div>
               )}

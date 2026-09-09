@@ -430,6 +430,19 @@ const initDB = async () => {
       ALTER TABLE users ADD COLUMN IF NOT EXISTS unclaimed_commission NUMERIC DEFAULT 0;
       ALTER TABLE user_nft_cards ADD COLUMN IF NOT EXISTS total_days INT DEFAULT 10;
 
+      -- GIGAPUB OFFERWALL CONVERSIONS
+      CREATE TABLE IF NOT EXISTS offerwall_conversions (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT NOT NULL,
+        reward_id VARCHAR(255) UNIQUE NOT NULL,
+        project_id VARCHAR(100),
+        amount NUMERIC DEFAULT 0,
+        hash VARCHAR(255),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_offerwall_conversions_telegram_id ON offerwall_conversions(telegram_id);
+
       INSERT INTO nft_cards (id, name, description, price_gram, daily_yield_gram, duration_days, total_yield_gram, rarity, icon_key, max_supply, is_active)
       VALUES 
         (1, 'Gram Mini Miner #01', 'Entry-level digital miner. (Discontinued from Marketplace)', 0.5, 0.07, 10, 0.70, 'rare', 'bolt', 1000, false),
