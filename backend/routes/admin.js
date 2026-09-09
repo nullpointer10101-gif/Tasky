@@ -823,18 +823,24 @@ router.get('/ads/stats', async (req, res) => {
   try {
     const query = `
       SELECT
-        COUNT(*) as total_ads,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as ads_today,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday,
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_total,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag')) as total_ads,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag') AND created_at >= CURRENT_DATE) as ads_today,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag') AND created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_gigapub') as gigapub_total,
         COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_total,
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as gigapub_today,
-        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as monetag_today
+        COUNT(*) FILTER (WHERE ad_type = 'gram_gigapub' AND created_at >= CURRENT_DATE) as gigapub_today,
+        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as monetag_today,
+        COUNT(*) as all_app_ads_total,
+        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as all_app_ads_today,
+        COUNT(*) FILTER (WHERE ad_type = 'task_ad') as task_ads_total,
+        COUNT(*) FILTER (WHERE ad_type = 'task_ad' AND created_at >= CURRENT_DATE) as task_ads_today,
+        COUNT(*) FILTER (WHERE ad_type = 'wallet_ad') as wallet_ads_total,
+        COUNT(*) FILTER (WHERE ad_type = 'wallet_ad' AND created_at >= CURRENT_DATE) as wallet_ads_today
       FROM ad_views
     `;
     const { rows } = await pool.query(query);
     
-    // Get last 7 continuous days for trend chart
+    // Get last 7 continuous days for trend chart strictly for the multi-provider Gram ads
     const chartQuery = `
       WITH dates AS (
         SELECT generate_series(
@@ -845,8 +851,8 @@ router.get('/ads/stats', async (req, res) => {
       )
       SELECT 
         TO_CHAR(d.date, 'YYYY-MM-DD') as date,
-        COUNT(av.id) as count,
-        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
+        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_gigapub', 'gram_monetag')) as count,
+        COUNT(av.id) FILTER (WHERE av.ad_type = 'gram_gigapub') as gigapub_count,
         COUNT(av.id) FILTER (WHERE av.ad_type = 'gram_monetag') as monetag_count
       FROM dates d
       LEFT JOIN ad_views av ON DATE(av.created_at) = d.date
