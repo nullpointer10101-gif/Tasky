@@ -3,7 +3,6 @@ const router = express.Router();
 const { pool } = require('../db');
 const bot = require('../bot');
 const { checkFraud } = require('../utils/fraud');
-const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
 const MIN_WITHDRAWAL = 0.01;
 
@@ -302,9 +301,6 @@ router.post('/withdraw', async (req, res) => {
         }
 
         res.json({ success: true, message: 'Withdrawal request submitted!', withdrawal: wRes.rows[0] });
-
-        // Attempt auto-payout
-        tryAutoPayoutGram(wRes.rows[0].id, 'gram_withdrawals', withdrawAmount, activeWallet, telegram_id, fraud.flagged, fraud.reason).catch(err => console.error(err));
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('Error creating gram withdrawal:', err);

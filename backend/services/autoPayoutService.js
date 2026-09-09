@@ -154,87 +154,19 @@ async function sendTon(toAddress, amountTon, comment = '🎁 TASKY Daily Gram Pa
 
 /**
  * Main function — called from swap.js after a swap is inserted.
- * Decides whether to auto-pay or leave in pending.
- *
- * @param {object} swap — the newly inserted swap row
- * @param {object} user — the user row
+ * Swaps are kept strictly in pending for manual admin review.
  */
 async function tryAutoPayout(swap, user) {
-  const receiveAmount = parseFloat(swap.receive_amount);
-
-  // Only auto-pay TON for now
-  if (swap.receive_token !== 'TON') {
-    console.log(`[AutoPayout] Skipping ${swap.id}: not TON (${swap.receive_token})`);
-    return;
-  }
-
-  // Check if auto payout is globally enabled
-  const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
-  const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
-  if (!isAutoPayoutEnabled) {
-    console.log(`[AutoPayout] Skipping ${swap.id}: Auto-payout is globally disabled.`);
-    return;
-  }
-
-  // Only auto-pay if amount is small enough
-  if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
-    console.log(`[AutoPayout] Skipping ${swap.id}: ${receiveAmount} TON > threshold ${AUTO_PAYOUT_MAX_TON}`);
-    return;
-  }
-
-  // Skip flagged swaps
-  if (swap.is_flagged) {
-    console.log(`[AutoPayout] Skipping ${swap.id}: flagged (${swap.flag_reason})`);
-    return;
-  }
-
-  // Check treasury has enough
-  const hasBalance = await hasTreasuryBalance(receiveAmount);
-  if (!hasBalance) {
-    console.log(`[AutoPayout] Skipping ${swap.id}: treasury balance too low`);
-    // Notify admin
-    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
-      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
-        `⚠️ Auto-payout skipped for Swap #${swap.id}: treasury balance too low. Please top up.`
-      ).catch(() => {});
-    }
-    return;
-  }
-
-  console.log(`[AutoPayout] Processing swap ${swap.id}: ${receiveAmount} TON → ${swap.wallet_address}`);
-
-  const result = await sendTon(swap.wallet_address, receiveAmount);
-
-  if (result.success) {
-    // Mark swap as done
-    await pool.query(
-      `UPDATE swaps SET status = 'done', tx_hash = $1, processed_at = NOW() WHERE id = $2`,
-      [result.txHash, swap.id]
-    );
-    // Notify user
-    if (bot?.sendMessage) {
-      bot.sendMessage(swap.telegram_id,
-        `✅ Swap complete! ${receiveAmount.toFixed(4)} TON sent to your wallet.\nTX Ref: ${result.txHash}`
-      ).catch(() => {});
-    }
-    console.log(`[AutoPayout] ✅ Swap ${swap.id} completed. TX: ${result.txHash}`);
-  } else {
-    console.error(`[AutoPayout] ❌ Swap ${swap.id} failed: ${result.error}`);
-    // Leave as pending, admin can process manually
-    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
-      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
-        `❌ Auto-payout FAILED for Swap #${swap.id} (${receiveAmount} TON → ${swap.wallet_address})\nError: ${result.error}`
-      ).catch(() => {});
-    }
-  }
+  // Swaps require manual review
+  return;
 }
 
 /**
- * Main function — called from gram.js / gram_currency.js after a claim/withdrawal is inserted.
- * Decides whether to auto-pay or leave in pending.
+ * Main function — called from gram.js after a daily claim is inserted.
+ * STRICTLY restricted to Daily Gram Claims (0.02 GRAM / TON).
  *
- * @param {string} recordId - the id of the claim/withdrawal
- * @param {string} tableName - 'gram_claims' or 'gram_withdrawals'
+ * @param {string} recordId - the id of the claim
+ * @param {string} tableName - strictly 'gram_claims'
  * @param {number} receiveAmount - amount of TON/GRAM to send
  * @param {string} walletAddress - the destination wallet address
  * @param {string} telegramId - user's telegram id
@@ -243,6 +175,12 @@ async function tryAutoPayout(swap, user) {
  */
 async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddress, telegramId, isFlagged, flagReason) {
   try {
+    // 0. Strict check: ONLY Daily Gram Claims are eligible for auto-payout
+    if (tableName !== 'gram_claims') {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is strictly for Daily Gram Claims only.`);
+      return { success: false, reason: 'Auto-payout is only enabled for Daily Gram Claims.' };
+    }
+
     // 1. Check if auto payout is globally enabled in settings
     const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
     const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
