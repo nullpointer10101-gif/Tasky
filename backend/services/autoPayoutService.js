@@ -187,70 +187,141 @@ async function tryAutoPayout(swap, user) {
  * @param {string} flagReason - reason for flagging
  */
 async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddress, telegramId, isFlagged, flagReason) {
-  // Check if auto payout is globally enabled
-  const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
-  const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
-  if (!isAutoPayoutEnabled) {
-    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is globally disabled.`);
-    return;
-  }
-
-  // Only auto-pay if amount is small enough
-  if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
-    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: ${receiveAmount} > threshold ${AUTO_PAYOUT_MAX_TON}`);
-    return;
-  }
-
-  // SYSTEM PERMANENTLY DISABLED BY ADMIN
-  console.log(`[AutoPayout] System is completely disabled. Skipping auto-payout for ${tableName} #${recordId}.`);
-  return { success: false, reason: 'Auto-payout system is disabled globally.' };
-
-  // Skip flagged payouts
-  if (isFlagged) {
-    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: flagged (${flagReason})`);
-    return;
-  }
-
-  // Check treasury has enough
-  const hasBalance = await hasTreasuryBalance(receiveAmount);
-  if (!hasBalance) {
-    console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: treasury balance too low`);
-    // Notify admin
-    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
-      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
-        `⚠️ Auto-payout skipped for ${tableName} #${recordId}: treasury balance too low. Please top up.`
-      ).catch(() => {});
+  try {
+    // 1. Check if auto payout is globally enabled in settings
+    const settingsRes = await pool.query('SELECT auto_payout_enabled FROM withdrawal_settings LIMIT 1');
+    const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
+    if (!isAutoPayoutEnabled) {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is disabled in settings.`);
+      return { success: false, reason: 'Auto-payout is disabled in settings.' };
     }
-    return;
-  }
 
-  console.log(`[AutoPayout] Processing ${tableName} #${recordId}: ${receiveAmount} TON → ${walletAddress}`);
+    // 2. Check treasury mnemonic configuration
+    if (!TREASURY_MNEMONIC) {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: TREASURY_MNEMONIC is not configured in .env.`);
+      return { success: false, reason: 'TREASURY_MNEMONIC is not configured.' };
+    }
 
-  const result = await sendTon(walletAddress, receiveAmount);
+    // 3. Only auto-pay if amount is within threshold
+    if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: ${receiveAmount} > threshold ${AUTO_PAYOUT_MAX_TON}`);
+      return { success: false, reason: 'Amount exceeds auto-payout max threshold.' };
+    }
 
-  if (result.success) {
-    // Mark record as done
-    if (tableName === 'gram_claims') {
-      await pool.query(`UPDATE gram_claims SET status = 'approved' WHERE id = $1`, [recordId]);
+    // 4. Skip flagged payouts (keep for manual admin review)
+    if (isFlagged) {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Flagged for security (${flagReason})`);
+      return { success: false, reason: 'Flagged for security review.' };
+    }
+
+    // 5. Check treasury has enough balance for amount + gas
+    const hasBalance = await hasTreasuryBalance(receiveAmount);
+    if (!hasBalance) {
+      console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Treasury balance too low for payout + gas.`);
+      if (bot && bot.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+        bot.sendMessage(
+          process.env.ADMIN_TELEGRAM_ID,
+          `⚠️ <b>Auto-Payout Skipped:</b> Treasury balance is too low to send ${receiveAmount} GRAM to ${walletAddress}. Please top up the treasury wallet.`,
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }
+      return { success: false, reason: 'Treasury balance too low.' };
+    }
+
+    console.log(`[AutoPayout] Executing on-chain payout for ${tableName} #${recordId}: ${receiveAmount} TON/GRAM → ${walletAddress}`);
+
+    // 6. Send transaction on TON Blockchain
+    const result = await sendTon(walletAddress, receiveAmount);
+
+    if (result.success) {
+      const txHash = result.txHash;
+
+      // 7. Update claim status to approved with tx_hash
+      if (tableName === 'gram_claims') {
+        await pool.query(
+          `UPDATE gram_claims SET status = 'approved', tx_hash = $1, processed_at = NOW() WHERE id = $2`,
+          [txHash, recordId]
+        );
+
+        // Check referral validity for referrer
+        try {
+          const userRes = await pool.query('SELECT referred_by, username, first_name FROM users WHERE telegram_id = $1', [telegramId]);
+          const referred_by = userRes.rows[0]?.referred_by;
+          if (referred_by) {
+            const { checkReferralValidity } = require('../utils/referral');
+            await checkReferralValidity(pool, telegramId, referred_by);
+          }
+        } catch (refErr) {
+          console.warn('[AutoPayout] Referral validation error:', refErr.message);
+        }
+      } else {
+        await pool.query(
+          `UPDATE gram_withdrawals SET status = 'done', tx_hash = $1, processed_at = NOW() WHERE id = $2`,
+          [txHash, recordId]
+        );
+      }
+
+      // 8. Fetch user details for notification & proof broadcast
+      const userRes = await pool.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [telegramId]);
+      const userFull = userRes.rows[0];
+
+      // 9. Send success notification to user
+      if (bot && bot.sendMessage) {
+        try {
+          const txLink = txHash ? (txHash.startsWith('http') ? txHash : `https://tonviewer.com/transaction/${txHash}`) : null;
+          const txText = txLink ? `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>` : '';
+
+          await bot.sendMessage(
+            telegramId,
+            `🎉 <b>Gram Reward Auto-Approved & Paid!</b> 🎉\n\nYour request for <b>${receiveAmount} GRAM</b> has been processed automatically and sent to your wallet on the TON Blockchain! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nPlease take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a>.\n\n<i>Thank you for supporting Tasky!</i>`,
+            {
+              parse_mode: 'HTML',
+              link_preview_options: txLink ? {
+                url: txLink,
+                is_disabled: false,
+                prefer_large_media: true,
+                show_above_text: false
+              } : { is_disabled: false }
+            }
+          );
+        } catch (botErr) {
+          console.error('[AutoPayout] Failed to notify user:', botErr.message);
+        }
+      }
+
+      // 10. Broadcast verified payout proof to official Telegram Payout Channel
+      try {
+        const { broadcastPayoutProof } = require('../utils/payoutChannel');
+        await broadcastPayoutProof(bot, {
+          type: 'Daily Quest 0.02 GRAM',
+          amount: String(receiveAmount || '0.02'),
+          token: 'GRAM',
+          wallet: walletAddress,
+          tx_hash: txHash,
+          telegram_id: telegramId,
+          username: userFull?.username,
+          first_name: userFull?.first_name
+        });
+      } catch (proofErr) {
+        console.error('[AutoPayout] Failed to broadcast payout proof:', proofErr.message);
+      }
+
+      console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed on-chain. TX: ${txHash}`);
+      return { success: true, txHash };
     } else {
-      await pool.query(`UPDATE gram_withdrawals SET status = 'done' WHERE id = $1`, [recordId]);
+      console.error(`[AutoPayout] ❌ On-chain send failed for ${tableName} #${recordId}: ${result.error}`);
+      if (bot && bot.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+        bot.sendMessage(
+          process.env.ADMIN_TELEGRAM_ID,
+          `❌ <b>Auto-Payout FAILED:</b> Could not send ${receiveAmount} to ${walletAddress} for ${tableName} #${recordId}.\n<b>Error:</b> ${result.error}`,
+          { parse_mode: 'HTML' }
+        ).catch(() => {});
+      }
+      return { success: false, error: result.error };
     }
-
-    // Notify user
-    if (bot?.sendMessage) {
-      bot.sendMessage(telegramId,
-        `✅ Your GRAM claim of ${receiveAmount} is complete! Sent to your wallet.`
-      ).catch(() => {});
-    }
-    console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed. TX: ${result.txHash}`);
-  } else {
-    console.error(`[AutoPayout] ❌ ${tableName} #${recordId} failed: ${result.error}`);
-    // Leave as pending, admin can process manually
-    if (bot?.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
-      bot.sendMessage(process.env.ADMIN_TELEGRAM_ID,
-        `❌ Auto-payout FAILED for ${tableName} #${recordId} (${receiveAmount} → ${walletAddress})\nError: ${result.error}`
-      ).catch(() => {});
-    }
+  } catch (err) {
+    console.error(`[AutoPayout] tryAutoPayoutGram error:`, err);
+    return { success: false, error: err.message };
   }
 }
 
