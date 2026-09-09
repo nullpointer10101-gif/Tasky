@@ -20,6 +20,7 @@ export default function GramClaims() {
   const [adsList, setAdsList] = useState([]);
   const [loadingAds, setLoadingAds] = useState(false);
   const [auditItem, setAuditItem] = useState(null);
+  const [adFilterMode, setAdFilterMode] = useState('today'); // 'today' | '24h' | 'all'
 
   const formatClaimTime = (dateStr) => {
     if (!dateStr) return null;
@@ -769,19 +770,114 @@ export default function GramClaims() {
               </div>
             )}
 
-            {/* Provider Breakdown Summary */}
-            {!loadingAds && adsList.length > 0 && (
-              <div className="flex items-center gap-3 mb-3 p-3 rounded-xl bg-surface-soft border border-border/50 text-xs font-bold">
-                <span className="text-ink-soft">Total Ads Logged: <span className="text-white font-black">{adsList.length}</span></span>
-                <span className="text-ink-faint">•</span>
-                <span className="text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-lg border border-indigo-500/20">
-                  🟣 GigaPub: {adsList.filter(a => a.ad_type !== 'gram_monetag').length}
-                </span>
-                <span className="text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
-                  🟡 Monetag: {adsList.filter(a => a.ad_type === 'gram_monetag').length}
-                </span>
-              </div>
-            )}
+            {/* Filter Tabs & Breakdown Summary */}
+            {!loadingAds && adsList.length > 0 && (() => {
+              const now = new Date();
+              const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+              const todayAds = adsList.filter(a => new Date(a.created_at).getTime() >= todayStart);
+              const todayGiga = todayAds.filter(a => a.ad_type !== 'gram_monetag').length;
+              const todayMonetag = todayAds.filter(a => a.ad_type === 'gram_monetag').length;
+
+              const reqTime = selectedUserAds.requested_at ? new Date(selectedUserAds.requested_at).getTime() : Date.now();
+              const window24hAds = adsList.filter(a => {
+                const t = new Date(a.created_at).getTime();
+                return t >= (reqTime - 24 * 60 * 60 * 1000) && t <= reqTime;
+              });
+
+              const displayedAds = adFilterMode === 'today' ? todayAds : (adFilterMode === '24h' ? window24hAds : adsList);
+
+              return (
+                <div className="space-y-2.5 mb-3">
+                  {/* Today Highlight Metric Bar */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${adFilterMode === 'today' ? 'bg-indigo-500/15 border-indigo-500/50 shadow-md ring-1 ring-indigo-500/30' : 'bg-surface-soft border-border/60 hover:border-border'}`} onClick={() => setAdFilterMode('today')}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400">Today's Ads</span>
+                        {adFilterMode === 'today' && <span className="text-[9px] bg-indigo-500 text-white font-black px-1.5 py-0.2 rounded">Active</span>}
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-white">{todayAds.length}</span>
+                        <span className="text-[11px] text-ink-soft">/ 60</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[9.5px] mt-1 font-bold">
+                        <span className="text-indigo-300">🟣 Giga: {todayGiga}/30</span>
+                        <span className="text-ink-faint">•</span>
+                        <span className="text-amber-300">🟡 Mon: {todayMonetag}/30</span>
+                      </div>
+                    </div>
+
+                    <div className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${adFilterMode === '24h' ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md ring-1 ring-emerald-500/30' : 'bg-surface-soft border-border/60 hover:border-border'}`} onClick={() => setAdFilterMode('24h')}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">Claim Window</span>
+                        {adFilterMode === '24h' && <span className="text-[9px] bg-emerald-500 text-white font-black px-1.5 py-0.2 rounded">Active</span>}
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-white">{window24hAds.length}</span>
+                        <span className="text-[11px] text-ink-soft">ads</span>
+                      </div>
+                      <span className="text-[9.5px] text-emerald-400/80 block mt-1 font-bold">Last 24h of claim</span>
+                    </div>
+
+                    <div className={`col-span-2 sm:col-span-1 p-2.5 rounded-2xl border transition-all cursor-pointer ${adFilterMode === 'all' ? 'bg-slate-700/30 border-slate-500/50 shadow-md ring-1 ring-slate-400/30' : 'bg-surface-soft border-border/60 hover:border-border'}`} onClick={() => setAdFilterMode('all')}>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-ink-soft">All Time</span>
+                        {adFilterMode === 'all' && <span className="text-[9px] bg-slate-600 text-white font-black px-1.5 py-0.2 rounded">Active</span>}
+                      </div>
+                      <div className="flex items-baseline gap-1.5">
+                        <span className="text-xl font-black text-white">{adsList.length}</span>
+                        <span className="text-[11px] text-ink-soft">total</span>
+                      </div>
+                      <span className="text-[9.5px] text-ink-faint block mt-1 font-mono">Full DB history</span>
+                    </div>
+                  </div>
+
+                  {/* Filter Mode Selector Pills */}
+                  <div className="flex items-center justify-between gap-2 p-1 rounded-xl bg-black/40 border border-border/40 text-xs font-bold">
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setAdFilterMode('today')}
+                        className={`px-3 py-1 rounded-lg transition-all text-xs font-black flex items-center gap-1.5 cursor-pointer ${
+                          adFilterMode === 'today'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'text-ink-soft hover:text-white'
+                        }`}
+                      >
+                        <Sparkles size={12} />
+                        <span>Today ({todayAds.length})</span>
+                      </button>
+
+                      <button
+                        onClick={() => setAdFilterMode('24h')}
+                        className={`px-3 py-1 rounded-lg transition-all text-xs font-black flex items-center gap-1.5 cursor-pointer ${
+                          adFilterMode === '24h'
+                            ? 'bg-emerald-600 text-white shadow-md'
+                            : 'text-ink-soft hover:text-white'
+                        }`}
+                      >
+                        <Clock size={12} />
+                        <span>Claim Window ({window24hAds.length})</span>
+                      </button>
+
+                      <button
+                        onClick={() => setAdFilterMode('all')}
+                        className={`px-3 py-1 rounded-lg transition-all text-xs font-black flex items-center gap-1.5 cursor-pointer ${
+                          adFilterMode === 'all'
+                            ? 'bg-slate-700 text-white shadow-md'
+                            : 'text-ink-soft hover:text-white'
+                        }`}
+                      >
+                        <History size={12} />
+                        <span>All ({adsList.length})</span>
+                      </button>
+                    </div>
+
+                    <span className="text-[10.5px] text-ink-faint hidden sm:inline pr-2 font-mono">
+                      Showing {displayedAds.length} of {adsList.length}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
             
             <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-border/50">
               {loadingAds ? (
@@ -793,60 +889,81 @@ export default function GramClaims() {
                 <div className="py-16 text-center text-ink-soft text-sm">
                   No Gram ads found in database logs.
                 </div>
-              ) : (
-                <div className="divide-y divide-border/20 border-t border-b border-border/20">
-                  {adsList.map((ad, idx) => {
-                    const adTime = new Date(ad.created_at).getTime();
-                    let inWindow = false;
-                    const reqTime = selectedUserAds.requested_at ? new Date(selectedUserAds.requested_at).getTime() : Date.now();
-                    inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
-                    
-                    const isMonetag = ad.ad_type === 'gram_monetag';
+              ) : (() => {
+                const now = new Date();
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+                const todayAds = adsList.filter(a => new Date(a.created_at).getTime() >= todayStart);
 
-                    // Compute interval to previous ad
-                    let intervalSec = null;
-                    if (idx > 0 && adsList[idx - 1]) {
-                      const prevTime = new Date(adsList[idx - 1].created_at).getTime();
-                      intervalSec = Math.abs(Math.round((prevTime - adTime) / 1000));
-                    }
+                const reqTime = selectedUserAds.requested_at ? new Date(selectedUserAds.requested_at).getTime() : Date.now();
+                const window24hAds = adsList.filter(a => {
+                  const t = new Date(a.created_at).getTime();
+                  return t >= (reqTime - 24 * 60 * 60 * 1000) && t <= reqTime;
+                });
 
-                    return (
-                      <div key={ad.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-[#0a0f1c]/50 px-2.5 rounded-xl transition-colors">
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs text-ink-faint font-mono font-bold w-6">#{idx + 1}</span>
-                          <div className="flex flex-col">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-white">{new Date(ad.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-                              <span className="text-[10px] text-ink-faint font-mono">{new Date(ad.created_at).toLocaleDateString()}</span>
-                              <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-lg border ${
-                                isMonetag ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
-                              }`}>
-                                {isMonetag ? 'Monetag' : 'GigaPub'}
-                              </span>
+                const displayedList = adFilterMode === 'today' ? todayAds : (adFilterMode === '24h' ? window24hAds : adsList);
+
+                if (displayedList.length === 0) {
+                  return (
+                    <div className="py-12 text-center text-ink-soft text-xs">
+                      No ads found for the <strong className="text-white">{adFilterMode === 'today' ? 'Today' : 'Claim Window'}</strong> filter.
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="divide-y divide-border/20 border-t border-b border-border/20">
+                    {displayedList.map((ad, idx) => {
+                      const adTime = new Date(ad.created_at).getTime();
+                      let inWindow = false;
+                      inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
+                      
+                      const isMonetag = ad.ad_type === 'gram_monetag';
+
+                      // Compute interval to previous ad in this list
+                      let intervalSec = null;
+                      if (idx > 0 && displayedList[idx - 1]) {
+                        const prevTime = new Date(displayedList[idx - 1].created_at).getTime();
+                        intervalSec = Math.abs(Math.round((prevTime - adTime) / 1000));
+                      }
+
+                      return (
+                        <div key={ad.id} className="py-2.5 flex items-center justify-between text-xs hover:bg-[#0a0f1c]/50 px-2.5 rounded-xl transition-colors">
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs text-ink-faint font-mono font-bold w-6">#{idx + 1}</span>
+                            <div className="flex flex-col">
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-white">{new Date(ad.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                <span className="text-[10px] text-ink-faint font-mono">{new Date(ad.created_at).toLocaleDateString()}</span>
+                                <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-lg border ${
+                                  isMonetag ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                }`}>
+                                  {isMonetag ? 'Monetag' : 'GigaPub'}
+                                </span>
+                              </div>
+                              {intervalSec !== null && (
+                                <span className={`text-[10px] font-mono mt-0.5 ${intervalSec < 3 ? 'text-rose-400 font-bold' : 'text-ink-soft'}`}>
+                                  Interval: +{intervalSec}s {intervalSec < 3 ? '🚨 (Fast)' : ''}
+                                </span>
+                              )}
                             </div>
-                            {intervalSec !== null && (
-                              <span className={`text-[10px] font-mono mt-0.5 ${intervalSec < 3 ? 'text-rose-400 font-bold' : 'text-ink-soft'}`}>
-                                Interval: +{intervalSec}s {intervalSec < 3 ? '🚨 (Fast)' : ''}
+                          </div>
+                          <div>
+                            {inWindow ? (
+                              <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                                Claim Window
+                              </span>
+                            ) : (
+                              <span className="bg-slate-500/10 text-ink-faint border border-slate-500/10 text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-full">
+                                Prior History
                               </span>
                             )}
                           </div>
                         </div>
-                        <div>
-                          {inWindow ? (
-                            <span className="bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9.5px] font-black uppercase px-2.5 py-0.5 rounded-full">
-                              Claim Window
-                            </span>
-                          ) : (
-                            <span className="bg-slate-500/10 text-ink-faint border border-slate-500/10 text-[9.5px] font-black uppercase px-2 py-0.5 rounded-full">
-                              Prior History
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                );
+              })()}
             </div>
             
             <div className="mt-4 pt-3 border-t border-border/50 flex justify-between items-center">
