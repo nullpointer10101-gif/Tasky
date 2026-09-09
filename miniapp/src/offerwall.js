@@ -3,6 +3,7 @@ import { BACKEND_URL } from './api';
 let offerWallSDKInstance = null;
 let currentUserId = null;
 let rewardListeners = new Set();
+let initPromise = null;
 
 /**
  * Initialize the GigaPub Offerwall SDK
@@ -12,6 +13,21 @@ let rewardListeners = new Set();
 export function initOfferwall(telegramId, onReward) {
   if (telegramId) {
     currentUserId = String(telegramId);
+    
+    // Ensure Telegram user data is detectable by GigaPub's TelegramParser
+    try {
+      const numId = parseInt(currentUserId, 10);
+      if (!isNaN(numId) && numId > 0) {
+        if (!window.sessionStorage.getItem('tgWebAppData')) {
+          window.sessionStorage.setItem('tgWebAppData', `user=${encodeURIComponent(JSON.stringify({ id: numId }))}`);
+        }
+        if (!window.sessionStorage.getItem('telegramWebApp')) {
+          window.sessionStorage.setItem('telegramWebApp', JSON.stringify({ user: { id: numId } }));
+        }
+      }
+    } catch (e) {
+      console.warn('[Offerwall] Session storage setup warning:', e);
+    }
   }
 
   if (onReward && typeof onReward === 'function') {
@@ -22,14 +38,23 @@ export function initOfferwall(telegramId, onReward) {
     return Promise.resolve(offerWallSDKInstance);
   }
 
-  return new Promise((resolve) => {
-    const initFn = () => {
+  if (initPromise) {
+    return initPromise;
+  }
+
+  initPromise = new Promise((resolve) => {
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const tryInit = () => {
+      attempts++;
       if (typeof window.loadOfferWallSDK === 'function') {
+        console.log('[Offerwall] Calling loadOfferWallSDK for project 8093...');
         window.loadOfferWallSDK({
-          projectId: '8093',
-          userId: currentUserId || undefined
+          projectId: '8093'
         })
           .then((sdk) => {
+            console.log('[Offerwall] SDK initialized successfully:', sdk);
             offerWallSDKInstance = sdk;
             window.gigaOfferWallSDK = sdk;
 
@@ -78,43 +103,54 @@ export function initOfferwall(telegramId, onReward) {
             resolve(sdk);
           })
           .catch((err) => {
-            console.warn('[Offerwall] Error loading Offerwall SDK:', err);
+            console.error('[Offerwall] Error from loadOfferWallSDK:', err);
+            initPromise = null;
             resolve(null);
           });
+      } else if (attempts < maxAttempts) {
+        setTimeout(tryInit, 250);
       } else {
-        // Fallback: wait a moment for script to load
-        setTimeout(() => {
-          if (typeof window.loadOfferWallSDK === 'function') {
-            initFn();
-          } else {
-            resolve(null);
-          }
-        }, 1000);
+        console.warn('[Offerwall] window.loadOfferWallSDK not found after timeout');
+        initPromise = null;
+        resolve(null);
       }
     };
 
-    (window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(initFn);
-    // If DOM already loaded and function exists, call immediately
+    // Trigger initialization
     if (typeof window.loadOfferWallSDK === 'function') {
-      initFn();
+      tryInit();
+    } else {
+      (window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(tryInit);
+      setTimeout(tryInit, 300);
     }
   });
+
+  return initPromise;
 }
 
 /**
  * Open the GigaPub Offerwall modal
- * @returns {boolean} true if opened, false if SDK not ready
+ * @param {string|number} [telegramId]
+ * @returns {Promise<boolean>} true if opened, false if failed
  */
-export function openOfferwall() {
-  if (offerWallSDKInstance && typeof offerWallSDKInstance.open === 'function') {
-    offerWallSDKInstance.open();
-    return true;
+export async function openOfferwall(telegramId) {
+  let sdk = offerWallSDKInstance || window.gigaOfferWallSDK;
+  if (!sdk) {
+    sdk = await initOfferwall(telegramId || currentUserId);
   }
-  if (window.gigaOfferWallSDK && typeof window.gigaOfferWallSDK.open === 'function') {
-    window.gigaOfferWallSDK.open();
-    return true;
+
+  if (sdk && typeof sdk.open === 'function') {
+    try {
+      console.log('[Offerwall] Opening Offerwall modal...');
+      await sdk.open();
+      return true;
+    } catch (e) {
+      console.error('[Offerwall] Error calling sdk.open():', e);
+      return false;
+    }
   }
-  console.warn('[Offerwall] SDK instance not ready yet.');
+
+  console.warn('[Offerwall] SDK instance could not be opened.');
   return false;
 }
 

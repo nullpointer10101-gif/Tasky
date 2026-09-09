@@ -395,10 +395,11 @@ export default function Tasks({ user, refreshUser, navigate }) {
               {placementCategory === 'partner' && (
                 <motion.div 
                   whileTap={{ scale: 0.97 }}
-                  onClick={() => {
-                    const opened = openOfferwall();
+                  onClick={async () => {
+                    showToast('Opening GigaPub Offerwall...', 'info');
+                    const opened = await openOfferwall(user?.telegram_id);
                     if (!opened) {
-                      showToast('Opening GigaPub Offerwall...', 'info');
+                      showToast('Could not open Offerwall. Please try again.', 'error');
                     }
                   }}
                   className="relative cursor-pointer transition-all duration-300 flex items-center gap-3.5 py-4 px-4 mb-4 overflow-hidden rounded-[1.25rem] bg-gradient-to-r from-violet-950/90 via-purple-900/70 to-indigo-950/90 border border-purple-500/30 border-b-[3px] border-b-purple-500/50 shadow-[0_4px_20px_rgba(147,51,234,0.18)]"
