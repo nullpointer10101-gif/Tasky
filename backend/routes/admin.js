@@ -1742,11 +1742,11 @@ router.post('/gram/claims/review', async (req, res) => {
           let txText = '';
           const txLink = tx_hash ? (tx_hash.trim().startsWith('http') ? tx_hash.trim() : `https://tonviewer.com/transaction/${tx_hash.trim()}`) : null;
           if (txLink) {
-            txText = `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
+            txText = `\n🎁 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>`;
           }
           await bot.sendMessage(
             telegram_id,
-            `🎉 <b>Gram Reward Approved & Paid!</b> 🎉\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
+            `🎁 <b>Gram Reward Approved & Paid!</b> 🎁\n\nYour request for the <b>${amount} GRAM</b> reward has been successfully approved and the payment has been sent to your wallet! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nYou <b>MUST</b> take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a> immediately.\n\n<i>Failure to share your payment proof will result in a permanent ban from all future rewards!</i>`,
             {
               parse_mode: 'HTML',
               link_preview_options: txLink ? {

@@ -79,7 +79,7 @@ async function hasTreasuryBalance(requiredTon) {
  * Send TON from treasury to recipient wallet
  * Returns { success: boolean, txHash?: string, error?: string }
  */
-async function sendTon(toAddress, amountTon, comment = 'TASKY Daily Gram Payout') {
+async function sendTon(toAddress, amountTon, comment = '🎁 TASKY Daily Gram Payout 🎁') {
   try {
     if (!TREASURY_MNEMONIC) {
       return { success: false, error: 'TREASURY_MNEMONIC not configured in environment' };
@@ -324,11 +324,11 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
       if (bot && bot.sendMessage) {
         try {
           const txLink = txHash ? (txHash.startsWith('http') ? txHash : `https://tonviewer.com/transaction/${txHash}`) : null;
-          const txText = txLink ? `\n🔗 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>` : '';
+          const txText = txLink ? `\n🎁 <b>Payment Proof:</b> <a href="${txLink}">View Transaction</a>` : '';
 
           await bot.sendMessage(
             telegramId,
-            `🎉 <b>Gram Reward Auto-Approved & Paid!</b> 🎉\n\nYour request for <b>${receiveAmount} GRAM</b> has been processed automatically and sent to your wallet on the TON Blockchain! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nPlease take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a>.\n\n<i>Thank you for supporting Tasky!</i>`,
+            `🎁 <b>Gram Reward Auto-Approved & Paid!</b> 🎁\n\nYour request for <b>${receiveAmount} GRAM</b> has been processed automatically and sent to your wallet on the TON Blockchain! 🚀${txText}\n\n⚠️ <b>COMPULSORY REQUIREMENT:</b>\nPlease take a screenshot of your received payment and share it in our <a href="https://t.me/TaskyOfficialCommunity">Official Community Group</a>.\n\n<i>Thank you for supporting Tasky!</i>`,
             {
               parse_mode: 'HTML',
               link_preview_options: txLink ? {
