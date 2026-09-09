@@ -130,8 +130,21 @@ async function sendTon(toAddress, amountTon, comment = 'TASKY Daily Gram Payout'
       attempts++;
     }
 
-    // Build a verifiable tx reference
-    const txRef = `ton_seq_${seqno}_${Date.now()}`;
+    // 4. Fetch the real on-chain transaction hash for clean Tonviewer links
+    let realTxHash = null;
+    try {
+      await sleep(1500);
+      const txs = await withRetry(() => client.getTransactions(wallet.address, { limit: 1 }), 3, 2000);
+      if (txs && txs.length > 0) {
+        realTxHash = txs[0].hash().toString('hex');
+        console.log(`[AutoPayout] Real On-Chain TX Hash: ${realTxHash}`);
+      }
+    } catch (txErr) {
+      console.warn('[AutoPayout] Could not fetch real tx hash, using fallback:', txErr.message);
+    }
+
+    // Use the real 64-character hex transaction hash
+    const txRef = realTxHash || `ton_seq_${seqno}_${Date.now()}`;
     return { success: true, txHash: txRef, confirmed };
   } catch (err) {
     console.error('[AutoPayout] sendTon error:', err.message);
