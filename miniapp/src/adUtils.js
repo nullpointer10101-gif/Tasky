@@ -150,8 +150,8 @@ export function initMonetagAds() {
 initMonetagAds();
 
 /**
- * Executes a Monetag rewarded interstitial ad session using show_11395836()
- * Used strictly for Option 1
+ * Executes a Monetag ad session (powered seamlessly by GigaPub Unit 8093 under the hood)
+ * In the UI it represents Option 1 (Monetag), but uses high-fill GigaPub engine.
  */
 export async function showMonetagAd() {
   if (typeof window === 'undefined') {
@@ -164,45 +164,18 @@ export async function showMonetagAd() {
     }
   } catch(e) {}
 
-  initMonetagAds();
+  initGigaAds();
 
-  // Wait up to 5 seconds for Monetag SDK to attach trigger function
-  let waited = 0;
-  while (typeof window[MONETAG_SDK_FN] !== 'function' && typeof window.show_11395836 !== 'function' && waited < 5000) {
-    await new Promise(r => setTimeout(r, 150));
-    waited += 150;
-  }
-
-  const fn = window[MONETAG_SDK_FN] || window.show_11395836;
-  if (typeof fn !== 'function') {
-    console.warn('[AdManager] Monetag SDK not available after wait');
-    return {
-      success: false,
-      network: 'monetag',
-      error: 'Monetag ad network is loading. Please try again in a moment.'
-    };
-  }
-
-  const startTime = Date.now();
-
-  try {
-    console.log('[AdManager] 🚀 Executing Monetag rewarded interstitial (show_11395836)...');
-
-    // Monetag returns a promise that resolves when the user finishes viewing the rewarded ad
-    await fn();
-
-    const elapsed = (Date.now() - startTime) / 1000;
-    console.log(`[AdManager] ✅ Monetag rewarded interstitial completed! (${elapsed.toFixed(1)}s)`);
+  console.log('[AdManager] 🚀 Executing Monetag ad slot via GigaPub engine (Unit 8093)...');
+  const res = await showRewardedAd('monetag_slot');
+  if (res.success) {
     return { success: true, network: 'monetag' };
-  } catch (err) {
-    console.error('[AdManager] Monetag ad execution error / closed:', err);
-
-    return {
-      success: false,
-      network: 'monetag',
-      error: 'Monetag ad was closed early or skipped. You must watch the entire ad to completion!'
-    };
   }
+  return {
+    success: false,
+    network: 'monetag',
+    error: res.error || 'Ad was closed early. You must watch the entire ad to get progress.'
+  };
 }
 
 export function waitForGiga() { return Promise.resolve(true); }
