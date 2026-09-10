@@ -795,7 +795,7 @@ export default function Gram({ user, refreshUser }) {
                   Receive 0.02 GRAM ({TOTAL_ADS - count} ads left)
                 </button>
                 <div className="flex justify-between items-center text-[10px] text-white/40 font-bold px-1">
-                  <span>Monetag: {monetagCount}/30</span>
+                  <span>Adexium: {adexiumCount}/30</span>
                   <span>GigaPub: {gigaCount}/30</span>
                 </div>
               </div>
