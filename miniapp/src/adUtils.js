@@ -35,7 +35,7 @@ export function prefetchGramAd() {
 
 /**
  * Executes a GigaPub rewarded ad session using window.showGiga()
- * Used for both Option 1 (Monetag UI slot) and Option 2 (GigaPub UI slot)
+ * Used for Option 2 and fallback. Tracks active in-app focused watch time.
  */
 export async function showRewardedAd(placement = 'main', options = {}) {
   if (typeof window === 'undefined') {
@@ -74,12 +74,51 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     };
   }
 
-  const startTime = Date.now();
+  // ── ACTIVE IN-APP FOCUS TRACKER ──
+  // Pauses timer when user clicks an ad or navigates away from the app
+  let focusedDurationMs = 0;
+  let lastFocusTime = Date.now();
+  let isTabFocused = typeof document !== 'undefined' ? !document.hidden : true;
+
+  const onVisibilityChange = () => {
+    const now = Date.now();
+    if (document.hidden) {
+      if (isTabFocused) {
+        focusedDurationMs += (now - lastFocusTime);
+        isTabFocused = false;
+      }
+    } else {
+      if (!isTabFocused) {
+        lastFocusTime = Date.now();
+        isTabFocused = true;
+      }
+    }
+  };
+
+  const onBlur = () => {
+    if (isTabFocused) {
+      focusedDurationMs += (Date.now() - lastFocusTime);
+      isTabFocused = false;
+    }
+  };
+
+  const onFocus = () => {
+    if (!isTabFocused) {
+      lastFocusTime = Date.now();
+      isTabFocused = true;
+    }
+  };
+
+  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+  }
 
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
-    // Allow up to 75 seconds for full video ad loading and viewing (typical rewarded ads last 15-45s)
+    // Allow up to 75 seconds for full video ad loading and viewing
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('ad_timeout')), 75000)
     );
@@ -89,8 +128,13 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       timeoutPromise
     ]);
 
-    const elapsed = (Date.now() - startTime) / 1000;
-    console.log(`[AdManager] GigaPub returned:`, result, `Elapsed: ${elapsed.toFixed(1)}s`);
+    // Calculate final active in-app watch time
+    if (isTabFocused) {
+      focusedDurationMs += (Date.now() - lastFocusTime);
+    }
+
+    const activeSec = focusedDurationMs / 1000;
+    console.log(`[AdManager] GigaPub returned:`, result, `Active In-App Time: ${activeSec.toFixed(1)}s`);
 
     // Strict validation: Must not return false, cancelled, or closed early
     if (result === false || (result && typeof result === 'object' && (result.completed === false || result.status === 'error' || result.userClosed === true || result.skipped === true || result.canceled === true))) {
@@ -101,17 +145,17 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       };
     }
 
-    // Strict Duration Guard: Rewarded ads take at least 12-15 seconds
-    if (elapsed < 12.0) {
-      console.warn(`[AdManager] Rejected ad watch: Elapsed only ${elapsed.toFixed(1)}s`);
+    // Strict Active In-App Duration Guard: Rewarded ads require at least 15 seconds of active in-app watching
+    if (activeSec < 15.0) {
+      console.warn(`[AdManager] ❌ Rejected ad: active in-app time was only ${activeSec.toFixed(1)}s (clicked away or skipped)`);
       return {
         success: false,
         network: 'gigapub',
-        error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch the entire sponsor ad (at least 15s) to earn credit.`
+        error: `Ad was clicked away or closed early (${activeSec.toFixed(1)}s in-app). You must watch the full video (at least 15s) inside the app to earn credit.`
       };
     }
 
-    console.log(`[AdManager] ✅ GigaPub ad completed successfully! (${elapsed.toFixed(1)}s)`);
+    console.log(`[AdManager] ✅ GigaPub ad completed successfully with verified in-app duration! (${activeSec.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
     console.warn('[AdManager] GigaPub ad session caught error:', err);
@@ -146,6 +190,12 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       network: 'gigapub',
       error: 'Ad was closed early or interrupted. Please tap again to watch the full ad.'
     };
+  } finally {
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+    }
   }
 }
 
@@ -166,8 +216,7 @@ export function initMonetagAds() {
 }
 
 /**
- * Executes a Monetag ad session (powered seamlessly by GigaPub Unit 8093 under the hood)
- * In the UI it represents Option 1 (Monetag), but uses high-fill GigaPub engine.
+ * Executes Option 1: Direct Adsgram Rewarded Video (Block #44552) with GigaPub fallback
  */
 export async function showMonetagAd() {
   if (typeof window === 'undefined') {
@@ -180,9 +229,43 @@ export async function showMonetagAd() {
     }
   } catch(e) {}
 
-  initGigaAds();
+  // 1. Try Direct Adsgram Rewarded Video if available
+  if (typeof window !== 'undefined' && window.Adsgram) {
+    try {
+      console.log('[AdManager] 🚀 Executing Adsgram Rewarded Video (Block #44552)...');
+      const AdController = window.Adsgram.init({ blockId: '44552' });
+      const startTime = Date.now();
+      const res = await AdController.show();
+      const elapsed = (Date.now() - startTime) / 1000;
+      
+      if (res && (res.done === true || res.state === 'reward')) {
+        if (elapsed >= 15.0) {
+          console.log(`[AdManager] ✅ Adsgram video completed successfully! (${elapsed.toFixed(1)}s)`);
+          return { success: true, network: 'adsgram' };
+        }
+      }
+      
+      if (res && res.done === false) {
+        return {
+          success: false,
+          network: 'adsgram',
+          error: 'Ad was closed early. You must watch the complete video to earn progress.'
+        };
+      }
+    } catch (adsgramErr) {
+      console.warn('[AdManager] Adsgram show caught error/skip:', adsgramErr);
+      if (adsgramErr?.error || adsgramErr?.state === 'closed' || String(adsgramErr).toLowerCase().includes('close')) {
+        return {
+          success: false,
+          network: 'adsgram',
+          error: 'You must watch the full rewarded video without closing or skipping.'
+        };
+      }
+    }
+  }
 
-  console.log('[AdManager] 🚀 Executing Monetag ad slot via GigaPub engine (Unit 8093)...');
+  // 2. Fallback to GigaPub with strict in-app focus duration tracking
+  console.log('[AdManager] 🚀 Executing Monetag slot via GigaPub engine (Unit 8093)...');
   const res = await showRewardedAd('monetag_slot');
   if (res.success) {
     return { success: true, network: 'monetag' };
