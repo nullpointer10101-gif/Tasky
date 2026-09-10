@@ -4,7 +4,7 @@
  * Uses @ton/ton SDK with mnemonic from TREASURY_MNEMONIC env var.
  */
 
-const { TonClient, WalletContractV4, internal, fromNano, toNano } = require('@ton/ton');
+const { TonClient, WalletContractV4, internal, fromNano, toNano, SendMode } = require('@ton/ton');
 const { mnemonicToWalletKey } = require('@ton/crypto');
 const { pool } = require('../db');
 const bot = require('../bot');
@@ -100,6 +100,7 @@ async function sendTon(toAddress, amountTon, comment = '🎁 TASKY Daily Gram Pa
     await withRetry(() => contract.sendTransfer({
       secretKey: key.secretKey,
       seqno,
+      sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
       messages: [
         internal({
           to: toAddress,
