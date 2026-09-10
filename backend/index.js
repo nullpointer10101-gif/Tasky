@@ -10,6 +10,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 const { initDB } = require('./db');
 const bot = require('./bot');
@@ -20,12 +21,31 @@ const { startDepositWatcher } = require('./services/depositWatcher');
 const { startAutoPayoutProcessor } = require('./services/autoPayoutService');
 
 const app = express();
+
+// High-efficiency Gzip/Deflate compression for all responses (saves 70-80% bandwidth)
+app.use(compression({
+  threshold: 1024,
+  level: 6
+}));
+
 app.use(cors({
   origin: '*',
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password']
 }));
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Long-lived caching headers for static hashed assets (30 days) & no-cache for index.html
+const staticCacheOptions = {
+  maxAge: '30d',
+  immutable: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
+  }
+};
+
+app.use(express.static(path.join(__dirname, 'public'), staticCacheOptions));
 
 // In-memory tracker for active users and recent logs
 global.onlineUsers = new Map();
@@ -204,27 +224,29 @@ app.use('/api/offerwall', require('./routes/offerwall'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI
-// Serve Admin Panel Static Build directly from Backend (No Vercel deployment limit!)
+// Serve Admin Panel Static Build directly from Backend
 const adminDistPath = fs.existsSync(path.join(__dirname, 'public/admin')) 
   ? path.join(__dirname, 'public/admin') 
   : path.join(__dirname, '../admin-frontend/dist');
 
 if (fs.existsSync(adminDistPath)) {
-  app.use('/admin', express.static(adminDistPath));
+  app.use('/admin', express.static(adminDistPath, staticCacheOptions));
   app.get('/admin*', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(adminDistPath, 'index.html'));
   });
 }
 
-// Serve Miniapp Static Build directly from Backend (Bypasses Vercel 100/day limit!)
+// Serve Miniapp Static Build directly from Backend
 const miniappDistPath = fs.existsSync(path.join(__dirname, 'public/app')) 
   ? path.join(__dirname, 'public/app') 
   : path.join(__dirname, '../miniapp/dist');
 
 if (fs.existsSync(miniappDistPath)) {
-  app.use(express.static(miniappDistPath));
+  app.use(express.static(miniappDistPath, staticCacheOptions));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) return next();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(miniappDistPath, 'index.html'));
   });
 }

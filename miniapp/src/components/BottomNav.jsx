@@ -33,8 +33,8 @@ export default function BottomNav({ active, onChange, user }) {
       };
       fetchGram();
       
-      // Refresh every 20 seconds to keep it sync'd
-      const interval = setInterval(fetchGram, 20000);
+      // Light refresh every 5 minutes (drastically saves server bandwidth)
+      const interval = setInterval(fetchGram, 300000);
       return () => clearInterval(interval);
     }
   }, [user?.telegram_id]);
