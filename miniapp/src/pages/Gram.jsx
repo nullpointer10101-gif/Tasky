@@ -209,9 +209,8 @@ export default function Gram({ user, refreshUser }) {
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       
-      // Start server session token
-      const startRes = await startWatchGramAd(user?.telegram_id, provider);
-      const sessionToken = startRes?.data?.session_token || null;
+      // Start server session token in background (zero UI latency)
+      const startPromise = startWatchGramAd(user?.telegram_id, provider).catch(() => null);
 
       let adResult;
       if (provider === 'monetag') {
@@ -224,6 +223,9 @@ export default function Gram({ user, refreshUser }) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');
         return;
       }
+
+      const startRes = await startPromise;
+      const sessionToken = startRes?.data?.session_token || null;
 
       const networkName = provider === 'monetag' ? 'Monetag' : 'GigaPub';
       showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
