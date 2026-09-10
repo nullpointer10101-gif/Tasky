@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users, CheckSquare, ArrowDownToLine, Coins, Activity, Tv,
   LogIn, Calendar, RotateCcw, ListChecks, Pickaxe, Wallet,
@@ -132,9 +133,18 @@ export default function Dashboard() {
 
   return (
     <div className="p-4 md:p-10 pb-20 max-w-7xl mx-auto">
-      <div className="mb-10">
-        <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">System Overview</h1>
-        <p className="text-ink-soft text-sm md:text-base">Real-time statistics for the Tasky platform infrastructure.</p>
+      <div className="mb-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl md:text-4xl font-black text-ink mb-2 tracking-tight">System Overview</h1>
+          <p className="text-ink-soft text-sm md:text-base">Real-time statistics for the Tasky platform infrastructure.</p>
+        </div>
+        <Link
+          to="/treasury-status"
+          className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-600/30 via-indigo-600/30 to-blue-600/30 hover:from-cyan-600/45 hover:to-blue-600/45 border border-cyan-500/40 text-cyan-300 hover:text-white font-bold text-sm transition-all shadow-lg shadow-cyan-500/10 self-start sm:self-auto"
+        >
+          <Wallet size={18} className="text-cyan-400" />
+          <span>🏦 Treasury & System Status →</span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 md:gap-6">
