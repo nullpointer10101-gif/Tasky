@@ -317,7 +317,8 @@ export default function Gram({ user, refreshUser }) {
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
         return;
       }
-      const { data, error } = await claimGramReward(user?.telegram_id || '123456');
+      const targetWallet = tonAddress || status?.gram_wallet_address || user?.wallet_address || '';
+      const { data, error } = await claimGramReward(user?.telegram_id || '123456', targetWallet);
       if (error) {
         showToast(error, 'error');
         try { window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); } catch(e){}
@@ -777,14 +778,14 @@ export default function Gram({ user, refreshUser }) {
 
                 <motion.button
                   onClick={handleClaim}
-                  disabled={!status?.gram_wallet_address || isSubmitting || !suffixOk || (status?.requires_referrals && !status?.referral_requirement_met)}
+                  disabled={!isWalletConnected || isSubmitting || !suffixOk || (status?.requires_referrals && !status?.referral_requirement_met)}
                   whileTap={{ scale: 0.96 }}
-                  animate={status?.gram_wallet_address && suffixOk && (!status?.requires_referrals || status?.referral_requirement_met) ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
+                  animate={isWalletConnected && suffixOk && (!status?.requires_referrals || status?.referral_requirement_met) ? { boxShadow: ['0 0 25px rgba(16,185,129,0.3)', '0 0 45px rgba(16,185,129,0.6)', '0 0 25px rgba(16,185,129,0.3)'] } : {}}
                   transition={{ repeat: Infinity, duration: 1.8 }}
-                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:active:scale-100 border border-emerald-400/20"
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:active:scale-100 border border-emerald-400/20 cursor-pointer"
                 >
                   {isSubmitting ? <><Loader2 size={18} className="animate-spin"/>Processing Claim...</> :
-                   !status?.gram_wallet_address ? <>Connect TON Wallet First</> :
+                   !isWalletConnected ? <>Connect TON Wallet First</> :
                    !suffixOk ? <>Add | Tasky 🐾 to Name First ↑</> :
                    (status?.requires_referrals && !status?.referral_requirement_met) ? <>Verify Account (Invite 2 Friends) ↑</> :
                    <><Sparkles size={18} className="animate-pulse"/>Receive 0.02 GRAM Instantly!</>}

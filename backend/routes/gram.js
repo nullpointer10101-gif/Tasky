@@ -298,7 +298,7 @@ router.post('/claim', async (req, res) => {
         }
         
         const { gram_wallet_address, wallet_address, username, first_name } = userRes.rows[0];
-        const activeWallet = gram_wallet_address || wallet_address;
+        const activeWallet = req.body.gram_wallet_address || gram_wallet_address || wallet_address;
         
         if (!activeWallet) {
             await client.query('ROLLBACK');
