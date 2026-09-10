@@ -79,9 +79,9 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
-    // Race SDK call against a 20s timeout so the UI never hangs indefinitely if the network is slow or no ad is filled
+    // Allow up to 75 seconds for full video ad loading and viewing (typical rewarded ads last 15-45s)
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('ad_timeout')), 20000)
+      setTimeout(() => reject(new Error('ad_timeout')), 75000)
     );
 
     const result = await Promise.race([

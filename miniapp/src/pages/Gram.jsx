@@ -124,14 +124,14 @@ export default function Gram({ user, refreshUser }) {
   useEffect(() => { checkSuffix(true); }, [checkSuffix]);
   useEffect(() => { prefetchGramAd(); }, []);
 
-  // Safety auto-unfreeze timer if ad network hangs
+  // Safety auto-unfreeze timer if ad network hangs indefinitely
   useEffect(() => {
     if (!isWatchingAd) return;
     const t = setTimeout(() => {
       setIsWatchingAd(false);
       setWatchingProvider(null);
-      showToast('Ad sponsor took too long. Please tap to try again.', 'info');
-    }, 22000);
+      showToast('Ad session ended. Tap to try again.', 'info');
+    }, 80000);
     return () => clearTimeout(t);
   }, [isWatchingAd]);
 
