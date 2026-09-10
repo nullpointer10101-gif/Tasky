@@ -2770,8 +2770,265 @@ router.get('/gram-deposits', async (req, res) => {
       depositors,
       deposits
     });
+// GET /api/admin/treasury-status - Wallet Balance, Previous Transactions, and System Health
+router.get('/treasury-status', async (req, res) => {
+  const startTime = Date.now();
+  try {
+    // 1. Server & System Info
+    const uptimeSec = process.uptime();
+    const days = Math.floor(uptimeSec / 86400);
+    const hours = Math.floor((uptimeSec % 86400) / 3600);
+    const minutes = Math.floor((uptimeSec % 3600) / 60);
+    const seconds = Math.floor(uptimeSec % 60);
+    const formattedUptime = `${days > 0 ? days + 'd ' : ''}${hours}h ${minutes}m ${seconds}s`;
+
+    const mem = process.memoryUsage();
+    const systemInfo = {
+      uptimeSeconds: uptimeSec,
+      uptimeFormatted: formattedUptime,
+      memory: {
+        rssMB: (mem.rss / 1024 / 1024).toFixed(1),
+        heapTotalMB: (mem.heapTotal / 1024 / 1024).toFixed(1),
+        heapUsedMB: (mem.heapUsed / 1024 / 1024).toFixed(1),
+        externalMB: (mem.external / 1024 / 1024).toFixed(1)
+      },
+      nodeVersion: process.version,
+      platform: process.platform,
+      arch: process.arch,
+      env: process.env.NODE_ENV || 'production',
+      serverTime: new Date().toISOString()
+    };
+
+    // 2. Database Ping & Stats
+    let dbPingMs = 0;
+    const dbT0 = Date.now();
+    try {
+      await pool.query('SELECT 1');
+      dbPingMs = Date.now() - dbT0;
+    } catch (dbErr) {
+      dbPingMs = -1;
+    }
+
+    // 3. TON RPC Ping & Masterchain status
+    let tonRpcStatus = {
+      endpoint: 'https://toncenter.com/api/v2/jsonRPC',
+      network: process.env.TON_NETWORK || 'mainnet',
+      connected: false,
+      latencyMs: 0,
+      latestSeqno: null
+    };
+
+    const { TonClient, WalletContractV4, fromNano } = require('@ton/ton');
+    const { mnemonicToWalletKey } = require('@ton/crypto');
+
+    try {
+      const tonT0 = Date.now();
+      const client = new TonClient({
+        endpoint: tonRpcStatus.endpoint,
+        apiKey: process.env.TONCENTER_API_KEY || undefined
+      });
+      const mc = await Promise.race([
+        client.getMasterchainInfo(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TON RPC timeout')), 4000))
+      ]);
+      tonRpcStatus.connected = true;
+      tonRpcStatus.latencyMs = Date.now() - tonT0;
+      tonRpcStatus.latestSeqno = mc.latestSeqno || mc.last?.seqno;
+    } catch (tonErr) {
+      tonRpcStatus.connected = false;
+      tonRpcStatus.error = tonErr.message;
+    }
+
+    // 4. Treasury Wallet Information & Live Balance
+    let treasuryWallet = {
+      configured: false,
+      addressFriendly: null,
+      addressRaw: null,
+      balanceTon: 0,
+      balanceNano: '0',
+      jettons: [],
+      explorerTonviewer: null,
+      explorerTonscan: null,
+      lowBalanceWarning: false
+    };
+
+    const mnemonicStr = process.env.TREASURY_MNEMONIC || '';
+    if (mnemonicStr) {
+      try {
+        const words = mnemonicStr.trim().split(/\s+/);
+        const key = await mnemonicToWalletKey(words);
+        const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
+        const friendly = wallet.address.toString({ bounceable: false });
+        const raw = wallet.address.toRawString();
+
+        treasuryWallet.configured = true;
+        treasuryWallet.addressFriendly = friendly;
+        treasuryWallet.addressRaw = raw;
+        treasuryWallet.explorerTonviewer = `https://tonviewer.com/${friendly}`;
+        treasuryWallet.explorerTonscan = `https://tonscan.org/address/${friendly}`;
+
+        // Query balance
+        try {
+          const client = new TonClient({
+            endpoint: tonRpcStatus.endpoint,
+            apiKey: process.env.TONCENTER_API_KEY || undefined
+          });
+          const nano = await Promise.race([
+            client.getBalance(wallet.address),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Balance timeout')), 4000))
+          ]);
+          const tonBal = parseFloat(fromNano(nano));
+          treasuryWallet.balanceTon = tonBal;
+          treasuryWallet.balanceNano = nano.toString();
+          treasuryWallet.lowBalanceWarning = tonBal < 0.05;
+        } catch (balErr) {
+          treasuryWallet.balanceError = balErr.message;
+        }
+
+        // Query Jettons (e.g. GRAM) via tonapi.io
+        try {
+          const jettonRes = await Promise.race([
+            fetch(`https://tonapi.io/v2/accounts/${friendly}/jettons`),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Jettons timeout')), 3000))
+          ]);
+          if (jettonRes.ok) {
+            const jData = await jettonRes.json();
+            if (jData.balances && Array.isArray(jData.balances)) {
+              treasuryWallet.jettons = jData.balances.map(j => {
+                const dec = j.jetton?.decimals || 9;
+                return {
+                  symbol: j.jetton?.symbol || j.jetton?.name || 'Jetton',
+                  name: j.jetton?.name || '',
+                  balance: (parseFloat(j.balance) / Math.pow(10, dec)).toFixed(4),
+                  address: j.jetton?.address
+                };
+              });
+            }
+          }
+        } catch (_) {}
+      } catch (walletErr) {
+        treasuryWallet.error = walletErr.message;
+      }
+    }
+
+    // 5. Bot & Ad Status
+    const botStatus = {
+      active: true,
+      handle: '@TaskyAppbot',
+      payoutChannel: process.env.PAYOUT_PROOF_CHANNEL_ID || '-1003189912176'
+    };
+
+    const adNetworks = [
+      { name: 'GigaPub', status: 'Active', unitId: '8093', type: 'Rewarded Video & Offerwall' },
+      { name: 'Adexium', status: 'Active', placementId: '#13844 (WID: e93d690f...)', type: 'TMA Interstitial' },
+      { name: 'Monetag', status: 'Active (Legacy/Fallback)', type: 'In-App Interstitial' }
+    ];
+
+    // 6. Aggregate Transactions (Payouts & Deposits)
+    const [payoutsRes, depositsRes, taskyWithdrawalsRes, totalsRes] = await Promise.all([
+      pool.query(`
+        SELECT 
+          'gram_payout' as category,
+          gw.id,
+          gw.telegram_id,
+          gw.amount as amount,
+          'GRAM' as currency,
+          gw.wallet_address,
+          gw.tx_hash,
+          gw.status,
+          gw.requested_at as created_at,
+          gw.processed_at,
+          gw.is_auto_payout,
+          u.username,
+          u.first_name
+        FROM gram_withdrawals gw
+        LEFT JOIN users u ON gw.telegram_id = u.telegram_id
+        ORDER BY gw.requested_at DESC
+        LIMIT 35
+      `),
+      pool.query(`
+        SELECT 
+          'deposit' as category,
+          gd.id,
+          gd.telegram_id,
+          gd.amount_gram as amount,
+          'GRAM/TON' as currency,
+          NULL as wallet_address,
+          gd.tx_hash,
+          gd.status,
+          gd.created_at,
+          gd.created_at as processed_at,
+          gd.auto_verified as is_auto_payout,
+          u.username,
+          u.first_name
+        FROM gram_deposits gd
+        LEFT JOIN users u ON gd.telegram_id = u.telegram_id
+        ORDER BY gd.created_at DESC
+        LIMIT 35
+      `),
+      pool.query(`
+        SELECT 
+          'tasky_withdrawal' as category,
+          w.id,
+          w.telegram_id,
+          w.amount as amount,
+          'TASKY' as currency,
+          w.wallet_address,
+          w.tx_hash,
+          w.status,
+          w.created_at,
+          w.created_at as processed_at,
+          false as is_auto_payout,
+          u.username,
+          u.first_name
+        FROM withdrawals w
+        LEFT JOIN users u ON w.telegram_id = u.telegram_id
+        ORDER BY w.created_at DESC
+        LIMIT 20
+      `),
+      pool.query(`
+        SELECT 
+          (SELECT COALESCE(SUM(amount), 0) FROM gram_withdrawals WHERE status IN ('done', 'approved')) as total_gram_paid,
+          (SELECT COUNT(*) FROM gram_withdrawals WHERE status IN ('done', 'approved')) as count_gram_paid,
+          (SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending') as pending_gram_payouts,
+          (SELECT COALESCE(SUM(amount_gram), 0) FROM gram_deposits WHERE status = 'approved') as total_gram_deposited,
+          (SELECT COUNT(*) FROM gram_deposits WHERE status = 'approved') as count_deposits,
+          (SELECT COALESCE(SUM(amount), 0) FROM withdrawals WHERE status = 'completed') as total_tasky_paid
+      `)
+    ]);
+
+    const combinedTx = [
+      ...payoutsRes.rows,
+      ...depositsRes.rows,
+      ...taskyWithdrawalsRes.rows
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const totals = totalsRes.rows[0] || {};
+
+    res.json({
+      success: true,
+      executionMs: Date.now() - startTime,
+      treasuryWallet,
+      systemInfo,
+      databaseStatus: {
+        connected: dbPingMs >= 0,
+        pingMs: dbPingMs
+      },
+      tonRpcStatus,
+      botStatus,
+      adNetworks,
+      totals: {
+        total_gram_paid: parseFloat(totals.total_gram_paid || 0),
+        count_gram_paid: parseInt(totals.count_gram_paid || 0, 10),
+        pending_gram_payouts: parseInt(totals.pending_gram_payouts || 0, 10),
+        total_gram_deposited: parseFloat(totals.total_gram_deposited || 0),
+        count_deposits: parseInt(totals.count_deposits || 0, 10),
+        total_tasky_paid: parseFloat(totals.total_tasky_paid || 0)
+      },
+      transactions: combinedTx
+    });
   } catch (err) {
-    console.error('Error fetching admin GRAM deposits:', err);
+    console.error('Error fetching admin treasury status:', err);
     res.status(500).json({ error: err.message });
   }
 });

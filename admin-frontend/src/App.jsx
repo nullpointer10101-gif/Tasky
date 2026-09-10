@@ -20,6 +20,7 @@ import SpecialOffers from './pages/SpecialOffers';
 import PromoCodes from './pages/PromoCodes';
 import NftHolders from './pages/NftHolders';
 import GramDeposits from './pages/GramDeposits';
+import TreasuryAndSystem from './pages/TreasuryAndSystem';
 import api from './api';
 import { Toaster } from 'react-hot-toast';
 
@@ -70,6 +71,7 @@ function App() {
             <Route path="gram-withdrawals" element={<GramWithdrawals />} />
             <Route path="nft-holders" element={<NftHolders />} />
             <Route path="gram-deposits" element={<GramDeposits />} />
+            <Route path="treasury-status" element={<TreasuryAndSystem />} />
             <Route path="users" element={<Users />} />
             <Route path="broadcast" element={<Broadcast />} />
             <Route path="machines" element={<Machines />} />
