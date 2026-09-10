@@ -81,8 +81,11 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     
     // Call window.showGiga() as officially specified
     const result = await fn.call(window.GigaPub || window);
+    const elapsed = (Date.now() - startTime) / 1000;
+    console.log(`[AdManager] GigaPub returned:`, result, `Elapsed: ${elapsed.toFixed(1)}s`);
 
-    if (result === false) {
+    // Strict validation: Must not return false, cancelled, or closed early
+    if (result === false || (result && typeof result === 'object' && (result.completed === false || result.status === 'error' || result.userClosed === true || result.skipped === true || result.canceled === true))) {
       return {
         success: false,
         network: 'gigapub',
@@ -90,14 +93,23 @@ export async function showRewardedAd(placement = 'main', options = {}) {
       };
     }
 
-    const elapsed = (Date.now() - startTime) / 1000;
+    // Strict Duration Guard: Rewarded ads take at least 12-15 seconds
+    if (elapsed < 12.0) {
+      console.warn(`[AdManager] Rejected ad watch: Elapsed only ${elapsed.toFixed(1)}s`);
+      return {
+        success: false,
+        network: 'gigapub',
+        error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch the entire sponsor ad (at least 15s) to earn credit.`
+      };
+    }
+
     console.log(`[AdManager] ✅ GigaPub ad completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
     console.warn('[AdManager] GigaPub ad session caught error:', err);
     const errMessage = String(err?.message || err || '').toLowerCase();
     
-    if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss')) {
+    if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss') || errMessage.includes('back')) {
       return {
         success: false,
         network: 'gigapub',
@@ -116,7 +128,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad was not completed. Please tap again to watch the full ad.'
+      error: 'Ad was closed early or interrupted. Please tap again to watch the full ad.'
     };
   }
 }

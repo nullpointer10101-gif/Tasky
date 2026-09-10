@@ -199,9 +199,9 @@ router.post('/watch-ad', async (req, res) => {
         // Invalidate session immediately to prevent replay attacks
         global.gramAdSessions.delete(session_token);
 
-        if (elapsedSec < 3.0) {
-            const remaining = Math.ceil(3.0 - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! Please watch the ad properly. Wait ${remaining}s.` });
+        if (elapsedSec < 12.0) {
+            const remaining = Math.ceil(12.0 - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor ad (at least 15s) to earn credit.` });
         }
 
         // Check if user claimed reward in the last 24 hours
