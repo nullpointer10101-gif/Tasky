@@ -2938,8 +2938,8 @@ router.get('/treasury-status', async (req, res) => {
       { name: 'Monetag', status: 'Active (Legacy/Fallback)', type: 'In-App Interstitial' }
     ];
 
-    // 6. Aggregate Transactions (Payouts & Deposits)
-    const [payoutsRes, depositsRes, taskyWithdrawalsRes, totalsRes] = await Promise.all([
+    // 6. Aggregate Transactions (Payouts & Deposits) - use allSettled so DB failure still returns system info
+    const [payoutsResult, depositsResult, taskyWithdrawalsResult, totalsResult] = await Promise.allSettled([
       pool.query(`
         SELECT 
           'gram_payout' as category,
@@ -3011,13 +3011,18 @@ router.get('/treasury-status', async (req, res) => {
       `)
     ]);
 
+    const payoutsRows = payoutsResult.status === 'fulfilled' ? payoutsResult.value.rows : [];
+    const depositsRows = depositsResult.status === 'fulfilled' ? depositsResult.value.rows : [];
+    const taskyWithdrawalsRows = taskyWithdrawalsResult.status === 'fulfilled' ? taskyWithdrawalsResult.value.rows : [];
+    const totalsRow = totalsResult.status === 'fulfilled' ? (totalsResult.value.rows[0] || {}) : {};
+
     const combinedTx = [
-      ...payoutsRes.rows,
-      ...depositsRes.rows,
-      ...taskyWithdrawalsRes.rows
+      ...payoutsRows,
+      ...depositsRows,
+      ...taskyWithdrawalsRows
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    const totals = totalsRes.rows[0] || {};
+    const totals = totalsRow;
 
     res.json({
       success: true,
