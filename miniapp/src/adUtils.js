@@ -77,34 +77,43 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
     // Call window.showGiga() as officially specified
-    await fn.call(window.GigaPub || window);
+    const result = await fn.call(window.GigaPub || window);
+
+    if (result === false) {
+      return {
+        success: false,
+        network: 'gigapub',
+        error: 'Ad was closed early. You must watch the entire ad to get progress.'
+      };
+    }
 
     const elapsed = (Date.now() - startTime) / 1000;
     console.log(`[AdManager] ✅ GigaPub ad completed successfully! (${elapsed.toFixed(1)}s)`);
     return { success: true, network: 'gigapub' };
   } catch (err) {
-    console.warn('[AdManager] GigaPub ad session caught:', err);
+    console.warn('[AdManager] GigaPub ad session caught error:', err);
     const errMessage = String(err?.message || err || '').toLowerCase();
-    const elapsed = (Date.now() - startTime) / 1000;
     
     if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss')) {
       return {
         success: false,
         network: 'gigapub',
-        error: 'Ad was closed early. Please watch the ad to get progress.'
+        error: 'Ad was closed early. You must watch the full ad to earn progress.'
       };
     }
 
-    // If ad was viewed for at least 3 seconds before ending/closing
-    if (elapsed >= 3.0) {
-      console.log(`[AdManager] Ad was viewed for ${elapsed.toFixed(1)}s. Resolving as fulfilled.`);
-      return { success: true, network: 'gigapub' };
+    if (errMessage.includes('no ad') || errMessage.includes('failed to show')) {
+      return {
+        success: false,
+        network: 'gigapub',
+        error: 'Ad sponsor is loading a fresh video. Please tap again in a moment.'
+      };
     }
 
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad session was closed early. Please tap again to watch.'
+      error: 'Ad was not completed. Please tap again to watch the full ad.'
     };
   }
 }
