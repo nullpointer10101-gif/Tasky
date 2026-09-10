@@ -49,6 +49,21 @@ async function withRetry(fn, maxRetries = 5, delayMs = 1500) {
   return await fn();
 }
 
+let lastLowBalanceAlertTime = 0;
+
+function notifyAdminLowBalance(needed, balance = 0) {
+  const now = Date.now();
+  if (now - lastLowBalanceAlertTime < 4 * 60 * 60 * 1000) return; // 1 notification every 4 hours max
+  lastLowBalanceAlertTime = now;
+  if (bot && bot.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
+    bot.sendMessage(
+      process.env.ADMIN_TELEGRAM_ID,
+      `⚠️ <b>Treasury Wallet Low:</b> Treasury has low balance (${balance ? balance.toFixed(4) : '0'} TON). Auto-payouts will resume automatically once topped up.`,
+      { parse_mode: 'HTML' }
+    ).catch(() => {});
+  }
+}
+
 /**
  * Check if the treasury wallet has enough balance to cover the payout + gas
  */
@@ -65,10 +80,13 @@ async function hasTreasuryBalance(requiredTon) {
     const contract = client.open(wallet);
     const balance = await withRetry(() => contract.getBalance());
     const balanceTon = parseFloat(fromNano(balance));
-    const needed = requiredTon + 0.01; // 0.01 TON buffer for gas
-    console.log(`[AutoPayout] Treasury Address (V4R2): ${wallet.address.toString({ bounceable: false })}`);
-    console.log(`[AutoPayout] Treasury balance: ${balanceTon} TON, needed: ${needed} TON`);
-    return balanceTon >= needed;
+    const needed = requiredTon + 0.005; // 0.005 TON gas buffer
+    console.log(`[AutoPayout] Treasury balance: ${balanceTon.toFixed(4)} TON (needed: ${needed.toFixed(4)} TON)`);
+    if (balanceTon < needed) {
+      notifyAdminLowBalance(needed, balanceTon);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error('[AutoPayout] hasTreasuryBalance error:', err.message);
     return false;
@@ -229,13 +247,6 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
     const hasBalance = await hasTreasuryBalance(receiveAmount);
     if (!hasBalance) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Treasury balance too low for payout + gas.`);
-      if (bot && bot.sendMessage && process.env.ADMIN_TELEGRAM_ID) {
-        bot.sendMessage(
-          process.env.ADMIN_TELEGRAM_ID,
-          `⚠️ <b>Auto-Payout Skipped:</b> Treasury balance is too low to send ${receiveAmount} GRAM to ${walletAddress}. Please top up the treasury wallet.`,
-          { parse_mode: 'HTML' }
-        ).catch(() => {});
-      }
       return { success: false, reason: 'Treasury balance too low.' };
     }
 
@@ -382,6 +393,15 @@ async function processPendingGramClaims() {
       ORDER BY id ASC
       LIMIT 3
     `);
+
+    if (pendingRes.rows.length === 0) return;
+
+    // Check treasury balance once before iterating
+    const hasBalance = await hasTreasuryBalance(0.02);
+    if (!hasBalance) {
+      // Treasury balance is low; hasTreasuryBalance already sent 1 throttled notification
+      return;
+    }
 
     for (const claim of pendingRes.rows) {
       console.log(`[AutoPayout] ⚡ Background processor auto-paying claim #${claim.id} (${claim.telegram_id})...`);
