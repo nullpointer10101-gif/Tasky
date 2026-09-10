@@ -1,7 +1,7 @@
 /**
  * Ad Manager
- * - Option 1: Monetag (Zone 11395836)
- * - Option 2: GigaPub (Unit 8093) via window.showGiga()
+ * - Option 1: Monetag Slot (Powered via GigaPub Unit 8093)
+ * - Option 2: GigaPub Slot (Powered via GigaPub Unit 8093)
  */
 
 const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=8093';
@@ -35,9 +35,9 @@ export function prefetchGramAd() {
 
 /**
  * Executes a GigaPub rewarded ad session using window.showGiga()
- * Used for Option 2 and fallback. Tracks active in-app focused watch time.
+ * Used for both Option 1 and Option 2.
  */
-export async function showRewardedAd(placement = 'main', options = {}) {
+export async function showRewardedAd(providerName = 'gigapub') {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
@@ -53,110 +53,57 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Immediate check or ultra-fast poll (every 30ms up to 2.5s)
+  // Poll for SDK readiness (up to 3 seconds)
   let fn = getFn();
   if (typeof fn !== 'function') {
     let waited = 0;
-    while (!getFn() && waited < 2500) {
-      await new Promise(r => setTimeout(r, 30));
-      waited += 30;
+    while (!getFn() && waited < 3000) {
+      await new Promise(r => setTimeout(r, 50));
+      waited += 50;
     }
     fn = getFn();
   }
 
   if (typeof fn !== 'function') {
-    console.warn('[AdManager] GigaPub SDK unit 8093 not attached yet.');
+    console.warn('[AdManager] GigaPub SDK unit 8093 not ready yet.');
     initGigaAds();
     return {
       success: false,
-      network: 'gigapub',
+      network: providerName,
       error: 'Ad network is warming up. Please tap again to start instantly!'
     };
   }
 
-  // ── ACTIVE IN-APP FOCUS TRACKER ──
-  // Pauses timer when user clicks an ad or navigates away from the app
-  let focusedDurationMs = 0;
-  let lastFocusTime = Date.now();
-  let isTabFocused = typeof document !== 'undefined' ? !document.hidden : true;
-
-  const onVisibilityChange = () => {
-    const now = Date.now();
-    if (document.hidden) {
-      if (isTabFocused) {
-        focusedDurationMs += (now - lastFocusTime);
-        isTabFocused = false;
-      }
-    } else {
-      if (!isTabFocused) {
-        lastFocusTime = Date.now();
-        isTabFocused = true;
-      }
-    }
-  };
-
-  const onBlur = () => {
-    if (isTabFocused) {
-      focusedDurationMs += (Date.now() - lastFocusTime);
-      isTabFocused = false;
-    }
-  };
-
-  const onFocus = () => {
-    if (!isTabFocused) {
-      lastFocusTime = Date.now();
-      isTabFocused = true;
-    }
-  };
-
-  if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    window.addEventListener('blur', onBlur);
-    window.addEventListener('focus', onFocus);
-  }
+  const startTime = Date.now();
 
   try {
-    console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
+    console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad for ${providerName} (Unit 8093)...`);
     
-    // Allow up to 75 seconds for full video ad loading and viewing
+    // Safety timeout of 45 seconds for video display & completion
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('ad_timeout')), 75000)
+      setTimeout(() => reject(new Error('ad_timeout')), 45000)
     );
 
+    // Call showGiga with default placement ('main' / no args) so GigaPub never fails placement lookup
     const result = await Promise.race([
       fn.call(window.GigaPub || window),
       timeoutPromise
     ]);
 
-    // Calculate final active in-app watch time
-    if (isTabFocused) {
-      focusedDurationMs += (Date.now() - lastFocusTime);
-    }
-
-    const activeSec = focusedDurationMs / 1000;
-    console.log(`[AdManager] GigaPub returned:`, result, `Active In-App Time: ${activeSec.toFixed(1)}s`);
+    const elapsedSec = (Date.now() - startTime) / 1000;
+    console.log(`[AdManager] GigaPub returned:`, result, `Elapsed Time: ${elapsedSec.toFixed(1)}s`);
 
     // Strict validation: Must not return false, cancelled, or closed early
     if (result === false || (result && typeof result === 'object' && (result.completed === false || result.status === 'error' || result.userClosed === true || result.skipped === true || result.canceled === true))) {
       return {
         success: false,
-        network: 'gigapub',
+        network: providerName,
         error: 'Ad was closed early. You must watch the entire ad to get progress.'
       };
     }
 
-    // Strict Active In-App Duration Guard: Rewarded ads require at least 15 seconds of active in-app watching
-    if (activeSec < 15.0) {
-      console.warn(`[AdManager] ❌ Rejected ad: active in-app time was only ${activeSec.toFixed(1)}s (clicked away or skipped)`);
-      return {
-        success: false,
-        network: 'gigapub',
-        error: `Ad was clicked away or closed early (${activeSec.toFixed(1)}s in-app). You must watch the full video (at least 15s) inside the app to earn credit.`
-      };
-    }
-
-    console.log(`[AdManager] ✅ GigaPub ad completed successfully with verified in-app duration! (${activeSec.toFixed(1)}s)`);
-    return { success: true, network: 'gigapub' };
+    console.log(`[AdManager] ✅ GigaPub ad completed successfully (${elapsedSec.toFixed(1)}s)!`);
+    return { success: true, network: providerName };
   } catch (err) {
     console.warn('[AdManager] GigaPub ad session caught error:', err);
     const errMessage = String(err?.message || err || '').toLowerCase();
@@ -164,7 +111,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     if (errMessage.includes('timeout') || errMessage.includes('ad_timeout')) {
       return {
         success: false,
-        network: 'gigapub',
+        network: providerName,
         error: 'Ad network is currently busy or out of inventory. Please tap again to retry!'
       };
     }
@@ -172,35 +119,29 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss') || errMessage.includes('back')) {
       return {
         success: false,
-        network: 'gigapub',
+        network: providerName,
         error: 'Ad was closed early. You must watch the full ad to earn progress.'
       };
     }
 
-    if (errMessage.includes('no ad') || errMessage.includes('failed to show')) {
+    if (errMessage.includes('no ad') || errMessage.includes('failed to show') || errMessage.includes('not found')) {
       return {
         success: false,
-        network: 'gigapub',
+        network: providerName,
         error: 'Ad sponsor is loading a fresh video. Please tap again in a moment.'
       };
     }
 
     return {
       success: false,
-      network: 'gigapub',
+      network: providerName,
       error: 'Ad was closed early or interrupted. Please tap again to watch the full ad.'
     };
-  } finally {
-    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
-      document.removeEventListener('visibilitychange', onVisibilityChange);
-      window.removeEventListener('blur', onBlur);
-      window.removeEventListener('focus', onFocus);
-    }
   }
 }
 
 export async function showGigaPubAdFallback() {
-  return await showRewardedAd('fallback');
+  return await showRewardedAd('gigapub');
 }
 
 export function triggerStartupAd() {
@@ -216,23 +157,10 @@ export function initMonetagAds() {
 }
 
 /**
- * Executes Option 1 (Monetag slot) via GigaPub Unit 8093 with strict Active In-App Focus Tracking
+ * Executes Option 1 (Monetag slot) via GigaPub Unit 8093
  */
 export async function showMonetagAd() {
-  if (typeof window === 'undefined') {
-    return { success: false, error: 'Browser environment required' };
-  }
-
-  try {
-    if (window.Telegram?.WebApp) {
-      window.Telegram.WebApp.ready();
-    }
-  } catch(e) {}
-
-  initGigaAds();
-
-  console.log('[AdManager] 🚀 Executing Monetag slot via GigaPub engine (Unit 8093)...');
-  const res = await showRewardedAd('monetag_slot');
+  const res = await showRewardedAd('monetag');
   if (res.success) {
     return { success: true, network: 'monetag' };
   }
@@ -244,3 +172,4 @@ export async function showMonetagAd() {
 }
 
 export function waitForGiga() { return Promise.resolve(true); }
+

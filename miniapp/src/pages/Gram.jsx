@@ -572,10 +572,19 @@ export default function Gram({ user, refreshUser }) {
                       onClick={() => handleWatchAd('monetag')}
                       disabled={isWatchingAd}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-400/20 disabled:opacity-50"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-400/20 disabled:opacity-60 cursor-pointer"
                     >
-                      <Play size={13} fill="currentColor" />
-                      {isWatchingAd && watchingProvider === 'monetag' ? 'Loading Monetag Ad...' : `Watch Monetag Ad — ${30 - monetagCount} Left`}
+                      {isWatchingAd && watchingProvider === 'monetag' ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin text-white" />
+                          <span>Opening Monetag Ad...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={13} fill="currentColor" />
+                          <span>Watch Monetag Ad — {30 - monetagCount} Left</span>
+                        </>
+                      )}
                     </motion.button>
                   )}
                 </div>
@@ -616,64 +625,24 @@ export default function Gram({ user, refreshUser }) {
                       onClick={() => handleWatchAd('gigapub')}
                       disabled={isWatchingAd}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-50"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-60 cursor-pointer"
                     >
-                      <Play size={13} fill="currentColor" />
-                      {isWatchingAd && watchingProvider === 'gigapub' ? 'Loading GigaPub Ad...' : `Watch GigaPub Ad — ${30 - gigaCount} Left`}
+                      {isWatchingAd && watchingProvider === 'gigapub' ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin text-white" />
+                          <span>Opening GigaPub Ad...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Play size={13} fill="currentColor" />
+                          <span>Watch GigaPub Ad — {30 - gigaCount} Left</span>
+                        </>
+                      )}
                     </motion.button>
                   )}
                 </div>
               </div>
             )}
-
-            {/* Active Loading Overlay */}
-            <AnimatePresence>
-              {isWatchingAd && (
-                <motion.div
-                  key="ad-loading"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="w-full bg-black/70 border border-indigo-500/30 rounded-2xl p-5 flex flex-col items-center gap-3 backdrop-blur-sm mt-2"
-                >
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center">
-                      <Play size={22} className="text-indigo-400" fill="currentColor" />
-                    </div>
-                    <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 animate-ping" />
-                  </div>
-                  <div className="text-center space-y-1">
-                    <p className="text-sm font-black text-white flex items-center justify-center gap-1.5">
-                      <Sparkles size={14} className="text-amber-400 animate-spin" />
-                      <span>Opening {watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} Ad...</span>
-                    </p>
-                    <p className="text-[11px] text-amber-300/90 font-bold">👉 Please watch the ad sponsor to log your progress</p>
-                  </div>
-                  <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                      initial={{ width: '15%' }}
-                      animate={{ width: '95%' }}
-                      transition={{ duration: 2, ease: 'easeOut' }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">
-                    <Wifi size={10} /><span>Do not close or switch apps</span>
-                  </div>
-
-                  <button
-                    onClick={() => {
-                      setIsWatchingAd(false);
-                      setWatchingProvider(null);
-                      showToast('Ad loading cancelled. Tap to try again.', 'info');
-                    }}
-                    className="mt-1 px-3.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[10.5px] font-bold text-white/70 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <X size={12} /> Cancel / Retry
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </Card>
       )}
