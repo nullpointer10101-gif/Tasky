@@ -2823,49 +2823,19 @@ router.get('/treasury-status', async (req, res) => {
       }
     }
 
-    // 3. TON RPC Ping & Masterchain status
-    let tonRpcStatus = {
-      endpoint: 'https://toncenter.com/api/v2/jsonRPC',
-      network: process.env.TON_NETWORK || 'mainnet',
-      connected: false,
-      latencyMs: 0,
-      latestSeqno: null
-    };
-
+    // 3-5. Run all external TON/blockchain calls IN PARALLEL for speed (safe on Render free tier)
     const { TonClient, WalletContractV4, fromNano } = require('@ton/ton');
     const { mnemonicToWalletKey } = require('@ton/crypto');
 
-    try {
-      const tonT0 = Date.now();
-      const client = new TonClient({
-        endpoint: tonRpcStatus.endpoint,
-        apiKey: process.env.TONCENTER_API_KEY || undefined
-      });
-      const mc = await Promise.race([
-        client.getMasterchainInfo(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('TON RPC timeout')), 2000))
-      ]);
-      tonRpcStatus.connected = true;
-      tonRpcStatus.latencyMs = Date.now() - tonT0;
-      tonRpcStatus.latestSeqno = mc.latestSeqno || mc.last?.seqno;
-    } catch (tonErr) {
-      tonRpcStatus.connected = false;
-      tonRpcStatus.error = tonErr.message;
-    }
+    const TON_ENDPOINT = 'https://toncenter.com/api/v2/jsonRPC';
+    const HARD_TIMEOUT_MS = 3000; // Global hard cap: all external calls finish within 3s
 
-    // 4. Treasury Wallet Information & Live Balance
+    // Derive wallet address first (CPU-only, fast)
     let treasuryWallet = {
-      configured: false,
-      addressFriendly: null,
-      addressRaw: null,
-      balanceTon: 0,
-      balanceNano: '0',
-      jettons: [],
-      explorerTonviewer: null,
-      explorerTonscan: null,
-      lowBalanceWarning: false
+      configured: false, addressFriendly: null, addressRaw: null,
+      balanceTon: 0, balanceNano: '0', jettons: [],
+      explorerTonviewer: null, explorerTonscan: null, lowBalanceWarning: false
     };
-
     const mnemonicStr = process.env.TREASURY_MNEMONIC || '';
     if (mnemonicStr) {
       try {
@@ -2873,135 +2843,135 @@ router.get('/treasury-status', async (req, res) => {
         const key = await mnemonicToWalletKey(words);
         const wallet = WalletContractV4.create({ publicKey: key.publicKey, workchain: 0 });
         const friendly = wallet.address.toString({ bounceable: false });
-        const raw = wallet.address.toRawString();
-
         treasuryWallet.configured = true;
         treasuryWallet.addressFriendly = friendly;
-        treasuryWallet.addressRaw = raw;
+        treasuryWallet.addressRaw = wallet.address.toRawString();
         treasuryWallet.explorerTonviewer = `https://tonviewer.com/${friendly}`;
         treasuryWallet.explorerTonscan = `https://tonscan.org/address/${friendly}`;
 
-        // Query balance
-        try {
-          const client = new TonClient({
-            endpoint: tonRpcStatus.endpoint,
-            apiKey: process.env.TONCENTER_API_KEY || undefined
-          });
-          const nano = await Promise.race([
-            client.getBalance(wallet.address),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Balance timeout')), 2000))
-          ]);
-          const tonBal = parseFloat(fromNano(nano));
-          treasuryWallet.balanceTon = tonBal;
-          treasuryWallet.balanceNano = nano.toString();
-          treasuryWallet.lowBalanceWarning = tonBal < 0.05;
-        } catch (balErr) {
-          treasuryWallet.balanceError = balErr.message;
+        // Fire all network calls in parallel — total wait = max(any single call) ≤ HARD_TIMEOUT_MS
+        const hardDeadline = new Promise(r => setTimeout(r, HARD_TIMEOUT_MS));
+
+        const [rpcResult, balResult, jettonResult, eventsResult] = await Promise.all([
+          // TON RPC ping
+          Promise.race([
+            (async () => {
+              const t0 = Date.now();
+              const c = new TonClient({ endpoint: TON_ENDPOINT, apiKey: process.env.TONCENTER_API_KEY || undefined });
+              const mc = await c.getMasterchainInfo();
+              return { ok: true, latencyMs: Date.now() - t0, seqno: mc.latestSeqno || mc.last?.seqno };
+            })(),
+            hardDeadline.then(() => ({ ok: false, error: 'timeout' }))
+          ]).catch(() => ({ ok: false, error: 'failed' })),
+
+          // Wallet TON balance
+          Promise.race([
+            (async () => {
+              const c = new TonClient({ endpoint: TON_ENDPOINT, apiKey: process.env.TONCENTER_API_KEY || undefined });
+              const nano = await c.getBalance(wallet.address);
+              return { ok: true, nano };
+            })(),
+            hardDeadline.then(() => ({ ok: false }))
+          ]).catch(() => ({ ok: false })),
+
+          // Jetton balances
+          Promise.race([
+            fetch(`https://tonapi.io/v2/accounts/${encodeURIComponent(friendly)}/jettons`).then(r => r.ok ? r.json() : null),
+            hardDeadline.then(() => null)
+          ]).catch(() => null),
+
+          // Live blockchain events
+          Promise.race([
+            fetch(`https://tonapi.io/v2/accounts/${encodeURIComponent(friendly)}/events?limit=30&subject_only=false`).then(r => r.ok ? r.json() : null),
+            hardDeadline.then(() => null)
+          ]).catch(() => null)
+        ]);
+
+        // Apply RPC result
+        let tonRpcStatus = { endpoint: TON_ENDPOINT, network: process.env.TON_NETWORK || 'mainnet', connected: false, latencyMs: 0, latestSeqno: null };
+        if (rpcResult?.ok) {
+          tonRpcStatus.connected = true;
+          tonRpcStatus.latencyMs = rpcResult.latencyMs;
+          tonRpcStatus.latestSeqno = rpcResult.seqno;
+        } else {
+          tonRpcStatus.error = rpcResult?.error || 'timeout';
         }
 
-        // Query Jettons (e.g. GRAM) via tonapi.io
-        try {
-          const jettonRes = await Promise.race([
-            fetch(`https://tonapi.io/v2/accounts/${friendly}/jettons`),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Jettons timeout')), 2000))
-          ]);
-          if (jettonRes.ok) {
-            const jData = await jettonRes.json();
-            if (jData.balances && Array.isArray(jData.balances)) {
-              treasuryWallet.jettons = jData.balances.map(j => {
-                const dec = j.jetton?.decimals || 9;
-                return {
-                  symbol: j.jetton?.symbol || j.jetton?.name || 'Jetton',
-                  name: j.jetton?.name || '',
-                  balance: (parseFloat(j.balance) / Math.pow(10, dec)).toFixed(4),
-                  address: j.jetton?.address
-                };
-              });
+        // Apply balance result
+        if (balResult?.ok && balResult.nano != null) {
+          const tonBal = parseFloat(fromNano(balResult.nano));
+          treasuryWallet.balanceTon = tonBal;
+          treasuryWallet.balanceNano = balResult.nano.toString();
+          treasuryWallet.lowBalanceWarning = tonBal < 0.05;
+        }
+
+        // Apply jettons
+        if (jettonResult?.balances && Array.isArray(jettonResult.balances)) {
+          treasuryWallet.jettons = jettonResult.balances.map(j => {
+            const dec = j.jetton?.decimals || 9;
+            return { symbol: j.jetton?.symbol || 'Jetton', name: j.jetton?.name || '', balance: (parseFloat(j.balance) / Math.pow(10, dec)).toFixed(4), address: j.jetton?.address };
+          });
+        }
+
+        // Apply blockchain events
+        let blockchainTx = [];
+        if (eventsResult?.events && Array.isArray(eventsResult.events)) {
+          const myRaw = treasuryWallet.addressRaw?.toLowerCase();
+          blockchainTx = eventsResult.events.map(ev => {
+            const ts = ev.timestamp ? new Date(ev.timestamp * 1000).toISOString() : null;
+            let direction = 'unknown', amountTon = 0, counterparty = null;
+            const txHash = ev.event_id || null;
+            if (ev.actions?.length > 0) {
+              const act = ev.actions[0];
+              if (act.TonTransfer) {
+                const tr = act.TonTransfer;
+                amountTon = (parseFloat(tr.amount || 0) / 1e9).toFixed(4);
+                const senderAddr = tr.sender?.address || tr.sender?.account?.address;
+                const recipAddr = tr.recipient?.address || tr.recipient?.account?.address;
+                if (senderAddr && myRaw && senderAddr.toLowerCase() === myRaw) {
+                  direction = 'outgoing'; counterparty = tr.recipient?.name || recipAddr || 'Unknown';
+                } else {
+                  direction = 'incoming'; counterparty = tr.sender?.name || senderAddr || 'Unknown';
+                }
+              } else if (act.JettonTransfer) {
+                const jt = act.JettonTransfer;
+                const dec = jt.jetton?.decimals || 9;
+                amountTon = `${(parseFloat(jt.amount || 0) / Math.pow(10, dec)).toFixed(4)} ${jt.jetton?.symbol || 'JETTON'}`;
+                direction = 'jetton'; counterparty = jt.recipient?.name || jt.recipient?.address || 'Unknown';
+              }
             }
-          }
-        } catch (_) {}
+            return { category: direction === 'outgoing' ? 'ton_payout' : 'ton_topup', blockchain: true, direction, amount: amountTon, currency: 'TON', tx_hash: txHash, wallet_address: counterparty, status: ev.in_progress ? 'pending' : 'confirmed', created_at: ts, processed_at: ts, is_auto_payout: false, username: null, first_name: direction === 'outgoing' ? '🔴 TON Out (Payout)' : '🟢 TON In (Top-Up)', telegram_id: null };
+          }).filter(t => t.direction !== 'unknown' && t.direction !== 'jetton');
+        }
+
+        // 5. Bot & Ad Status
+        const botStatus = { active: true, handle: '@TaskyAppbot', payoutChannel: process.env.PAYOUT_PROOF_CHANNEL_ID || '-1003189912176' };
+        const adNetworks = [
+          { name: 'GigaPub', status: 'Active', unitId: '8093', type: 'Rewarded Video & Offerwall' },
+          { name: 'Adexium', status: 'Active', placementId: '#13844 (WID: e93d690f...)', type: 'TMA Interstitial' },
+          { name: 'Monetag', status: 'Active (Legacy/Fallback)', type: 'In-App Interstitial' }
+        ];
+
+        // Attach to outer scope for response use below
+        Object.assign(treasuryWallet, {}); // already mutated above
+        global._lastTreasuryFetch = { tonRpcStatus, blockchainTx, botStatus, adNetworks };
       } catch (walletErr) {
         treasuryWallet.error = walletErr.message;
       }
     }
 
-    // 5. Bot & Ad Status
-    const botStatus = {
-      active: true,
-      handle: '@TaskyAppbot',
-      payoutChannel: process.env.PAYOUT_PROOF_CHANNEL_ID || '-1003189912176'
-    };
-
-    const adNetworks = [
+    // Defaults when wallet not configured
+    const _f = global._lastTreasuryFetch || {};
+    const tonRpcStatus = _f.tonRpcStatus || { endpoint: 'https://toncenter.com/api/v2/jsonRPC', network: 'mainnet', connected: false, latencyMs: 0, latestSeqno: null };
+    const blockchainTx = _f.blockchainTx || [];
+    const botStatus = _f.botStatus || { active: true, handle: '@TaskyAppbot', payoutChannel: process.env.PAYOUT_PROOF_CHANNEL_ID || '-1003189912176' };
+    const adNetworks = _f.adNetworks || [
       { name: 'GigaPub', status: 'Active', unitId: '8093', type: 'Rewarded Video & Offerwall' },
       { name: 'Adexium', status: 'Active', placementId: '#13844 (WID: e93d690f...)', type: 'TMA Interstitial' },
       { name: 'Monetag', status: 'Active (Legacy/Fallback)', type: 'In-App Interstitial' }
     ];
 
-    // 5b. Live Blockchain Transactions from Treasury Wallet (via TonAPI)
-    let blockchainTx = [];
-    if (treasuryWallet.addressFriendly) {
-      try {
-        const eventsRes = await Promise.race([
-          fetch(`https://tonapi.io/v2/accounts/${encodeURIComponent(treasuryWallet.addressFriendly)}/events?limit=30&subject_only=false`),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('TonAPI events timeout')), 2500))
-        ]);
-        if (eventsRes.ok) {
-          const eventsData = await eventsRes.json();
-          if (eventsData.events && Array.isArray(eventsData.events)) {
-            blockchainTx = eventsData.events.map(ev => {
-              const ts = ev.timestamp ? new Date(ev.timestamp * 1000).toISOString() : null;
-              // Determine direction: outgoing = payout from treasury, incoming = top-up
-              let direction = 'unknown';
-              let amountTon = 0;
-              let counterparty = null;
-              let txHash = ev.event_id || null;
 
-              if (ev.actions && ev.actions.length > 0) {
-                const act = ev.actions[0];
-                if (act.TonTransfer) {
-                  const transfer = act.TonTransfer;
-                  amountTon = (parseFloat(transfer.amount || 0) / 1e9).toFixed(4);
-                  const senderAddr = transfer.sender?.address || transfer.sender?.account?.address;
-                  const recipAddr = transfer.recipient?.address || transfer.recipient?.account?.address;
-                  const myRaw = treasuryWallet.addressRaw?.toLowerCase();
-                  if (senderAddr && myRaw && senderAddr.toLowerCase() === myRaw) {
-                    direction = 'outgoing';
-                    counterparty = transfer.recipient?.name || recipAddr || 'Unknown';
-                  } else {
-                    direction = 'incoming';
-                    counterparty = transfer.sender?.name || senderAddr || 'Unknown';
-                  }
-                } else if (act.JettonTransfer) {
-                  const jt = act.JettonTransfer;
-                  const dec = jt.jetton?.decimals || 9;
-                  amountTon = `${(parseFloat(jt.amount || 0) / Math.pow(10, dec)).toFixed(4)} ${jt.jetton?.symbol || 'JETTON'}`;
-                  direction = 'jetton';
-                  counterparty = jt.recipient?.name || jt.recipient?.address || 'Unknown';
-                }
-              }
-
-              return {
-                category: direction === 'outgoing' ? 'ton_payout' : 'ton_topup',
-                blockchain: true,
-                direction,
-                amount: amountTon,
-                currency: 'TON',
-                tx_hash: txHash,
-                wallet_address: counterparty,
-                status: ev.in_progress ? 'pending' : 'confirmed',
-                created_at: ts,
-                processed_at: ts,
-                is_auto_payout: true,
-                username: null,
-                first_name: direction === 'outgoing' ? '🔴 TON Out (Payout)' : '🟢 TON In (Top-Up)',
-                telegram_id: null
-              };
-            }).filter(t => t.direction !== 'unknown');
-          }
-        }
-      } catch (_) {}
-    }
 
     // 6. Aggregate Transactions (Payouts & Deposits) - use allSettled so DB failure still returns system info
     const [payoutsResult, depositsResult, taskyWithdrawalsResult, totalsResult] = await Promise.allSettled([
