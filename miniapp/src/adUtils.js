@@ -60,6 +60,10 @@ export function initAdexium() {
 export function getOrInitAdexiumWidget() {
   if (typeof window === 'undefined') return null;
   if (window.__adexiumInstance) return window.__adexiumInstance;
+  if (window.adexiumWidget) {
+    window.__adexiumInstance = window.adexiumWidget;
+    return window.__adexiumInstance;
+  }
 
   const WidgetClass = window.AdexiumWidget || window.TGAdsWidget;
   if (typeof WidgetClass !== 'function') return null;
@@ -81,6 +85,7 @@ export function getOrInitAdexiumWidget() {
       console.warn('[AdManager] Adexium autoMode notice:', e);
     }
 
+    window.adexiumWidget = instance;
     window.__adexiumInstance = instance;
     return instance;
   } catch (e) {
