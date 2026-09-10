@@ -55,9 +55,9 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('tasky_admin_password');
-      // Only redirect if we are not already on the login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      // Only redirect if we are not already on the admin login page
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/admin/login';
       }
     }
     return Promise.reject(error);

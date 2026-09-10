@@ -72,6 +72,17 @@ export default function TreasuryAndSystem() {
     ? Math.min(100, Math.round((parseFloat(system.memory.heapUsedMB) / parseFloat(system.memory.heapTotalMB)) * 100))
     : 0;
 
+  if (loading && !data) {
+    return (
+      <div className="p-4 md:p-10 h-full flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4 animate-pulse text-cyan-400">
+          <div className="w-12 h-12 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 animate-spin"></div>
+          <p className="font-bold text-ink tracking-widest uppercase text-sm">Loading Treasury & System Health...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 md:p-8 space-y-8 max-w-7xl mx-auto pb-24">
       {/* Header */}
