@@ -174,12 +174,29 @@ async function tryAutoPayout(swap, user) {
  * @param {boolean} isFlagged - whether the request was flagged as fraud
  * @param {string} flagReason - reason for flagging
  */
+global.processingPayouts = global.processingPayouts || new Set();
+
 async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddress, telegramId, isFlagged, flagReason) {
+  const payoutKey = `${tableName}_${recordId}`;
+  if (global.processingPayouts.has(payoutKey)) {
+    console.log(`[AutoPayout] Payout ${payoutKey} is already in progress, skipping duplicate call.`);
+    return { success: false, reason: 'Already in progress' };
+  }
+
+  global.processingPayouts.add(payoutKey);
+
   try {
     // 0. Strict check: ONLY Daily Gram Claims are eligible for auto-payout
     if (tableName !== 'gram_claims') {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is strictly for Daily Gram Claims only.`);
       return { success: false, reason: 'Auto-payout is only enabled for Daily Gram Claims.' };
+    }
+
+    // 0.1 Check if claim was already approved or processed
+    const currentClaimRes = await pool.query('SELECT status, tx_hash FROM gram_claims WHERE id = $1', [recordId]);
+    if (!currentClaimRes.rows[0] || currentClaimRes.rows[0].status === 'approved') {
+      console.log(`[AutoPayout] Skipping claim #${recordId}: already approved.`);
+      return { success: false, reason: 'Already approved' };
     }
 
     // 1. Check if auto payout is globally enabled in settings
@@ -345,6 +362,8 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
   } catch (err) {
     console.error(`[AutoPayout] tryAutoPayoutGram error:`, err);
     return { success: false, error: err.message };
+  } finally {
+    global.processingPayouts.delete(payoutKey);
   }
 }
 

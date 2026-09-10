@@ -215,6 +215,22 @@ async function broadcastPayoutProof(bot, {
       return { skipped: true, reason: 'not_configured' };
     }
 
+    // Deduplication check: Prevent duplicate posts for the same transaction hash
+    global.broadcastedTxHashes = global.broadcastedTxHashes || new Set();
+    const cleanHashKey = tx_hash ? String(tx_hash).trim().toLowerCase() : null;
+    if (cleanHashKey && global.broadcastedTxHashes.has(cleanHashKey)) {
+      console.log(`[PayoutChannel] 🛑 Skipping duplicate broadcast for tx: ${cleanHashKey}`);
+      return { skipped: true, reason: 'duplicate_tx' };
+    }
+    if (cleanHashKey) {
+      global.broadcastedTxHashes.add(cleanHashKey);
+      // Keep cache size bounded
+      if (global.broadcastedTxHashes.size > 5000) {
+        const iter = global.broadcastedTxHashes.values();
+        for (let i = 0; i < 1000; i++) global.broadcastedTxHashes.delete(iter.next().value);
+      }
+    }
+
     // Auto-detect NFT payout
     const isNftPayout = is_nft || /nft|miner/i.test(type) || !!nft_name;
 
