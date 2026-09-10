@@ -283,9 +283,20 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
         );
       }
 
-      // 8. Fetch user details for notification & proof broadcast
-      const userRes = await pool.query('SELECT username, first_name FROM users WHERE telegram_id = $1', [telegramId]);
-      const userFull = userRes.rows[0];
+      // 8. Fetch full user context for notifications
+      const userCtxRes = await pool.query(`
+        SELECT 
+          u.username, u.first_name, u.gram_balance, u.referred_by,
+          u.created_at as joined_at,
+          (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_claims,
+          (SELECT COALESCE(SUM(amount), 0) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_earned,
+          (SELECT MAX(created_at) FROM gram_claims WHERE telegram_id = u.telegram_id AND status != 'pending') as last_claim_at,
+          (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id) as total_attempts,
+          (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id) as referral_count,
+          (SELECT username FROM users WHERE telegram_id = u.referred_by) as referrer_username
+        FROM users u WHERE u.telegram_id = $1
+      `, [telegramId]);
+      const userFull = userCtxRes.rows[0] || {};
 
       // 9. Send success notification to user
       if (bot && bot.sendMessage) {
@@ -328,19 +339,49 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
         console.error('[AutoPayout] Failed to broadcast payout proof:', proofErr.message);
       }
 
-      // 11. Notify Admin Telegram ID
+      // 11. Notify Admin — Rich detailed message
       const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
       if (bot && bot.sendMessage && adminId) {
         try {
-          const safeName = (userFull?.username ? `@${userFull.username}` : (userFull?.first_name || 'User')).replace(/[<>&]/g, '');
           const txLink = txHash ? (txHash.startsWith('http') ? txHash : `https://tonviewer.com/transaction/${txHash}`) : null;
-          const adminMsg = `⚡ <b>Auto-Payout Processed & Paid!</b> ⚡\n\n` +
-            `🆔 <b>Record ID:</b> #${recordId} (<code>${tableName}</code>)\n` +
-            `👤 <b>User:</b> ${safeName} (<code>${telegramId}</code>)\n` +
-            `💰 <b>Amount:</b> <b>${receiveAmount} TON/GRAM</b>\n` +
-            `🏦 <b>Wallet:</b> <code>${walletAddress}</code>\n` +
-            (txLink ? `🔗 <b>Explorer:</b> <a href="${txLink}">View on Tonviewer</a>\n\n` : '\n') +
-            `✅ Funds sent on-chain & user notified.`;
+          const safeName = (userFull?.first_name || 'Unknown').replace(/[<>&]/g, '');
+          const safeUser = userFull?.username ? `@${userFull.username}` : `ID: ${telegramId}`;
+          const totalClaims = parseInt(userFull?.total_claims || 0);
+          const totalAttempts = parseInt(userFull?.total_attempts || 0);
+          const totalEarned = parseFloat(userFull?.total_earned || 0).toFixed(3);
+          const gramBal = parseFloat(userFull?.gram_balance || 0).toFixed(4);
+          const referralCount = parseInt(userFull?.referral_count || 0);
+          const referrerUser = userFull?.referrer_username ? `@${userFull.referrer_username}` : (userFull?.referred_by ? `ID: ${userFull.referred_by}` : 'None');
+          const joinedAt = userFull?.joined_at ? new Date(userFull.joined_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Unknown';
+          const lastClaimAt = userFull?.last_claim_at ? new Date(userFull.last_claim_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'First time';
+          const walletShort = walletAddress ? `${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}` : 'N/A';
+          const claimType = tableName === 'gram_claims' ? '🎁 GRAM Daily Claim' : '💸 GRAM Withdrawal';
+          const attemptLabel = `${totalClaims + 1} of ${totalAttempts + 1} attempts`;
+
+          const adminMsg =
+            `⚡ <b>Auto-Payout Successful!</b> ⚡\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `👤 <b>${safeName}</b>  •  <code>${safeUser}</code>\n` +
+            `🆔 TG ID: <code>${telegramId}</code>\n` +
+            `📅 Joined: ${joinedAt}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `💳 <b>Payout Details</b>\n` +
+            `   Type: ${claimType}\n` +
+            `   Record: <code>#${recordId}</code> (${tableName})\n` +
+            `   Amount: <b>${receiveAmount} GRAM</b>\n` +
+            `   Attempt: ${attemptLabel}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `📊 <b>User Stats</b>\n` +
+            `   ✅ Total Paid: ${totalClaims} claims · ${totalEarned} GRAM\n` +
+            `   💎 GRAM Balance: ${gramBal} GRAM\n` +
+            `   📅 Last Claim: ${lastClaimAt}\n` +
+            `   👥 Referrals Made: ${referralCount}\n` +
+            `   🔗 Referred By: ${referrerUser}\n` +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `🏦 <b>Wallet:</b> <code>${walletShort}</code>\n` +
+            (txLink ? `🔗 <b>TX:</b> <a href="${txLink}">View on Tonviewer</a>\n` : '') +
+            `━━━━━━━━━━━━━━━━━━━━\n` +
+            `✅ <b>Funds sent on-chain & user notified.</b>`;
 
           await bot.sendMessage(adminId, adminMsg, {
             parse_mode: 'HTML',
@@ -349,12 +390,13 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
               is_disabled: false,
               prefer_large_media: true,
               show_above_text: false
-            } : { is_disabled: false }
+            } : { is_disabled: true }
           }).catch(e => console.warn('[AutoPayout] Admin notify warning:', e.message));
         } catch (adminErr) {
           console.error('[AutoPayout] Failed to notify admin:', adminErr.message);
         }
       }
+
 
       console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed on-chain. TX: ${txHash}`);
       return { success: true, txHash };
