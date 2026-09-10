@@ -79,8 +79,16 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
-    // Call window.showGiga() as officially specified
-    const result = await fn.call(window.GigaPub || window);
+    // Race SDK call against a 20s timeout so the UI never hangs indefinitely if the network is slow or no ad is filled
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('ad_timeout')), 20000)
+    );
+
+    const result = await Promise.race([
+      fn.call(window.GigaPub || window),
+      timeoutPromise
+    ]);
+
     const elapsed = (Date.now() - startTime) / 1000;
     console.log(`[AdManager] GigaPub returned:`, result, `Elapsed: ${elapsed.toFixed(1)}s`);
 
@@ -109,6 +117,14 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     console.warn('[AdManager] GigaPub ad session caught error:', err);
     const errMessage = String(err?.message || err || '').toLowerCase();
     
+    if (errMessage.includes('timeout') || errMessage.includes('ad_timeout')) {
+      return {
+        success: false,
+        network: 'gigapub',
+        error: 'Ad network is currently busy or out of inventory. Please tap again to retry!'
+      };
+    }
+
     if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss') || errMessage.includes('back')) {
       return {
         success: false,

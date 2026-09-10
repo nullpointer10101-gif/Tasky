@@ -124,6 +124,17 @@ export default function Gram({ user, refreshUser }) {
   useEffect(() => { checkSuffix(true); }, [checkSuffix]);
   useEffect(() => { prefetchGramAd(); }, []);
 
+  // Safety auto-unfreeze timer if ad network hangs
+  useEffect(() => {
+    if (!isWatchingAd) return;
+    const t = setTimeout(() => {
+      setIsWatchingAd(false);
+      setWatchingProvider(null);
+      showToast('Ad sponsor took too long. Please tap to try again.', 'info');
+    }, 22000);
+    return () => clearTimeout(t);
+  }, [isWatchingAd]);
+
   const recheckName = useCallback(() => checkSuffix(false), [checkSuffix]);
 
   const copySuffix = () => {
@@ -649,6 +660,17 @@ export default function Gram({ user, refreshUser }) {
                   <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">
                     <Wifi size={10} /><span>Do not close or switch apps</span>
                   </div>
+
+                  <button
+                    onClick={() => {
+                      setIsWatchingAd(false);
+                      setWatchingProvider(null);
+                      showToast('Ad loading cancelled. Tap to try again.', 'info');
+                    }}
+                    className="mt-1 px-3.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/15 text-[10.5px] font-bold text-white/70 active:scale-95 transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <X size={12} /> Cancel / Retry
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
