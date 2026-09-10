@@ -184,8 +184,8 @@ export default function Gram({ user, refreshUser }) {
   const handleWatchAd = async (provider = 'gigapub') => {
     if (status?.last_ad_time) {
       const secs = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
-      if (secs < 4) {
-        showToast(`Wait ${Math.ceil(4 - secs)}s before next ad.`, 'error');
+      if (secs < 1) {
+        showToast(`Wait a second before next ad.`, 'info');
         return;
       }
     }
@@ -202,9 +202,6 @@ export default function Gram({ user, refreshUser }) {
     setIsWatchingAd(true);
     setWatchingProvider(provider);
     setAdLoadingStage(1);
-    const t1 = setTimeout(() => setAdLoadingStage(2), 1500);
-    const t2 = setTimeout(() => setAdLoadingStage(3), 4000);
-    adStageTimerRef.current = [t1, t2];
 
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
@@ -634,19 +631,18 @@ export default function Gram({ user, refreshUser }) {
                     <div className="absolute inset-0 rounded-full border-2 border-indigo-500/40 animate-ping" />
                   </div>
                   <div className="text-center space-y-1">
-                    <p className="text-sm font-black text-white">
-                      {adLoadingStage === 1 && `⚡ Preparing ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} ad...`}
-                      {adLoadingStage === 2 && `📡 Connecting to ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} network...`}
-                      {adLoadingStage >= 3 && `🎬 Starting ${watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} ad...`}
+                    <p className="text-sm font-black text-white flex items-center justify-center gap-1.5">
+                      <Sparkles size={14} className="text-amber-400 animate-spin" />
+                      <span>Opening {watchingProvider === 'monetag' ? 'Monetag' : 'GigaPub'} Ad...</span>
                     </p>
-                    <p className="text-[11px] text-amber-300/90 font-bold">👉 Please watch the ad to complete your quest</p>
+                    <p className="text-[11px] text-amber-300/90 font-bold">👉 Please watch the ad sponsor to log your progress</p>
                   </div>
                   <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full"
-                      initial={{ width: '0%' }}
-                      animate={{ width: adLoadingStage === 1 ? '25%' : adLoadingStage === 2 ? '60%' : '85%' }}
-                      transition={{ duration: 1.2, ease: 'easeInOut' }}
+                      initial={{ width: '15%' }}
+                      animate={{ width: '95%' }}
+                      transition={{ duration: 2, ease: 'easeOut' }}
                     />
                   </div>
                   <div className="flex items-center gap-1.5 text-[10px] text-white/30 font-bold">

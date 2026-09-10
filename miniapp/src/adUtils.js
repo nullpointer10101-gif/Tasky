@@ -53,21 +53,24 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Wait up to 5 seconds for GigaPub SDK to attach trigger function
-  let waited = 0;
-  while (!getFn() && waited < 5000) {
-    await new Promise(r => setTimeout(r, 150));
-    waited += 150;
+  // Immediate check or ultra-fast poll (every 30ms up to 2.5s)
+  let fn = getFn();
+  if (typeof fn !== 'function') {
+    let waited = 0;
+    while (!getFn() && waited < 2500) {
+      await new Promise(r => setTimeout(r, 30));
+      waited += 30;
+    }
+    fn = getFn();
   }
 
-  const fn = getFn();
   if (typeof fn !== 'function') {
     console.warn('[AdManager] GigaPub SDK unit 8093 not attached yet.');
     initGigaAds();
     return {
       success: false,
       network: 'gigapub',
-      error: 'Ad sponsor is connecting. Please tap again to watch.'
+      error: 'Ad network is warming up. Please tap again to start instantly!'
     };
   }
 
