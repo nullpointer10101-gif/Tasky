@@ -348,9 +348,53 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
   }
 }
 
+let isProcessingPending = false;
+
+async function processPendingGramClaims() {
+  if (isProcessingPending) return;
+  if (!TREASURY_MNEMONIC) return;
+
+  try {
+    isProcessingPending = true;
+    const pendingRes = await pool.query(`
+      SELECT id, telegram_id, gram_wallet_address, amount, is_flagged, flag_reason
+      FROM gram_claims
+      WHERE status = 'pending' AND (is_flagged = FALSE OR is_flagged IS NULL)
+      ORDER BY id ASC
+      LIMIT 3
+    `);
+
+    for (const claim of pendingRes.rows) {
+      console.log(`[AutoPayout] ⚡ Background processor auto-paying claim #${claim.id} (${claim.telegram_id})...`);
+      await tryAutoPayoutGram(
+        claim.id,
+        'gram_claims',
+        parseFloat(claim.amount || 0.02),
+        claim.gram_wallet_address,
+        claim.telegram_id,
+        false,
+        null
+      );
+      await sleep(2500); // 2.5s spacing between payouts
+    }
+  } catch (err) {
+    console.error('[AutoPayout] processPendingGramClaims error:', err.message);
+  } finally {
+    isProcessingPending = false;
+  }
+}
+
+function startAutoPayoutProcessor() {
+  console.log('[AutoPayout] ⚡ Auto-Payout Background Worker initialized (20s interval)');
+  setInterval(processPendingGramClaims, 20000);
+  setTimeout(processPendingGramClaims, 4000);
+}
+
 module.exports = {
   tryAutoPayout,
   tryAutoPayoutGram,
   hasTreasuryBalance,
-  sendTon
+  sendTon,
+  processPendingGramClaims,
+  startAutoPayoutProcessor
 };

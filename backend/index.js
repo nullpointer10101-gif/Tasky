@@ -17,6 +17,7 @@ const { startAutoApproveAI } = require('./autoApproveAI');
 const { startMiningJob } = require('./jobs/updateMiningLevels');
 const { startFakeLeaderboardJob } = require('./jobs/fakeLeaderboardJob');
 const { startDepositWatcher } = require('./services/depositWatcher');
+const { startAutoPayoutProcessor } = require('./services/autoPayoutService');
 
 const app = express();
 app.use(cors({
@@ -244,6 +245,7 @@ initDB()
     startMiningJob();
     startFakeLeaderboardJob();
     startDepositWatcher();
+    startAutoPayoutProcessor();
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
