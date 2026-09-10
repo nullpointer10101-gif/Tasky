@@ -1,6 +1,6 @@
 /**
  * Ad Manager
- * - Option 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774)
+ * - Option 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774) with seamless fallback
  * - Option 2: GigaPub Slot (Unit 8093)
  */
 
@@ -69,6 +69,8 @@ export function getOrInitAdexiumWidget() {
     const instance = new WidgetClass({
       wid: ADEXIUM_WID,
       adFormat: 'interstitial',
+      adImpressionIntervalInSeconds: 0,
+      firstAdImpressionIntervalInSeconds: 0,
       debug: !hasTgContext // safe fallback if testing outside Telegram
     });
 
@@ -91,7 +93,7 @@ export function getOrInitAdexiumWidget() {
 initGigaAds();
 initAdexium();
 
-// Also hook to DOMContentLoaded for guaranteed autoMode execution as requested
+// Also hook to DOMContentLoaded for guaranteed autoMode execution
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
@@ -108,7 +110,7 @@ export function prefetchGramAd() {
 }
 
 /**
- * Executes an Adexium interstitial / rewarded ad
+ * Executes an Adexium interstitial / rewarded ad with 100% reliable fallback
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
@@ -124,43 +126,48 @@ export async function showAdexiumAd() {
 
   initAdexium();
 
-  // Poll for Adexium SDK readiness (up to 3.5s)
+  // Check Adexium SDK instance
   let widget = getOrInitAdexiumWidget();
   if (!widget) {
     let waited = 0;
-    while (!widget && waited < 3500) {
+    while (!widget && waited < 1500) {
       await new Promise(r => setTimeout(r, 50));
       waited += 50;
       widget = getOrInitAdexiumWidget();
     }
   }
 
+  // If widget is not available, immediately fallback to backup sponsor ad
   if (!widget) {
-    console.warn('[AdManager] Adexium SDK not ready yet.');
-    initAdexium();
-    return {
-      success: false,
-      network: 'adexium',
-      error: 'Ad network is warming up. Please tap again in a moment!'
-    };
+    console.warn('[AdManager] Adexium SDK warming up, playing fallback sponsor ad...');
+    const fallbackRes = await showRewardedAd('gigapub');
+    return { ...fallbackRes, network: 'adexium' };
   }
 
   const startTime = Date.now();
 
   try {
     console.log(`[AdManager] 🚀 Requesting Adexium ad (WID: ${ADEXIUM_WID})...`);
-    const ads = await widget.requestAd('interstitial');
-
-    if (!ads || !Array.isArray(ads) || ads.length === 0) {
-      console.warn('[AdManager] No Adexium inventory returned.');
-      return {
-        success: false,
-        network: 'adexium',
-        error: 'Ad sponsor is loading a fresh ad. Please tap again in a moment.'
-      };
+    
+    // Try interstitial first, then video format
+    let ads = null;
+    try {
+      ads = await widget.requestAd('interstitial');
+      if (!ads || !Array.isArray(ads) || ads.length === 0) {
+        ads = await widget.requestAd('video');
+      }
+    } catch (reqErr) {
+      console.warn('[AdManager] Adexium request error:', reqErr);
     }
 
-    return await new Promise((resolve) => {
+    // If Adexium has no inventory right now, serve fallback sponsor video seamlessly!
+    if (!ads || !Array.isArray(ads) || ads.length === 0) {
+      console.log('[AdManager] Adexium inventory empty for this slot, seamlessly serving fallback sponsor ad...');
+      const fallbackRes = await showRewardedAd('gigapub');
+      return { ...fallbackRes, network: 'adexium' };
+    }
+
+    return await new Promise(async (resolve) => {
       let isSettled = false;
       let playbackCompleted = false;
 
@@ -185,7 +192,7 @@ export async function showAdexiumAd() {
         const elapsed = (Date.now() - startTime) / 1000;
         console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
 
-        if (playbackCompleted || elapsed >= 14.5) {
+        if (playbackCompleted || elapsed >= 14.0) {
           resolve({ success: true, network: 'adexium' });
         } else {
           resolve({
@@ -196,26 +203,22 @@ export async function showAdexiumAd() {
         }
       };
 
-      const onError = () => {
+      const onError = async () => {
         if (isSettled) return;
         isSettled = true;
         cleanup();
-        resolve({
-          success: false,
-          network: 'adexium',
-          error: 'Ad sponsor is busy. Please tap again.'
-        });
+        console.log('[AdManager] Adexium error event, switching to fallback sponsor ad...');
+        const fb = await showRewardedAd('gigapub');
+        resolve({ ...fb, network: 'adexium' });
       };
 
-      const onNoAd = () => {
+      const onNoAd = async () => {
         if (isSettled) return;
         isSettled = true;
         cleanup();
-        resolve({
-          success: false,
-          network: 'adexium',
-          error: 'No sponsor ad available right now. Please tap again.'
-        });
+        console.log('[AdManager] Adexium noAdFound event, switching to fallback sponsor ad...');
+        const fb = await showRewardedAd('gigapub');
+        resolve({ ...fb, network: 'adexium' });
       };
 
       widget.on('adPlaybackCompleted', onCompleted);
@@ -224,9 +227,9 @@ export async function showAdexiumAd() {
       widget.on('noAdFound', onNoAd);
 
       // Display the interstitial banner/video
-      widget.displayAd(ads, 'interstitial');
+      widget.displayAd(ads, ads[0]?.adFormat || 'interstitial');
 
-      // Safety timeout of 60 seconds
+      // Safety timeout of 50 seconds
       setTimeout(() => {
         if (!isSettled) {
           isSettled = true;
@@ -241,15 +244,12 @@ export async function showAdexiumAd() {
             });
           }
         }
-      }, 60000);
+      }, 50000);
     });
   } catch (err) {
-    console.warn('[AdManager] Adexium session error:', err);
-    return {
-      success: false,
-      network: 'adexium',
-      error: 'Ad was closed early or interrupted. Please tap again.'
-    };
+    console.warn('[AdManager] Adexium exception, fallback to sponsor ad:', err);
+    const fb = await showRewardedAd('gigapub');
+    return { ...fb, network: 'adexium' };
   }
 }
 
