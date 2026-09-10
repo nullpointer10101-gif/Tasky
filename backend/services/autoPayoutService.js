@@ -283,20 +283,31 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
         );
       }
 
-      // 8. Fetch full user context for notifications
-      const userCtxRes = await pool.query(`
-        SELECT 
-          u.username, u.first_name, u.gram_balance, u.referred_by,
-          u.created_at as joined_at,
-          (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_claims,
-          (SELECT COALESCE(SUM(amount), 0) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_earned,
-          (SELECT MAX(created_at) FROM gram_claims WHERE telegram_id = u.telegram_id AND status != 'pending') as last_claim_at,
-          (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id) as total_attempts,
-          (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id) as referral_count,
-          (SELECT username FROM users WHERE telegram_id = u.referred_by) as referrer_username
-        FROM users u WHERE u.telegram_id = $1
-      `, [telegramId]);
-      const userFull = userCtxRes.rows[0] || {};
+      // 8. Fetch full user context for notifications (Safe with fallback)
+      let userFull = {};
+      try {
+        const userCtxRes = await pool.query(`
+          SELECT 
+            u.username, u.first_name, u.gram_balance, u.referred_by,
+            u.created_at as joined_at,
+            (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_claims,
+            (SELECT COALESCE(SUM(amount), 0) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_earned,
+            (SELECT MAX(created_at) FROM gram_claims WHERE telegram_id = u.telegram_id AND status != 'pending') as last_claim_at,
+            (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id) as total_attempts,
+            (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id) as referral_count,
+            (SELECT username FROM users WHERE telegram_id = u.referred_by) as referrer_username
+          FROM users u WHERE u.telegram_id = $1
+        `, [telegramId]);
+        userFull = userCtxRes.rows[0] || {};
+      } catch (ctxErr) {
+        console.warn('[AutoPayout] Full user context query failed (falling back):', ctxErr.message);
+        try {
+          const simpleRes = await pool.query('SELECT username, first_name, gram_balance, referred_by, created_at as joined_at FROM users WHERE telegram_id = $1', [telegramId]);
+          userFull = simpleRes.rows[0] || {};
+        } catch (e) {
+          console.warn('[AutoPayout] Simple user query error:', e.message);
+        }
+      }
 
       // 9. Send success notification to user
       if (bot && bot.sendMessage) {
@@ -397,7 +408,6 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
         }
       }
 
-
       console.log(`[AutoPayout] ✅ ${tableName} #${recordId} completed on-chain. TX: ${txHash}`);
       return { success: true, txHash };
     } else {
@@ -465,10 +475,51 @@ async function processPendingGramClaims() {
   }
 }
 
+/**
+ * Syncs recent approved payouts from past 24h that might have missed channel broadcasting
+ */
+async function syncRecentApprovedPayouts() {
+  try {
+    const recentRes = await pool.query(`
+      SELECT gc.id, gc.telegram_id, gc.gram_wallet_address, gc.amount, gc.tx_hash, gc.processed_at,
+             u.username, u.first_name
+      FROM gram_claims gc
+      LEFT JOIN users u ON gc.telegram_id = u.telegram_id
+      WHERE gc.status = 'approved' 
+        AND gc.tx_hash IS NOT NULL
+        AND gc.processed_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY gc.processed_at DESC
+      LIMIT 5
+    `);
+
+    if (recentRes.rows.length > 0) {
+      console.log(`[AutoPayout] Checking ${recentRes.rows.length} recent approved payouts for channel broadcast sync...`);
+      const { broadcastPayoutProof } = require('../utils/payoutChannel');
+      for (const claim of recentRes.rows) {
+        if (!claim.tx_hash) continue;
+        await broadcastPayoutProof(bot, {
+          type: 'Daily Quest 0.02 GRAM',
+          amount: String(claim.amount || '0.02'),
+          token: 'GRAM',
+          wallet: claim.gram_wallet_address,
+          tx_hash: claim.tx_hash,
+          telegram_id: claim.telegram_id,
+          username: claim.username,
+          first_name: claim.first_name
+        });
+        await sleep(1500);
+      }
+    }
+  } catch (syncErr) {
+    console.warn('[AutoPayout] Sync recent approved payouts warning:', syncErr.message);
+  }
+}
+
 function startAutoPayoutProcessor() {
   console.log('[AutoPayout] ⚡ Auto-Payout Background Worker initialized (20s interval)');
   setInterval(processPendingGramClaims, 20000);
   setTimeout(processPendingGramClaims, 4000);
+  setTimeout(syncRecentApprovedPayouts, 7000); // Sync recent payouts on startup
 }
 
 module.exports = {
@@ -477,5 +528,6 @@ module.exports = {
   hasTreasuryBalance,
   sendTon,
   processPendingGramClaims,
+  syncRecentApprovedPayouts,
   startAutoPayoutProcessor
 };

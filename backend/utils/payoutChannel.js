@@ -188,13 +188,13 @@ async function broadcastPayoutProof(bot, {
     }
 
     // 1. Resolve Target Channel
-    let channelId = process.env.PAYOUT_CHANNEL_ID;
+    let channelId = process.env.PAYOUT_CHANNEL_ID || '@TaskyPayouts';
     let channelEnabled = true;
 
     try {
       const res = await pool.query('SELECT payout_channel_id, payout_channel_enabled FROM withdrawal_settings LIMIT 1');
       if (res.rows.length > 0) {
-        if (res.rows[0].payout_channel_id) {
+        if (res.rows[0].payout_channel_id && res.rows[0].payout_channel_id.trim()) {
           channelId = res.rows[0].payout_channel_id.trim();
         }
         if (res.rows[0].payout_channel_enabled === false) {
@@ -211,8 +211,7 @@ async function broadcastPayoutProof(bot, {
     }
 
     if (!channelId) {
-      console.log('[PayoutChannel] No PAYOUT_CHANNEL_ID configured in .env or settings');
-      return { skipped: true, reason: 'not_configured' };
+      channelId = '@TaskyPayouts';
     }
 
     // Deduplication check: Prevent duplicate posts for the same transaction hash
