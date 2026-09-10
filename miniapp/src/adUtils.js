@@ -216,7 +216,7 @@ export function initMonetagAds() {
 }
 
 /**
- * Executes Option 1: Direct Adsgram Rewarded Video (Block #44552) with GigaPub fallback
+ * Executes Option 1 (Monetag slot) via GigaPub Unit 8093 with strict Active In-App Focus Tracking
  */
 export async function showMonetagAd() {
   if (typeof window === 'undefined') {
@@ -229,42 +229,8 @@ export async function showMonetagAd() {
     }
   } catch(e) {}
 
-  // 1. Try Direct Adsgram Rewarded Video if available
-  if (typeof window !== 'undefined' && window.Adsgram) {
-    try {
-      console.log('[AdManager] 🚀 Executing Adsgram Rewarded Video (Block #44552)...');
-      const AdController = window.Adsgram.init({ blockId: '44552' });
-      const startTime = Date.now();
-      const res = await AdController.show();
-      const elapsed = (Date.now() - startTime) / 1000;
-      
-      if (res && (res.done === true || res.state === 'reward')) {
-        if (elapsed >= 15.0) {
-          console.log(`[AdManager] ✅ Adsgram video completed successfully! (${elapsed.toFixed(1)}s)`);
-          return { success: true, network: 'adsgram' };
-        }
-      }
-      
-      if (res && res.done === false) {
-        return {
-          success: false,
-          network: 'adsgram',
-          error: 'Ad was closed early. You must watch the complete video to earn progress.'
-        };
-      }
-    } catch (adsgramErr) {
-      console.warn('[AdManager] Adsgram show caught error/skip:', adsgramErr);
-      if (adsgramErr?.error || adsgramErr?.state === 'closed' || String(adsgramErr).toLowerCase().includes('close')) {
-        return {
-          success: false,
-          network: 'adsgram',
-          error: 'You must watch the full rewarded video without closing or skipping.'
-        };
-      }
-    }
-  }
+  initGigaAds();
 
-  // 2. Fallback to GigaPub with strict in-app focus duration tracking
   console.log('[AdManager] 🚀 Executing Monetag slot via GigaPub engine (Unit 8093)...');
   const res = await showRewardedAd('monetag_slot');
   if (res.success) {
