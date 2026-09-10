@@ -199,9 +199,9 @@ router.post('/watch-ad', async (req, res) => {
         // Invalidate session immediately to prevent replay attacks
         global.gramAdSessions.delete(session_token);
 
-        if (elapsedSec < 14.0) {
-            const remaining = Math.ceil(14.0 - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! Please watch the full 15s video ad. Wait ${remaining}s.` });
+        if (elapsedSec < 3.0) {
+            const remaining = Math.ceil(3.0 - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! Please watch the ad properly. Wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
@@ -243,12 +243,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: 'Daily GigaPub ad quota completed (30/30). Please complete Monetag ads.' });
         }
 
-        // Enforce 4-second cooldown between consecutive ads
+        // Enforce 1-second cooldown between consecutive ads
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 4) {
-                const timeLeft = Math.ceil(4 - secondsSinceLast);
-                return res.status(429).json({ error: `Please wait ${timeLeft} seconds before watching another ad.` });
+            if (secondsSinceLast < 1.5) {
+                return res.status(429).json({ error: `Please wait a moment before watching another ad.` });
             }
         }
 

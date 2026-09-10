@@ -35,7 +35,7 @@ export function prefetchGramAd() {
 
 /**
  * Executes a GigaPub rewarded ad session using window.showGiga()
- * Used strictly for Option 2 / Primary GigaPub tasks
+ * Used for both Option 1 (Monetag UI slot) and Option 2 (GigaPub UI slot)
  */
 export async function showRewardedAd(placement = 'main', options = {}) {
   if (typeof window === 'undefined') {
@@ -53,9 +53,9 @@ export async function showRewardedAd(placement = 'main', options = {}) {
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Wait up to 3.5 seconds for GigaPub SDK to attach trigger function
+  // Wait up to 5 seconds for GigaPub SDK to attach trigger function
   let waited = 0;
-  while (!getFn() && waited < 3500) {
+  while (!getFn() && waited < 5000) {
     await new Promise(r => setTimeout(r, 150));
     waited += 150;
   }
@@ -63,10 +63,11 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   const fn = getFn();
   if (typeof fn !== 'function') {
     console.warn('[AdManager] GigaPub SDK unit 8093 not attached yet.');
+    initGigaAds();
     return {
       success: false,
       network: 'gigapub',
-      error: 'GigaPub ad network is loading. Please tap again in a moment.'
+      error: 'Ad sponsor is connecting. Please tap again to watch.'
     };
   }
 
@@ -76,16 +77,7 @@ export async function showRewardedAd(placement = 'main', options = {}) {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad (Unit 8093, Placement: ${placement})...`);
     
     // Call window.showGiga() as officially specified
-    const adExecutionPromise = Promise.resolve().then(() => {
-      return fn.call(window.GigaPub || window);
-    });
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Ad session timeout')), 45000);
-    });
-
-    // Await GigaPub ad completion
-    await Promise.race([adExecutionPromise, timeoutPromise]);
+    await fn.call(window.GigaPub || window);
 
     const elapsed = (Date.now() - startTime) / 1000;
     console.log(`[AdManager] ✅ GigaPub ad completed successfully! (${elapsed.toFixed(1)}s)`);
@@ -93,19 +85,26 @@ export async function showRewardedAd(placement = 'main', options = {}) {
   } catch (err) {
     console.warn('[AdManager] GigaPub ad session caught:', err);
     const errMessage = String(err?.message || err || '').toLowerCase();
+    const elapsed = (Date.now() - startTime) / 1000;
     
-    if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss') || errMessage.includes('early')) {
+    if (errMessage.includes('cancel') || errMessage.includes('close') || errMessage.includes('skip') || errMessage.includes('dismiss')) {
       return {
         success: false,
         network: 'gigapub',
-        error: 'Ad was closed early. You must watch the entire GigaPub ad to get progress.'
+        error: 'Ad was closed early. Please watch the ad to get progress.'
       };
+    }
+
+    // If ad was viewed for at least 3 seconds before ending/closing
+    if (elapsed >= 3.0) {
+      console.log(`[AdManager] Ad was viewed for ${elapsed.toFixed(1)}s. Resolving as fulfilled.`);
+      return { success: true, network: 'gigapub' };
     }
 
     return {
       success: false,
       network: 'gigapub',
-      error: 'GigaPub ad was closed early or unfulfilled. Please tap again to watch.'
+      error: 'Ad session was closed early. Please tap again to watch.'
     };
   }
 }
@@ -115,39 +114,16 @@ export async function showGigaPubAdFallback() {
 }
 
 export function triggerStartupAd() {
-  // Disabled: No automatic startup ads
+  // Disabled
 }
 
 export function startPeriodicAdLoop() {
-  // Disabled: No automatic periodic popup ads
+  // Disabled
 }
 
-const MONETAG_ZONE_ID = '11395836';
-const MONETAG_SDK_FN = 'show_11395836';
-
-/**
- * Initializes the Monetag Ad SDK script dynamically if not present
- */
 export function initMonetagAds() {
-  if (typeof window === 'undefined' || typeof document === 'undefined') return;
-  if (!document.getElementById('monetag-ad-sdk')) {
-    try {
-      const s = document.createElement('script');
-      s.id = 'monetag-ad-sdk';
-      s.src = 'https://libtl.com/sdk.js';
-      s.setAttribute('data-zone', MONETAG_ZONE_ID);
-      s.setAttribute('data-sdk', MONETAG_SDK_FN);
-      s.async = true;
-      document.head.appendChild(s);
-      console.log('[AdManager] 🚀 Initialized Monetag ad SDK (Zone 11395836)');
-    } catch (e) {
-      console.error('[AdManager] Monetag script injection error:', e);
-    }
-  }
+  initGigaAds();
 }
-
-// Auto-initialize Monetag
-initMonetagAds();
 
 /**
  * Executes a Monetag ad session (powered seamlessly by GigaPub Unit 8093 under the hood)
