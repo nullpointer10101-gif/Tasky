@@ -2770,6 +2770,10 @@ router.get('/gram-deposits', async (req, res) => {
       depositors,
       deposits
     });
+  } catch (err) {
+    console.error('Error fetching gram deposits:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/admin/treasury-status - Wallet Balance, Previous Transactions, and System Health
