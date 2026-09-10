@@ -2770,6 +2770,8 @@ router.get('/gram-deposits', async (req, res) => {
       depositors,
       deposits
     });
+});
+
 // GET /api/admin/treasury-status - Wallet Balance, Previous Transactions, and System Health
 router.get('/treasury-status', async (req, res) => {
   const startTime = Date.now();
@@ -2829,7 +2831,7 @@ router.get('/treasury-status', async (req, res) => {
       });
       const mc = await Promise.race([
         client.getMasterchainInfo(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('TON RPC timeout')), 4000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('TON RPC timeout')), 2000))
       ]);
       tonRpcStatus.connected = true;
       tonRpcStatus.latencyMs = Date.now() - tonT0;
@@ -2875,7 +2877,7 @@ router.get('/treasury-status', async (req, res) => {
           });
           const nano = await Promise.race([
             client.getBalance(wallet.address),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Balance timeout')), 4000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Balance timeout')), 2000))
           ]);
           const tonBal = parseFloat(fromNano(nano));
           treasuryWallet.balanceTon = tonBal;
@@ -2889,7 +2891,7 @@ router.get('/treasury-status', async (req, res) => {
         try {
           const jettonRes = await Promise.race([
             fetch(`https://tonapi.io/v2/accounts/${friendly}/jettons`),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Jettons timeout')), 3000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Jettons timeout')), 2000))
           ]);
           if (jettonRes.ok) {
             const jData = await jettonRes.json();
