@@ -2805,14 +2805,22 @@ router.get('/treasury-status', async (req, res) => {
       serverTime: new Date().toISOString()
     };
 
-    // 2. Database Ping & Stats
+    // 2. Database Ping & Stats (retry once after 800ms for Render cold-start warmup)
     let dbPingMs = 0;
     const dbT0 = Date.now();
-    try {
+    const pingDB = async () => {
       await pool.query('SELECT 1');
-      dbPingMs = Date.now() - dbT0;
-    } catch (dbErr) {
-      dbPingMs = -1;
+      return Date.now() - dbT0;
+    };
+    try {
+      dbPingMs = await pingDB();
+    } catch (_firstErr) {
+      try {
+        await new Promise(r => setTimeout(r, 800));
+        dbPingMs = await pingDB();
+      } catch (dbErr) {
+        dbPingMs = -1;
+      }
     }
 
     // 3. TON RPC Ping & Masterchain status
