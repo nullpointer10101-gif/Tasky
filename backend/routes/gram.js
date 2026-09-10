@@ -21,17 +21,18 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const adCountRes = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count,
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const gigapub_ads_watched_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
-        const monetag_ads_watched_today = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
-        const ads_watched_today = gigapub_ads_watched_today + monetag_ads_watched_today;
+        const adexium_ads_watched_today = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
+        const monetag_ads_watched_today = adexium_ads_watched_today; // backward compat alias
+        const ads_watched_today = gigapub_ads_watched_today + adexium_ads_watched_today;
         const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
         // 3. Get recent Gram claims history
@@ -66,14 +67,15 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const requires_referrals = true;
         const referral_requirement_met = total_referrals >= 2;
 
-        // 5. Determine if they can claim (30 gigapub + 30 monetag, or 60 total)
+        // 5. Determine if they can claim (30 gigapub + 30 adexium, or 60 total)
         const activeWallet = gram_wallet_address || wallet_address || '';
-        const can_claim = gigapub_ads_watched_today >= 30 && monetag_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet && referral_requirement_met;
+        const can_claim = gigapub_ads_watched_today >= 30 && adexium_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet && referral_requirement_met;
 
         res.json({
             gram_wallet_address: activeWallet,
             wallet_connected: !!wallet_address,
             gigapub_ads_watched_today,
+            adexium_ads_watched_today,
             monetag_ads_watched_today,
             ads_watched_today,
             last_ad_time,
@@ -144,10 +146,11 @@ router.post('/start-watch', async (req, res) => {
         // Generate cryptographically secure one-time session token
         const session_token = crypto.randomBytes(24).toString('hex');
         const now = Date.now();
+        const normalizedProvider = (provider === 'adexium' || provider === 'monetag') ? 'adexium' : 'gigapub';
 
         global.gramAdSessions.set(session_token, {
             telegram_id: telegram_id.toString(),
-            provider: provider === 'monetag' ? 'monetag' : 'gigapub',
+            provider: normalizedProvider,
             created_at: now
         });
 
@@ -190,7 +193,8 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(403).json({ error: 'Session user mismatch' });
         }
 
-        const requestedProvider = provider === 'monetag' ? 'monetag' : 'gigapub';
+        const isAdexium = provider === 'adexium' || provider === 'monetag';
+        const requestedProvider = isAdexium ? 'adexium' : 'gigapub';
         if (sessionData.provider && sessionData.provider !== requestedProvider) {
             return res.status(400).json({ error: 'Ad provider mismatch' });
         }
@@ -220,27 +224,26 @@ router.post('/watch-ad', async (req, res) => {
         const countRes = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count,
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         
         let gigapubCount = parseInt(countRes.rows[0].gigapub_count || 0, 10);
-        let monetagCount = parseInt(countRes.rows[0].monetag_count || 0, 10);
+        let adexiumCount = parseInt(countRes.rows[0].adexium_count || 0, 10);
         const lastAdTime = countRes.rows[0].last_ad_time;
 
-        const isMonetag = provider === 'monetag';
-        const targetAdType = isMonetag ? 'gram_monetag' : 'gram_gigapub';
+        const targetAdType = isAdexium ? 'gram_adexium' : 'gram_gigapub';
 
-        if (isMonetag && monetagCount >= 30) {
-            return res.status(429).json({ error: 'Daily Monetag ad quota completed (30/30). Please complete GigaPub ads.' });
+        if (isAdexium && adexiumCount >= 30) {
+            return res.status(429).json({ error: 'Daily Adexium ad quota completed (30/30). Please complete GigaPub ads.' });
         }
-        if (!isMonetag && gigapubCount >= 30) {
-            return res.status(429).json({ error: 'Daily GigaPub ad quota completed (30/30). Please complete Monetag ads.' });
+        if (!isAdexium && gigapubCount >= 30) {
+            return res.status(429).json({ error: 'Daily GigaPub ad quota completed (30/30). Please complete Adexium ads.' });
         }
 
         // Enforce 1-second cooldown between consecutive ads
@@ -263,15 +266,16 @@ router.post('/watch-ad', async (req, res) => {
             [telegram_id]
         );
 
-        if (isMonetag) monetagCount++;
+        if (isAdexium) adexiumCount++;
         else gigapubCount++;
 
         res.json({
             success: true,
-            provider,
+            provider: requestedProvider,
             gigapub_ads_watched_today: gigapubCount,
-            monetag_ads_watched_today: monetagCount,
-            ads_watched_today: gigapubCount + monetagCount
+            adexium_ads_watched_today: adexiumCount,
+            monetag_ads_watched_today: adexiumCount,
+            ads_watched_today: gigapubCount + adexiumCount
         });
     } catch (err) {
         console.error('Error recording gram ad watch:', err);
@@ -362,21 +366,21 @@ router.post('/claim', async (req, res) => {
         const adCountRes = await client.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const gigaWatched = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
-        const monetagWatched = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
-        const ads_watched_today = gigaWatched + monetagWatched;
+        const adexiumWatched = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
+        const ads_watched_today = gigaWatched + adexiumWatched;
 
-        if (gigaWatched < 30 || monetagWatched < 30) {
+        if (gigaWatched < 30 || adexiumWatched < 30) {
             await client.query('ROLLBACK');
             return res.status(400).json({ 
-                error: `Please complete all 30 GigaPub ads (${Math.min(30, gigaWatched)}/30) and 30 Monetag ads (${Math.min(30, monetagWatched)}/30) to claim!` 
+                error: `Please complete all 30 Adexium ads (${Math.min(30, adexiumWatched)}/30) and 30 GigaPub ads (${Math.min(30, gigaWatched)}/30) to claim!` 
             });
         }
 
@@ -399,7 +403,7 @@ router.post('/claim', async (req, res) => {
             UPDATE ad_views 
             SET claimed = TRUE 
             WHERE telegram_id = $1 
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag') 
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag') 
               AND claimed = FALSE
         `, [telegram_id]);
 

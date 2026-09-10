@@ -182,8 +182,8 @@ export default function Dashboard() {
                     <span className="text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
                       GigaPub: {Number(stats.todayGigapubAds || 0).toLocaleString()}
                     </span>
-                    <span className="text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                      Monetag: {Number(stats.todayMonetagAds || 0).toLocaleString()}
+                    <span className="text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                      Adexium: {Number(stats.todayAdexiumAds || stats.todayMonetagAds || 0).toLocaleString()}
                     </span>
                   </div>
                 )}

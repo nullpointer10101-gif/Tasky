@@ -88,16 +88,17 @@ router.get('/balance/:telegram_id(\\d+)', async (req, res) => {
         const adCountRes = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_count
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const gigapub_ads_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
-        const monetag_ads_today = parseInt(adCountRes.rows[0].monetag_count || 0, 10);
-        const ads_watched_today = gigapub_ads_today + monetag_ads_today;
+        const adexium_ads_today = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
+        const monetag_ads_today = adexium_ads_today;
+        const ads_watched_today = gigapub_ads_today + adexium_ads_today;
 
         // Recent withdrawal history
         const historyRes = await pool.query(

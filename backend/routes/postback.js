@@ -41,7 +41,7 @@ async function handleS2SPostback(provider, req, res) {
       return res.status(200).json({ status: 'ignored', reason: 'user_banned' });
     }
 
-    const adType = provider === 'monetag' ? 'gram_monetag' : 'gram_gigapub';
+    const adType = (provider === 'adexium' || provider === 'monetag') ? 'gram_adexium' : 'gram_gigapub';
 
     // Insert into ad_views
     await pool.query(
@@ -63,9 +63,13 @@ async function handleS2SPostback(provider, req, res) {
   }
 }
 
-// Monetag S2S Postback
-router.get('/monetag', (req, res) => handleS2SPostback('monetag', req, res));
-router.post('/monetag', (req, res) => handleS2SPostback('monetag', req, res));
+// Adexium S2S Postback
+router.get('/adexium', (req, res) => handleS2SPostback('adexium', req, res));
+router.post('/adexium', (req, res) => handleS2SPostback('adexium', req, res));
+
+// Monetag S2S Postback (Legacy)
+router.get('/monetag', (req, res) => handleS2SPostback('adexium', req, res));
+router.post('/monetag', (req, res) => handleS2SPostback('adexium', req, res));
 
 // GigaPub S2S Postback
 router.get('/gigapub', (req, res) => handleS2SPostback('gigapub', req, res));

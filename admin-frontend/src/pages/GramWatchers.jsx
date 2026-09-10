@@ -92,7 +92,7 @@ function WatcherCard({ watcher, onRemind }) {
         </div>
       </div>
 
-      {/* Provider Dual Breakdown (GigaPub + Monetag) */}
+      {/* Provider Dual Breakdown (GigaPub + Adexium) */}
       <div className="grid grid-cols-2 gap-2 my-2.5 p-2 rounded-xl bg-surface/50 border border-border/40 text-[10px] font-bold">
         <div className="flex flex-col gap-0.5">
           <div className="flex items-center justify-between text-indigo-400">
@@ -104,12 +104,12 @@ function WatcherCard({ watcher, onRemind }) {
           </div>
         </div>
         <div className="flex flex-col gap-0.5">
-          <div className="flex items-center justify-between text-amber-400">
-            <span className="flex items-center gap-1"><Sparkles size={10} /> Monetag</span>
+          <div className="flex items-center justify-between text-cyan-400">
+            <span className="flex items-center gap-1"><Sparkles size={10} /> Adexium</span>
             <span className="font-mono font-black">{monetagCount}/30</span>
           </div>
           <div className="w-full h-1 bg-surface-soft rounded-full overflow-hidden">
-            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${(monetagCount / 30) * 100}%` }} />
+            <div className="h-full bg-cyan-400 rounded-full transition-all" style={{ width: `${(monetagCount / 30) * 100}%` }} />
           </div>
         </div>
       </div>
@@ -280,7 +280,7 @@ export default function GramWatchers() {
           { label: 'Ready to Claim', value: stats.ready, color: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', icon: Trophy },
           { label: 'Claimed Today', value: stats.claimed, color: 'text-slate-400', bg: 'bg-slate-500/10', border: 'border-slate-500/20', icon: CheckCircle },
           { label: 'GigaPub Views', value: stats.totalGigapub, color: 'text-indigo-400', bg: 'bg-indigo-500/10', border: 'border-indigo-500/20', icon: Layers },
-          { label: 'Monetag Views', value: stats.totalMonetag, color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20', icon: Sparkles },
+          { label: 'Adexium Views', value: stats.totalMonetag, color: 'text-cyan-400', bg: 'bg-cyan-500/10', border: 'border-cyan-500/20', icon: Sparkles },
         ].map((s, i) => (
           <div key={i} className={`${s.bg} border ${s.border} rounded-2xl p-4 flex items-center gap-3`}>
             <div className={`w-9 h-9 rounded-xl ${s.bg} border ${s.border} flex items-center justify-center ${s.color} shrink-0`}>

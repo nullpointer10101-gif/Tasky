@@ -103,9 +103,10 @@ router.get('/stats', async (req, res) => {
           COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as today,
           COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as yesterday,
           COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub') AND created_at >= CURRENT_DATE) as today_gigapub,
-          COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as today_monetag
+          COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE) as today_monetag,
+          COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE) as today_adexium
         FROM ad_views
-        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+        WHERE created_at >= CURRENT_DATE - INTERVAL '1 day' AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
       `),
       pool.query(`
         SELECT 
@@ -206,11 +207,12 @@ router.get('/gram-watchers', async (req, res) => {
         SELECT 
           av.telegram_id,
           COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_ads,
-          COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type = 'gram_monetag') as monetag_ads,
+          COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type IN ('gram_adexium', 'gram_monetag')) as monetag_ads,
+          COUNT(*) FILTER (WHERE av.claimed = FALSE AND av.ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_ads,
           MAX(av.created_at) as last_watch_time,
           MIN(av.created_at) as first_watch_time
         FROM ad_views av
-        WHERE av.ad_type IN ('gram_ad', 'gram_gigapub', 'gram_monetag')
+        WHERE av.ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
           AND av.created_at >= NOW() - INTERVAL '24 hours'
         GROUP BY av.telegram_id
       ),
@@ -823,13 +825,15 @@ router.get('/ads/stats', async (req, res) => {
   try {
     const query = `
       SELECT
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag')) as total_ads,
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag') AND created_at >= CURRENT_DATE) as ads_today,
-        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_monetag') AND created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_adexium', 'gram_monetag')) as total_ads,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE) as ads_today,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_gigapub', 'gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE - INTERVAL '1 day' AND created_at < CURRENT_DATE) as ads_yesterday,
         COUNT(*) FILTER (WHERE ad_type = 'gram_gigapub') as gigapub_total,
-        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag') as monetag_total,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as monetag_total,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_total,
         COUNT(*) FILTER (WHERE ad_type = 'gram_gigapub' AND created_at >= CURRENT_DATE) as gigapub_today,
-        COUNT(*) FILTER (WHERE ad_type = 'gram_monetag' AND created_at >= CURRENT_DATE) as monetag_today,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE) as monetag_today,
+        COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag') AND created_at >= CURRENT_DATE) as adexium_today,
         COUNT(*) as all_app_ads_total,
         COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) as all_app_ads_today,
         COUNT(*) FILTER (WHERE ad_type = 'task_ad') as task_ads_total,
@@ -851,9 +855,10 @@ router.get('/ads/stats', async (req, res) => {
       )
       SELECT 
         TO_CHAR(d.date, 'YYYY-MM-DD') as date,
-        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_gigapub', 'gram_monetag')) as count,
+        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_gigapub', 'gram_adexium', 'gram_monetag')) as count,
         COUNT(av.id) FILTER (WHERE av.ad_type = 'gram_gigapub') as gigapub_count,
-        COUNT(av.id) FILTER (WHERE av.ad_type = 'gram_monetag') as monetag_count
+        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_adexium', 'gram_monetag')) as monetag_count,
+        COUNT(av.id) FILTER (WHERE av.ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count
       FROM dates d
       LEFT JOIN ad_views av ON DATE(av.created_at) = d.date
       GROUP BY d.date

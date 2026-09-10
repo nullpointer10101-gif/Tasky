@@ -9,7 +9,7 @@ import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, watchGramAd, startWatchGramAd, verifyGramSuffix } from '../api';
-import { showRewardedAd, showMonetagAd, prefetchGramAd } from '../adUtils';
+import { showRewardedAd, showAdexiumAd, showMonetagAd, prefetchGramAd } from '../adUtils';
 import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
@@ -165,9 +165,9 @@ export default function Gram({ user, refreshUser }) {
   }, [user]);
 
   const currentGiga = Math.min(30, status?.gigapub_ads_watched_today ?? (status?.ads_watched_today ? Math.min(30, status.ads_watched_today) : 0));
-  const currentMonetag = Math.min(30, status?.monetag_ads_watched_today ?? 0);
-  const totalCount = currentGiga + currentMonetag;
-  const isReadyToClaim = currentGiga >= 30 && currentMonetag >= 30;
+  const currentAdexium = Math.min(30, status?.adexium_ads_watched_today ?? status?.monetag_ads_watched_today ?? 0);
+  const totalCount = currentGiga + currentAdexium;
+  const isReadyToClaim = currentGiga >= 30 && currentAdexium >= 30;
 
   // Countdown timer for 24h reset
   useEffect(() => {
@@ -201,28 +201,30 @@ export default function Gram({ user, refreshUser }) {
       }
     }
 
-    if (provider === 'monetag' && currentMonetag >= 30) {
-      showToast('You have already completed 30 Monetag ads today!', 'info');
+    const isAdexium = provider === 'adexium' || provider === 'monetag';
+    if (isAdexium && currentAdexium >= 30) {
+      showToast('You have already completed 30 Adexium ads today!', 'info');
       return;
     }
-    if (provider === 'gigapub' && currentGiga >= 30) {
+    if (!isAdexium && currentGiga >= 30) {
       showToast('You have already completed 30 GigaPub ads today!', 'info');
       return;
     }
 
     setIsWatchingAd(true);
-    setWatchingProvider(provider);
+    setWatchingProvider(isAdexium ? 'adexium' : 'gigapub');
     setAdLoadingStage(1);
 
     try {
       try { window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium'); } catch(e){}
       
       // Start server session token in background (zero UI latency)
-      const startPromise = startWatchGramAd(user?.telegram_id, provider).catch(() => null);
+      const targetProvider = isAdexium ? 'adexium' : 'gigapub';
+      const startPromise = startWatchGramAd(user?.telegram_id, targetProvider).catch(() => null);
 
       let adResult;
-      if (provider === 'monetag') {
-        adResult = await showMonetagAd();
+      if (isAdexium) {
+        adResult = await showAdexiumAd();
       } else {
         adResult = await showRewardedAd('gram');
       }
@@ -235,10 +237,10 @@ export default function Gram({ user, refreshUser }) {
       const startRes = await startPromise;
       const sessionToken = startRes?.data?.session_token || null;
 
-      const networkName = provider === 'monetag' ? 'Monetag' : 'GigaPub';
+      const networkName = isAdexium ? 'Adexium' : 'GigaPub';
       showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
 
-      const res = await watchGramAd(user?.telegram_id, provider, sessionToken);
+      const res = await watchGramAd(user?.telegram_id, targetProvider, sessionToken);
 
       if (res.error) {
         showToast(res.error, 'error');
@@ -249,11 +251,15 @@ export default function Gram({ user, refreshUser }) {
 
         setStatus(prev => {
           if (!prev) return prev;
+          const updatedAdexium = res.adexium_ads_watched_today !== undefined 
+            ? res.adexium_ads_watched_today 
+            : (res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (isAdexium ? (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0) + 1 : (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0)));
           return {
             ...prev,
             ads_watched_today: res.ads_watched_today || newCount,
-            gigapub_ads_watched_today: res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (provider === 'gigapub' ? (prev.gigapub_ads_watched_today || 0) + 1 : prev.gigapub_ads_watched_today),
-            monetag_ads_watched_today: res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (provider === 'monetag' ? (prev.monetag_ads_watched_today || 0) + 1 : prev.monetag_ads_watched_today),
+            gigapub_ads_watched_today: res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (!isAdexium ? (prev.gigapub_ads_watched_today || 0) + 1 : prev.gigapub_ads_watched_today),
+            adexium_ads_watched_today: updatedAdexium,
+            monetag_ads_watched_today: updatedAdexium,
             last_ad_time: new Date().toISOString()
           };
         });
@@ -263,9 +269,9 @@ export default function Gram({ user, refreshUser }) {
           window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
         } catch(e){}
 
-        const updatedGiga = res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (provider === 'gigapub' ? currentGiga + 1 : currentGiga);
-        const updatedMonetag = res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (provider === 'monetag' ? currentMonetag + 1 : currentMonetag);
-        const isComplete = updatedGiga >= 30 && updatedMonetag >= 30;
+        const updatedGiga = res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (!isAdexium ? currentGiga + 1 : currentGiga);
+        const updatedAdexium = res.adexium_ads_watched_today !== undefined ? res.adexium_ads_watched_today : (res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (isAdexium ? currentAdexium + 1 : currentAdexium));
+        const isComplete = updatedGiga >= 30 && updatedAdexium >= 30;
 
         if (isComplete) {
           setShowCompletionBurst(true);
@@ -286,11 +292,11 @@ export default function Gram({ user, refreshUser }) {
 
         setRewardCelebration({
           count: newCount,
-          left: Math.max(0, TOTAL_ADS - (updatedGiga + updatedMonetag)),
-          pct: Math.min(100, Math.round(((updatedGiga + updatedMonetag) / TOTAL_ADS) * 100)),
+          left: Math.max(0, TOTAL_ADS - (updatedGiga + updatedAdexium)),
+          pct: Math.min(100, Math.round(((updatedGiga + updatedAdexium) / TOTAL_ADS) * 100)),
           streak: newStreak,
           network: networkName,
-          message: getEncouragement(updatedGiga + updatedMonetag, newStreak)
+          message: getEncouragement(updatedGiga + updatedAdexium, newStreak)
         });
 
         await fetchStatus();
@@ -348,9 +354,9 @@ export default function Gram({ user, refreshUser }) {
   };
 
   const gigaCount = Math.min(30, status?.gigapub_ads_watched_today ?? (status?.ads_watched_today ? Math.min(30, status.ads_watched_today) : 0));
-  const monetagCount = Math.min(30, status?.monetag_ads_watched_today ?? 0);
-  const count = gigaCount + monetagCount;
-  const isQuestFinished = gigaCount >= 30 && monetagCount >= 30;
+  const adexiumCount = Math.min(30, status?.adexium_ads_watched_today ?? status?.monetag_ads_watched_today ?? 0);
+  const count = gigaCount + adexiumCount;
+  const isQuestFinished = gigaCount >= 30 && adexiumCount >= 30;
   const pct = Math.min(100, (count / TOTAL_ADS) * 100);
   const adsLeft = getAdsLeft(count);
   const progressColor = getProgressColor(count);
@@ -376,7 +382,7 @@ export default function Gram({ user, refreshUser }) {
           <Coins className="text-amber-400" /> Gram Daily Ads
         </h1>
         <p className="text-xs text-indigo-300 font-bold max-w-xs mx-auto leading-relaxed">
-          Watch 60 sponsor ads daily (30 GigaPub + 30 Monetag) and receive <span className="text-emerald-400 font-black">0.02 GRAM</span> directly to your wallet!
+          Watch 60 sponsor ads daily (30 Adexium + 30 GigaPub) and receive <span className="text-emerald-400 font-black">0.02 GRAM</span> directly to your wallet!
         </p>
       </div>
 
@@ -434,7 +440,7 @@ export default function Gram({ user, refreshUser }) {
             {claimCountdown}
           </div>
           <p className="text-[11.5px] text-white/60 font-bold leading-normal px-2">
-            🎉 You completed all 60 ads (30 GigaPub + 30 Monetag) and claimed your 0.02 GRAM daily reward! Next quest opens in 24 hours.
+            🎉 You completed all 60 ads (30 Adexium + 30 GigaPub) and claimed your 0.02 GRAM daily reward! Next quest opens in 24 hours.
           </p>
         </Card>
       ) : (
@@ -520,14 +526,14 @@ export default function Gram({ user, refreshUser }) {
               </div>
 
               {/* Dual Provider guideline */}
-              <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-left flex items-start gap-2.5">
-                <Sparkles size={16} className="text-amber-400 shrink-0 mt-0.5" />
+              <div className="w-full bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-3 text-left flex items-start gap-2.5">
+                <Sparkles size={16} className="text-cyan-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
-                  <p className="text-[11px] font-black text-amber-300 uppercase tracking-wide">
+                  <p className="text-[11px] font-black text-cyan-300 uppercase tracking-wide">
                     Dual Sponsor Requirement
                   </p>
                   <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
-                    Complete <strong className="text-amber-300">30 Monetag Ads</strong> + <strong className="text-indigo-300">30 GigaPub Ads</strong> to unlock your daily 0.02 GRAM claim.
+                    Complete <strong className="text-cyan-300">30 Adexium Ads</strong> + <strong className="text-indigo-300">30 GigaPub Ads</strong> to unlock your daily 0.02 GRAM claim.
                   </p>
                 </div>
               </div>
@@ -536,53 +542,53 @@ export default function Gram({ user, refreshUser }) {
             {/* ── DUAL PROVIDER ACTION CARDS ── */}
             {!isQuestFinished && (
               <div className="w-full space-y-3 pt-1 text-left">
-                {/* Option 1: Monetag (30 Ads) */}
-                <div className={`p-4 rounded-2xl border transition-all ${monetagCount >= 30 ? 'bg-amber-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-amber-950/30 to-[#271510]/60 border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.1)]'}`}>
+                {/* Option 1: Adexium (30 Ads) */}
+                <div className={`p-4 rounded-2xl border transition-all ${adexiumCount >= 30 ? 'bg-cyan-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-cyan-950/30 to-[#0b1f33]/60 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]'}`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-400 font-black text-xs flex items-center justify-center border border-amber-500/30">1</span>
+                      <span className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 font-black text-xs flex items-center justify-center border border-cyan-500/30">1</span>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: Monetag</p>
-                          <span className="text-[8.5px] bg-amber-500/20 text-amber-300 font-black px-1.5 py-0.5 rounded border border-amber-500/30 uppercase">30 Ads</span>
+                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: Adexium</p>
+                          <span className="text-[8.5px] bg-cyan-500/20 text-cyan-300 font-black px-1.5 py-0.5 rounded border border-cyan-500/30 uppercase">30 Ads</span>
                         </div>
-                        <p className="text-[9.5px] text-white/40 font-bold">Partner Sponsor Network</p>
+                        <p className="text-[9.5px] text-white/40 font-bold">Adexium Sponsor Network</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <span className={`text-xs font-black ${monetagCount >= 30 ? 'text-emerald-400' : 'text-amber-300'}`}>
-                        {monetagCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
+                      <span className={`text-xs font-black ${adexiumCount >= 30 ? 'text-emerald-400' : 'text-cyan-300'}`}>
+                        {adexiumCount} <span className="text-[10px] text-white/40 font-normal">/ 30</span>
                       </span>
                     </div>
                   </div>
 
                   <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
                     <div 
-                      className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500"
-                      style={{ width: `${Math.min(100, (monetagCount / 30) * 100)}%` }}
+                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, (adexiumCount / 30) * 100)}%` }}
                     />
                   </div>
 
-                  {monetagCount >= 30 ? (
+                  {adexiumCount >= 30 ? (
                     <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                      <CheckCircle2 size={14} /> Monetag Quota Completed (30/30) ✓
+                      <CheckCircle2 size={14} /> Adexium Quota Completed (30/30) ✓
                     </div>
                   ) : (
                     <motion.button
-                      onClick={() => handleWatchAd('monetag')}
+                      onClick={() => handleWatchAd('adexium')}
                       disabled={isWatchingAd}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-600 via-orange-500 to-yellow-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(245,158,11,0.25)] border border-amber-400/20 disabled:opacity-60 cursor-pointer"
+                      className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] border border-cyan-400/20 disabled:opacity-60 cursor-pointer"
                     >
-                      {isWatchingAd && watchingProvider === 'monetag' ? (
+                      {isWatchingAd && (watchingProvider === 'adexium' || watchingProvider === 'monetag') ? (
                         <>
                           <Loader2 size={14} className="animate-spin text-white" />
-                          <span>Opening Monetag Ad...</span>
+                          <span>Opening Adexium Ad...</span>
                         </>
                       ) : (
                         <>
                           <Play size={13} fill="currentColor" />
-                          <span>Watch Monetag Ad — {30 - monetagCount} Left</span>
+                          <span>Watch Adexium Ad — {30 - adexiumCount} Left</span>
                         </>
                       )}
                     </motion.button>

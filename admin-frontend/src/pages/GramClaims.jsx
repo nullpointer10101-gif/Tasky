@@ -425,7 +425,7 @@ export default function GramClaims() {
                           {c.today_gram_ads_watched || 0}/60 Ads
                         </p>
                         <p className="text-[10px] text-ink-soft font-mono mt-0.5">
-                          <span className="text-indigo-400">G: {c.today_giga_ads || 0}</span> • <span className="text-amber-300">M: {c.today_monetag_ads || 0}</span>
+                          <span className="text-indigo-400">G: {c.today_giga_ads || 0}</span> • <span className="text-cyan-300">A: {c.today_monetag_ads || 0}</span>
                         </p>
                       </div>
 
@@ -775,8 +775,8 @@ export default function GramClaims() {
               const now = new Date();
               const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
               const todayAds = adsList.filter(a => new Date(a.created_at).getTime() >= todayStart);
-              const todayGiga = todayAds.filter(a => a.ad_type !== 'gram_monetag').length;
-              const todayMonetag = todayAds.filter(a => a.ad_type === 'gram_monetag').length;
+              const todayGiga = todayAds.filter(a => a.ad_type !== 'gram_monetag' && a.ad_type !== 'gram_adexium').length;
+              const todayMonetag = todayAds.filter(a => a.ad_type === 'gram_monetag' || a.ad_type === 'gram_adexium').length;
 
               const reqTime = selectedUserAds.requested_at ? new Date(selectedUserAds.requested_at).getTime() : Date.now();
               const window24hAds = adsList.filter(a => {
@@ -802,7 +802,7 @@ export default function GramClaims() {
                       <div className="flex items-center gap-1.5 text-[9.5px] mt-1 font-bold">
                         <span className="text-indigo-300">🟣 Giga: {todayGiga}/30</span>
                         <span className="text-ink-faint">•</span>
-                        <span className="text-amber-300">🟡 Mon: {todayMonetag}/30</span>
+                        <span className="text-cyan-300">🔵 Adex: {todayMonetag}/30</span>
                       </div>
                     </div>
 
@@ -917,7 +917,7 @@ export default function GramClaims() {
                       let inWindow = false;
                       inWindow = adTime >= (reqTime - 24 * 60 * 60 * 1000) && adTime <= reqTime;
                       
-                      const isMonetag = ad.ad_type === 'gram_monetag';
+                      const isAdexium = ad.ad_type === 'gram_adexium' || ad.ad_type === 'gram_monetag';
 
                       // Compute interval to previous ad in this list
                       let intervalSec = null;
@@ -935,9 +935,9 @@ export default function GramClaims() {
                                 <span className="font-semibold text-white">{new Date(ad.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
                                 <span className="text-[10px] text-ink-faint font-mono">{new Date(ad.created_at).toLocaleDateString()}</span>
                                 <span className={`text-[9.5px] font-black uppercase px-2 py-0.5 rounded-lg border ${
-                                  isMonetag ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                                  isAdexium ? 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20' : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
                                 }`}>
-                                  {isMonetag ? 'Monetag' : 'GigaPub'}
+                                  {isAdexium ? 'Adexium' : 'GigaPub'}
                                 </span>
                               </div>
                               {intervalSec !== null && (

@@ -170,25 +170,25 @@ const Ads = () => {
                       <Sparkles size={20} />
                     </div>
                     <div>
-                      <h4 className="font-black text-ink text-lg">Monetag Network</h4>
+                      <h4 className="font-black text-ink text-lg">Adexium Network</h4>
                       <p className="text-xs text-ink-soft">30 daily cap per user</p>
                     </div>
                   </div>
-                  <span className="px-3 py-1 bg-amber-500/10 text-amber-400 text-xs font-black uppercase rounded-full border border-amber-500/20">
-                    Provider 2
+                  <span className="px-3 py-1 bg-cyan-500/10 text-cyan-400 text-xs font-black uppercase rounded-full border border-cyan-500/20">
+                    Provider 1
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-2 pt-4 border-t border-border/50">
                   <div>
                     <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">Today</p>
-                    <p className="text-2xl font-black text-amber-400 mt-0.5">
-                      {parseInt(stats.monetag_today || 0).toLocaleString()}
+                    <p className="text-2xl font-black text-cyan-400 mt-0.5">
+                      {parseInt(stats.adexium_today || stats.monetag_today || 0).toLocaleString()}
                     </p>
                   </div>
                   <div>
                     <p className="text-xs font-bold text-ink-soft uppercase tracking-wider">All-Time</p>
                     <p className="text-2xl font-black text-ink mt-0.5">
-                      {parseInt(stats.monetag_total || 0).toLocaleString()}
+                      {parseInt(stats.adexium_total || stats.monetag_total || 0).toLocaleString()}
                     </p>
                   </div>
                 </div>
@@ -210,8 +210,8 @@ const Ads = () => {
                     <span className="text-ink-soft">GigaPub</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <span className="w-3 h-3 rounded-sm bg-amber-400 shadow-sm"></span>
-                    <span className="text-ink-soft">Monetag</span>
+                    <span className="w-3 h-3 rounded-sm bg-cyan-400 shadow-sm"></span>
+                    <span className="text-ink-soft">Adexium</span>
                   </div>
                 </div>
               </div>
@@ -221,7 +221,7 @@ const Ads = () => {
                   chartData.map((day, idx) => {
                     const totalDay = parseInt(day.count || 0, 10);
                     const gigaCount = parseInt(day.gigapub_count || 0, 10);
-                    const monetagCount = parseInt(day.monetag_count || 0, 10);
+                    const monetagCount = parseInt(day.adexium_count || day.monetag_count || 0, 10);
                     const heightPercent = maxCount > 0 ? Math.round((totalDay / maxCount) * 100) : 0;
                     
                     const gigaPct = totalDay > 0 ? (gigaCount / totalDay) * 100 : 0;
@@ -237,7 +237,7 @@ const Ads = () => {
                           </div>
                           <div className="text-[10px] text-white/70 mt-1 flex items-center gap-3">
                             <span className="text-indigo-400">🟣 Giga: {gigaCount.toLocaleString()}</span>
-                            <span className="text-amber-300">🟡 Monetag: {monetagCount.toLocaleString()}</span>
+                            <span className="text-cyan-300">🔵 Adexium: {monetagCount.toLocaleString()}</span>
                           </div>
                         </div>
 
@@ -256,12 +256,12 @@ const Ads = () => {
                           >
                             {totalDay > 0 ? (
                               <>
-                                {/* Monetag (Top) */}
+                                {/* Adexium (Top) */}
                                 {monetagCount > 0 && (
                                   <div 
-                                    className="w-full bg-gradient-to-t from-amber-500 to-amber-400 transition-all"
+                                    className="w-full bg-gradient-to-t from-cyan-500 to-cyan-400 transition-all"
                                     style={{ height: `${monetagPct}%` }}
-                                    title={`Monetag: ${monetagCount}`}
+                                    title={`Adexium: ${monetagCount}`}
                                   />
                                 )}
                                 {/* GigaPub (Bottom) */}
