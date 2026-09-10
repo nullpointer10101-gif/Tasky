@@ -56,7 +56,7 @@ export default function TreasuryAndSystem() {
   // Filter transactions
   const filteredTransactions = transactions.filter((tx) => {
     if (filterType === 'payouts' && !tx.category?.includes('payout')) return false;
-    if (filterType === 'deposits' && tx.category !== 'deposit') return false;
+    if (filterType === 'deposits' && tx.category !== 'deposit' && tx.category !== 'ton_topup') return false;
 
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
@@ -414,11 +414,19 @@ export default function TreasuryAndSystem() {
                     <tr key={tx.id ? `${tx.category}-${tx.id}` : idx} className="hover:bg-slate-800/30 transition-colors">
                       {/* Type Badge */}
                       <td className="py-3 px-3">
-                        {isDeposit ? (
+                        {tx.category === 'deposit' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">
                             <ArrowDownLeft size={12} /> Deposit
                           </span>
-                        ) : isGramPayout ? (
+                        ) : tx.category === 'ton_payout' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-orange-500/15 text-orange-300 border border-orange-500/20">
+                            <ArrowUpRight size={12} /> TON Out
+                          </span>
+                        ) : tx.category === 'ton_topup' ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-cyan-500/15 text-cyan-300 border border-cyan-500/20">
+                            <ArrowDownLeft size={12} /> TON In
+                          </span>
+                        ) : tx.category === 'gram_payout' ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase bg-purple-500/15 text-purple-300 border border-purple-500/20">
                             <ArrowUpRight size={12} /> GRAM Payout
                           </span>
@@ -433,22 +441,36 @@ export default function TreasuryAndSystem() {
                       <td className="py-3 px-3">
                         <div>
                           <p className="font-bold text-white truncate max-w-[150px]">
-                            {tx.first_name || 'User'}
+                            {tx.first_name || (tx.blockchain ? (tx.direction === 'outgoing' ? '🔴 TON Payout' : '🟢 TON Top-Up') : 'User')}
                           </p>
                           <p className="text-[11px] text-slate-400">
-                            {tx.username ? `@${tx.username}` : `ID: ${tx.telegram_id}`}
+                            {tx.blockchain
+                              ? (tx.wallet_address ? `→ ${tx.wallet_address.slice(0, 8)}...` : 'On-chain')
+                              : tx.username ? `@${tx.username}` : `ID: ${tx.telegram_id}`
+                            }
                           </p>
                         </div>
                       </td>
 
                       {/* Amount */}
                       <td className="py-3 px-3">
-                        <span className={`font-black text-sm ${isDeposit ? 'text-emerald-400' : 'text-purple-300'}`}>
-                          {isDeposit ? '+' : '-'}{Number(tx.amount || 0).toFixed(3)} {tx.currency || 'GRAM'}
+                        <span className={`font-black text-sm ${
+                          tx.category === 'deposit' || tx.category === 'ton_topup'
+                            ? 'text-emerald-400'
+                            : tx.category === 'ton_payout'
+                            ? 'text-orange-300'
+                            : 'text-purple-300'
+                        }`}>
+                          {tx.category === 'deposit' || tx.category === 'ton_topup' ? '+' : '-'}{typeof tx.amount === 'string' && tx.amount.includes(' ') ? tx.amount : `${Number(tx.amount || 0).toFixed(3)} ${tx.currency || 'GRAM'}`}
                         </span>
-                        {tx.is_auto_payout && (
+                        {tx.is_auto_payout && tx.category !== 'ton_payout' && tx.category !== 'ton_topup' && (
                           <span className="ml-1.5 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold border border-amber-500/30">
                             ⚡ Auto
+                          </span>
+                        )}
+                        {(tx.category === 'ton_payout' || tx.category === 'ton_topup') && (
+                          <span className="ml-1.5 px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-bold border border-cyan-500/30">
+                            ⛓ Chain
                           </span>
                         )}
                       </td>

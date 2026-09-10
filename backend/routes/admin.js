@@ -2938,6 +2938,71 @@ router.get('/treasury-status', async (req, res) => {
       { name: 'Monetag', status: 'Active (Legacy/Fallback)', type: 'In-App Interstitial' }
     ];
 
+    // 5b. Live Blockchain Transactions from Treasury Wallet (via TonAPI)
+    let blockchainTx = [];
+    if (treasuryWallet.addressFriendly) {
+      try {
+        const eventsRes = await Promise.race([
+          fetch(`https://tonapi.io/v2/accounts/${encodeURIComponent(treasuryWallet.addressFriendly)}/events?limit=30&subject_only=false`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('TonAPI events timeout')), 2500))
+        ]);
+        if (eventsRes.ok) {
+          const eventsData = await eventsRes.json();
+          if (eventsData.events && Array.isArray(eventsData.events)) {
+            blockchainTx = eventsData.events.map(ev => {
+              const ts = ev.timestamp ? new Date(ev.timestamp * 1000).toISOString() : null;
+              // Determine direction: outgoing = payout from treasury, incoming = top-up
+              let direction = 'unknown';
+              let amountTon = 0;
+              let counterparty = null;
+              let txHash = ev.event_id || null;
+
+              if (ev.actions && ev.actions.length > 0) {
+                const act = ev.actions[0];
+                if (act.TonTransfer) {
+                  const transfer = act.TonTransfer;
+                  amountTon = (parseFloat(transfer.amount || 0) / 1e9).toFixed(4);
+                  const senderAddr = transfer.sender?.address || transfer.sender?.account?.address;
+                  const recipAddr = transfer.recipient?.address || transfer.recipient?.account?.address;
+                  const myRaw = treasuryWallet.addressRaw?.toLowerCase();
+                  if (senderAddr && myRaw && senderAddr.toLowerCase() === myRaw) {
+                    direction = 'outgoing';
+                    counterparty = transfer.recipient?.name || recipAddr || 'Unknown';
+                  } else {
+                    direction = 'incoming';
+                    counterparty = transfer.sender?.name || senderAddr || 'Unknown';
+                  }
+                } else if (act.JettonTransfer) {
+                  const jt = act.JettonTransfer;
+                  const dec = jt.jetton?.decimals || 9;
+                  amountTon = `${(parseFloat(jt.amount || 0) / Math.pow(10, dec)).toFixed(4)} ${jt.jetton?.symbol || 'JETTON'}`;
+                  direction = 'jetton';
+                  counterparty = jt.recipient?.name || jt.recipient?.address || 'Unknown';
+                }
+              }
+
+              return {
+                category: direction === 'outgoing' ? 'ton_payout' : 'ton_topup',
+                blockchain: true,
+                direction,
+                amount: amountTon,
+                currency: 'TON',
+                tx_hash: txHash,
+                wallet_address: counterparty,
+                status: ev.in_progress ? 'pending' : 'confirmed',
+                created_at: ts,
+                processed_at: ts,
+                is_auto_payout: true,
+                username: null,
+                first_name: direction === 'outgoing' ? '🔴 TON Out (Payout)' : '🟢 TON In (Top-Up)',
+                telegram_id: null
+              };
+            }).filter(t => t.direction !== 'unknown');
+          }
+        }
+      } catch (_) {}
+    }
+
     // 6. Aggregate Transactions (Payouts & Deposits) - use allSettled so DB failure still returns system info
     const [payoutsResult, depositsResult, taskyWithdrawalsResult, totalsResult] = await Promise.allSettled([
       pool.query(`
@@ -3019,7 +3084,8 @@ router.get('/treasury-status', async (req, res) => {
     const combinedTx = [
       ...payoutsRows,
       ...depositsRows,
-      ...taskyWithdrawalsRows
+      ...taskyWithdrawalsRows,
+      ...blockchainTx
     ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
     const totals = totalsRow;
