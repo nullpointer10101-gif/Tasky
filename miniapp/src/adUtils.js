@@ -537,19 +537,19 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
 
 /**
  * Option 2 & General Rewarded Ads:
- * 60% USL Ads (TowerAds) / 40% GigaPub with automatic seamless fallback to GigaPub
+ * 80% USL Ads (TowerAds) / 20% GigaPub with automatic seamless fallback to GigaPub
  */
 export async function showRewardedAd(providerName = 'gigapub') {
   if (providerName === 'adexium' || providerName === 'monetag') {
     return await showAdexiumAd();
   }
 
-  // 60% chance to attempt USL Ads (TowerAds), 40% chance for GigaPub
+  // 80% chance to attempt USL Ads (TowerAds), 20% chance for GigaPub
   const roll = Math.random();
-  const shouldTryUSL = roll < 0.60;
+  const shouldTryUSL = roll < 0.80;
 
   if (shouldTryUSL) {
-    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} < 0.60): Serving USL Ads (60% weight)...`);
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} < 0.80): Serving USL Ads (80% weight)...`);
     try {
       const uslRes = await showTowerAd();
       if (uslRes.success) {
@@ -561,7 +561,7 @@ export async function showRewardedAd(providerName = 'gigapub') {
       console.warn('[AdManager] USL error, triggering GigaPub fallback:', e);
     }
   } else {
-    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} >= 0.60): Serving GigaPub (40% weight)...`);
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} >= 0.80): Serving GigaPub (20% weight)...`);
   }
 
   // GigaPub execution (direct or fallback)
