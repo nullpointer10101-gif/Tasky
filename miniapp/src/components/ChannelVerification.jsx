@@ -50,12 +50,12 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     // Initial check
     checkLiveStatus(false);
 
-    // Active periodic poll every 3.5 seconds while verification is incomplete
+    // Gentle background poll (15s) while verification modal is open
     const pollInterval = setInterval(() => {
       if (!channelStatus.all_joined) {
         checkLiveStatus(true, 0);
       }
-    }, 3500);
+    }, 15000);
 
     // Recheck whenever user comes back to window/app after opening Telegram links
     const handleRecheck = () => {
