@@ -121,7 +121,8 @@ router.get('/marketplace', async (req, res) => {
     res.json({
       success: true,
       cards: rows,
-      deposit_wallet: ADMIN_WALLET
+      deposit_wallet: ADMIN_WALLET,
+      s1_deadline: '2026-09-15T18:30:00.000Z'
     });
   } catch (err) {
     console.error('Error fetching NFT marketplace:', err);

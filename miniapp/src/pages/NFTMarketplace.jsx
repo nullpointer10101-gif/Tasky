@@ -32,31 +32,14 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
   const [showCommModal, setShowCommModal] = useState(false);
 
-  // ── SEASON 1 7-DAY DEADLINE COUNTDOWN ──
-  const [s1TimeLeft, setS1TimeLeft] = useState({ days: 7, hours: 0, minutes: 0, seconds: 0, totalMs: 7 * 86400000 });
+  // ── SEASON 1 FIXED GLOBAL CLOSING DEADLINE (7-Day Genesis Campaign Launched Sept 8, 2026) ──
+  const S1_GLOBAL_TARGET_TS = new Date('2026-09-15T18:30:00.000Z').getTime();
+  const [s1DeadlineTs, setS1DeadlineTs] = useState(S1_GLOBAL_TARGET_TS);
+  const [s1TimeLeft, setS1TimeLeft] = useState({ days: 4, hours: 8, minutes: 0, seconds: 0, totalMs: 0 });
 
   useEffect(() => {
-    const S1_KEY = 'tasky_nft_s1_deadline_ts';
-    let targetTs;
-    try {
-      const saved = localStorage.getItem(S1_KEY);
-      if (saved) {
-        const parsed = parseInt(saved, 10);
-        if (!isNaN(parsed) && parsed > Date.now()) {
-          targetTs = parsed;
-        }
-      }
-    } catch (e) {}
-
-    if (!targetTs) {
-      targetTs = Date.now() + 7 * 24 * 60 * 60 * 1000;
-      try {
-        localStorage.setItem(S1_KEY, targetTs.toString());
-      } catch (e) {}
-    }
-
     const updateTimer = () => {
-      const diff = Math.max(0, targetTs - Date.now());
+      const diff = Math.max(0, s1DeadlineTs - Date.now());
       const days = Math.floor(diff / (1000 * 60 * 60 * 24));
       const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
       const minutes = Math.floor((diff / (1000 * 60)) % 60);
@@ -67,7 +50,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [s1DeadlineTs]);
 
   const memoText = `TASKY_${telegramId}`;
   const gramBalance = parseFloat(user?.gram_balance || user?.balance || 0);
@@ -83,6 +66,12 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
       if (marketRes.data?.cards) {
         const sortedCards = [...marketRes.data.cards].sort((a, b) => parseFloat(b.price_gram) - parseFloat(a.price_gram));
         setCards(sortedCards);
+      }
+      if (marketRes.data?.s1_deadline) {
+        const parsed = new Date(marketRes.data.s1_deadline).getTime();
+        if (!isNaN(parsed) && parsed > 0) {
+          setS1DeadlineTs(parsed);
+        }
       }
       if (marketRes.data?.deposit_wallet) {
         setDepositWallet(marketRes.data.deposit_wallet);
@@ -275,7 +264,7 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
             </span>
           </div>
           <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
-            <Clock size={11} /> Closing in 7 Days
+            <Clock size={11} /> Closing in {s1TimeLeft.days > 0 ? `${s1TimeLeft.days}d ${s1TimeLeft.hours}h` : `${s1TimeLeft.hours}h ${s1TimeLeft.minutes}m`}
           </span>
         </div>
 
