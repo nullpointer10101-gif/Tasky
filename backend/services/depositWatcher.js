@@ -28,7 +28,7 @@ function sendAdminBroadcast(message, extraOpts = {}) {
   }
 }
 
-function fetchTonApiEvents(limit = 50) {
+function fetchTonApiEvents(limit = 10) {
   return new Promise((resolve, reject) => {
     const tonApiUrl = `https://tonapi.io/v2/accounts/${encodeURIComponent(ADMIN_WALLET)}/events?limit=${limit}`;
     https.get(tonApiUrl, (res) => {
@@ -174,7 +174,7 @@ async function processIncomingDeposits() {
 /**
  * Start the continuous deposit watcher
  */
-function startDepositWatcher(intervalMs = 30000) {
+function startDepositWatcher(intervalMs = 60000) {
   console.log(`[DepositWatcher] Starting TON deposit watcher (interval: ${intervalMs / 1000}s)...`);
   
   // Initial run
