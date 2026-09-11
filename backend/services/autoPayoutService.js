@@ -516,8 +516,8 @@ async function syncRecentApprovedPayouts() {
 }
 
 function startAutoPayoutProcessor() {
-  console.log('[AutoPayout] ⚡ Auto-Payout Background Worker initialized (20s interval)');
-  setInterval(processPendingGramClaims, 20000);
+  console.log('[AutoPayout] ⚡ Auto-Payout Background Worker initialized (60s interval)');
+  setInterval(processPendingGramClaims, 60000);
   setTimeout(processPendingGramClaims, 4000);
 }
 

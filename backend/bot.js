@@ -11,7 +11,7 @@ const candidateTokens = [
 
 const token = candidateTokens[0] || null;
 const PORT = process.env.PORT || 3000;
-const API_BASE = process.env.VITE_API_URL ? `${process.env.VITE_API_URL}/api` : `http://127.0.0.1:${PORT}/api`;
+const API_BASE = `http://127.0.0.1:${PORT}/api`;
 
 let bot;
 if (token) {
