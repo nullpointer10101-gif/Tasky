@@ -519,7 +519,6 @@ function startAutoPayoutProcessor() {
   console.log('[AutoPayout] ⚡ Auto-Payout Background Worker initialized (20s interval)');
   setInterval(processPendingGramClaims, 20000);
   setTimeout(processPendingGramClaims, 4000);
-  setTimeout(syncRecentApprovedPayouts, 7000); // Sync recent payouts on startup
 }
 
 module.exports = {
