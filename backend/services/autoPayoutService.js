@@ -292,12 +292,12 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
             u.created_at as joined_at,
             (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_claims,
             (SELECT COALESCE(SUM(amount), 0) FROM gram_claims WHERE telegram_id = u.telegram_id AND status = 'approved') as total_earned,
-            (SELECT MAX(created_at) FROM gram_claims WHERE telegram_id = u.telegram_id AND status != 'pending') as last_claim_at,
+            (SELECT MAX(COALESCE(processed_at, requested_at)) FROM gram_claims WHERE telegram_id = u.telegram_id AND status != 'pending' AND id != $2) as last_claim_at,
             (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = u.telegram_id) as total_attempts,
             (SELECT COUNT(*) FROM referrals WHERE referrer_telegram_id = u.telegram_id) as referral_count,
             (SELECT username FROM users WHERE telegram_id = u.referred_by) as referrer_username
           FROM users u WHERE u.telegram_id = $1
-        `, [telegramId]);
+        `, [telegramId, recordId]);
         userFull = userCtxRes.rows[0] || {};
       } catch (ctxErr) {
         console.warn('[AutoPayout] Full user context query failed (falling back):', ctxErr.message);
