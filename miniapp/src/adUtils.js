@@ -136,20 +136,13 @@ export function getOrInitAdexiumWidget() {
     const instance = new WidgetClass({
       wid: ADEXIUM_WID,
       adFormat: 'interstitial',
-      adImpressionIntervalInSeconds: 0,
-      firstAdImpressionIntervalInSeconds: 0,
-      debug: !hasTgContext // safe fallback if testing outside Telegram
+      debug: false
     });
 
-    try {
-      instance.autoMode();
-      console.log('[AdManager] 🚀 Adexium autoMode initialized successfully');
-    } catch (e) {
-      console.warn('[AdManager] Adexium autoMode notice:', e);
-    }
-
+    // NOTE: autoMode is intentionally disabled to avoid unsolicited interstitial popups
     window.adexiumWidget = instance;
     window.__adexiumInstance = instance;
+    console.log('[AdManager] 🚀 Adexium widget ready (Manual mode - no automatic spam)');
     return instance;
   } catch (e) {
     console.error('[AdManager] Failed to construct AdexiumWidget:', e);
@@ -572,12 +565,24 @@ export async function showGigaPubAdFallback() {
   return await showGigaPubDirect('gigapub');
 }
 
-export function triggerStartupAd() {
-  // Handled via autoMode
+export async function triggerStartupAd() {
+  if (typeof window === 'undefined') return;
+  try {
+    const alreadyShown = sessionStorage.getItem('tasky_session_startup_ad_shown');
+    if (alreadyShown) {
+      console.log('[AdManager] ℹ️ Startup ad already shown for this session. Skipping.');
+      return;
+    }
+    sessionStorage.setItem('tasky_session_startup_ad_shown', 'true');
+    console.log('[AdManager] 🚀 Triggering single startup ad on bot opening...');
+    await showAdexiumAd();
+  } catch (e) {
+    console.warn('[AdManager] Startup ad notice:', e);
+  }
 }
 
 export function startPeriodicAdLoop() {
-  // Handled via autoMode
+  // Intentionally empty: No periodic or unwanted ads
 }
 
 export function initMonetagAds() {

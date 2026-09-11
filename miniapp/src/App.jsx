@@ -16,7 +16,7 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import { registerUser } from './api'
-import { initGigaAds } from './adUtils'
+import { initGigaAds, triggerStartupAd } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
@@ -115,10 +115,14 @@ export default function App() {
   }
 
   useEffect(() => {
-    boot()
-    // Initialize GigaPub SDK (only initializes script, no automatic ads)
-    initGigaAds()
-  }, [tgUser])
+    boot();
+    initGigaAds();
+    // Trigger exactly 1 single startup ad on opening bot (session-capped)
+    const timer = setTimeout(() => {
+      triggerStartupAd();
+    }, 1800);
+    return () => clearTimeout(timer);
+  }, [tgUser]);
 
 
   const refreshUser = async () => {
