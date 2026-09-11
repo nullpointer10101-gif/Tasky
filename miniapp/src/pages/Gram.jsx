@@ -237,7 +237,7 @@ export default function Gram({ user, refreshUser }) {
       const startRes = await startPromise;
       const sessionToken = startRes?.data?.session_token || null;
 
-      const networkName = isAdexium ? 'Adexium' : 'GigaPub';
+      const networkName = isAdexium ? 'Adexium' : (adResult.network === 'usl' ? 'USL Ads' : 'GigaPub');
       showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
 
       const res = await watchGramAd(user?.telegram_id, targetProvider, sessionToken);

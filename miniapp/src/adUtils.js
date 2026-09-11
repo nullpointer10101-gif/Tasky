@@ -1,15 +1,23 @@
 /**
  * Ad Manager
- * - Option 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774) with seamless fallback
- * - Option 2: GigaPub Slot (Unit 8093)
+ * - Option 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774) - 100% untouched
+ * - Option 2: 60% USL Ads (TowerAds SDK v4) + 40% GigaPub Slot (Unit 8093) with seamless fallbacks
  */
 
+// GigaPub Config
 const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=8093';
 const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
+// Adexium Config (Option 1 - Untouched)
 const ADEXIUM_SCRIPT_URL = 'https://cdn.tgads.space/assets/js/adexium-widget.min.js';
 const ADEXIUM_SCRIPT_ID  = 'adexium-widget-sdk';
 const ADEXIUM_WID        = 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774';
+
+// USL Ads / TowerAds Config (Option 2 - 60% Weight)
+const TOWER_ADS_API_KEY      = 'feb662719eb08611a669069ba17cb0e8';
+const TOWER_ADS_PLACEMENT_ID = 'plc_c529a877186e2def';
+const TOWER_ADS_SCRIPT_URL   = 'https://uslads.com/sdk/tower-ads-v4.js';
+const TOWER_ADS_SCRIPT_ID    = 'tower-ads-sdk';
 
 /**
  * Initializes the GigaPub Ad SDK script
@@ -27,6 +35,61 @@ export function initGigaAds() {
     } catch (e) {
       console.error('[AdManager] GigaPub script injection error:', e);
     }
+  }
+}
+
+/**
+ * Initializes the USL TowerAds SDK script
+ */
+export function initTowerAds() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (!document.getElementById(TOWER_ADS_SCRIPT_ID)) {
+    try {
+      const s = document.createElement('script');
+      s.id = TOWER_ADS_SCRIPT_ID;
+      s.src = TOWER_ADS_SCRIPT_URL;
+      s.async = true;
+      document.head.appendChild(s);
+      console.log('[AdManager] 🚀 Injected USL TowerAds SDK script');
+    } catch (e) {
+      console.error('[AdManager] TowerAds script injection error:', e);
+    }
+  }
+}
+
+/**
+ * Returns or creates the singleton TowerAds instance
+ */
+export function getOrInitTowerAds() {
+  if (typeof window === 'undefined') return null;
+  if (window.__towerAdsInstance) return window.__towerAdsInstance;
+
+  if (typeof window.TowerAds !== 'function') return null;
+
+  try {
+    const instance = new window.TowerAds({
+      apiKey: TOWER_ADS_API_KEY,
+      placementId: TOWER_ADS_PLACEMENT_ID,
+      onRewardEarned(reward) {
+        console.log('[AdManager] 🏆 TowerAds reward earned:', reward);
+        if (typeof window.__towerAdsRewardCb === 'function') {
+          window.__towerAdsRewardCb(reward);
+        }
+      },
+      onError(error) {
+        console.warn('[AdManager] ⚠️ TowerAds error:', error);
+        if (typeof window.__towerAdsErrorCb === 'function') {
+          window.__towerAdsErrorCb(error);
+        }
+      }
+    });
+
+    window.__towerAdsInstance = instance;
+    console.log('[AdManager] 🚀 TowerAds instance created successfully');
+    return instance;
+  } catch (e) {
+    console.error('[AdManager] Failed to construct TowerAds:', e);
+    return null;
   }
 }
 
@@ -94,28 +157,34 @@ export function getOrInitAdexiumWidget() {
   }
 }
 
-// Auto-initialize both ad networks immediately
+// Auto-initialize ad networks immediately
 initGigaAds();
 initAdexium();
+initTowerAds();
 
-// Also hook to DOMContentLoaded for guaranteed autoMode execution
+// Also hook to DOMContentLoaded for guaranteed execution
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initAdexium();
+      getOrInitTowerAds();
     });
   } else {
-    setTimeout(initAdexium, 100);
+    setTimeout(() => {
+      initAdexium();
+      getOrInitTowerAds();
+    }, 100);
   }
 }
 
 export function prefetchGramAd() {
   initGigaAds();
   initAdexium();
+  initTowerAds();
 }
 
 /**
- * Executes an Adexium interstitial / rewarded ad with 100% reliable fallback
+ * Option 1: Executes an Adexium interstitial / rewarded ad (100% UNCHANGED)
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
@@ -145,7 +214,7 @@ export async function showAdexiumAd() {
   // If widget is not available, immediately fallback to backup sponsor ad
   if (!widget) {
     console.warn('[AdManager] Adexium SDK warming up, playing fallback sponsor ad...');
-    const fallbackRes = await showRewardedAd('gigapub');
+    const fallbackRes = await showGigaPubDirect('gigapub');
     return { ...fallbackRes, network: 'adexium' };
   }
 
@@ -168,7 +237,7 @@ export async function showAdexiumAd() {
     // If Adexium has no inventory right now, serve fallback sponsor video seamlessly!
     if (!ads || !Array.isArray(ads) || ads.length === 0) {
       console.log('[AdManager] Adexium inventory empty for this slot, seamlessly serving fallback sponsor ad...');
-      const fallbackRes = await showRewardedAd('gigapub');
+      const fallbackRes = await showGigaPubDirect('gigapub');
       return { ...fallbackRes, network: 'adexium' };
     }
 
@@ -213,7 +282,7 @@ export async function showAdexiumAd() {
         isSettled = true;
         cleanup();
         console.log('[AdManager] Adexium error event, switching to fallback sponsor ad...');
-        const fb = await showRewardedAd('gigapub');
+        const fb = await showGigaPubDirect('gigapub');
         resolve({ ...fb, network: 'adexium' });
       };
 
@@ -222,7 +291,7 @@ export async function showAdexiumAd() {
         isSettled = true;
         cleanup();
         console.log('[AdManager] Adexium noAdFound event, switching to fallback sponsor ad...');
-        const fb = await showRewardedAd('gigapub');
+        const fb = await showGigaPubDirect('gigapub');
         resolve({ ...fb, network: 'adexium' });
       };
 
@@ -253,7 +322,7 @@ export async function showAdexiumAd() {
     });
   } catch (err) {
     console.warn('[AdManager] Adexium exception, fallback to sponsor ad:', err);
-    const fb = await showRewardedAd('gigapub');
+    const fb = await showGigaPubDirect('gigapub');
     return { ...fb, network: 'adexium' };
   }
 }
@@ -266,14 +335,104 @@ export async function showMonetagAd() {
 }
 
 /**
- * Executes a GigaPub rewarded ad session using window.showGiga()
- * Used for Option 2 and general app rewarded ads.
+ * Executes a USL TowerAds rewarded ad session
  */
-export async function showRewardedAd(providerName = 'gigapub') {
-  if (providerName === 'adexium' || providerName === 'monetag') {
-    return await showAdexiumAd();
+export async function showTowerAd() {
+  if (typeof window === 'undefined') {
+    return { success: false, error: 'Browser environment required' };
   }
 
+  // Ensure Telegram WebApp is ready
+  try {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+  } catch (e) {}
+
+  initTowerAds();
+
+  let ads = getOrInitTowerAds();
+  if (!ads) {
+    let waited = 0;
+    while (!ads && waited < 1800) {
+      await new Promise(r => setTimeout(r, 60));
+      waited += 60;
+      ads = getOrInitTowerAds();
+    }
+  }
+
+  if (!ads) {
+    console.warn('[AdManager] TowerAds SDK warming up or not ready');
+    return { success: false, error: 'TowerAds SDK unavailable' };
+  }
+
+  const startTime = Date.now();
+
+  return await new Promise(async (resolve) => {
+    let isSettled = false;
+    let rewardEarned = false;
+
+    window.__towerAdsRewardCb = (reward) => {
+      rewardEarned = true;
+      console.log('[AdManager] ✅ TowerAds reward callback triggered:', reward);
+    };
+
+    window.__towerAdsErrorCb = (err) => {
+      if (!isSettled) {
+        isSettled = true;
+        console.warn('[AdManager] ⚠️ TowerAds error callback triggered:', err);
+        resolve({ success: false, error: err?.message || 'TowerAds playback error' });
+      }
+    };
+
+    // Safety timeout of 45 seconds
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        const elapsed = (Date.now() - startTime) / 1000;
+        if (rewardEarned || elapsed >= 14.0) {
+          resolve({ success: true, network: 'usl' });
+        } else {
+          resolve({ success: false, error: 'TowerAds session timed out' });
+        }
+      }
+    }, 45000);
+
+    try {
+      console.log('[AdManager] 🚀 Calling TowerAds ads.loadAndShow()...');
+      await ads.loadAndShow();
+      clearTimeout(timer);
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.log(`[AdManager] TowerAds loadAndShow completed. Elapsed: ${elapsed.toFixed(1)}s, rewardEarned: ${rewardEarned}`);
+      
+      if (!isSettled) {
+        isSettled = true;
+        if (rewardEarned || elapsed >= 12.0) {
+          resolve({ success: true, network: 'usl' });
+        } else {
+          resolve({
+            success: false,
+            error: 'Ad was closed early. You must watch the full video to get progress.'
+          });
+        }
+      }
+    } catch (err) {
+      clearTimeout(timer);
+      if (!isSettled) {
+        isSettled = true;
+        console.warn('[AdManager] TowerAds loadAndShow error:', err);
+        resolve({ success: false, error: err?.message || 'TowerAds show error' });
+      }
+    }
+  });
+}
+
+export const showUSLAd = showTowerAd;
+
+/**
+ * Executes a direct GigaPub rewarded ad session using window.showGiga()
+ */
+export async function showGigaPubDirect(providerName = 'gigapub') {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
@@ -376,8 +535,41 @@ export async function showRewardedAd(providerName = 'gigapub') {
   }
 }
 
+/**
+ * Option 2 & General Rewarded Ads:
+ * 60% USL Ads (TowerAds) / 40% GigaPub with automatic seamless fallback to GigaPub
+ */
+export async function showRewardedAd(providerName = 'gigapub') {
+  if (providerName === 'adexium' || providerName === 'monetag') {
+    return await showAdexiumAd();
+  }
+
+  // 60% chance to attempt USL Ads (TowerAds), 40% chance for GigaPub
+  const roll = Math.random();
+  const shouldTryUSL = roll < 0.60;
+
+  if (shouldTryUSL) {
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} < 0.60): Serving USL Ads (60% weight)...`);
+    try {
+      const uslRes = await showTowerAd();
+      if (uslRes.success) {
+        console.log('[AdManager] 🏆 USL Ad completed successfully!');
+        return { success: true, network: 'usl' };
+      }
+      console.log(`[AdManager] 🔄 USL Ad did not complete (${uslRes.error || 'fallback'}). Automatically switching to GigaPub fallback...`);
+    } catch (e) {
+      console.warn('[AdManager] USL error, triggering GigaPub fallback:', e);
+    }
+  } else {
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} >= 0.60): Serving GigaPub (40% weight)...`);
+  }
+
+  // GigaPub execution (direct or fallback)
+  return await showGigaPubDirect(providerName);
+}
+
 export async function showGigaPubAdFallback() {
-  return await showRewardedAd('gigapub');
+  return await showGigaPubDirect('gigapub');
 }
 
 export function triggerStartupAd() {
