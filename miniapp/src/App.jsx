@@ -15,6 +15,7 @@ import Toast from './components/Toast'
 import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
+import CyberReactorModal, { CyberReactorFloatingBubble } from './components/CyberReactorModal'
 import { registerUser } from './api'
 import { initGigaAds, triggerStartupAd } from './adUtils'
 import { AdminProvider } from './AdminContext'
@@ -50,6 +51,7 @@ export default function App() {
   const [toast, setToast] = useState(null)
   const [maintenance, setMaintenance] = useState(false)
   const [networkError, setNetworkError] = useState(false)
+  const [isReactorModalOpen, setIsReactorModalOpen] = useState(false)
   const mainScrollRef = useRef(null)
 
   useEffect(() => {
@@ -297,6 +299,8 @@ export default function App() {
           </AnimatePresence>
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
+          <CyberReactorFloatingBubble user={user} onOpen={() => setIsReactorModalOpen(true)} />
+          <CyberReactorModal isOpen={isReactorModalOpen} onClose={() => { setIsReactorModalOpen(false); refreshUser(); }} user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header user={user} navigate={setActivePage} activePage={activePage} />
 

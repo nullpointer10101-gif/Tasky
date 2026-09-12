@@ -10,7 +10,7 @@ import { getTasks, getMySubmissions, completeTask, getGramStatus, BACKEND_URL } 
 import { useToast } from '../App';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
-import CyberReactorModal from '../components/CyberReactorModal';
+import CyberReactorModal, { useReactorTimer } from '../components/CyberReactorModal';
 import { useIsAdmin } from '../AdminContext';
 import { initOfferwall, openOfferwall } from '../offerwall';
 
@@ -64,6 +64,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
   const [gramStatusData, setGramStatusData] = useState(null);
   const { showToast } = useToast();
   const isAdmin = useIsAdmin();
+  const reactorTimer = useReactorTimer();
 
   const [hasVisited, setHasVisited] = useState(false);
   const [proofData, setProofData] = useState('');
@@ -296,11 +297,11 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
 
       {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
-      {isAdmin && (
+      {isAdmin && !reactorTimer.isExpired && (
         <motion.div 
           whileTap={{ scale: 0.96 }}
           onClick={() => setIsReactorModalOpen(true)}
-          className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-500/40 p-4 mb-3 shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-between"
+          className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-400/40 p-4 mb-3 shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-between"
         >
           <div className="absolute -right-4 -top-4 w-20 h-20 bg-cyan-500/20 blur-xl rounded-full" />
           <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-purple-500/20 blur-xl rounded-full" />
@@ -310,13 +311,16 @@ export default function Tasks({ user, refreshUser, navigate }) {
               <Zap size={20} className="text-cyan-300 animate-pulse" />
             </div>
             <div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full">
-                  ⚡ Admin Preview • Overdrive
+                  ⚡ 7-Day Overdrive
+                </span>
+                <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-400/40 px-1.5 py-0.5 rounded-full font-mono">
+                  ⏳ {reactorTimer.formatted}
                 </span>
               </div>
               <h3 className="font-black text-white text-[14px] uppercase tracking-wide">Cyber Ad Reactor (2.00 GRAM Jackpot)</h3>
-              <p className="text-[11px] text-cyan-200/80 font-medium">Watch 1,000 USL ads to claim 2.00 GRAM + 200K TASKY</p>
+              <p className="text-[11px] text-cyan-200/90 font-medium">Watch 1,000 USL ads to claim 2.00 GRAM + 200K TASKY</p>
             </div>
           </div>
           <div className="relative z-10 bg-cyan-500/20 p-2 rounded-xl border border-cyan-500/30 text-cyan-300">

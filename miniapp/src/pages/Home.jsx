@@ -6,7 +6,7 @@ import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
 import SwapProgressCard from '../components/SwapProgressCard';
 import TokenListingModal from '../components/TokenListingModal';
-import CyberReactorModal from '../components/CyberReactorModal';
+import CyberReactorModal, { useReactorTimer } from '../components/CyberReactorModal';
 import { useIsAdmin } from '../AdminContext';
 
 import { useTranslation } from '../i18n/I18nContext';
@@ -30,6 +30,7 @@ export default function Home({ user, refreshUser, navigate }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const isAdmin = useIsAdmin();
+  const reactorTimer = useReactorTimer();
   const [swapRates, setSwapRates] = useState([]);
   const [referralData, setReferralData] = useState(null);
   const [miningSpeed, setMiningSpeed] = useState(5.0);
@@ -157,11 +158,11 @@ export default function Home({ user, refreshUser, navigate }) {
       </motion.div>
 
       {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
-      {isAdmin && (
+      {isAdmin && !reactorTimer.isExpired && (
         <motion.div
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowReactorModal(true)}
-          className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-500/50 text-white cursor-pointer shadow-lg shadow-cyan-500/15 hover:border-cyan-400 transition-all flex items-center justify-between group"
+          className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-400/50 text-white cursor-pointer shadow-lg shadow-cyan-500/20 hover:border-cyan-300 transition-all flex items-center justify-between group"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-xl pointer-events-none" />
           <div className="flex items-center gap-3 relative z-10">
@@ -171,16 +172,19 @@ export default function Home({ user, refreshUser, navigate }) {
               </div>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 mb-0.5">
-                <span className="text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  ⚡ Admin Preview • 5-Stage Overdrive
+              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  ⚡ 7-Day Overdrive
+                </span>
+                <span className="text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-mono">
+                  ⏳ {reactorTimer.formatted}
                 </span>
               </div>
               <h3 className="text-sm font-black text-white flex items-center gap-1">
                 Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(2.00 GRAM Jackpot)</span>
               </h3>
-              <p className="text-[11px] text-cyan-200/80 font-medium leading-tight">
-                Watch 1,000 USL ads with no limits to unlock 2.00 GRAM + 200K TASKY!
+              <p className="text-[11px] text-cyan-200/90 font-medium leading-tight">
+                Watch 1,000 USL ads with no limits to claim 2.00 GRAM + 200K TASKY!
               </p>
             </div>
           </div>
