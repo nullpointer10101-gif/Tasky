@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, CheckSquare, ArrowDownToLine, Settings,
   PlusSquare, LogOut, ShieldAlert, Users, Send, Server,
-  Menu, X, PlaySquare, Gift, Coins, Tv, Activity, Sparkles, ArrowDownLeft, Wallet
+  Menu, X, PlaySquare, Gift, Coins, Tv, Activity, Sparkles, ArrowDownLeft, Wallet, Zap
 } from 'lucide-react';
 import { Toaster } from 'react-hot-toast';
 import api from '../api';
@@ -53,6 +53,7 @@ export default function Layout({ setAuth }) {
   const navItems = [
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/treasury-status', label: '🏦 Treasury & System', icon: Wallet },
+    { path: '/reactor-claims', label: '⚡ Reactor Claims', icon: Zap },
     { path: '/nft-holders', label: '✨ NFT Holders', icon: Sparkles },
     { path: '/gram-deposits', label: '⚡ GRAM Deposits', icon: ArrowDownLeft },
     { path: '/live-activity', label: 'Live User Activity', icon: Activity },

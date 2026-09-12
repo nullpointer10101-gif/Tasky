@@ -221,6 +221,7 @@ app.use('/api/ads/postback', require('./routes/postback'));
 app.use('/api/postback', require('./routes/postback'));
 app.use('/api/nft', require('./routes/nft'));
 app.use('/api/offerwall', require('./routes/offerwall'));
+app.use('/api/reactor', require('./routes/reactor'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI

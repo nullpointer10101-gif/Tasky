@@ -1424,6 +1424,141 @@ router.post('/special-offers/review', async (req, res) => {
 });
 
 // ==========================================
+// 9.5 CYBER AD REACTOR CLAIMS REVIEW
+// ==========================================
+// GET /admin/reactor-claims — list all reactor claims
+router.get('/reactor-claims', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT 
+        rc.id, rc.telegram_id, rc.total_ads_watched, rc.stage_reached,
+        rc.reward_usdt, rc.reward_grams, rc.reward_tasky, rc.wallet_address,
+        rc.status, rc.claimed_at, rc.reviewed_at, rc.reviewed_by,
+        rc.payout_tx_hash, rc.rejection_reason,
+        u.username, u.first_name, u.balance,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = rc.telegram_id AND ad_type IN ('reactor_usl', 'reactor_ad')) as verified_reactor_ads,
+        (SELECT COUNT(*) FROM ad_views WHERE telegram_id = rc.telegram_id) as lifetime_ads
+      FROM reactor_claims rc
+      LEFT JOIN users u ON rc.telegram_id = u.telegram_id
+      ORDER BY rc.claimed_at DESC
+      LIMIT 500
+    `);
+    res.json(rows);
+  } catch (error) {
+    console.error('[Admin] Error fetching reactor claims:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /admin/reactor-claims/review — approve or reject reactor claim
+router.post('/reactor-claims/review', async (req, res) => {
+  const { claim_id, action, payout_tx_hash, rejection_reason } = req.body;
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const claimRes = await client.query(
+      "SELECT * FROM reactor_claims WHERE id = $1",
+      [claim_id]
+    );
+    if (claimRes.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Reactor claim not found' });
+    }
+
+    const claim = claimRes.rows[0];
+    if (claim.status !== 'pending') {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Claim is not in pending state' });
+    }
+
+    const telegram_id = claim.telegram_id;
+
+    if (action === 'approve') {
+      await client.query(
+        `UPDATE reactor_claims 
+         SET status = 'approved', reviewed_at = NOW(), reviewed_by = 'admin', payout_tx_hash = $2
+         WHERE id = $1`,
+        [claim_id, payout_tx_hash || 'PAID_MANUAL']
+      );
+
+      // Add TASKY bonus to balance
+      if (claim.reward_tasky > 0) {
+        await client.query(
+          'UPDATE users SET balance = balance + $1 WHERE telegram_id = $2',
+          [claim.reward_tasky, telegram_id]
+        );
+      }
+
+      // Add Gram bonus to gram balance if applicable
+      if (claim.reward_grams > 0) {
+        await client.query(
+          'UPDATE users SET gram_balance = COALESCE(gram_balance, 0) + $1 WHERE telegram_id = $2',
+          [claim.reward_grams, telegram_id]
+        ).catch(() => {});
+      }
+
+      // Notify user via Telegram bot
+      const sendMsg = (bot && bot.sendMessage) ? bot.sendMessage.bind(bot) : (bot?.telegram?.sendMessage ? bot.telegram.sendMessage.bind(bot.telegram) : null);
+      if (sendMsg) {
+        try {
+          const rewardText = `${claim.reward_usdt > 0 ? '<b>' + claim.reward_usdt + ' USDT</b> + ' : ''}<b>${claim.reward_grams} GRAM</b> + <b>${Number(claim.reward_tasky).toLocaleString()} TASKY</b>`;
+          const txText = payout_tx_hash ? `\n🔗 <b>Transaction Proof:</b> <code>${payout_tx_hash}</code>` : '';
+          await sendMsg(
+            telegram_id,
+            `⚡ <b>CYBER REACTOR REWARD APPROVED!</b> ⚡\n\n` +
+            `🎉 Congratulations! Your <b>Stage ${claim.stage_reached} Overdrive</b> claim has been approved and disbursed!\n\n` +
+            `💰 <b>Rewards Sent:</b> ${rewardText}\n` +
+            `💳 <b>Wallet:</b> <code>${claim.wallet_address || 'Connected Wallet'}</code>` +
+            `${txText}\n\n` +
+            `🚀 Keep charging the Cyber Reactor to unlock the next Overdrive Jackpot!`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('[Admin] Failed to notify user of approved reactor claim:', e.message);
+        }
+      }
+    } else if (action === 'reject') {
+      const reason = rejection_reason || 'Incomplete or unverified ad sessions';
+      await client.query(
+        "UPDATE reactor_claims SET status = 'rejected', rejection_reason = $2, reviewed_at = NOW(), reviewed_by = 'admin' WHERE id = $1",
+        [claim_id, reason]
+      );
+
+      // Notify user of rejection
+      const sendMsg = (bot && bot.sendMessage) ? bot.sendMessage.bind(bot) : (bot?.telegram?.sendMessage ? bot.telegram.sendMessage.bind(bot.telegram) : null);
+      if (sendMsg) {
+        try {
+          await sendMsg(
+            telegram_id,
+            `❌ <b>Cyber Reactor Claim Update</b>\n\n` +
+            `Your claim for the Cyber Ad Reactor reward was not approved.\n\n` +
+            `📌 <b>Reason:</b> ${reason}\n\n` +
+            `Please watch ads fully without skipping or closing early to ensure valid verification.`,
+            { parse_mode: 'HTML' }
+          );
+        } catch (e) {
+          console.error('[Admin] Failed to notify user of rejected reactor claim:', e.message);
+        }
+      }
+    } else {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: 'Invalid action. Must be approve or reject.' });
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, message: `Reactor claim ${action}d successfully` });
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('[Admin] Reactor claim review error:', error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ==========================================
 // 10. PROMO CODES
 // ==========================================
 router.get('/promos', async (req, res) => {

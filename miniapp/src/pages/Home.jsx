@@ -6,6 +6,8 @@ import StreakFlameBadge from '../components/StreakFlameBadge';
 import WelcomeBackModal from '../components/WelcomeBackModal';
 import SwapProgressCard from '../components/SwapProgressCard';
 import TokenListingModal from '../components/TokenListingModal';
+import CyberReactorModal from '../components/CyberReactorModal';
+import { useIsAdmin } from '../AdminContext';
 
 import { useTranslation } from '../i18n/I18nContext';
 import { getReferral, getSwapRates, getMiningStatus } from '../api';
@@ -27,11 +29,13 @@ const itemVariants = {
 export default function Home({ user, refreshUser, navigate }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const isAdmin = useIsAdmin();
   const [swapRates, setSwapRates] = useState([]);
   const [referralData, setReferralData] = useState(null);
   const [miningSpeed, setMiningSpeed] = useState(5.0);
   const [loading, setLoading] = useState(true);
   const [showListingModal, setShowListingModal] = useState(false);
+  const [showReactorModal, setShowReactorModal] = useState(false);
 
   const tgId = String(user?.telegram_id || user?.id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id || '');
 
@@ -151,6 +155,42 @@ export default function Home({ user, refreshUser, navigate }) {
           targetUsd={1.00} 
         />
       </motion.div>
+
+      {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
+      {isAdmin && (
+        <motion.div
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowReactorModal(true)}
+          className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-500/50 text-white cursor-pointer shadow-lg shadow-cyan-500/15 hover:border-cyan-400 transition-all flex items-center justify-between group"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-xl pointer-events-none" />
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5 shadow-md shrink-0">
+              <div className="w-full h-full bg-[#060b1e] rounded-2xl flex items-center justify-center text-cyan-300">
+                <Zap size={22} className="animate-pulse" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  ⚡ Admin Preview • 5-Stage Overdrive
+                </span>
+              </div>
+              <h3 className="text-sm font-black text-white flex items-center gap-1">
+                Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(1 USDT + 5 GRAM)</span>
+              </h3>
+              <p className="text-[11px] text-cyan-200/80 font-medium leading-tight">
+                Inject USL plasma to power up the core and claim cash prizes!
+              </p>
+            </div>
+          </div>
+          <div className="shrink-0 pl-2 relative z-10">
+            <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 group-hover:bg-cyan-500/40 transition-all">
+              <ChevronRight size={18} />
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* NFT Miners Banner Card */}
       <motion.div
@@ -290,6 +330,15 @@ export default function Home({ user, refreshUser, navigate }) {
       <TokenListingModal 
         isOpen={showListingModal} 
         onClose={() => setShowListingModal(false)} 
+      />
+
+      <CyberReactorModal
+        isOpen={showReactorModal}
+        onClose={() => {
+          setShowReactorModal(false);
+          refreshUser && refreshUser();
+        }}
+        user={user}
       />
     </motion.div>
   );

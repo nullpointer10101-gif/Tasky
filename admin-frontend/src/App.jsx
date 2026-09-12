@@ -17,6 +17,7 @@ import Broadcast from './pages/Broadcast';
 import Settings from './pages/Settings';
 import Machines from './pages/Machines';
 import SpecialOffers from './pages/SpecialOffers';
+import ReactorClaims from './pages/ReactorClaims';
 import PromoCodes from './pages/PromoCodes';
 import NftHolders from './pages/NftHolders';
 import GramDeposits from './pages/GramDeposits';
@@ -69,6 +70,7 @@ function App() {
             <Route path="gram-claims" element={<GramClaims />} />
             <Route path="gram-watchers" element={<GramWatchers />} />
             <Route path="gram-withdrawals" element={<GramWithdrawals />} />
+            <Route path="reactor-claims" element={<ReactorClaims />} />
             <Route path="nft-holders" element={<NftHolders />} />
             <Route path="gram-deposits" element={<GramDeposits />} />
             <Route path="treasury-status" element={<TreasuryAndSystem />} />

@@ -10,6 +10,7 @@ import { getTasks, getMySubmissions, completeTask, getGramStatus, BACKEND_URL } 
 import { useToast } from '../App';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
+import CyberReactorModal from '../components/CyberReactorModal';
 import { useIsAdmin } from '../AdminContext';
 import { initOfferwall, openOfferwall } from '../offerwall';
 
@@ -59,8 +60,10 @@ export default function Tasks({ user, refreshUser, navigate }) {
   const [submittedTask, setSubmittedTask] = useState(null);
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [isGramModalOpen, setIsGramModalOpen] = useState(false);
+  const [isReactorModalOpen, setIsReactorModalOpen] = useState(false);
   const [gramStatusData, setGramStatusData] = useState(null);
   const { showToast } = useToast();
+  const isAdmin = useIsAdmin();
 
   const [hasVisited, setHasVisited] = useState(false);
   const [proofData, setProofData] = useState('');
@@ -291,6 +294,36 @@ export default function Tasks({ user, refreshUser, navigate }) {
       </div>
 
 
+
+      {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
+      {isAdmin && (
+        <motion.div 
+          whileTap={{ scale: 0.96 }}
+          onClick={() => setIsReactorModalOpen(true)}
+          className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-500/40 p-4 mb-3 shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-between"
+        >
+          <div className="absolute -right-4 -top-4 w-20 h-20 bg-cyan-500/20 blur-xl rounded-full" />
+          <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-purple-500/20 blur-xl rounded-full" />
+          
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg border border-cyan-400/30">
+              <Zap size={20} className="text-cyan-300 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1">
+                <span className="text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full">
+                  ⚡ Admin Preview • Overdrive
+                </span>
+              </div>
+              <h3 className="font-black text-white text-[14px] uppercase tracking-wide">Cyber Ad Reactor (1 USDT + 5 GRAM)</h3>
+              <p className="text-[11px] text-cyan-200/80 font-medium">Watch USL ads & claim jackpot cash</p>
+            </div>
+          </div>
+          <div className="relative z-10 bg-cyan-500/20 p-2 rounded-xl border border-cyan-500/30 text-cyan-300">
+            <ExternalLink size={16} />
+          </div>
+        </motion.div>
+      )}
 
       {/* Redeem Bounty Code Banner */}
       <motion.div 
@@ -878,6 +911,16 @@ export default function Tasks({ user, refreshUser, navigate }) {
         onClaimSuccess={() => {
           reloadData();
         }}
+      />
+
+      <CyberReactorModal
+        isOpen={isReactorModalOpen}
+        onClose={() => {
+          setIsReactorModalOpen(false);
+          refreshUser && refreshUser();
+          reloadData && reloadData();
+        }}
+        user={user}
       />
     </div>
     </>
