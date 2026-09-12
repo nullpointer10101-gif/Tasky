@@ -7,7 +7,7 @@ import {
   Coins, Star, Check
 } from 'lucide-react';
 import triggerConfetti from '../confetti';
-import { showTowerAd, showRewardedAd } from '../adUtils';
+import { showTowerAd } from '../adUtils';
 import { getReactorStatus, recordReactorAdView, claimReactorReward } from '../api';
 import { useToast } from '../App';
 
@@ -171,14 +171,11 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
       }
 
-      // 1. Play USL / Rewarded Ad
-      let res = await showTowerAd();
-      if (!res?.success) {
-        res = await showRewardedAd('usl');
-      }
+      // 1. Play USL Ads strictly (TowerAds SDK v4)
+      const res = await showTowerAd();
 
       if (!res?.success) {
-        showToast(res?.error || 'Ad was closed early. Watch full ad to charge!', 'error');
+        showToast(res?.error || 'USL ad was closed early. Watch the full ad to charge!', 'error');
         setAdWatching(false);
         return;
       }
