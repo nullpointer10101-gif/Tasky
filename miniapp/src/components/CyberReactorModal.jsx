@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, CheckCircle2, Clock, X, Award, Flame, Lock, Timer, Sparkles, ChevronRight, Gem } from 'lucide-react';
+import { Zap, CheckCircle2, Clock, X, Award, Flame, Lock, Timer, Sparkles, ChevronRight, Gem, AlertTriangle, AlertCircle } from 'lucide-react';
 import triggerConfetti from '../confetti';
 import { showTowerAd, showRewardedAd } from '../adUtils';
 import { getReactorStatus, recordReactorAdView, claimReactorReward } from '../api';
@@ -365,6 +365,28 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
               </div>
             )}
 
+            {/* Critical Ad Completion Guidance */}
+            <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/60 via-slate-900 to-amber-950/40 border border-amber-500/40 text-xs mb-3 shadow-lg">
+              <div className="flex items-center gap-1.5 font-black text-amber-300 mb-1.5">
+                <AlertTriangle size={15} className="shrink-0 text-amber-400 animate-pulse" />
+                <span className="uppercase tracking-wider text-[11px]">⚠️ Critical: How to Ensure Progress Counts</span>
+              </div>
+              <div className="space-y-1.5 text-[11px] text-slate-300">
+                <div className="flex items-start gap-1.5">
+                  <span className="text-amber-400 font-bold shrink-0">1.</span>
+                  <span><strong className="text-white">Watch full ad video</strong> until the countdown timer completes.</span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-cyan-400 font-bold shrink-0">2.</span>
+                  <span><strong className="text-cyan-300">Click the button / sponsor action</strong> that appears at the end of the ad.</span>
+                </div>
+                <div className="flex items-start gap-1.5">
+                  <span className="text-rose-400 font-bold shrink-0">3.</span>
+                  <span><strong className="text-rose-300">DO NOT click 'X' (cross) immediately!</strong> Closing prematurely cancels verification and your view will NOT be counted towards your 2.00 GRAM claim.</span>
+                </div>
+              </div>
+            </div>
+
             {/* Action Buttons */}
             <div className="flex flex-col gap-2">
               {/* Watch Ad Button */}
@@ -479,11 +501,10 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
  * Sticky Floating Bubble widget for 1-tap access anywhere
  */
 export function CyberReactorFloatingBubble({ user, onOpen }) {
-  const isAdmin = useIsAdmin();
   const timeLeft = useReactorTimer();
 
-  // Hide if not admin or if timer expired
-  if (!isAdmin || timeLeft.isExpired) return null;
+  // Hide if timer expired
+  if (timeLeft.isExpired) return null;
 
   return (
     <motion.div

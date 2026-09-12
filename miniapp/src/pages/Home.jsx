@@ -157,8 +157,8 @@ export default function Home({ user, refreshUser, navigate }) {
         />
       </motion.div>
 
-      {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
-      {isAdmin && !reactorTimer.isExpired && (
+      {/* Cyber Ad Reactor Banner Card */}
+      {!reactorTimer.isExpired && (
         <motion.div
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowReactorModal(true)}

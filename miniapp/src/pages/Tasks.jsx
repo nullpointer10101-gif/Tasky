@@ -296,8 +296,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
 
 
-      {/* Cyber Ad Reactor Banner Card (Admin Only Preview) */}
-      {isAdmin && !reactorTimer.isExpired && (
+      {/* Cyber Ad Reactor Banner Card */}
+      {!reactorTimer.isExpired && (
         <motion.div 
           whileTap={{ scale: 0.96 }}
           onClick={() => setIsReactorModalOpen(true)}
