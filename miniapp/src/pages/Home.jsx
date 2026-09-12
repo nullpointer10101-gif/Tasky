@@ -184,7 +184,7 @@ export default function Home({ user, refreshUser, navigate }) {
                 Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(2.00 GRAM Jackpot)</span>
               </h3>
               <p className="text-[11px] text-cyan-200/90 font-medium leading-tight">
-                Watch 1,000 USL ads with no limits to claim 2.00 GRAM + 200K TASKY!
+                Watch 1,000 USL ads with no limits to claim 2.00 GRAM + 20K TASKY!
               </p>
             </div>
           </div>

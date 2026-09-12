@@ -54,11 +54,11 @@ export function useReactorTimer() {
 }
 
 const STAGES = [
-  { stage: 1, target: 100, reward_tasky: 10000, reward_grams: 0.10, title: '⚡ Stage 1: Core Ignition (10%)', subtitle: '+10,000 TASKY Milestone' },
-  { stage: 2, target: 250, reward_tasky: 25000, reward_grams: 0.25, title: '🔋 Stage 2: Plasma Pulse (25%)', subtitle: '+25,000 TASKY Milestone' },
-  { stage: 3, target: 500, reward_tasky: 50000, reward_grams: 0.50, title: '💥 Stage 3: Fusion Overdrive (50%)', subtitle: '+50,000 TASKY Halfway Bonus' },
-  { stage: 4, target: 750, reward_tasky: 75000, reward_grams: 0.75, title: '🚀 Stage 4: Quantum Surge (75%)', subtitle: '+75,000 TASKY Pre-Jackpot' },
-  { stage: 5, target: 1000, reward_tasky: 200000, reward_grams: 2.00, title: '👑 Stage 5: GRAND JACKPOT (100%)', subtitle: '🔥 2.00 GRAM + 200,000 TASKY CASH OUT!' }
+  { stage: 1, target: 100, reward_tasky: 2000, reward_grams: 0.10, title: '⚡ Stage 1: Core Ignition (10%)', subtitle: '+2,000 TASKY Milestone' },
+  { stage: 2, target: 250, reward_tasky: 5000, reward_grams: 0.25, title: '🔋 Stage 2: Plasma Pulse (25%)', subtitle: '+5,000 TASKY Milestone' },
+  { stage: 3, target: 500, reward_tasky: 10000, reward_grams: 0.50, title: '💥 Stage 3: Fusion Overdrive (50%)', subtitle: '+10,000 TASKY Halfway Bonus' },
+  { stage: 4, target: 750, reward_tasky: 15000, reward_grams: 0.75, title: '🚀 Stage 4: Quantum Surge (75%)', subtitle: '+15,000 TASKY Pre-Jackpot' },
+  { stage: 5, target: 1000, reward_tasky: 20000, reward_grams: 2.00, title: '👑 Stage 5: GRAND JACKPOT (100%)', subtitle: '🔥 2.00 GRAM + 20,000 TASKY CASH OUT!' }
 ];
 
 export default function CyberReactorModal({ isOpen, onClose, user }) {
@@ -241,7 +241,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 Cyber Ad Reactor ⚡
               </h2>
               <p className="text-xs text-slate-300 font-medium mt-1">
-                Conquer 1,000 Ads before time expires & claim <b className="text-amber-400 font-black">2.00 GRAM + 200K TASKY</b>!
+                Conquer 1,000 Ads before time expires & claim <b className="text-amber-400 font-black">2.00 GRAM + 20K TASKY</b>!
               </p>
             </div>
 
@@ -359,7 +359,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 <div>
                   <div className="font-bold">2.00 GRAM Claim Under Review</div>
                   <div className="text-[11px] text-amber-200/80 mt-0.5">
-                    Your 1,000 ads completion is verified. Admin will disburse the 2.00 GRAM + 200K TASKY to your wallet!
+                    Your 1,000 ads completion is verified. Admin will disburse the 2.00 GRAM + 20K TASKY to your wallet!
                   </div>
                 </div>
               </div>
@@ -421,7 +421,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                   className="w-full py-3.5 rounded-2xl font-black text-sm text-black flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:brightness-110 active:scale-98 transition-all shadow-xl cursor-pointer"
                 >
                   <Award size={18} />
-                  🎉 CLAIM 2.00 GRAM + 200,000 TASKY!
+                  🎉 CLAIM 2.00 GRAM + 20,000 TASKY!
                 </motion.button>
               ) : (
                 <div className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/10 text-center text-xs text-slate-300 flex items-center justify-center gap-1.5 font-bold">
@@ -453,7 +453,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
 
               <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs mb-4 text-slate-300 space-y-1">
                 <div>🏆 <b>1,000 USL Ads Completed!</b></div>
-                <div className="text-amber-400 font-black text-sm">Reward: 2.00 GRAM + 200,000 TASKY</div>
+                <div className="text-amber-400 font-black text-sm">Reward: 2.00 GRAM + 20,000 TASKY</div>
               </div>
 
               <div className="mb-4">

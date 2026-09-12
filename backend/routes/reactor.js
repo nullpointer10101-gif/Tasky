@@ -4,11 +4,11 @@ const { pool } = require('../db');
 const bot = require('../bot');
 
 const STAGES = [
-  { stage: 1, target: 100, reward_tasky: 10000, reward_grams: 0.10, reward_usdt: 0, title: 'Core Ignition (10%)' },
-  { stage: 2, target: 250, reward_tasky: 25000, reward_grams: 0.25, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
-  { stage: 3, target: 500, reward_tasky: 50000, reward_grams: 0.50, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
-  { stage: 4, target: 750, reward_tasky: 75000, reward_grams: 0.75, reward_usdt: 0, title: 'Quantum Surge (75%)' },
-  { stage: 5, target: 1000, reward_tasky: 200000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
+  { stage: 1, target: 100, reward_tasky: 2000, reward_grams: 0.10, reward_usdt: 0, title: 'Core Ignition (10%)' },
+  { stage: 2, target: 250, reward_tasky: 5000, reward_grams: 0.25, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
+  { stage: 3, target: 500, reward_tasky: 10000, reward_grams: 0.50, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
+  { stage: 4, target: 750, reward_tasky: 15000, reward_grams: 0.75, reward_usdt: 0, title: 'Quantum Surge (75%)' },
+  { stage: 5, target: 1000, reward_tasky: 20000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
 ];
 
 // In-memory anti-spam timestamp map (min 2s between ad view records, no daily limit)
@@ -197,7 +197,7 @@ router.post('/claim', async (req, res) => {
       });
     }
 
-    const finalStage = STAGES[4]; // Stage 5: 1000 ads, 2.00 GRAM, 200,000 TASKY
+    const finalStage = STAGES[4]; // Stage 5: 1000 ads, 2.00 GRAM, 20,000 TASKY
 
     // Insert claim into database
     const insertRes = await pool.query(
@@ -211,7 +211,7 @@ router.post('/claim', async (req, res) => {
         5,
         0,
         2.0000,
-        200000,
+        20000,
         String(wallet_address).trim()
       ]
     );
@@ -227,7 +227,7 @@ router.post('/claim', async (req, res) => {
           `⚡ *NEW 1,000 ADS REACTOR JACKPOT CLAIM!* ⚡\n\n` +
           `👤 User: \`${tid}\`\n` +
           `🎯 Stage: *Stage 5 Complete (1,000 USL Ads)*\n` +
-          `💰 Reward: *2.00 GRAM + 200,000 TASKY*\n` +
+          `💰 Reward: *2.00 GRAM + 20,000 TASKY*\n` +
           `💳 Wallet: \`${wallet_address}\`\n\n` +
           `👉 Review in Admin Panel: [Tasky Admin](https://tasky3.onrender.com/admin)`,
           { parse_mode: 'Markdown' }
