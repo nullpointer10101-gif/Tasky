@@ -566,19 +566,8 @@ export async function showGigaPubAdFallback() {
 }
 
 export async function triggerStartupAd() {
-  if (typeof window === 'undefined') return;
-  try {
-    const alreadyShown = sessionStorage.getItem('tasky_session_startup_ad_shown');
-    if (alreadyShown) {
-      console.log('[AdManager] ℹ️ Startup ad already shown for this session. Skipping.');
-      return;
-    }
-    sessionStorage.setItem('tasky_session_startup_ad_shown', 'true');
-    console.log('[AdManager] 🚀 Triggering single startup ad on bot opening...');
-    await showAdexiumAd();
-  } catch (e) {
-    console.warn('[AdManager] Startup ad notice:', e);
-  }
+  // Permanently disabled: No automatic ads on startup
+  return { success: false, skipped: true };
 }
 
 export function startPeriodicAdLoop() {

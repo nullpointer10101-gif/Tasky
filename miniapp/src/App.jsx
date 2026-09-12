@@ -119,11 +119,6 @@ export default function App() {
   useEffect(() => {
     boot();
     initGigaAds();
-    // Trigger exactly 1 single startup ad on opening bot (session-capped)
-    const timer = setTimeout(() => {
-      triggerStartupAd();
-    }, 1800);
-    return () => clearTimeout(timer);
   }, [tgUser]);
 
 
