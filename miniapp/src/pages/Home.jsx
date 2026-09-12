@@ -157,40 +157,50 @@ export default function Home({ user, refreshUser, navigate }) {
         />
       </motion.div>
 
-      {/* Cyber Ad Reactor Banner Card */}
+      {/* Cyber Ad Reactor Mega Dopamine Banner Card */}
       {!reactorTimer.isExpired && (
         <motion.div
-          whileTap={{ scale: 0.98 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setShowReactorModal(true)}
-          className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-400/50 text-white cursor-pointer shadow-lg shadow-cyan-500/20 hover:border-cyan-300 transition-all flex items-center justify-between group"
+          className="relative overflow-hidden rounded-[1.5rem] p-4 text-white cursor-pointer transition-all flex items-center justify-between group border-2 border-cyan-400/60 shadow-[0_0_25px_rgba(6,182,212,0.3)]"
+          style={{ background: 'radial-gradient(circle at 80% 20%, #172a5a 0%, #08122a 50%, #040817 100%)' }}
         >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-xl pointer-events-none" />
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-purple-600 p-0.5 shadow-md shrink-0">
-              <div className="w-full h-full bg-[#060b1e] rounded-2xl flex items-center justify-center text-cyan-300">
-                <Zap size={22} className="animate-pulse" />
+          {/* Neon animated sweep beam */}
+          <motion.div
+            animate={{ x: ['-100%', '250%'] }}
+            transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 1 }}
+            className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent skew-x-12 pointer-events-none"
+          />
+
+          <div className="flex items-center gap-3.5 relative z-10">
+            {/* Glowing Gem & Reactor Icon Box */}
+            <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-cyan-400 via-purple-500 to-amber-400 p-0.5 shadow-[0_0_15px_rgba(6,182,212,0.5)] shrink-0" style={{ width: '52px', height: '52px' }}>
+              <div className="w-full h-full bg-[#050b1c] rounded-2xl flex flex-col items-center justify-center">
+                <span className="text-xl select-none animate-bounce">💎</span>
               </div>
             </div>
+
             <div>
-              <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                <span className="text-[10px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/40 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  ⚡ 7-Day Overdrive
+              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-yellow-400 text-black px-2 py-0.5 rounded-full shadow-sm font-mono">
+                  🔥 2.00 GRAM JACKPOT
                 </span>
-                <span className="text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 rounded-full font-mono">
+                <span className="text-[9px] font-black bg-cyan-950/80 text-cyan-300 border border-cyan-400/40 px-2 py-0.5 rounded-full font-mono">
                   ⏳ {reactorTimer.formatted}
                 </span>
               </div>
-              <h3 className="text-sm font-black text-white flex items-center gap-1">
-                Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(2.00 GRAM Jackpot)</span>
+              <h3 className="text-[15px] font-black text-white flex items-center gap-1.5 tracking-tight">
+                Cyber Ad Reactor ⚡
               </h3>
-              <p className="text-[11px] text-cyan-200/90 font-medium leading-tight">
-                Watch 1,000 USL ads with no limits to claim 2.00 GRAM + 20K TASKY!
+              <p className="text-[11.5px] text-cyan-200/90 font-medium leading-tight">
+                Watch 1,000 Ads to unlock <b className="text-amber-300 font-bold">2.00 GRAM + 20K TASKY</b>
               </p>
             </div>
           </div>
+
           <div className="shrink-0 pl-2 relative z-10">
-            <div className="w-8 h-8 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 group-hover:bg-cyan-500/40 transition-all">
-              <ChevronRight size={18} />
+            <div className="w-9 h-9 rounded-2xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:bg-cyan-500/40 transition-all shadow-md">
+              <ChevronRight size={20} />
             </div>
           </div>
         </motion.div>

@@ -296,35 +296,46 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
 
 
-      {/* Cyber Ad Reactor Banner Card */}
+      {/* Cyber Ad Reactor Mega Dopamine Banner Card */}
       {!reactorTimer.isExpired && (
         <motion.div 
           whileTap={{ scale: 0.96 }}
           onClick={() => setIsReactorModalOpen(true)}
-          className="relative overflow-hidden rounded-[1.25rem] cursor-pointer bg-gradient-to-r from-[#071329] via-[#091b3a] to-[#120e36] border border-cyan-400/40 p-4 mb-3 shadow-[0_0_15px_rgba(6,182,212,0.25)] flex items-center justify-between"
+          className="relative overflow-hidden rounded-[1.5rem] cursor-pointer p-4 mb-3 border-2 border-cyan-400/60 shadow-[0_0_25px_rgba(6,182,212,0.3)] flex items-center justify-between"
+          style={{ background: 'radial-gradient(circle at 80% 20%, #172a5a 0%, #08122a 50%, #040817 100%)' }}
         >
-          <div className="absolute -right-4 -top-4 w-20 h-20 bg-cyan-500/20 blur-xl rounded-full" />
-          <div className="absolute -left-4 -bottom-4 w-20 h-20 bg-purple-500/20 blur-xl rounded-full" />
+          {/* Neon animated sweep beam */}
+          <motion.div
+            animate={{ x: ['-100%', '250%'] }}
+            transition={{ repeat: Infinity, duration: 3, ease: 'linear', repeatDelay: 1 }}
+            className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent skew-x-12 pointer-events-none"
+          />
           
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-500 to-purple-600 flex items-center justify-center shadow-lg border border-cyan-400/30">
-              <Zap size={20} className="text-cyan-300 animate-pulse" />
+          <div className="flex items-center gap-3.5 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-400 via-purple-500 to-amber-400 p-0.5 shadow-[0_0_15px_rgba(6,182,212,0.5)] shrink-0 flex items-center justify-center">
+              <div className="w-full h-full bg-[#050b1c] rounded-2xl flex items-center justify-center">
+                <span className="text-xl select-none animate-bounce">💎</span>
+              </div>
             </div>
             <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-[9px] font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 px-1.5 py-0.5 rounded-full">
-                  ⚡ 7-Day Overdrive
+              <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-yellow-400 text-black px-2 py-0.5 rounded-full shadow-sm font-mono">
+                  🔥 2.00 GRAM JACKPOT
                 </span>
-                <span className="text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-400/40 px-1.5 py-0.5 rounded-full font-mono">
+                <span className="text-[9px] font-black bg-cyan-950/80 text-cyan-300 border border-cyan-400/40 px-2 py-0.5 rounded-full font-mono">
                   ⏳ {reactorTimer.formatted}
                 </span>
               </div>
-              <h3 className="font-black text-white text-[14px] uppercase tracking-wide">Cyber Ad Reactor (2.00 GRAM Jackpot)</h3>
-              <p className="text-[11px] text-cyan-200/90 font-medium">Watch 1,000 USL ads to claim 2.00 GRAM + 20K TASKY</p>
+              <h3 className="font-black text-white text-[15px] tracking-tight flex items-center gap-1">
+                Cyber Ad Reactor ⚡
+              </h3>
+              <p className="text-[11.5px] text-cyan-200/90 font-medium leading-tight">
+                Watch 1,000 Ads to claim <b className="text-amber-300 font-bold">2.00 GRAM + 20K TASKY</b>
+              </p>
             </div>
           </div>
-          <div className="relative z-10 bg-cyan-500/20 p-2 rounded-xl border border-cyan-500/30 text-cyan-300">
-            <ExternalLink size={16} />
+          <div className="relative z-10 bg-cyan-500/20 p-2.5 rounded-2xl border border-cyan-400/40 text-cyan-300 shadow-md">
+            <ChevronRight size={18} />
           </div>
         </motion.div>
       )}
