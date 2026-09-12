@@ -57,36 +57,37 @@ export function initTowerAds() {
   }
 }
 
+let towerAdsInstance = null;
+
 /**
  * Returns or creates the singleton TowerAds instance
  */
 export function getOrInitTowerAds() {
   if (typeof window === 'undefined') return null;
-  if (window.__towerAdsInstance) return window.__towerAdsInstance;
+  if (towerAdsInstance) return towerAdsInstance;
 
   if (typeof window.TowerAds !== 'function') return null;
 
   try {
-    const instance = new window.TowerAds({
+    towerAdsInstance = new window.TowerAds({
       apiKey: TOWER_ADS_API_KEY,
       placementId: TOWER_ADS_PLACEMENT_ID,
       onRewardEarned(reward) {
-        console.log('[AdManager] 🏆 TowerAds reward earned:', reward);
-        if (typeof window.__towerAdsRewardCb === 'function') {
-          window.__towerAdsRewardCb(reward);
+        console.log('[TowerAds] 🏆 Reward earned:', reward);
+        if (typeof window.__onTowerReward === 'function') {
+          window.__onTowerReward(reward);
         }
       },
       onError(error) {
-        console.warn('[AdManager] ⚠️ TowerAds error:', error);
-        if (typeof window.__towerAdsErrorCb === 'function') {
-          window.__towerAdsErrorCb(error);
+        console.warn('[TowerAds] ⚠️ Error:', error);
+        if (typeof window.__onTowerError === 'function') {
+          window.__onTowerError(error);
         }
       }
     });
 
-    window.__towerAdsInstance = instance;
     console.log('[AdManager] 🚀 TowerAds instance created successfully');
-    return instance;
+    return towerAdsInstance;
   } catch (e) {
     console.error('[AdManager] Failed to construct TowerAds:', e);
     return null;
@@ -330,7 +331,7 @@ export async function showMonetagAd() {
 /**
  * Executes a USL TowerAds rewarded ad session
  */
-export async function showTowerAd(retryCount = 0) {
+export async function showTowerAd() {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
@@ -362,103 +363,46 @@ export async function showTowerAd(retryCount = 0) {
     };
   }
 
-  const startTime = Date.now();
+  return new Promise((resolve) => {
+    let rewarded = false;
+    let settled = false;
 
-  const formatUslError = (rawErr) => {
-    const msg = String(rawErr?.message || rawErr || '').toLowerCase();
-    if (msg.includes('no provider') || msg.includes('no inventory') || msg.includes('no ad') || msg.includes('empty') || msg.includes('fill')) {
-      return 'USL Ads is fetching fresh video inventory. Please tap again in 3 seconds!';
-    }
-    if (msg.includes('cancel') || msg.includes('close') || msg.includes('skip') || msg.includes('dismiss')) {
-      return 'USL ad was closed early. Watch the full ad to charge!';
-    }
-    return 'USL Ads is loading a fresh sponsor video. Please tap again in a few seconds!';
-  };
-
-  return await new Promise(async (resolve) => {
-    let isSettled = false;
-    let rewardEarned = false;
-
-    window.__towerAdsRewardCb = (reward) => {
-      rewardEarned = true;
-      console.log('[AdManager] ✅ TowerAds reward callback triggered:', reward);
+    window.__onTowerReward = (reward) => {
+      console.log('[TowerAds] onRewardEarned triggered:', reward);
+      rewarded = true;
     };
 
-    window.__towerAdsErrorCb = async (err) => {
-      if (!isSettled) {
-        console.warn('[AdManager] ⚠️ TowerAds error callback triggered:', err);
-        const errMsg = String(err?.message || err || '').toLowerCase();
-        
-        // Auto-retry up to 2 times if temporary "no providers"
-        if ((errMsg.includes('no provider') || errMsg.includes('busy') || errMsg.includes('fill')) && retryCount < 2) {
-          console.log(`[AdManager] 🔄 Auto-retrying USL TowerAds (attempt ${retryCount + 1})...`);
-          await new Promise(r => setTimeout(r, 800));
-          const retryRes = await showTowerAd(retryCount + 1);
-          if (!isSettled) {
-            isSettled = true;
-            resolve(retryRes);
-          }
-          return;
-        }
-
-        isSettled = true;
-        resolve({ success: false, error: formatUslError(err) });
-      }
+    window.__onTowerError = (err) => {
+      console.warn('[TowerAds] onError callback triggered:', err);
     };
 
-    // Safety timeout of 45 seconds
-    const timer = setTimeout(() => {
-      if (!isSettled) {
-        isSettled = true;
-        const elapsed = (Date.now() - startTime) / 1000;
-        if (rewardEarned || elapsed >= 14.0) {
-          resolve({ success: true, network: 'usl' });
-        } else {
-          resolve({ success: false, error: 'USL ad session timed out. Tap to retry!' });
-        }
-      }
-    }, 45000);
+    ads.loadAndShow()
+      .then((res) => {
+        if (settled) return;
+        settled = true;
+        console.log('[TowerAds] loadAndShow resolved successfully:', res);
+        resolve({ success: true, network: 'usl', result: res });
+      })
+      .catch((err) => {
+        if (settled) return;
+        settled = true;
+        console.warn('[TowerAds] loadAndShow caught error:', err);
+        const msg = String(err?.message || err || '').toLowerCase();
 
-    try {
-      console.log('[AdManager] 🚀 Calling TowerAds ads.loadAndShow()...');
-      await ads.loadAndShow();
-      clearTimeout(timer);
-      const elapsed = (Date.now() - startTime) / 1000;
-      console.log(`[AdManager] TowerAds loadAndShow completed. Elapsed: ${elapsed.toFixed(1)}s, rewardEarned: ${rewardEarned}`);
-      
-      if (!isSettled) {
-        isSettled = true;
-        if (rewardEarned || elapsed >= 12.0) {
+        if (rewarded) {
           resolve({ success: true, network: 'usl' });
+        } else if (msg.includes('no provider') || msg.includes('no ad') || msg.includes('nofill')) {
+          resolve({ 
+            success: false, 
+            error: 'No ad inventory currently available from USL sponsor. Please try again shortly!' 
+          });
         } else {
-          resolve({
-            success: false,
-            error: 'Ad was closed early. You must watch the full video to charge!'
+          resolve({ 
+            success: false, 
+            error: err?.message || 'USL ad was closed early.' 
           });
         }
-      }
-    } catch (err) {
-      clearTimeout(timer);
-      if (!isSettled) {
-        console.warn('[AdManager] TowerAds loadAndShow caught error:', err);
-        const errMsg = String(err?.message || err || '').toLowerCase();
-        
-        // Auto-retry up to 2 times if temporary "no providers"
-        if ((errMsg.includes('no provider') || errMsg.includes('busy') || errMsg.includes('fill')) && retryCount < 2) {
-          console.log(`[AdManager] 🔄 Auto-retrying USL TowerAds from catch (attempt ${retryCount + 1})...`);
-          await new Promise(r => setTimeout(r, 800));
-          const retryRes = await showTowerAd(retryCount + 1);
-          if (!isSettled) {
-            isSettled = true;
-            resolve(retryRes);
-          }
-          return;
-        }
-
-        isSettled = true;
-        resolve({ success: false, error: formatUslError(err) });
-      }
-    }
+      });
   });
 }
 
