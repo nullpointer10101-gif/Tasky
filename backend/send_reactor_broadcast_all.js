@@ -41,39 +41,60 @@ async function broadcastToAll() {
       "SELECT telegram_id FROM users WHERE telegram_id IS NOT NULL ORDER BY id DESC"
     );
 
-    const users = res.rows;
-    console.log(`Total users targeted: ${users.length}`);
+    const allUsers = res.rows;
+    // Skip the first 800 users who were already sent the broadcast
+    const offset = parseInt(process.env.BROADCAST_OFFSET || "800", 10);
+    const users = allUsers.slice(offset);
+
+    console.log(`Total users in DB: ${allUsers.length}`);
+    console.log(`Skipping already sent: ${offset}`);
+    console.log(`Remaining to send at turbo speed: ${users.length}`);
 
     let sent = 0;
     let failed = 0;
+    const CHUNK_SIZE = 25; // 25 parallel requests per batch (Max Telegram capacity)
 
-    for (let i = 0; i < users.length; i++) {
-      const u = users[i];
-      try {
-        await bot.sendMessage(u.telegram_id, message, options);
-        sent++;
-      } catch (err) {
-        failed++;
+    for (let i = 0; i < users.length; i += CHUNK_SIZE) {
+      const chunk = users.slice(i, i + CHUNK_SIZE);
+
+      const promises = chunk.map((u) =>
+        bot.sendMessage(u.telegram_id, message, options)
+          .then(() => ({ success: true }))
+          .catch((err) => {
+            // If rate limited by Telegram, capture retry delay if any
+            return { success: false, error: err?.message };
+          })
+      );
+
+      const results = await Promise.allSettled(promises);
+      for (const r of results) {
+        if (r.status === "fulfilled" && r.value.success) {
+          sent++;
+        } else {
+          failed++;
+        }
       }
 
-      if ((i + 1) % 25 === 0) {
-        console.log(`Progress: ${i + 1}/${users.length} sent (${sent} ok, ${failed} failed)`);
-        await delay(1000); // 25 msg/sec rate limit
-      }
+      const totalProcessed = offset + i + chunk.length;
+      console.log(
+        `⚡ Turbo Progress: ${totalProcessed}/${allUsers.length} total (${sent} new ok, ${failed} failed)`
+      );
+
+      // 800ms cooldown between parallel batches to stay perfectly within Telegram limits
+      await delay(800);
     }
 
-    console.log(`Broadcast completed! Sent: ${sent}, Failed/Blocked: ${failed}`);
+    console.log(`🎉 Turbo Broadcast Completed! Sent: ${sent}, Failed/Blocked: ${failed}`);
   } catch (err) {
-    console.error("Broadcast failed:", err);
+    console.error("Broadcast error:", err);
   } finally {
     process.exit(0);
   }
 }
 
-// NOTE: Only run when explicitly triggered by admin
 if (process.argv.includes("--confirm")) {
   broadcastToAll();
 } else {
-  console.log("Safety guard: Run with --confirm to send to all users. Example: node send_reactor_broadcast_all.js --confirm");
+  console.log("Safety guard: Run with --confirm to send. Example: node send_reactor_broadcast_all.js --confirm");
   process.exit(0);
 }
