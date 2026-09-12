@@ -177,10 +177,10 @@ export default function Home({ user, refreshUser, navigate }) {
                 </span>
               </div>
               <h3 className="text-sm font-black text-white flex items-center gap-1">
-                Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(1 USDT + 5 GRAM)</span>
+                Cyber Ad Reactor <span className="text-amber-400 font-bold text-xs">(2.00 GRAM Jackpot)</span>
               </h3>
               <p className="text-[11px] text-cyan-200/80 font-medium leading-tight">
-                Inject USL plasma to power up the core and claim cash prizes!
+                Watch 1,000 USL ads with no limits to unlock 2.00 GRAM + 200K TASKY!
               </p>
             </div>
           </div>

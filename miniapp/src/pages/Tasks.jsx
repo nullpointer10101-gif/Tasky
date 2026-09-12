@@ -315,8 +315,8 @@ export default function Tasks({ user, refreshUser, navigate }) {
                   ⚡ Admin Preview • Overdrive
                 </span>
               </div>
-              <h3 className="font-black text-white text-[14px] uppercase tracking-wide">Cyber Ad Reactor (1 USDT + 5 GRAM)</h3>
-              <p className="text-[11px] text-cyan-200/80 font-medium">Watch USL ads & claim jackpot cash</p>
+              <h3 className="font-black text-white text-[14px] uppercase tracking-wide">Cyber Ad Reactor (2.00 GRAM Jackpot)</h3>
+              <p className="text-[11px] text-cyan-200/80 font-medium">Watch 1,000 USL ads to claim 2.00 GRAM + 200K TASKY</p>
             </div>
           </div>
           <div className="relative z-10 bg-cyan-500/20 p-2 rounded-xl border border-cyan-500/30 text-cyan-300">

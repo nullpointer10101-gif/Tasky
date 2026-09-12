@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, ShieldAlert, CheckCircle2, Clock, X, Sparkles, Award, Wallet, ArrowRight, Play } from 'lucide-react';
+import { Zap, CheckCircle2, Clock, X, Award, Flame, Lock } from 'lucide-react';
 import triggerConfetti from '../confetti';
 import { showTowerAd, showRewardedAd } from '../adUtils';
 import { getReactorStatus, recordReactorAdView, claimReactorReward } from '../api';
 import { useToast } from '../App';
 
 const STAGES = [
-  { stage: 1, target: 20, reward_tasky: 5000, reward_grams: 0.20, reward_usdt: 0, title: 'Ignition Overdrive', color: 'from-cyan-500 to-blue-500' },
-  { stage: 2, target: 50, reward_tasky: 15000, reward_grams: 0.50, reward_usdt: 0, title: 'Plasma Pulse', color: 'from-blue-500 to-indigo-500' },
-  { stage: 3, target: 100, reward_tasky: 30000, reward_grams: 1.00, reward_usdt: 0, title: 'Turbine Velocity', color: 'from-purple-500 to-pink-500' },
-  { stage: 4, target: 175, reward_tasky: 60000, reward_grams: 2.00, reward_usdt: 0, title: 'Supercharge Burst', color: 'from-pink-500 to-amber-500' },
-  { stage: 5, target: 250, reward_tasky: 100000, reward_grams: 5.00, reward_usdt: 1.00, title: 'MAX CYBER JACKPOT', color: 'from-amber-400 to-emerald-400' }
+  { stage: 1, target: 100, reward_tasky: 10000, reward_grams: 0.10, title: 'Core Ignition (10%)', color: 'from-cyan-500 to-blue-500' },
+  { stage: 2, target: 250, reward_tasky: 25000, reward_grams: 0.25, title: 'Plasma Pulse (25%)', color: 'from-blue-500 to-indigo-500' },
+  { stage: 3, target: 500, reward_tasky: 50000, reward_grams: 0.50, title: 'Fusion Overdrive (50%)', color: 'from-purple-500 to-pink-500' },
+  { stage: 4, target: 750, reward_tasky: 75000, reward_grams: 0.75, title: 'Quantum Surge (75%)', color: 'from-pink-500 to-amber-500' },
+  { stage: 5, target: 1000, reward_tasky: 200000, reward_grams: 2.00, title: 'MAX 2 GRAM JACKPOT (100%)', color: 'from-amber-400 to-emerald-400' }
 ];
 
 export default function CyberReactorModal({ isOpen, onClose, user }) {
@@ -25,10 +25,11 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
   const [reactorData, setReactorData] = useState({
     total_ads: 0,
     current_stage: 0,
-    next_target: 20,
+    next_target: 100,
     stages: STAGES,
     active_claim: null,
-    user_wallet: ''
+    user_wallet: '',
+    can_claim: false
   });
 
   const fetchStatus = async () => {
@@ -70,7 +71,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
       }
 
       if (!res?.success) {
-        showToast(res?.error || 'Ad was not fully completed. Watch full ad to charge reactor!', 'error');
+        showToast(res?.error || 'Ad was not fully watched. Watch full ad to charge reactor!', 'error');
         setAdWatching(false);
         return;
       }
@@ -83,10 +84,10 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
         const newStage = recordRes.data.stage;
 
         if (newStage > oldStage) {
-          triggerConfetti({ particleCount: 80, spread: 70 });
-          showToast(`⚡ Stage ${newStage} Unlocked! Awesome progress!`, 'success');
+          triggerConfetti({ particleCount: 90, spread: 80 });
+          showToast(`⚡ Stage ${newStage} Unlocked! (${newTotal}/1000 Ads)`, 'success');
         } else {
-          showToast('⚡ Plasma Injected! Reactor Charged (+1 Ad)', 'success');
+          showToast(`⚡ Plasma Injected! (${newTotal}/1000 Ads)`, 'success');
         }
 
         fetchStatus();
@@ -103,7 +104,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
 
   const handleClaimSubmit = async () => {
     if (!walletInput || walletInput.trim().length < 8) {
-      showToast('Please enter a valid TON or USDT (TRC20/TON) address', 'error');
+      showToast('Please enter a valid TON or GRAM address', 'error');
       return;
     }
 
@@ -116,8 +117,8 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
       }
 
       if (data?.success) {
-        triggerConfetti({ particleCount: 100, spread: 80 });
-        showToast('🚀 Claim sent to Admin review queue! Payout releases in 5 days.', 'success');
+        triggerConfetti({ particleCount: 120, spread: 90 });
+        showToast('🚀 2.00 GRAM Jackpot Claim submitted! Under Admin review.', 'success');
         setShowClaimModal(false);
         fetchStatus();
       }
@@ -133,9 +134,10 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
   const totalAds = reactorData.total_ads || 0;
   const currentStage = reactorData.current_stage || 0;
   const activeClaim = reactorData.active_claim;
-  const maxTarget = 250;
+  const maxTarget = 1000;
   const progressPct = Math.min((totalAds / maxTarget) * 100, 100);
-  const canClaim = totalAds >= 20 && (!activeClaim || activeClaim.status === 'approved' || activeClaim.status === 'rejected');
+  const is1kCompleted = totalAds >= 1000;
+  const canClaim = is1kCompleted && (!activeClaim || activeClaim.status === 'approved' || activeClaim.status === 'rejected');
 
   return (
     <AnimatePresence>
@@ -165,10 +167,10 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
             {/* Header Badge */}
             <div className="flex items-center gap-2 mb-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-sm shadow-cyan-500/20">
-                <Zap size={11} className="animate-pulse" /> Limited 5-Stage Overdrive
+                <Zap size={11} className="animate-pulse" /> 1,000 Ads Core Challenge
               </span>
               <span className="text-[10px] font-bold text-amber-400/90 ml-auto flex items-center gap-1">
-                <Clock size={11} /> 5-Day Payout
+                <Flame size={11} className="text-amber-400" /> No Daily Limit
               </span>
             </div>
 
@@ -176,7 +178,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
               Cyber Ad Reactor ⚡
             </h2>
             <p className="text-xs text-slate-400 mt-0.5 mb-5">
-              Inject USL plasma to charge the core & unlock up to <b className="text-amber-400">1 USDT + 5 GRAM</b>!
+              Power up the reactor with 1,000 USL ads to claim the <b className="text-amber-400">2.00 GRAM + 200K TASKY Jackpot</b>!
             </p>
 
             {/* Glowing Core Reactor Visualizer */}
@@ -195,7 +197,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 />
                 <div className="relative z-10 w-20 h-20 rounded-full bg-slate-900 border-2 border-cyan-400 flex flex-col items-center justify-center shadow-lg shadow-cyan-500/50">
                   <span className="text-2xl">⚡</span>
-                  <span className="text-[11px] font-black text-cyan-300 tracking-wider">
+                  <span className="text-[10px] font-black text-cyan-300 tracking-wider">
                     {totalAds} / {maxTarget}
                   </span>
                 </div>
@@ -203,11 +205,13 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
 
               <div className="flex items-center justify-between text-xs font-bold mb-1.5 px-1">
                 <span className="text-slate-400">Core Output Level</span>
-                <span className="text-cyan-400 font-black">Stage {currentStage} / 5</span>
+                <span className="text-cyan-400 font-black">
+                  {is1kCompleted ? 'MAX OVERDRIVE (100%)' : `Stage ${currentStage} / 5 (${progressPct.toFixed(1)}%)`}
+                </span>
               </div>
 
               {/* Progress Bar */}
-              <div className="relative h-3 rounded-full bg-slate-800/80 overflow-hidden p-0.5 border border-white/5">
+              <div className="relative h-3.5 rounded-full bg-slate-800/80 overflow-hidden p-0.5 border border-white/5">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPct}%` }}
@@ -216,18 +220,18 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 />
               </div>
 
-              <div className="flex justify-between text-[9px] text-slate-500 font-semibold mt-1 px-1">
-                <span>0 Ads</span>
-                <span>20 (S1)</span>
-                <span>50 (S2)</span>
-                <span>100 (S3)</span>
-                <span>175 (S4)</span>
-                <span className="text-amber-400 font-bold">250 (Max)</span>
+              <div className="flex justify-between text-[9px] text-slate-400 font-semibold mt-1 px-1">
+                <span>0</span>
+                <span>100</span>
+                <span>250</span>
+                <span>500</span>
+                <span>750</span>
+                <span className="text-amber-400 font-black">1,000 Ads</span>
               </div>
             </div>
 
             {/* Stages Milestone List */}
-            <div className="space-y-2 mb-5 max-h-48 overflow-y-auto pr-1">
+            <div className="space-y-2 mb-5 max-h-44 overflow-y-auto pr-1">
               {STAGES.map((s) => {
                 const isUnlocked = totalAds >= s.target;
                 const isCurrent = currentStage === s.stage;
@@ -259,8 +263,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                           <span className="text-[10px] font-normal text-slate-400">({s.target} Ads)</span>
                         </div>
                         <div className="text-[10px] font-semibold text-amber-400">
-                          {s.reward_usdt > 0 ? `${s.reward_usdt} USDT + ` : ''}
-                          {s.reward_grams} GRAM + {s.reward_tasky.toLocaleString()} TASKY
+                          {s.stage === 5 ? '🔥 2.00 GRAM + 200,000 TASKY' : `${s.reward_grams} GRAM + ${s.reward_tasky.toLocaleString()} TASKY Milestone`}
                         </div>
                       </div>
                     </div>
@@ -272,7 +275,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                           : 'bg-white/10 text-slate-400'
                       }`}
                     >
-                      {isUnlocked ? 'UNLOCKED' : `${Math.max(0, s.target - totalAds)} left`}
+                      {isUnlocked ? 'COMPLETED' : `${Math.max(0, s.target - totalAds)} left`}
                     </span>
                   </div>
                 );
@@ -284,9 +287,9 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
               <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs mb-4 flex items-start gap-2.5">
                 <Clock size={18} className="shrink-0 mt-0.5 text-amber-400 animate-spin" />
                 <div>
-                  <div className="font-bold">Claim Under Review (5-Day Release Lock)</div>
+                  <div className="font-bold">2.00 GRAM Claim Under Review</div>
                   <div className="text-[11px] text-amber-200/80 mt-0.5">
-                    Your Stage {activeClaim.stage_reached} claim ({activeClaim.reward_usdt > 0 ? activeClaim.reward_usdt + ' USDT + ' : ''}{activeClaim.reward_grams} GRAM) has been submitted. Admin will review and disburse payment!
+                    Your 1,000 ads completion is being verified by Admin. Payout will be disbursed directly to your wallet!
                   </div>
                 </div>
               </div>
@@ -312,20 +315,27 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 ) : (
                   <>
                     <Zap size={16} fill="black" />
-                    Inject Plasma (Watch USL Ad)
+                    Inject Plasma (Watch USL Ad • No Limit)
                   </>
                 )}
               </button>
 
-              {/* Claim Reward Button */}
-              {canClaim && (
-                <button
+              {/* Claim Reward Button (Only active when 1,000 ads are reached) */}
+              {canClaim ? (
+                <motion.button
+                  animate={{ scale: [1, 1.02, 1], boxShadow: ['0 0 15px rgba(245,158,11,0.3)', '0 0 30px rgba(245,158,11,0.6)', '0 0 15px rgba(245,158,11,0.3)'] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
                   onClick={() => setShowClaimModal(true)}
-                  className="w-full py-3 rounded-2xl font-bold text-xs text-white flex items-center justify-center gap-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 active:scale-98 transition-all border border-pink-400/30 shadow-md shadow-purple-500/25"
+                  className="w-full py-3.5 rounded-2xl font-black text-sm text-black flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:brightness-110 active:scale-98 transition-all shadow-xl"
                 >
-                  <Award size={15} />
-                  Claim Stage {currentStage} Reward ({totalAds >= 250 ? '1 USDT + 5 GRAM' : 'GRAM & TASKY'})
-                </button>
+                  <Award size={18} />
+                  Claim 2.00 GRAM + 200,000 TASKY!
+                </motion.button>
+              ) : (
+                <div className="w-full py-2.5 rounded-2xl bg-white/5 border border-white/10 text-center text-xs text-slate-400 flex items-center justify-center gap-1.5 font-bold">
+                  <Lock size={13} className="text-slate-500" />
+                  <span>Claim Unlocks at 1,000 Ads ({totalAds} / 1,000 Complete)</span>
+                </div>
               )}
             </div>
           </div>
@@ -337,38 +347,39 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="relative w-full max-w-sm rounded-3xl p-6 bg-slate-900 border border-purple-500/40 shadow-2xl text-white"
+              className="relative w-full max-w-sm rounded-3xl p-6 bg-slate-900 border border-amber-500/40 shadow-2xl text-white"
             >
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Award size={20} className="text-amber-400" />
-                  <h3 className="font-bold text-base">Submit Reactor Claim</h3>
+                  <Award size={22} className="text-amber-400" />
+                  <h3 className="font-bold text-base">Claim 2.00 GRAM Jackpot</h3>
                 </div>
                 <button onClick={() => setShowClaimModal(false)} className="text-slate-400 hover:text-white">
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="p-3 rounded-2xl bg-purple-950/40 border border-purple-500/20 text-xs mb-4 text-slate-300">
-                You are claiming the <b className="text-amber-400">Stage {currentStage} Overdrive</b> reward with <b className="text-cyan-400">{totalAds} verified USL ads</b>.
+              <div className="p-3.5 rounded-2xl bg-amber-950/40 border border-amber-500/30 text-xs mb-4 text-slate-300 space-y-1">
+                <div>🎉 <b>1,000 USL Ads Completed!</b></div>
+                <div className="text-amber-400 font-bold text-sm">Reward: 2.00 GRAM + 200,000 TASKY</div>
               </div>
 
               <div className="mb-4">
                 <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-                  TON or USDT (TRC20/TON) Payout Address:
+                  Your TON / GRAM Wallet Address:
                 </label>
                 <input
                   type="text"
                   value={walletInput}
                   onChange={(e) => setWalletInput(e.target.value)}
-                  placeholder="e.g. UQ... or T..."
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                  placeholder="e.g. UQ... or EQ..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white focus:outline-none focus:border-amber-400 font-mono"
                 />
               </div>
 
               <div className="text-[11px] text-slate-400 mb-5 flex items-center gap-1.5">
                 <Clock size={12} className="text-amber-400 shrink-0" />
-                <span>Admin review & 5-day release lock applies.</span>
+                <span>Admin review queue. Payout sent directly to your wallet!</span>
               </div>
 
               <div className="flex gap-2">
@@ -381,7 +392,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                 <button
                   onClick={handleClaimSubmit}
                   disabled={claiming}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 text-black font-extrabold text-xs flex items-center justify-center gap-1 disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-400 text-black font-extrabold text-xs flex items-center justify-center gap-1 disabled:opacity-50"
                 >
                   {claiming ? 'Submitting...' : 'Confirm Claim'}
                 </button>

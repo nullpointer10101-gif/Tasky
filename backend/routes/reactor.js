@@ -4,14 +4,14 @@ const { pool } = require('../db');
 const bot = require('../bot');
 
 const STAGES = [
-  { stage: 1, target: 20, reward_tasky: 5000, reward_grams: 0.20, reward_usdt: 0, title: 'Ignition Overdrive' },
-  { stage: 2, target: 50, reward_tasky: 15000, reward_grams: 0.50, reward_usdt: 0, title: 'Plasma Pulse' },
-  { stage: 3, target: 100, reward_tasky: 30000, reward_grams: 1.00, reward_usdt: 0, title: 'Turbine Velocity' },
-  { stage: 4, target: 175, reward_tasky: 60000, reward_grams: 2.00, reward_usdt: 0, title: 'Supercharge Burst' },
-  { stage: 5, target: 250, reward_tasky: 100000, reward_grams: 5.00, reward_usdt: 1.00, title: 'MAX CYBER JACKPOT' }
+  { stage: 1, target: 100, reward_tasky: 10000, reward_grams: 0.10, reward_usdt: 0, title: 'Core Ignition (10%)' },
+  { stage: 2, target: 250, reward_tasky: 25000, reward_grams: 0.25, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
+  { stage: 3, target: 500, reward_tasky: 50000, reward_grams: 0.50, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
+  { stage: 4, target: 750, reward_tasky: 75000, reward_grams: 0.75, reward_usdt: 0, title: 'Quantum Surge (75%)' },
+  { stage: 5, target: 1000, reward_tasky: 200000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
 ];
 
-// In-memory anti-spam timestamp map (min 5s between ad view records)
+// In-memory anti-spam timestamp map (min 2s between ad view records, no daily limit)
 const lastAdTimestampMap = new Map();
 
 /**
@@ -80,7 +80,8 @@ router.get('/status/:telegram_id', async (req, res) => {
       next_target: next_stage_info.target,
       stages: STAGES,
       active_claim: activeClaim,
-      user_wallet: user.wallet_address || user.gram_wallet_address || ''
+      user_wallet: user.gram_wallet_address || user.wallet_address || '',
+      can_claim: total_ads >= 1000
     });
   } catch (err) {
     console.error('[Reactor] Error fetching status:', err);
@@ -89,7 +90,7 @@ router.get('/status/:telegram_id', async (req, res) => {
 });
 
 /**
- * POST /api/reactor/record-view
+ * POST /api/reactor/record-view (NO daily limit - unlimited ad watches allowed!)
  */
 router.post('/record-view', async (req, res) => {
   const { telegram_id } = req.body;
@@ -98,10 +99,10 @@ router.post('/record-view', async (req, res) => {
   try {
     const tid = BigInt(telegram_id);
 
-    // Cooldown check (5s)
+    // Light cooldown check (2s throttle to prevent double-clicks)
     const now = Date.now();
     const lastTime = lastAdTimestampMap.get(String(telegram_id)) || 0;
-    if (now - lastTime < 5000) {
+    if (now - lastTime < 2000) {
       return res.status(429).json({ error: 'Please wait a moment before recording next ad view.' });
     }
     lastAdTimestampMap.set(String(telegram_id), now);
@@ -142,7 +143,7 @@ router.post('/record-view', async (req, res) => {
       success: true,
       total_ads: newTotal,
       stage: stageReached,
-      can_claim: newTotal >= 20
+      can_claim: newTotal >= 1000
     });
   } catch (err) {
     console.error('[Reactor] Error recording ad view:', err);
@@ -151,13 +152,13 @@ router.post('/record-view', async (req, res) => {
 });
 
 /**
- * POST /api/reactor/claim
+ * POST /api/reactor/claim (ONLY allowed once user completes ALL 1,000 Ads!)
  */
 router.post('/claim', async (req, res) => {
   const { telegram_id, wallet_address } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
   if (!wallet_address || String(wallet_address).trim().length < 8) {
-    return res.status(400).json({ error: 'Valid TON or USDT (TRC20/TON) wallet address required' });
+    return res.status(400).json({ error: 'Valid TON or GRAM wallet address required' });
   }
 
   try {
@@ -189,18 +190,14 @@ router.post('/claim', async (req, res) => {
     const countRes = await pool.query(adCountQuery, countParams);
     const totalAds = parseInt(countRes.rows[0]?.count || 0, 10);
 
-    if (totalAds < 20) {
-      return res.status(400).json({ error: 'Minimum 20 USL ads required to claim Stage 1 reward!' });
+    // STRICT REQUIREMENT: Must reach 1,000 Ads to claim
+    if (totalAds < 1000) {
+      return res.status(400).json({ 
+        error: `You need 1,000 ads to claim the 2.00 GRAM Jackpot! Current: ${totalAds} / 1,000 ads.` 
+      });
     }
 
-    // Calculate stage and rewards
-    let stageInfo = STAGES[0];
-    for (let i = STAGES.length - 1; i >= 0; i--) {
-      if (totalAds >= STAGES[i].target) {
-        stageInfo = STAGES[i];
-        break;
-      }
-    }
+    const finalStage = STAGES[4]; // Stage 5: 1000 ads, 2.00 GRAM, 200,000 TASKY
 
     // Insert claim into database
     const insertRes = await pool.query(
@@ -211,27 +208,26 @@ router.post('/claim', async (req, res) => {
       [
         tid,
         totalAds,
-        stageInfo.stage,
-        stageInfo.reward_usdt,
-        stageInfo.reward_grams,
-        stageInfo.reward_tasky,
+        5,
+        0,
+        2.0000,
+        200000,
         String(wallet_address).trim()
       ]
     );
 
     const newClaim = insertRes.rows[0];
 
-    // Optionally notify Telegram admin if bot is active
+    // Notify Telegram admin
     try {
       const adminId = process.env.ADMIN_TELEGRAM_ID;
       if (adminId && bot && bot.telegram) {
         bot.telegram.sendMessage(
           adminId,
-          `⚡ *NEW CYBER REACTOR CLAIM!* ⚡\n\n` +
+          `⚡ *NEW 1,000 ADS REACTOR JACKPOT CLAIM!* ⚡\n\n` +
           `👤 User: \`${tid}\`\n` +
-          `🎯 Stage: *${stageInfo.stage} (${stageInfo.title})*\n` +
-          `📺 Ads Watched: *${totalAds} USL Ads*\n` +
-          `💰 Reward: *${stageInfo.reward_usdt > 0 ? stageInfo.reward_usdt + ' USDT + ' : ''}${stageInfo.reward_grams} GRAM + ${stageInfo.reward_tasky.toLocaleString()} TASKY*\n` +
+          `🎯 Stage: *Stage 5 Complete (1,000 USL Ads)*\n` +
+          `💰 Reward: *2.00 GRAM + 200,000 TASKY*\n` +
           `💳 Wallet: \`${wallet_address}\`\n\n` +
           `👉 Review in Admin Panel: [Tasky Admin](https://tasky3.onrender.com/admin)`,
           { parse_mode: 'Markdown' }
@@ -241,7 +237,7 @@ router.post('/claim', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Claim submitted successfully for Admin review!',
+      message: 'Jackpot claim of 2.00 GRAM submitted successfully for Admin review!',
       claim: newClaim,
       unlock_days: 5
     });
@@ -252,3 +248,4 @@ router.post('/claim', async (req, res) => {
 });
 
 module.exports = router;
+
