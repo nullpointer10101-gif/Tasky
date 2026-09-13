@@ -4,10 +4,10 @@ const { pool } = require('../db');
 const bot = require('../bot');
 
 const STAGES = [
-  { stage: 1, target: 100, reward_tasky: 2000, reward_grams: 0.10, reward_usdt: 0, title: 'Core Ignition (10%)' },
-  { stage: 2, target: 250, reward_tasky: 5000, reward_grams: 0.25, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
-  { stage: 3, target: 500, reward_tasky: 10000, reward_grams: 0.50, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
-  { stage: 4, target: 750, reward_tasky: 15000, reward_grams: 0.75, reward_usdt: 0, title: 'Quantum Surge (75%)' },
+  { stage: 1, target: 100, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Core Spark (10%)' },
+  { stage: 2, target: 250, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
+  { stage: 3, target: 500, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
+  { stage: 4, target: 750, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Quantum Surge (75%)' },
   { stage: 5, target: 1000, reward_tasky: 20000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
 ];
 

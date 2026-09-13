@@ -62,44 +62,36 @@ const STAGES = [
   { 
     stage: 1, 
     target: 100, 
-    reward_tasky: 2000, 
-    reward_grams: 0.10, 
     badge: '10%',
     title: 'Core Spark', 
-    subtitle: '+2,000 TASKY',
+    subtitle: '100 / 1,000 Ads Milestone',
     icon: '⚡',
     color: 'from-cyan-400 to-blue-500'
   },
   { 
     stage: 2, 
     target: 250, 
-    reward_tasky: 5000, 
-    reward_grams: 0.25, 
     badge: '25%',
     title: 'Plasma Pulse', 
-    subtitle: '+5,000 TASKY',
+    subtitle: '250 / 1,000 Ads Milestone',
     icon: '🔋',
     color: 'from-blue-500 to-indigo-500'
   },
   { 
     stage: 3, 
     target: 500, 
-    reward_tasky: 10000, 
-    reward_grams: 0.50, 
     badge: '50% 💥',
     title: 'Fusion Overdrive', 
-    subtitle: '+10,000 TASKY (Halfway Bonus)',
+    subtitle: '500 / 1,000 Ads (Halfway Point)',
     icon: '💥',
     color: 'from-purple-500 to-fuchsia-500'
   },
   { 
     stage: 4, 
     target: 750, 
-    reward_tasky: 15000, 
-    reward_grams: 0.75, 
     badge: '75%',
     title: 'Quantum Hyperdrive', 
-    subtitle: '+15,000 TASKY',
+    subtitle: '750 / 1,000 Ads Milestone',
     icon: '🚀',
     color: 'from-fuchsia-500 to-rose-500'
   },
@@ -110,7 +102,7 @@ const STAGES = [
     reward_grams: 2.00, 
     badge: '100% 👑',
     title: 'THE 2.00 GRAM VAULT', 
-    subtitle: '🔥 2.00 GRAM + 20,000 TASKY',
+    subtitle: '🔥 2.00 GRAM + 20,000 TASKY JACKPOT',
     icon: '💎',
     color: 'from-amber-400 via-yellow-300 to-amber-500'
   }
@@ -336,7 +328,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
                   2.00 GRAM
                 </span>
                 <span className="text-[9px] font-bold text-cyan-300 font-mono">
-                  {totalAds} / {maxTarget}
+                  {Math.min(totalAds, 1000)} / {maxTarget}
                 </span>
               </div>
 
@@ -458,33 +450,39 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
 
           {/* 3. STICKY BOTTOM ACTION FOOTER */}
           <div className="p-4 bg-[#0a1435] border-t border-cyan-500/20 shrink-0 space-y-2">
-            <button
-              onClick={handleWatchAd}
-              disabled={adWatching || timeLeft.isExpired}
-              className="w-full py-3.5 rounded-2xl font-black text-sm text-black flex flex-col items-center justify-center gap-0.5 bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 shadow-lg hover:brightness-110 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {adWatching ? (
-                <span className="text-sm font-black uppercase">Charging Core...</span>
+            {is1kCompleted ? (
+              activeClaim && activeClaim.status === 'pending' ? (
+                <div className="w-full py-3.5 rounded-2xl bg-amber-500/20 border border-amber-400/50 text-amber-300 text-center font-bold text-sm">
+                  ⏳ 2.00 GRAM Claim Submitted & Under Review
+                </div>
               ) : (
-                <>
-                  <div className="flex items-center gap-1.5 text-sm">
-                    <Zap size={16} fill="black" />
-                    <span>⚡ INJECT PLASMA (+1 AD CHARGE)</span>
-                  </div>
-                  <span className="text-[9px] font-bold text-black/70 tracking-wider uppercase">
-                    Unlimited Binge Watching • No Daily Limits
-                  </span>
-                </>
-              )}
-            </button>
-
-            {canClaim && (
+                <button
+                  onClick={() => setShowClaimModal(true)}
+                  className="w-full py-4 rounded-2xl font-black text-base text-black flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:brightness-110 active:scale-98 transition-all shadow-xl cursor-pointer"
+                >
+                  <Award size={20} />
+                  <span>🎉 CLAIM 2.00 GRAM + 20,000 TASKY!</span>
+                </button>
+              )
+            ) : (
               <button
-                onClick={() => setShowClaimModal(true)}
-                className="w-full py-3 rounded-2xl font-black text-sm text-black flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 hover:brightness-110 active:scale-98 transition-all shadow-xl cursor-pointer"
+                onClick={handleWatchAd}
+                disabled={adWatching || timeLeft.isExpired}
+                className="w-full py-3.5 rounded-2xl font-black text-sm text-black flex flex-col items-center justify-center gap-0.5 bg-gradient-to-r from-cyan-400 via-teal-300 to-cyan-400 shadow-lg hover:brightness-110 active:scale-98 transition-all disabled:opacity-50 cursor-pointer"
               >
-                <Award size={18} />
-                <span>🎉 CLAIM 2.00 GRAM + 20,000 TASKY!</span>
+                {adWatching ? (
+                  <span className="text-sm font-black uppercase">Charging Core...</span>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Zap size={16} fill="black" />
+                      <span>⚡ INJECT PLASMA (+1 AD CHARGE)</span>
+                    </div>
+                    <span className="text-[9px] font-bold text-black/70 tracking-wider uppercase">
+                      Unlimited Binge Watching • No Daily Limits
+                    </span>
+                  </>
+                )}
               </button>
             )}
           </div>
