@@ -15,12 +15,11 @@ const API_BASE = `http://127.0.0.1:${PORT}/api`;
 
 let bot;
 if (token) {
-    bot = new TelegramBot(token, { polling: true });
+    // WEBHOOK MODE — Telegram pushes updates to us, we don't poll.
+    // This eliminates all service-initiated outbound bandwidth from polling.
+    // The Express server in index.js registers the /bot-webhook route.
+    bot = new TelegramBot(token, { webHook: false });
     bot.isDummy = false;
-    
-    bot.on('polling_error', (error) => {
-        console.error('Polling error:', error.code, error.message);
-    });
 
     // Set Global Default Menu Button for All Users (Required for Telegram MAU tracking)
     const STABLE_APP_URL = 'https://tasky3.onrender.com';

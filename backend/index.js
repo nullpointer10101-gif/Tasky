@@ -166,7 +166,8 @@ let _lastMaintenanceCheck = 0;
 let _cachedMaintenanceActive = false;
 
 app.use(async (req, res, next) => {
-  if (req.path.startsWith('/api/admin')) {
+  // Skip maintenance check for admin routes AND the bot webhook
+  if (req.path.startsWith('/api/admin') || req.path === '/bot-webhook') {
     return next();
   }
 
@@ -258,16 +259,40 @@ const miniappDistPath = fs.existsSync(path.join(__dirname, 'public/app'))
 if (fs.existsSync(miniappDistPath)) {
   app.use(express.static(miniappDistPath, staticCacheOptions));
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads') || req.path.startsWith('/health')) return next();
+    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads') || req.path.startsWith('/health') || req.path === '/bot-webhook') return next();
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.sendFile(path.join(miniappDistPath, 'index.html'));
   });
 }
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Test UI: http://localhost:${PORT}/test.html`);
   console.log(`Admin Panel Live: http://localhost:${PORT}/admin`);
+
+  // Register Telegram Webhook — Telegram will POST updates to us instead of us polling.
+  // This eliminates ALL service-initiated outbound bandwidth from polling (was ~4.7 GB/month).
+  const WEBHOOK_URL = `https://tasky3.onrender.com/bot-webhook`;
+  if (bot && !bot.isDummy && typeof bot.setWebhook === 'function') {
+    try {
+      await bot.setWebhook(WEBHOOK_URL);
+      console.log(`✅ Telegram webhook set: ${WEBHOOK_URL}`);
+    } catch (e) {
+      console.error('⚠️ Failed to set Telegram webhook:', e.message);
+    }
+  }
+});
+
+// Telegram Webhook Route — receives all bot updates from Telegram (no polling needed)
+app.post('/bot-webhook', express.json(), (req, res) => {
+  res.sendStatus(200); // Always ACK immediately to Telegram
+  if (bot && !bot.isDummy && typeof bot.processUpdate === 'function') {
+    try {
+      bot.processUpdate(req.body);
+    } catch (e) {
+      console.error('[Webhook] processUpdate error:', e.message);
+    }
+  }
 });
 
 // Try DB init separately so crash doesn't kill the Express server
@@ -279,10 +304,12 @@ initDB()
     // startAutoApproveAI(); // Disabled so tasks show up in Admin Panel
     startMiningJob();
     startFakeLeaderboardJob();
-    startDepositWatcher();
+    // Deposit watcher: check TON API every 5 min (was 60s) to reduce outbound bandwidth
+    startDepositWatcher(5 * 60 * 1000);
     startAutoPayoutProcessor();
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
     console.warn('Server running without DB — API routes will fail until DB is available.');
   });
+
