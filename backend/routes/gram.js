@@ -6,6 +6,37 @@ const bot = require('../bot');
 const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
+const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+
+function verifyTelegramInitData(initData) {
+    if (!initData || !BOT_TOKEN) return false;
+    try {
+        const urlParams = new URLSearchParams(initData);
+        const hash = urlParams.get('hash');
+        if (!hash) return false;
+
+        urlParams.delete('hash');
+        const params = [];
+        for (const [key, value] of urlParams.entries()) {
+            params.push(`${key}=${value}`);
+        }
+        params.sort();
+        const dataCheckString = params.join('\n');
+        const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+        const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+        if (calculatedHash !== hash) return false;
+
+        const authDate = parseInt(urlParams.get('auth_date') || '0', 10);
+        const now = Math.floor(Date.now() / 1000);
+        if (now - authDate > 86400) return false;
+
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // AD SESSION PROTECTION
 // Light general protection: 30s minimum between /start-watch calls per user.
@@ -150,10 +181,16 @@ router.post('/start-watch', async (req, res) => {
     const { telegram_id, provider = 'gigapub' } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
+    const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
+    if (initData) {
+        if (!verifyTelegramInitData(initData)) {
+            return res.status(403).json({ error: 'Security verification failed. Please launch the app inside Telegram.' });
+        }
+    }
+
     const tidStr = telegram_id.toString();
 
     // ── Light rate-limit: 30s minimum between start-watch calls per user ──
-    // This prevents rapid session-token farming without blocking legit ad services.
     const now = Date.now();
     const lastCall = lastStartWatchTime.get(tidStr) || 0;
     const secSinceLast = (now - lastCall) / 1000;
@@ -206,6 +243,13 @@ router.post('/start-watch', async (req, res) => {
 router.post('/watch-ad', async (req, res) => {
     const { telegram_id, provider = 'gigapub', session_token } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
+    if (initData) {
+        if (!verifyTelegramInitData(initData)) {
+            return res.status(403).json({ error: 'Security verification failed. Please launch the app inside Telegram.' });
+        }
+    }
 
     const tidStr = telegram_id.toString();
 
@@ -322,6 +366,13 @@ router.post('/claim', async (req, res) => {
     const { telegram_id } = req.body;
     if (!telegram_id) {
         return res.status(400).json({ error: 'telegram_id is required' });
+    }
+
+    const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
+    if (initData) {
+        if (!verifyTelegramInitData(initData)) {
+            return res.status(403).json({ error: 'Security verification failed. Please launch the app inside Telegram.' });
+        }
     }
 
     const client = await pool.connect();
