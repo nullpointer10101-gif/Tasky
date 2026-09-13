@@ -22,7 +22,7 @@ export default function Withdrawals() {
     fetchHistory();
     const interval = setInterval(() => {
       if (activeTab === 'pending') fetchWithdrawals(false);
-    }, 5000);
+    }, 30000); // 30s — was 5s (saved ~675MB/mo)
     return () => clearInterval(interval);
   }, [activeTab]);
 

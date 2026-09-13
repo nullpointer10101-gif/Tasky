@@ -165,7 +165,7 @@ export default function GramWatchers() {
 
   useEffect(() => {
     if (!isLive) return;
-    const interval = setInterval(fetchWatchers, 15000);
+    const interval = setInterval(fetchWatchers, 60000); // 60s — was 15s (saved ~900MB/mo)
     return () => clearInterval(interval);
   }, [isLive, fetchWatchers]);
 

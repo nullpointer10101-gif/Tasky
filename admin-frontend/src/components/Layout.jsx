@@ -40,7 +40,7 @@ export default function Layout({ setAuth }) {
       } catch (_) {}
     };
     fetchBadges();
-    const interval = setInterval(fetchBadges, 15000);
+    const interval = setInterval(fetchBadges, 60000); // 60s — was 15s (saved ~90MB/mo)
     return () => clearInterval(interval);
   }, []);
 

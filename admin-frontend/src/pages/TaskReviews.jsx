@@ -20,7 +20,7 @@ export default function TaskReviews() {
 
   useEffect(() => {
     fetchTasks(true);
-    const interval = setInterval(() => fetchTasks(false), 5000);
+    const interval = setInterval(() => fetchTasks(false), 30000); // 30s — was 5s (saved ~1.4GB/mo)
     return () => clearInterval(interval);
   }, []);
 

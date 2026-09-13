@@ -67,7 +67,7 @@ export default function GramClaims() {
     fetchHistory();
     const interval = setInterval(() => {
       if (activeTab === 'pending') fetchClaims(false);
-    }, 5000);
+    }, 30000); // 30s — was 5s (saved ~1.4GB/mo)
     return () => clearInterval(interval);
   }, [activeTab]);
 

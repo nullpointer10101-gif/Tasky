@@ -45,7 +45,7 @@ export default function LiveActivity() {
 
   useEffect(() => {
     fetchLogs();
-    const interval = setInterval(fetchLogs, 5000); // Poll every 5s for real-time feel
+    const interval = setInterval(fetchLogs, 20000); // 20s — was 5s (saved ~675MB/mo)
     return () => clearInterval(interval);
   }, []);
 
