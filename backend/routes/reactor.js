@@ -1,111 +1,78 @@
-const express = require('express');
-const router = express.Router();
-const { pool } = require('../db');
-const bot = require('../bot');
+const crypto = require('crypto');
 
-const STAGES = [
-  { stage: 1, target: 100, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Core Spark (10%)' },
-  { stage: 2, target: 250, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
-  { stage: 3, target: 500, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
-  { stage: 4, target: 750, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Quantum Surge (75%)' },
-  { stage: 5, target: 1000, reward_tasky: 20000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
-];
-
-// In-memory anti-spam timestamp map (min 2s between ad view records, no daily limit)
-const lastAdTimestampMap = new Map();
+// In-memory anti-spam session token map for reactor ads
+global.reactorAdSessions = global.reactorAdSessions || new Map();
+const lastStartReactorTime = new Map(); // telegram_id -> timestamp ms
 
 /**
- * GET /api/reactor/status/:telegram_id
+ * POST /api/reactor/start-view
+ * Generates a server-side cryptographic session token for reactor ads.
+ * Requires 10s minimum cooldown between start calls per user.
  */
-router.get('/status/:telegram_id', async (req, res) => {
-  const { telegram_id } = req.params;
-  if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
-
-  try {
-    const tid = BigInt(telegram_id);
-
-    // 1. Get user record
-    const userRes = await pool.query(
-      'SELECT id, telegram_id, first_name, username, balance, wallet_address, gram_wallet_address FROM users WHERE telegram_id = $1',
-      [tid]
-    );
-    if (userRes.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    const user = userRes.rows[0];
-
-    // 2. Get latest claim if any
-    const claimRes = await pool.query(
-      `SELECT id, telegram_id, total_ads_watched, stage_reached, reward_usdt, reward_grams, reward_tasky,
-              wallet_address, status, claimed_at, reviewed_at, payout_tx_hash, rejection_reason
-       FROM reactor_claims
-       WHERE telegram_id = $1
-       ORDER BY claimed_at DESC
-       LIMIT 1`,
-      [tid]
-    );
-    const activeClaim = claimRes.rows[0] || null;
-
-    // Filter ad views after last claim if there was one, or total reactor ad views
-    let adViewsQuery = `
-      SELECT COUNT(*) as total_ads
-      FROM ad_views
-      WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad')
-    `;
-    const queryParams = [tid];
-
-    if (activeClaim && activeClaim.claimed_at && activeClaim.status === 'approved') {
-      adViewsQuery += ` AND created_at > $2`;
-      queryParams.push(activeClaim.claimed_at);
-    }
-
-    const adsRes = await pool.query(adViewsQuery, queryParams);
-    const total_ads = parseInt(adsRes.rows[0]?.total_ads || 0, 10);
-
-    // Calculate current stage
-    let current_stage = 0;
-    for (let i = STAGES.length - 1; i >= 0; i--) {
-      if (total_ads >= STAGES[i].target) {
-        current_stage = STAGES[i].stage;
-        break;
-      }
-    }
-
-    const next_stage_info = STAGES.find(s => s.target > total_ads) || STAGES[STAGES.length - 1];
-
-    res.json({
-      success: true,
-      total_ads,
-      current_stage,
-      next_target: next_stage_info.target,
-      stages: STAGES,
-      active_claim: activeClaim,
-      user_wallet: user.gram_wallet_address || user.wallet_address || '',
-      can_claim: total_ads >= 1000
-    });
-  } catch (err) {
-    console.error('[Reactor] Error fetching status:', err);
-    res.status(500).json({ error: 'Failed to fetch reactor status' });
-  }
-});
-
-/**
- * POST /api/reactor/record-view (NO daily limit - unlimited ad watches allowed!)
- */
-router.post('/record-view', async (req, res) => {
+router.post('/start-view', async (req, res) => {
   const { telegram_id } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
 
+  const tidStr = String(telegram_id);
+  const now = Date.now();
+
+  const lastCall = lastStartReactorTime.get(tidStr) || 0;
+  if (now - lastCall < 10000) {
+    const wait = Math.ceil((10000 - (now - lastCall)) / 1000);
+    return res.status(429).json({ error: `Please wait ${wait}s before starting another ad.` });
+  }
+  lastStartReactorTime.set(tidStr, now);
+
+  const session_token = crypto.randomBytes(24).toString('hex');
+  global.reactorAdSessions.set(session_token, {
+    telegram_id: tidStr,
+    created_at: now
+  });
+
+  // Auto-cleanup stale reactor sessions older than 5 minutes
+  if (global.reactorAdSessions.size > 2000) {
+    for (const [tok, data] of global.reactorAdSessions.entries()) {
+      if (now - data.created_at > 300000) {
+        global.reactorAdSessions.delete(tok);
+      }
+    }
+  }
+
+  res.json({ success: true, session_token });
+});
+
+/**
+ * POST /api/reactor/record-view
+ * Requires valid one-time session_token and minimum 10s elapsed watching time.
+ */
+router.post('/record-view', async (req, res) => {
+  const { telegram_id, session_token } = req.body;
+  if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
+
+  const tidStr = String(telegram_id);
+
+  // Validate session token
+  if (!session_token || !global.reactorAdSessions.has(session_token)) {
+    return res.status(403).json({ error: 'Invalid or expired ad session. Please launch ad from app.' });
+  }
+
+  const sessionData = global.reactorAdSessions.get(session_token);
+  if (sessionData.telegram_id !== tidStr) {
+    return res.status(403).json({ error: 'Session token mismatch.' });
+  }
+
+  // Enforce minimum 10 seconds watching duration
+  const now = Date.now();
+  const elapsed = (now - sessionData.created_at) / 1000;
+  if (elapsed < 10.0) {
+    return res.status(400).json({ error: 'Ad watched too fast! You must watch the full ad video.' });
+  }
+
+  // Consume token (one-time use)
+  global.reactorAdSessions.delete(session_token);
+
   try {
     const tid = BigInt(telegram_id);
-
-    // Light cooldown check (2s throttle to prevent double-clicks)
-    const now = Date.now();
-    const lastTime = lastAdTimestampMap.get(String(telegram_id)) || 0;
-    if (now - lastTime < 2000) {
-      return res.status(429).json({ error: 'Please wait a moment before recording next ad view.' });
-    }
-    lastAdTimestampMap.set(String(telegram_id), now);
 
     // Insert into ad_views
     await pool.query(

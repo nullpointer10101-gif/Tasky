@@ -350,9 +350,14 @@ export const getReactorStatus = withMock(
   (telegram_id) => () => api.get(`/api/reactor/status/${telegram_id}?_t=${Date.now()}`)
 )
 
+export const startReactorAdView = withMock(
+  { success: true, session_token: 'mock_reactor_token' },
+  (telegram_id) => () => api.post('/api/reactor/start-view', { telegram_id })
+)
+
 export const recordReactorAdView = withMock(
   { success: true, total_ads: 1, stage: 0, can_claim: false },
-  (telegram_id) => () => api.post('/api/reactor/record-view', { telegram_id })
+  (telegram_id, session_token = null) => () => api.post('/api/reactor/record-view', { telegram_id, session_token })
 )
 
 export const claimReactorReward = withMock(

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import triggerConfetti from '../confetti';
 import { showTowerAd } from '../adUtils';
-import { getReactorStatus, recordReactorAdView, claimReactorReward } from '../api';
+import { getReactorStatus, startReactorAdView, recordReactorAdView, claimReactorReward } from '../api';
 import { useToast } from '../App';
 
 const DURATION_7_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -163,7 +163,16 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
         window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
       }
 
-      // 1. Play USL Ads strictly (TowerAds SDK v4)
+      // 1. Get cryptographic session token from backend
+      const startRes = await startReactorAdView(user.telegram_id);
+      if (!startRes.data?.success || !startRes.data?.session_token) {
+        showToast(startRes.error || startRes.data?.error || 'Please wait a moment before starting next ad.', 'error');
+        setAdWatching(false);
+        return;
+      }
+      const sessionToken = startRes.data.session_token;
+
+      // 2. Play USL Ads strictly (TowerAds SDK v4)
       const res = await showTowerAd();
 
       if (!res?.success) {
@@ -172,8 +181,8 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
         return;
       }
 
-      // 2. Record ad view on backend
-      const recordRes = await recordReactorAdView(user.telegram_id);
+      // 3. Record ad view on backend with session token
+      const recordRes = await recordReactorAdView(user.telegram_id, sessionToken);
       if (recordRes.data?.success) {
         const newTotal = recordRes.data.total_ads;
         const oldStage = reactorData.current_stage;
@@ -188,7 +197,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
 
         fetchStatus();
       } else {
-        showToast(recordRes.error || 'Failed to record progress. Please retry.', 'error');
+        showToast(recordRes.error || recordRes.data?.error || 'Failed to record progress. Please retry.', 'error');
       }
     } catch (err) {
       console.error('[CyberReactor] Ad error:', err);
