@@ -1923,11 +1923,21 @@ router.post('/gram/claims/review', async (req, res) => {
 
     } else if (effectiveAction === 'reject') {
       await client.query(`UPDATE gram_claims SET status = 'rejected', rejection_reason = $2, processed_at = NOW() WHERE id = $1`, [claim_id, rejection_reason]);
+      
+      // Reset ad_views claimed flag so user can complete ads properly again
+      await client.query(`
+        UPDATE ad_views 
+        SET claimed = FALSE 
+        WHERE telegram_id = $1 
+          AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag') 
+          AND created_at >= NOW() - INTERVAL '48 hours'
+      `, [telegram_id]);
+
       if (bot && bot.sendMessage) {
         try {
           await bot.sendMessage(
             telegram_id,
-            `❌ <b>Gram Reward Rejected</b>\n\nYour request for the <b>${amount} GRAM</b> reward was rejected.\n\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\nPlease contact support if you think this is an error.`,
+            `❌ <b>Gram Reward Claim Rejected</b>\n\nYour request for the <b>${amount} GRAM</b> reward was rejected.\n\n<b>Reason:</b> ${rejection_reason || 'Did not meet requirements'}\n\n<i>Your ad progress has been reset so you can complete the ads properly and re-submit.</i>`,
             { parse_mode: 'HTML' }
           );
         } catch (e) {
