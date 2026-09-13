@@ -52,6 +52,72 @@ const lastStartReactorTime = new Map(); // telegram_id -> timestamp ms
 const lastRecordReactorTime = new Map(); // telegram_id -> timestamp ms
 
 /**
+ * GET /api/reactor/status/:telegram_id
+ * Returns current Cyber Reactor ad count, stage, active claim, and user wallet.
+ */
+router.get('/status/:telegram_id?', async (req, res) => {
+  const telegram_id = req.params.telegram_id || req.query.telegram_id || req.query.id;
+  if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
+
+  try {
+    const tid = BigInt(telegram_id);
+
+    // Get last approved claim timestamp if any
+    const claimRes = await pool.query(
+      `SELECT claimed_at FROM reactor_claims WHERE telegram_id = $1 AND status = 'approved' ORDER BY claimed_at DESC LIMIT 1`,
+      [tid]
+    );
+    const lastClaimAt = claimRes.rows[0]?.claimed_at;
+
+    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad')`;
+    const countParams = [tid];
+    if (lastClaimAt) {
+      adCountQuery += ` AND created_at > $2`;
+      countParams.push(lastClaimAt);
+    }
+
+    const countRes = await pool.query(adCountQuery, countParams);
+    const total_ads = parseInt(countRes.rows[0]?.count || 0, 10);
+
+    // Get active claim if any
+    const activeClaimRes = await pool.query(
+      `SELECT * FROM reactor_claims WHERE telegram_id = $1 AND status = 'pending' ORDER BY claimed_at DESC LIMIT 1`,
+      [tid]
+    );
+    const active_claim = activeClaimRes.rows[0] || null;
+
+    // Get user wallet
+    const userRes = await pool.query(
+      `SELECT wallet_address, gram_wallet_address FROM users WHERE telegram_id = $1`,
+      [tid]
+    );
+    const user_wallet = userRes.rows[0]?.gram_wallet_address || userRes.rows[0]?.wallet_address || '';
+
+    // Stage reached
+    let current_stage = 0;
+    for (let i = STAGES.length - 1; i >= 0; i--) {
+      if (total_ads >= STAGES[i].target) {
+        current_stage = STAGES[i].stage;
+        break;
+      }
+    }
+
+    res.json({
+      success: true,
+      total_ads,
+      current_stage,
+      can_claim: total_ads >= 1000 && !active_claim,
+      active_claim,
+      user_wallet,
+      stages: STAGES
+    });
+  } catch (err) {
+    console.error('[Reactor] Error fetching status:', err);
+    res.status(500).json({ error: 'Failed to fetch status' });
+  }
+});
+
+/**
  * POST /api/reactor/start-view
  * Generates a server-side cryptographic session token for reactor ads.
  * Requires Telegram WebApp HMAC validation and 12s minimum cooldown between calls.
