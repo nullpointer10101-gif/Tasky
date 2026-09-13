@@ -1,6 +1,3 @@
-// Threshold: if a user watched more than 600 ads in 24h, their claim is suspicious.
-const EXCESS_AD_THRESHOLD = 600;
-
 async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 0) {
   const flags = [];
 
@@ -24,10 +21,13 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
   }
 
   // 2. Rapid Ad Clustering Check (Anti-Script / Anti-Bot)
-  // Audit time gaps between consecutive unclaimed ad views in the last 24h
+  // Audit time gaps between consecutive unclaimed ad views in the last 24h (excluding reactor_usl)
   const adTimestampsRes = await client.query(
     `SELECT created_at FROM ad_views
-     WHERE telegram_id = $1 AND claimed = FALSE AND created_at >= NOW() - INTERVAL '24 hours'
+     WHERE telegram_id = $1 
+       AND claimed = FALSE 
+       AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+       AND created_at >= NOW() - INTERVAL '24 hours'
      ORDER BY created_at ASC`,
     [telegram_id]
   );
@@ -68,10 +68,8 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
     flags.push('referral_farm');
   }
 
-  // 4. Excess ad volume (only flag if extreme bot script >600 ads/day)
-  if (adsWatchedToday >= EXCESS_AD_THRESHOLD) {
-    flags.push(`excess_ad_volume:${adsWatchedToday}`);
-  }
+  // Note: Cyber Reactor USL ads (reactor_usl / reactor_ad) have ZERO daily limits.
+  // Users are 100% free to binge-watch all 1,000 USL ads in a single day.
 
   if (flags.length > 0) {
     return { flagged: true, reason: flags.join(', ') };
@@ -80,4 +78,5 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
 }
 
 module.exports = { checkFraud };
+
 
