@@ -1,24 +1,78 @@
+const express = require('express');
+const router = express.Router();
 const crypto = require('crypto');
+const { pool } = require('../db');
+const bot = require('../bot');
+
+const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN;
+
+/**
+ * Validates Telegram WebApp initData HMAC-SHA256 signature
+ */
+function verifyTelegramInitData(initData) {
+  if (!initData || !BOT_TOKEN) return false;
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
+    if (!hash) return false;
+
+    urlParams.delete('hash');
+    const params = [];
+    for (const [key, value] of urlParams.entries()) {
+      params.push(`${key}=${value}`);
+    }
+    params.sort();
+    const dataCheckString = params.join('\n');
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    if (calculatedHash !== hash) return false;
+
+    const authDate = parseInt(urlParams.get('auth_date') || '0', 10);
+    const now = Math.floor(Date.now() / 1000);
+    if (now - authDate > 86400) return false; // 24h freshness
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+const STAGES = [
+  { stage: 1, target: 100, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Core Spark (10%)' },
+  { stage: 2, target: 250, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Plasma Pulse (25%)' },
+  { stage: 3, target: 500, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Fusion Overdrive (50%)' },
+  { stage: 4, target: 750, reward_tasky: 0, reward_grams: 0, reward_usdt: 0, title: 'Quantum Surge (75%)' },
+  { stage: 5, target: 1000, reward_tasky: 20000, reward_grams: 2.00, reward_usdt: 0, title: 'MAX REACTOR JACKPOT (100%)' }
+];
 
 // In-memory anti-spam session token map for reactor ads
 global.reactorAdSessions = global.reactorAdSessions || new Map();
 const lastStartReactorTime = new Map(); // telegram_id -> timestamp ms
+const lastRecordReactorTime = new Map(); // telegram_id -> timestamp ms
 
 /**
  * POST /api/reactor/start-view
  * Generates a server-side cryptographic session token for reactor ads.
- * Requires 10s minimum cooldown between start calls per user.
+ * Requires Telegram WebApp HMAC validation and 12s minimum cooldown between calls.
  */
 router.post('/start-view', async (req, res) => {
   const { telegram_id } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
 
+  const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
+  if (initData) {
+    if (!verifyTelegramInitData(initData)) {
+      return res.status(403).json({ error: 'Security verification failed. Please launch the app inside Telegram.' });
+    }
+  }
+
   const tidStr = String(telegram_id);
   const now = Date.now();
 
   const lastCall = lastStartReactorTime.get(tidStr) || 0;
-  if (now - lastCall < 10000) {
-    const wait = Math.ceil((10000 - (now - lastCall)) / 1000);
+  if (now - lastCall < 12000) {
+    const wait = Math.ceil((12000 - (now - lastCall)) / 1000);
     return res.status(429).json({ error: `Please wait ${wait}s before starting another ad.` });
   }
   lastStartReactorTime.set(tidStr, now);
@@ -43,13 +97,28 @@ router.post('/start-view', async (req, res) => {
 
 /**
  * POST /api/reactor/record-view
- * Requires valid one-time session_token and minimum 10s elapsed watching time.
+ * Requires valid one-time session_token, minimum 15s elapsed watching time, and 20s cooldown between records.
  */
 router.post('/record-view', async (req, res) => {
   const { telegram_id, session_token } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
 
+  const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
+  if (initData) {
+    if (!verifyTelegramInitData(initData)) {
+      return res.status(403).json({ error: 'Security verification failed. Please launch the app inside Telegram.' });
+    }
+  }
+
   const tidStr = String(telegram_id);
+  const now = Date.now();
+
+  // Rate limit: Enforce at least 20 seconds between recorded ads per user
+  const lastRecord = lastRecordReactorTime.get(tidStr) || 0;
+  if (now - lastRecord < 20000) {
+    const wait = Math.ceil((20000 - (now - lastRecord)) / 1000);
+    return res.status(429).json({ error: `Ad recorded too fast! Please wait ${wait}s.` });
+  }
 
   // Validate session token
   if (!session_token || !global.reactorAdSessions.has(session_token)) {
@@ -58,18 +127,18 @@ router.post('/record-view', async (req, res) => {
 
   const sessionData = global.reactorAdSessions.get(session_token);
   if (sessionData.telegram_id !== tidStr) {
-    return res.status(403).json({ error: 'Session token mismatch.' });
+    return res.status(403).json({ error: 'Session user mismatch.' });
   }
 
-  // Enforce minimum 10 seconds watching duration
-  const now = Date.now();
+  // Enforce minimum 15 seconds watching duration
   const elapsed = (now - sessionData.created_at) / 1000;
-  if (elapsed < 10.0) {
-    return res.status(400).json({ error: 'Ad watched too fast! You must watch the full ad video.' });
+  if (elapsed < 15.0) {
+    return res.status(400).json({ error: 'Ad watched too fast! You must watch the complete video ad (at least 15s).' });
   }
 
   // Consume token (one-time use)
   global.reactorAdSessions.delete(session_token);
+  lastRecordReactorTime.set(tidStr, now);
 
   try {
     const tid = BigInt(telegram_id);

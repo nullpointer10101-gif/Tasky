@@ -10,6 +10,14 @@ const api = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
+// Attach Telegram WebApp initData header to all outgoing requests for HMAC authentication
+api.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined' && window.Telegram?.WebApp?.initData) {
+    config.headers['x-telegram-init-data'] = window.Telegram.WebApp.initData;
+  }
+  return config;
+});
+
 const getCache = new Map();
 const CACHE_TTL = 30000; // 30 seconds
 
