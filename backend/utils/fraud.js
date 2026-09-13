@@ -1,5 +1,5 @@
-// Threshold: if a user watched more than this many ads in 24h, their claim is suspicious.
-const EXCESS_AD_THRESHOLD = 90;
+// Threshold: if a user watched more than 600 ads in 24h, their claim is suspicious.
+const EXCESS_AD_THRESHOLD = 600;
 
 async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 0) {
   const flags = [];
@@ -24,7 +24,7 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
   }
 
   // 2. Rapid Ad Clustering Check (Anti-Script / Anti-Bot)
-  // Audit time gaps between consecutive ad views in the last 24h
+  // Audit time gaps between consecutive unclaimed ad views in the last 24h
   const adTimestampsRes = await client.query(
     `SELECT created_at FROM ad_views
      WHERE telegram_id = $1 AND claimed = FALSE AND created_at >= NOW() - INTERVAL '24 hours'
@@ -33,7 +33,7 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
   );
 
   const adRows = adTimestampsRes.rows;
-  if (adRows.length >= 10) {
+  if (adRows.length >= 15) {
     let fastGapsCount = 0;
     let totalGapsSec = 0;
 
@@ -42,16 +42,16 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
       const curr = new Date(adRows[i].created_at).getTime();
       const gapSec = (curr - prev) / 1000;
       totalGapsSec += gapSec;
-      if (gapSec < 10) {
+      if (gapSec < 8) {
         fastGapsCount++;
       }
     }
 
     const avgGapSec = totalGapsSec / (adRows.length - 1);
-    if (avgGapSec < 12.0) {
+    if (avgGapSec < 8.0) {
       flags.push(`rapid_ad_cluster:avg_${avgGapSec.toFixed(1)}s`);
-    } else if (fastGapsCount >= 5) {
-      flags.push(`fast_ad_bursts:${fastGapsCount}_under_10s`);
+    } else if (fastGapsCount >= 15) {
+      flags.push(`fast_ad_bursts:${fastGapsCount}_under_8s`);
     }
   }
 
@@ -68,7 +68,7 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
     flags.push('referral_farm');
   }
 
-  // 4. Excess ad volume
+  // 4. Excess ad volume (only flag if extreme bot script >600 ads/day)
   if (adsWatchedToday >= EXCESS_AD_THRESHOLD) {
     flags.push(`excess_ad_volume:${adsWatchedToday}`);
   }
@@ -80,3 +80,4 @@ async function checkFraud(telegram_id, walletAddress, client, adsWatchedToday = 
 }
 
 module.exports = { checkFraud };
+
