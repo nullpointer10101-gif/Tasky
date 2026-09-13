@@ -6,6 +6,30 @@ const bot = require('../bot');
 const { checkFraud } = require('../utils/fraud');
 const { tryAutoPayoutGram } = require('../services/autoPayoutService');
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AD ABUSE PROTECTION
+// Specific user IDs caught doing automated/scripted ad watching (audit Sep-13-2026)
+// These users had 300–1,123 ad views in a single 24-hour window (humanly impossible).
+// They are blocked from starting new ad sessions. Legit users are unaffected.
+// ─────────────────────────────────────────────────────────────────────────────
+const AD_ABUSER_BLOCK_LIST = new Set([
+  '1873407633', // DoSToN_SoDiQoV   — 1,123 ads in 24h
+  '8989291064', // xymndra13        — 542 ads in 24h
+  '1968573329', // Hoquan99TAPX     — 502 ads in 24h (total historical: 4 — clear bot)
+  '8225602655', // GEO458           — 404 ads in 24h
+  '8998071415', // Gaara_F50        — 336 ads in 24h
+  '6547743110', // Frank252545      — 332 ads in 24h
+  '6101025101', // soyon2           — 328 ads in 24h
+  '278550175',  // Rezabasti        — 286 ads in 24h
+]);
+
+// Hard daily cap: 30 gigapub + 30 adexium = 60 max. We allow 65 as buffer.
+const DAILY_AD_HARD_CAP = 65;
+
+// Minimum seconds between consecutive /start-watch calls per user (in-memory)
+const AD_SESSION_COOLDOWN_SEC = 30;
+const lastStartWatchTime = new Map(); // telegram_id -> timestamp ms
+
 // Get Gram Reward Status
 router.get('/status/:telegram_id(\\d+)', async (req, res) => {
     const { telegram_id } = req.params;
@@ -140,16 +164,57 @@ router.post('/start-watch', async (req, res) => {
     const { telegram_id, provider = 'gigapub' } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
+    const tidStr = telegram_id.toString();
+
+    // ── Layer 1: Block known abusers from getting any new session tokens ──
+    if (AD_ABUSER_BLOCK_LIST.has(tidStr)) {
+        console.warn(`[AD BLOCK] Blocked abuser ${tidStr} from /start-watch`);
+        return res.status(403).json({ error: 'Your account has been flagged for unusual ad activity. Contact support.' });
+    }
+
+    // ── Layer 2: Per-user cooldown between start-watch calls (30s minimum) ──
+    const now = Date.now();
+    const lastCall = lastStartWatchTime.get(tidStr) || 0;
+    const secSinceLast = (now - lastCall) / 1000;
+    if (secSinceLast < AD_SESSION_COOLDOWN_SEC) {
+        const wait = Math.ceil(AD_SESSION_COOLDOWN_SEC - secSinceLast);
+        return res.status(429).json({ error: `Please wait ${wait}s before starting another ad.` });
+    }
+
     try {
+        // ── Layer 3: Hard daily total cap check before issuing session ──
+        const countRes = await pool.query(`
+            SELECT COUNT(*) as total
+            FROM ad_views
+            WHERE telegram_id = $1
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+              AND created_at >= NOW() - INTERVAL '24 hours'
+        `, [tidStr]);
+        const totalToday = parseInt(countRes.rows[0].total || 0, 10);
+
+        if (totalToday >= DAILY_AD_HARD_CAP) {
+            return res.status(429).json({ error: `Daily ad limit reached (${totalToday}/${DAILY_AD_HARD_CAP}). Come back tomorrow!` });
+        }
+
+        // Update cooldown timestamp
+        lastStartWatchTime.set(tidStr, now);
+
+        // Cleanup old entries from cooldown map (keep it small)
+        if (lastStartWatchTime.size > 5000) {
+            const cutoff = now - (AD_SESSION_COOLDOWN_SEC * 2 * 1000);
+            for (const [id, ts] of lastStartWatchTime.entries()) {
+                if (ts < cutoff) lastStartWatchTime.delete(id);
+            }
+        }
+
         global.gramAdSessions = global.gramAdSessions || new Map();
 
         // Generate cryptographically secure one-time session token
         const session_token = crypto.randomBytes(24).toString('hex');
-        const now = Date.now();
         const normalizedProvider = (provider === 'adexium' || provider === 'monetag') ? 'adexium' : 'gigapub';
 
         global.gramAdSessions.set(session_token, {
-            telegram_id: telegram_id.toString(),
+            telegram_id: tidStr,
             provider: normalizedProvider,
             created_at: now
         });
@@ -174,6 +239,14 @@ router.post('/start-watch', async (req, res) => {
 router.post('/watch-ad', async (req, res) => {
     const { telegram_id, provider = 'gigapub', session_token } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
+
+    const tidStr = telegram_id.toString();
+
+    // ── Second-layer block: also block abusers at the watch-ad endpoint ──
+    if (AD_ABUSER_BLOCK_LIST.has(tidStr)) {
+        console.warn(`[AD BLOCK] Blocked abuser ${tidStr} from /watch-ad`);
+        return res.status(403).json({ error: 'Your account has been flagged for unusual ad activity. Contact support.' });
+    }
 
     try {
         // Check user exists
