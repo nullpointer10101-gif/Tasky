@@ -205,9 +205,11 @@ export async function showAdexiumAd() {
     }
   }
 
-  // If widget is not available, immediately fallback to backup sponsor ad
+  // If widget is not available, try USL first, then GigaPub as absolute last resort
   if (!widget) {
-    console.warn('[AdManager] Adexium SDK warming up, playing fallback sponsor ad...');
+    console.warn('[AdManager] Adexium SDK warming up, trying USL fallback...');
+    const uslRes = await showTowerAd();
+    if (uslRes.success) return { ...uslRes, network: 'adexium' };
     const fallbackRes = await showGigaPubDirect('gigapub');
     return { ...fallbackRes, network: 'adexium' };
   }
@@ -228,9 +230,12 @@ export async function showAdexiumAd() {
       console.warn('[AdManager] Adexium request error:', reqErr);
     }
 
-    // If Adexium has no inventory right now, serve fallback sponsor video seamlessly!
+    // If Adexium has no inventory, try USL first, then GigaPub as absolute last resort
     if (!ads || !Array.isArray(ads) || ads.length === 0) {
-      console.log('[AdManager] Adexium inventory empty for this slot, seamlessly serving fallback sponsor ad...');
+      console.log('[AdManager] Adexium inventory empty — trying USL fallback...');
+      const uslRes = await showTowerAd();
+      if (uslRes.success) return { ...uslRes, network: 'adexium' };
+      console.log('[AdManager] USL also unavailable — serving GigaPub last resort...');
       const fallbackRes = await showGigaPubDirect('gigapub');
       return { ...fallbackRes, network: 'adexium' };
     }
@@ -275,7 +280,9 @@ export async function showAdexiumAd() {
         if (isSettled) return;
         isSettled = true;
         cleanup();
-        console.log('[AdManager] Adexium error event, switching to fallback sponsor ad...');
+        console.log('[AdManager] Adexium error — trying USL fallback...');
+        const uslRes = await showTowerAd();
+        if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
         const fb = await showGigaPubDirect('gigapub');
         resolve({ ...fb, network: 'adexium' });
       };
@@ -284,7 +291,9 @@ export async function showAdexiumAd() {
         if (isSettled) return;
         isSettled = true;
         cleanup();
-        console.log('[AdManager] Adexium noAdFound event, switching to fallback sponsor ad...');
+        console.log('[AdManager] Adexium noAdFound — trying USL fallback...');
+        const uslRes = await showTowerAd();
+        if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
         const fb = await showGigaPubDirect('gigapub');
         resolve({ ...fb, network: 'adexium' });
       };
@@ -315,7 +324,9 @@ export async function showAdexiumAd() {
       }, 50000);
     });
   } catch (err) {
-    console.warn('[AdManager] Adexium exception, fallback to sponsor ad:', err);
+    console.warn('[AdManager] Adexium exception, trying USL fallback:', err);
+    const uslRes = await showTowerAd();
+    if (uslRes.success) return { ...uslRes, network: 'adexium' };
     const fb = await showGigaPubDirect('gigapub');
     return { ...fb, network: 'adexium' };
   }
@@ -523,12 +534,12 @@ export async function showRewardedAd(providerName = 'gigapub') {
     return await showAdexiumAd();
   }
 
-  // 80% chance to attempt USL Ads (TowerAds), 20% chance for GigaPub
+  // 90% USL Ads (TowerAds), 10% GigaPub — maximise USL & Adexium impressions
   const roll = Math.random();
-  const shouldTryUSL = roll < 0.80;
+  const shouldTryUSL = roll < 0.90;
 
   if (shouldTryUSL) {
-    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} < 0.80): Serving USL Ads (80% weight)...`);
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} < 0.90): Serving USL Ads (90% weight)...`);
     try {
       const uslRes = await showTowerAd();
       if (uslRes.success) {
@@ -540,7 +551,7 @@ export async function showRewardedAd(providerName = 'gigapub') {
       console.warn('[AdManager] USL error, triggering GigaPub fallback:', e);
     }
   } else {
-    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} >= 0.80): Serving GigaPub (20% weight)...`);
+    console.log(`[AdManager] 🎲 Slot #2 Routing (Roll: ${roll.toFixed(2)} >= 0.90): Serving GigaPub (10% weight)...`);
   }
 
   // GigaPub execution (direct or fallback)
