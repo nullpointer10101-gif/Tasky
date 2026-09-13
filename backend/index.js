@@ -22,10 +22,16 @@ const { startAutoPayoutProcessor } = require('./services/autoPayoutService');
 
 const app = express();
 
-// High-efficiency Gzip/Deflate compression for all responses (saves 70-80% bandwidth)
+// Maximum Gzip compression for all responses — level 9 saves the most bandwidth
+// threshold: 512 ensures even small JSON API responses are compressed
 app.use(compression({
-  threshold: 1024,
-  level: 6
+  threshold: 512,
+  level: 9,
+  filter: (req, res) => {
+    // Always compress unless the client explicitly opts out
+    if (req.headers['x-no-compression']) return false;
+    return compression.filter(req, res);
+  }
 }));
 
 app.use(cors({
@@ -34,13 +40,19 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Long-lived caching headers for static hashed assets (30 days) & no-cache for index.html
+// Long-lived caching headers for static hashed assets (1 year) & no-cache for index.html
+// Vite content-hashes filenames so 1yr cache is safe — browser only re-fetches on new deploy
 const staticCacheOptions = {
-  maxAge: '30d',
+  maxAge: '365d',
   immutable: true,
+  etag: true,
+  lastModified: true,
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.html')) {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else if (filePath.match(/\.(js|css|woff2?|ttf|eot|svg|png|jpg|jpeg|ico|webp)$/)) {
+      // Content-hashed assets: cache for 1 year, immutable
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     }
   }
 };

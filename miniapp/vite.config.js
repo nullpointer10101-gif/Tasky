@@ -17,5 +17,25 @@ export default defineConfig({
     alias: {
       'framer-motion': path.resolve(__dirname, './src/framer-motion-dummy.jsx')
     }
+  },
+  build: {
+    // No source maps in production — saves ~50% of JS bundle size
+    sourcemap: false,
+    // Minify with esbuild (default, fast)
+    minify: 'esbuild',
+    // Warn if a chunk is > 500KB (was defaulting to 1MB chunks)
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        // Split vendor libs into separate chunks so they get cached long-term
+        // Users only re-download app code when it changes, not all libs
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'router': ['react-router-dom'],
+          'ton': ['@tonconnect/ui-react'],
+          'http': ['axios'],
+        }
+      }
+    }
   }
 })
