@@ -50,12 +50,13 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     // Initial check
     checkLiveStatus(false);
 
-    // Gentle background poll (15s) while verification modal is open
+    // Gentle background poll (30s) while verification modal is open
+    // 30s is enough — Telegram membership propagates within seconds anyway
     const pollInterval = setInterval(() => {
       if (!channelStatus.all_joined) {
         checkLiveStatus(true, 0);
       }
-    }, 15000);
+    }, 30000);
 
     // Recheck whenever user comes back to window/app after opening Telegram links
     const handleRecheck = () => {
@@ -92,10 +93,8 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } catch (_) {
       window.open(url, '_blank');
     }
-    // Quick bursts of status checks when returning
-    setTimeout(() => checkLiveStatus(true), 1200);
-    setTimeout(() => checkLiveStatus(true), 3000);
-    setTimeout(() => checkLiveStatus(true), 6000);
+    // Single delayed recheck after user returns from Telegram — saves 2 extra API calls per tap
+    setTimeout(() => checkLiveStatus(true), 4000);
   };
 
   const handleVerify = async () => {
