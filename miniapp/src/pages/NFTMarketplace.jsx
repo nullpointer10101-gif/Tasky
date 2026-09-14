@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Zap, Rocket, ShieldCheck, Sparkles, Copy, Check, Clock, Timer,
   Wallet, ArrowDownLeft, Trophy, AlertCircle, RefreshCw, 
-  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown 
+  ExternalLink, Flame, Users, Gem, ChevronRight, CheckCircle2, Crown, Lock 
 } from 'lucide-react';
 import { getNftMarketplace, buyNft, getMyNftCards, claimNftYield, autoVerifyDeposit } from '../api';
 import { useToast } from '../App';
@@ -250,48 +250,63 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
       </div>
 
       {/* ── SEASON 1 CLOSING COUNTDOWN HERO BANNER (TOP ABOVE OPTION TABS) ── */}
-      <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#2a0815] via-[#1a051d] to-[#0d0315] border border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.18)]">
-        <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
-        
-        <div className="flex items-center justify-between mb-2 relative z-10">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+      {s1TimeLeft.totalMs > 0 ? (
+        <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#2a0815] via-[#1a051d] to-[#0d0315] border border-rose-500/40 shadow-[0_0_25px_rgba(244,63,94,0.18)]">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+          
+          <div className="flex items-center justify-between mb-2 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+              </span>
+              <span className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                <Flame size={14} className="text-rose-400" /> Season 1 Ending Soon
+              </span>
+            </div>
+            <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
+              <Clock size={11} /> Closing in {s1TimeLeft.days > 0 ? `${s1TimeLeft.days}d ${s1TimeLeft.hours}h` : `${s1TimeLeft.hours}h ${s1TimeLeft.minutes}m`}
             </span>
-            <span className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
-              <Flame size={14} className="text-rose-400" /> Season 1 Ending Soon
-            </span>
           </div>
-          <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1">
-            <Clock size={11} /> Closing in {s1TimeLeft.days > 0 ? `${s1TimeLeft.days}d ${s1TimeLeft.hours}h` : `${s1TimeLeft.hours}h ${s1TimeLeft.minutes}m`}
-          </span>
-        </div>
 
-        <p className="text-[11.5px] text-white/80 font-medium leading-snug mb-3 relative z-10">
-          Season 1 NFT Digital Miners will close permanently when the countdown expires. Deployed miners continue generating full daily yield for their 10-day lifecycle!
-        </p>
+          <p className="text-[11.5px] text-white/80 font-medium leading-snug mb-3 relative z-10">
+            Season 1 NFT Digital Miners will close permanently when the countdown expires. Deployed miners continue generating full daily yield for their 10-day lifecycle!
+          </p>
 
-        {/* 4 Digital Timer Capsules */}
-        <div className="grid grid-cols-4 gap-2 text-center relative z-10">
-          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
-            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.days).padStart(2, '0')}</p>
-            <p className="text-[9px] font-black uppercase text-rose-300/70">Days</p>
-          </div>
-          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
-            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.hours).padStart(2, '0')}</p>
-            <p className="text-[9px] font-black uppercase text-rose-300/70">Hours</p>
-          </div>
-          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
-            <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.minutes).padStart(2, '0')}</p>
-            <p className="text-[9px] font-black uppercase text-rose-300/70">Mins</p>
-          </div>
-          <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
-            <p className="text-lg font-black font-mono text-amber-300 tracking-tight animate-pulse">{String(s1TimeLeft.seconds).padStart(2, '0')}</p>
-            <p className="text-[9px] font-black uppercase text-amber-400/80">Secs</p>
+          {/* 4 Digital Timer Capsules */}
+          <div className="grid grid-cols-4 gap-2 text-center relative z-10">
+            <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+              <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.days).padStart(2, '0')}</p>
+              <p className="text-[9px] font-black uppercase text-rose-300/70">Days</p>
+            </div>
+            <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+              <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.hours).padStart(2, '0')}</p>
+              <p className="text-[9px] font-black uppercase text-rose-300/70">Hours</p>
+            </div>
+            <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+              <p className="text-lg font-black font-mono text-white tracking-tight">{String(s1TimeLeft.minutes).padStart(2, '0')}</p>
+              <p className="text-[9px] font-black uppercase text-rose-300/70">Mins</p>
+            </div>
+            <div className="bg-black/60 border border-rose-500/30 rounded-2xl py-2 px-1 backdrop-blur-sm shadow-inner">
+              <p className="text-lg font-black font-mono text-amber-300 tracking-tight animate-pulse">{String(s1TimeLeft.seconds).padStart(2, '0')}</p>
+              <p className="text-[9px] font-black uppercase text-amber-400/80">Secs</p>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        /* ── SEASON 1 CLOSED BANNER ── */
+        <div className="relative overflow-hidden rounded-3xl p-4 bg-gradient-to-br from-[#111111] via-[#0d0d0d] to-[#080808] border border-white/10 shadow-inner">
+          <div className="flex items-center justify-center gap-3 py-2">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40">
+              <Lock size={20} />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-black text-white/70 uppercase tracking-wider">🔒 Season 1 — Closed</p>
+              <p className="text-[11px] text-white/40 font-medium mt-0.5">New purchases are no longer available. Your deployed miners keep earning!</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-1.5 bg-black/40 p-1.5 rounded-2xl border border-white/10">
         {TABS.map((tab) => {
           const Icon = tab.icon;
@@ -349,12 +364,16 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                 .filter(c => Number(c.nft_id) === Number(nft.id))
                 .reduce((sum, c) => sum + Math.max(1, Math.round((c.total_days || c.duration_days || 10) / 10)), 0);
               const isMaxOwned = ownedCount >= maxAllowed;
+              // Season 1 closed = timer hit zero
+              const isS1Closed = s1TimeLeft.totalMs === 0;
 
               return (
                 <div
                   key={nft.id}
                   className={`relative overflow-hidden rounded-3xl p-5 border transition-all duration-300 ${
-                    isTitan
+                    isS1Closed
+                      ? 'bg-gradient-to-b from-[#111111] via-[#0d0d0d] to-[#080808] border-white/10 opacity-60'
+                      : isTitan
                       ? 'bg-gradient-to-b from-[#381f02] via-[#221200] to-[#0d0700] border-amber-400/60 shadow-[0_0_35px_rgba(245,158,11,0.25)] ring-1 ring-amber-400/30'
                       : isMega
                       ? 'bg-gradient-to-b from-[#2a0e05] via-[#1a0802] to-[#0d0401] border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.15)]'
@@ -363,6 +382,16 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                       : 'bg-gradient-to-b from-[#111638] via-[#0b0e24] to-[#060714] border-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.1)]'
                   }`}
                 >
+                  {/* Lock overlay when Season 1 is closed */}
+                  {isS1Closed && (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-3xl gap-2">
+                      <div className="w-14 h-14 rounded-2xl bg-white/5 border border-white/20 flex items-center justify-center">
+                        <Lock size={28} className="text-white/50" />
+                      </div>
+                      <p className="text-sm font-black text-white/60 uppercase tracking-wider">Season 1 Closed</p>
+                      <p className="text-[11px] text-white/35 font-medium px-6 text-center">New purchases are no longer available</p>
+                    </div>
+                  )}
                   {/* Top Badge Row */}
                   <div className="flex items-center justify-between mb-3.5">
                     <div className="flex items-center gap-2">
@@ -439,11 +468,13 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                   {/* Purchase Action Buttons */}
                   <div className="space-y-2">
                     <motion.button
-                      onClick={() => handleBuy(nft)}
-                      disabled={isMaxOwned || buyingId === nft.id}
-                      whileTap={{ scale: 0.98 }}
+                      onClick={() => !isS1Closed && handleBuy(nft)}
+                      disabled={isMaxOwned || buyingId === nft.id || isS1Closed}
+                      whileTap={{ scale: isS1Closed ? 1 : 0.98 }}
                       className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all ${
-                        isMaxOwned
+                        isS1Closed
+                          ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
+                          : isMaxOwned
                           ? 'bg-white/5 text-white/30 cursor-not-allowed border border-white/5'
                           : isTitan
                           ? 'bg-gradient-to-r from-yellow-400 via-amber-400 to-orange-500 text-black shadow-[0_0_25px_rgba(245,158,11,0.4)]'
@@ -456,6 +487,8 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                     >
                       {buyingId === nft.id ? (
                         <><RefreshCw size={14} className="animate-spin" /> Activating Miner...</>
+                      ) : isS1Closed ? (
+                        <><Lock size={14} /> Season 1 Closed — No New Purchases</>
                       ) : isMaxOwned ? (
                         <>Max Limit Reached ({ownedCount}/{maxAllowed})</>
                       ) : (
@@ -463,13 +496,15 @@ export default function NFTMarketplace({ user, refreshUser, tgUser, navigate }) 
                       )}
                     </motion.button>
 
-                    <button
-                      onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
-                      className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-98"
-                    >
-                      <ExternalLink size={13} />
-                      <span>Pay {nft.price_gram} GRAM with Tonkeeper / TON Wallet</span>
-                    </button>
+                    {!isS1Closed && (
+                      <button
+                        onClick={() => handlePayViaWallet(nft.price_gram, 'tonkeeper')}
+                        className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center justify-center gap-1.5 transition-all active:scale-98"
+                      >
+                        <ExternalLink size={13} />
+                        <span>Pay {nft.price_gram} GRAM with Tonkeeper / TON Wallet</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );
