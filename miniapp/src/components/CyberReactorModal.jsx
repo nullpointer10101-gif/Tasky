@@ -172,11 +172,37 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
       }
       const sessionToken = startRes.data.session_token;
 
-      // 2. Play USL Ads strictly (TowerAds SDK v4)
+      // 2. Play USL Ads only (TowerAds SDK v4) — no fallback
       const res = await showTowerAd();
 
       if (!res?.success) {
-        showToast(res?.error || 'USL ad was closed early. Watch the full ad to charge!', 'error');
+        const errMsg = String(res?.error || '').toLowerCase();
+
+        // Detect no-fill / inventory empty from USL network
+        const isNoFill =
+          errMsg.includes('no ad') ||
+          errMsg.includes('nofill') ||
+          errMsg.includes('no provider') ||
+          errMsg.includes('inventory') ||
+          errMsg.includes('not available') ||
+          errMsg.includes('initializing') ||
+          errMsg.includes('warming up') ||
+          errMsg.includes('sponsor');
+
+        if (isNoFill) {
+          // Clear message: USL has no ad right now, NOT the user's fault, try again in a few mins
+          showToast(
+            '📡 USL Ad Network has no ad available right now. This is normal — ad inventory refreshes every few minutes. Please tap again shortly!',
+            'error'
+          );
+        } else {
+          // User closed the ad early
+          showToast(
+            '⚠️ Ad closed too early! You must watch the FULL video without closing it. Please tap again and watch completely.',
+            'error'
+          );
+        }
+
         setAdWatching(false);
         return;
       }
@@ -201,7 +227,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
       }
     } catch (err) {
       console.error('[CyberReactor] Ad error:', err);
-      showToast('Ad network busy. Try again in a few seconds!', 'error');
+      showToast('Ad network busy. Please wait a few seconds and try again!', 'error');
     } finally {
       setAdWatching(false);
     }
