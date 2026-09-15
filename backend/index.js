@@ -271,23 +271,21 @@ app.listen(PORT, async () => {
   console.log(`Test UI: http://localhost:${PORT}/test.html`);
   console.log(`Admin Panel Live: http://localhost:${PORT}/admin`);
 
-  // Register Telegram Webhook — Telegram will POST updates to us instead of us polling.
-  // This eliminates ALL service-initiated outbound bandwidth from polling (was ~4.7 GB/month).
-  const WEBHOOK_URL = `https://tasky3.onrender.com/bot-webhook`;
-  if (bot && !bot.isDummy && typeof bot.setWebhook === 'function') {
+  // Ensure Telegram Webhook is deleted so Long-Polling receives all updates in real-time without delay
+  if (bot && !bot.isDummy && typeof bot.deleteWebHook === 'function') {
     try {
-      await bot.setWebhook(WEBHOOK_URL);
-      console.log(`✅ Telegram webhook set: ${WEBHOOK_URL}`);
+      await bot.deleteWebHook({ drop_pending_updates: false });
+      console.log('✅ Cleared Telegram webhooks — Active Polling Enabled');
     } catch (e) {
-      console.error('⚠️ Failed to set Telegram webhook:', e.message);
+      console.warn('⚠️ Delete webhook warning:', e.message);
     }
   }
 });
 
-// Telegram Webhook Route — receives all bot updates from Telegram (no polling needed)
-app.post('/bot-webhook', express.json(), (req, res) => {
-  res.sendStatus(200); // Always ACK immediately to Telegram
-  if (bot && !bot.isDummy && typeof bot.processUpdate === 'function') {
+// Webhook Fallback Route — ACK immediately and process update if present
+app.post('/bot-webhook', (req, res) => {
+  res.sendStatus(200);
+  if (req.body && req.body.update_id && bot && !bot.isDummy && typeof bot.processUpdate === 'function') {
     try {
       bot.processUpdate(req.body);
     } catch (e) {
