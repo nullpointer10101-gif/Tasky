@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem } from 'lucide-react';
+import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem, Clock, Play, CheckCircle, Zap } from 'lucide-react';
 
 const StatusWidget = ({ status, themeColor = 'purple', onCancel, type }) => {
   if (!status) return null;
@@ -126,6 +126,8 @@ export default function Broadcast() {
   const [gramStatus, setGramStatus] = useState(null);
   const [isBroadcastingGram, setIsBroadcastingGram] = useState(false);
   const [gramTemplateIndex, setGramTemplateIndex] = useState(0);
+  const [autoGramSettings, setAutoGramSettings] = useState(null);
+  const [isTogglingAutoGram, setIsTogglingAutoGram] = useState(false);
 
   const bannerOptions = [
     {
@@ -192,11 +194,12 @@ export default function Broadcast() {
 
   const fetchAllStatuses = async () => {
     try {
-      const [nftRes, promoRes, gramRes, customRes] = await Promise.allSettled([
+      const [nftRes, promoRes, gramRes, customRes, autoGramRes] = await Promise.allSettled([
         api.get('/broadcast/nft-status'),
         api.get('/broadcast/promo-status'),
         api.get('/broadcast/gram-reminder-status'),
-        api.get('/broadcast/custom-status')
+        api.get('/broadcast/custom-status'),
+        api.get('/broadcast/auto-gram-status')
       ]);
 
       if (nftRes.status === 'fulfilled') {
@@ -214,6 +217,9 @@ export default function Broadcast() {
       if (customRes.status === 'fulfilled') {
         setCustomStatus(customRes.value.data);
         setIsBroadcastingCustom(customRes.value.data?.status === 'running');
+      }
+      if (autoGramRes.status === 'fulfilled' && autoGramRes.value.data) {
+        setAutoGramSettings(autoGramRes.value.data);
       }
     } catch (_) {}
   };
@@ -366,6 +372,31 @@ export default function Broadcast() {
       toast.error(error.response?.data?.error || 'Failed to start GRAM broadcast');
       setIsBroadcastingGram(false);
       setGramStatus(null);
+    }
+  };
+
+  const handleToggleAutoGram = async (forceState) => {
+    const nextEnabled = forceState !== undefined ? forceState : !autoGramSettings?.enabled;
+    const actionText = nextEnabled
+      ? 'Enable automated HOURLY broadcast reminder to all eligible users (unbanned users who have not claimed in 24h)?'
+      : 'Disable automated HOURLY broadcast reminders?';
+
+    if (!window.confirm(actionText)) return;
+
+    try {
+      setIsTogglingAutoGram(true);
+      const { data } = await api.post('/broadcast/toggle-auto-gram', {
+        enabled: nextEnabled,
+        templateIndex: gramTemplateIndex
+      });
+      if (data.success) {
+        setAutoGramSettings(data.settings);
+        toast.success(nextEnabled ? 'Hourly Auto-Broadcast ENABLED! 🚀' : 'Hourly Auto-Broadcast DISABLED ⏹️');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.error || 'Failed to toggle Auto-Broadcast');
+    } finally {
+      setIsTogglingAutoGram(false);
     }
   };
 
@@ -592,6 +623,64 @@ export default function Broadcast() {
 
               {/* Live Status Widget */}
               <StatusWidget status={gramStatus} themeColor="emerald" onCancel={handleCancel} type="gram" />
+
+              {/* Hourly Auto-Broadcast Control Section */}
+              <div className="bg-emerald-950/40 border border-emerald-500/30 rounded-2xl p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-2.5 h-2.5 rounded-full ${autoGramSettings?.enabled ? 'bg-emerald-400 animate-pulse shadow-md shadow-emerald-400/50' : 'bg-slate-500'}`}></div>
+                    <span className="text-[11px] font-black text-ink uppercase tracking-wider flex items-center gap-1">
+                      <Clock size={12} className="text-emerald-400" />
+                      Automated Hourly Broadcast
+                    </span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                    autoGramSettings?.enabled
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                      : 'bg-white/5 text-ink-soft border-white/10'
+                  }`}>
+                    {autoGramSettings?.enabled ? '🟢 ACTIVE' : '🔴 OFF'}
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-emerald-200/70 leading-relaxed font-sans">
+                  {autoGramSettings?.enabled 
+                    ? `Auto-dispatches Variant #${(autoGramSettings.templateIndex ?? gramTemplateIndex) + 1} every 60 mins to unbanned users who haven't claimed in 24h.`
+                    : 'Automatically sends GRAM reminder every hour to eligible users to boost ad views.'
+                  }
+                </p>
+
+                {autoGramSettings?.enabled && (
+                  <div className="flex items-center justify-between text-[10px] font-mono font-bold bg-black/40 px-2.5 py-1.5 rounded-lg border border-emerald-500/20 text-emerald-300">
+                    <span>Runs: {autoGramSettings.runCount || 0}</span>
+                    <span>Next: {autoGramSettings.nextRunAt ? new Date(autoGramSettings.nextRunAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Pending'}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => handleToggleAutoGram()}
+                  disabled={isTogglingAutoGram}
+                  className={`w-full py-2.5 px-3 rounded-xl text-xs font-black uppercase tracking-wider border flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    autoGramSettings?.enabled
+                      ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border-rose-500/40 shadow-md shadow-rose-500/10'
+                      : 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/50 shadow-md shadow-emerald-500/10'
+                  }`}
+                >
+                  {isTogglingAutoGram ? (
+                    <RefreshCw size={13} className="animate-spin" />
+                  ) : autoGramSettings?.enabled ? (
+                    <>
+                      <span>⏹️ Disable Hourly Auto-Broadcast</span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock size={13} className="text-emerald-400" />
+                      <span>⏰ Enable Hourly Auto-Broadcast</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Action Button */}

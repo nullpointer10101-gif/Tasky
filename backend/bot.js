@@ -117,10 +117,12 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         // PERMANENT STABLE URL
         const STABLE_APP_URL = 'https://tasky3.onrender.com';
         let webAppUrl = STABLE_APP_URL;
+        let directBotAppUrl = 'https://t.me/TaskyAppbot/app';
         
         if (refCode) {
-            webAppUrl = `${STABLE_APP_URL}?startapp=${refCode}`;
-            // Only update chat menu button if user joined with a custom referral code
+            const cleanRef = String(refCode).trim();
+            webAppUrl = `${STABLE_APP_URL}?startapp=${cleanRef}`;
+            directBotAppUrl = `https://t.me/TaskyAppbot/app?startapp=${cleanRef}`;
             bot.setChatMenuButton({
                 chat_id: chatId,
                 menu_button: {
@@ -134,56 +136,33 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
         const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const firstNameEscaped = escapeHtml(msg.from.first_name || 'User');
 
-        const captionText = `🚀 <b>Welcome to TASKY, ${firstNameEscaped}!</b>\n\nStart earning crypto instantly with the ultimate Web3 bot.\n\n✅ <b>Complete Tasks</b>\n🤝 <b>Invite Friends</b>\n⛏ <b>Mine & Grow</b>\n🎁 <b>Daily Rewards</b>\n\nTap below to launch your rig and start earning! 👇`;
+        const textMessage = `🚀 <b>Welcome to TASKY, ${firstNameEscaped}!</b>\n\nStart earning free GRAM, complete daily tasks & mine rewards instantly.\n\n👇 Tap below to launch TASKY:`;
 
-        const opts = {
-            caption: captionText,
-            parse_mode: 'HTML',
-            reply_markup: {
-                inline_keyboard: [
-                    [{ text: '🐾 Launch TASKY', web_app: { url: webAppUrl } }],
-                    [
-                        { text: '📢 Tasky Channel', url: 'https://t.me/Tasky_Official' },
-                        { text: '📢 AlphaDrop Daily', url: 'https://t.me/AlphaDropDaily' }
-                    ],
-                    [
-                        { text: '💬 Community Group', url: 'https://t.me/TaskyOfficialCommunity' }
-                    ]
+        const replyMarkup = {
+            inline_keyboard: [
+                [
+                    { text: '🎁 Open Tasky Mini App 🚀', url: directBotAppUrl }
+                ],
+                [
+                    { text: '📢 Official Channel', url: 'https://t.me/Tasky_Official' },
+                    { text: '💬 Community Group', url: 'https://t.me/TaskyOfficialCommunity' }
                 ]
-            }
+            ]
         };
-        
-        const path = require('path');
-        const fs = require('fs');
-        const imagePath = path.join(__dirname, 'assets', 'welcome_promo.png');
-        
-        // Use cached Telegram file_id if available to prevent re-uploading and 429 flood errors
-        if (cachedWelcomePhotoId) {
-            try {
-                await bot.sendPhoto(chatId, cachedWelcomePhotoId, opts);
-            } catch (err) {
-                cachedWelcomePhotoId = null; // Reset cache if stale
-                await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
-            }
-        } else if (fs.existsSync(imagePath)) {
-            try {
-                const res = await bot.sendPhoto(chatId, imagePath, opts);
-                if (res?.photo && res.photo.length > 0) {
-                    cachedWelcomePhotoId = res.photo[res.photo.length - 1].file_id;
-                }
-            } catch (photoErr) {
-                await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
-            }
-        } else {
-            await bot.sendMessage(chatId, captionText, { parse_mode: 'HTML', reply_markup: opts.reply_markup });
-        }
+
+        await bot.sendMessage(chatId, textMessage, {
+            parse_mode: 'HTML',
+            reply_markup: replyMarkup
+        });
     } catch (e) {
         console.error('[Bot /start] Uncaught error:', e.message);
         try {
-            await bot.sendMessage(chatId, `🚀 <b>Welcome to TASKY!</b>\n\nTap below to start earning!`, {
+            await bot.sendMessage(chatId, `🚀 <b>Welcome to TASKY!</b>\n\nTap below to launch TASKY:`, {
                 parse_mode: 'HTML',
                 reply_markup: {
-                    inline_keyboard: [[{ text: '🐾 Launch TASKY', web_app: { url: 'https://tasky3.onrender.com' } }]]
+                    inline_keyboard: [
+                        [{ text: '🎁 Open Tasky Mini App 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+                    ]
                 }
             });
         } catch (_) {}

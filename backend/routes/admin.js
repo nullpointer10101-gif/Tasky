@@ -6,6 +6,7 @@ const { pool } = require('../db');
 const bot = require('../bot');
 const TelegramBot = require('node-telegram-bot-api');
 const { broadcastPayoutProof } = require('../utils/payoutChannel');
+const { getAutoGramSettings, saveAutoGramSettings } = require('../services/autoGramBroadcastService');
 
 function getActiveTelegramBot() {
   // Prefer the existing bot instance (already initialized with polling on Render)
@@ -1979,6 +1980,37 @@ router.get('/broadcast/custom-status', (req, res) => {
 
 router.get('/broadcast/gram-reminder-status', (req, res) => {
   res.json(global.gramReminderBroadcast);
+});
+
+router.get('/broadcast/auto-gram-status', async (req, res) => {
+  try {
+    const settings = await getAutoGramSettings();
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/broadcast/toggle-auto-gram', async (req, res) => {
+  try {
+    const { enabled, templateIndex } = req.body;
+    const settings = await getAutoGramSettings();
+    
+    settings.enabled = Boolean(enabled);
+    if (typeof templateIndex !== 'undefined') {
+      settings.templateIndex = parseInt(templateIndex, 10) || 0;
+    }
+    
+    // If enabling and nextRunAt is missing or in the past, schedule first run 1 hour from now (or immediately)
+    if (settings.enabled && (!settings.nextRunAt || settings.nextRunAt < Date.now())) {
+      settings.nextRunAt = Date.now() + 60 * 60 * 1000;
+    }
+    
+    await saveAutoGramSettings(settings);
+    res.json({ success: true, settings });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/broadcast/cancel/:type', (req, res) => {

@@ -19,6 +19,7 @@ const { startMiningJob } = require('./jobs/updateMiningLevels');
 const { startFakeLeaderboardJob } = require('./jobs/fakeLeaderboardJob');
 const { startDepositWatcher } = require('./services/depositWatcher');
 const { startAutoPayoutProcessor } = require('./services/autoPayoutService');
+const { startAutoGramBroadcastService } = require('./services/autoGramBroadcastService');
 
 const app = express();
 
@@ -307,6 +308,7 @@ initDB()
     // Deposit watcher: check TON API every 5 min (was 60s) to reduce outbound bandwidth
     startDepositWatcher(5 * 60 * 1000);
     startAutoPayoutProcessor();
+    startAutoGramBroadcastService();
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
