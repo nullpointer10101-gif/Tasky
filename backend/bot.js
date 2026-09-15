@@ -55,10 +55,16 @@ let cachedWelcomePhotoId = null;
 // User-Facing Commands
 // =======================
 
-bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
-    if (msg.chat.type !== 'private') return;
+const handleStartCommand = async (msg, rawParam) => {
     const chatId = msg.chat.id;
-    const refCode = match[1];
+    let refCode = rawParam ? String(rawParam).trim() : null;
+    if (!refCode && msg.text) {
+        const parts = msg.text.trim().split(/\s+/);
+        if (parts.length > 1) refCode = parts[1];
+    }
+    if (refCode && refCode.includes('=')) {
+        refCode = refCode.split('=').pop();
+    }
     
     try {
         // Direct DB user registration (eliminates HTTP loopback dependency)
@@ -166,6 +172,19 @@ bot.onText(/\/start(?:\s+(.+))?/, async (msg, match) => {
                 }
             });
         } catch (_) {}
+    }
+};
+
+bot.onText(/\/start(?:@\w+)?(?:\s+(.+))?/i, async (msg, match) => {
+    await handleStartCommand(msg, match ? match[1] : null);
+});
+
+bot.on('message', async (msg) => {
+    if (!msg || !msg.text) return;
+    if (msg.text.trim().toLowerCase().startsWith('/start')) {
+        const parts = msg.text.trim().split(/\s+/);
+        const param = parts.length > 1 ? parts[1] : null;
+        await handleStartCommand(msg, param);
     }
 });
 
