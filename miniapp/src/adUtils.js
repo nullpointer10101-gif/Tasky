@@ -178,7 +178,7 @@ export function prefetchGramAd() {
 }
 
 /**
- * Option 1: Executes an Adexium interstitial / rewarded ad (100% UNCHANGED)
+ * Option 1: Executes an Adexium interstitial ad properly using official Adexium SDK workflow
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
@@ -205,7 +205,7 @@ export async function showAdexiumAd() {
     }
   }
 
-  // If widget is not available, try USL first, then GigaPub as absolute last resort
+  // If widget is not available, try USL fallback, then GigaPub
   if (!widget) {
     console.warn('[AdManager] Adexium SDK warming up, trying USL fallback...');
     const uslRes = await showTowerAd();
@@ -216,120 +216,110 @@ export async function showAdexiumAd() {
 
   const startTime = Date.now();
 
-  try {
-    console.log(`[AdManager] 🚀 Requesting Adexium ad (WID: ${ADEXIUM_WID})...`);
-    
-    // Try interstitial first, then video format
-    let ads = null;
-    try {
-      ads = await widget.requestAd('interstitial');
-      if (!ads || !Array.isArray(ads) || ads.length === 0) {
-        ads = await widget.requestAd('video');
+  return new Promise((resolve) => {
+    let isSettled = false;
+    let playbackCompleted = false;
+
+    const cleanup = () => {
+      try {
+        widget.off('adReceived', onAdReceived);
+        widget.off('adPlaybackCompleted', onCompleted);
+        widget.off('adClosed', onClosed);
+        widget.off('requestAdError', onError);
+        widget.off('noAdFound', onNoAd);
+      } catch (e) {}
+    };
+
+    const onAdReceived = (ad) => {
+      console.log('[AdManager] 🎯 Adexium adReceived, displaying ad...');
+      try {
+        if (typeof widget.displayAd === 'function') {
+          widget.displayAd(ad);
+        }
+      } catch (e) {
+        console.error('[AdManager] Error calling displayAd:', e);
+        onError();
       }
-    } catch (reqErr) {
-      console.warn('[AdManager] Adexium request error:', reqErr);
-    }
+    };
 
-    // If Adexium has no inventory, try USL first, then GigaPub as absolute last resort
-    if (!ads || !Array.isArray(ads) || ads.length === 0) {
-      console.log('[AdManager] Adexium inventory empty — trying USL fallback...');
+    const onCompleted = () => {
+      console.log('[AdManager] ✅ Adexium ad playback completed');
+      playbackCompleted = true;
+    };
+
+    const onClosed = () => {
+      if (isSettled) return;
+      isSettled = true;
+      cleanup();
+      const elapsed = (Date.now() - startTime) / 1000;
+      console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
+
+      if (playbackCompleted || elapsed >= 12.0) {
+        resolve({ success: true, network: 'adexium' });
+      } else {
+        resolve({
+          success: false,
+          network: 'adexium',
+          error: 'Ad was closed early. You must watch the entire ad to get progress.'
+        });
+      }
+    };
+
+    const onError = async () => {
+      if (isSettled) return;
+      isSettled = true;
+      cleanup();
+      console.log('[AdManager] Adexium error — trying USL fallback...');
       const uslRes = await showTowerAd();
-      if (uslRes.success) return { ...uslRes, network: 'adexium' };
-      console.log('[AdManager] USL also unavailable — serving GigaPub last resort...');
-      const fallbackRes = await showGigaPubDirect('gigapub');
-      return { ...fallbackRes, network: 'adexium' };
+      if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
+      const fb = await showGigaPubDirect('gigapub');
+      resolve({ ...fb, network: 'adexium' });
+    };
+
+    const onNoAd = async () => {
+      if (isSettled) return;
+      isSettled = true;
+      cleanup();
+      console.log('[AdManager] Adexium noAdFound — trying USL fallback...');
+      const uslRes = await showTowerAd();
+      if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
+      const fb = await showGigaPubDirect('gigapub');
+      resolve({ ...fb, network: 'adexium' });
+    };
+
+    // 1. Subscribe to events BEFORE requesting ad (per official Adexium docs)
+    widget.on('adReceived', onAdReceived);
+    widget.on('adPlaybackCompleted', onCompleted);
+    widget.on('adClosed', onClosed);
+    widget.on('requestAdError', onError);
+    widget.on('noAdFound', onNoAd);
+
+    // 2. Request 'interstitial' ad
+    try {
+      console.log(`[AdManager] 🚀 Requesting Adexium interstitial ad (WID: ${ADEXIUM_WID})...`);
+      widget.requestAd('interstitial');
+    } catch (err) {
+      console.warn('[AdManager] Exception requesting Adexium ad:', err);
+      onError();
     }
 
-    return await new Promise(async (resolve) => {
-      let isSettled = false;
-      let playbackCompleted = false;
-
-      const cleanup = () => {
-        try {
-          widget.off('adPlaybackCompleted', onCompleted);
-          widget.off('adClosed', onClosed);
-          widget.off('requestAdError', onError);
-          widget.off('noAdFound', onNoAd);
-        } catch (e) {}
-      };
-
-      const onCompleted = () => {
-        console.log('[AdManager] ✅ Adexium ad playback completed');
-        playbackCompleted = true;
-      };
-
-      const onClosed = () => {
-        if (isSettled) return;
+    // Safety timeout of 40 seconds
+    setTimeout(() => {
+      if (!isSettled) {
         isSettled = true;
         cleanup();
-        const elapsed = (Date.now() - startTime) / 1000;
-        console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
-
-        if (playbackCompleted || elapsed >= 14.0) {
+        if (playbackCompleted) {
           resolve({ success: true, network: 'adexium' });
         } else {
           resolve({
             success: false,
             network: 'adexium',
-            error: 'Ad was closed early. You must watch the entire ad to get progress.'
+            error: 'Ad session timed out. Please tap again.'
           });
         }
-      };
-
-      const onError = async () => {
-        if (isSettled) return;
-        isSettled = true;
-        cleanup();
-        console.log('[AdManager] Adexium error — trying USL fallback...');
-        const uslRes = await showTowerAd();
-        if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
-        const fb = await showGigaPubDirect('gigapub');
-        resolve({ ...fb, network: 'adexium' });
-      };
-
-      const onNoAd = async () => {
-        if (isSettled) return;
-        isSettled = true;
-        cleanup();
-        console.log('[AdManager] Adexium noAdFound — trying USL fallback...');
-        const uslRes = await showTowerAd();
-        if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
-        const fb = await showGigaPubDirect('gigapub');
-        resolve({ ...fb, network: 'adexium' });
-      };
-
-      widget.on('adPlaybackCompleted', onCompleted);
-      widget.on('adClosed', onClosed);
-      widget.on('requestAdError', onError);
-      widget.on('noAdFound', onNoAd);
-
-      // Display the interstitial banner/video
-      widget.displayAd(ads, ads[0]?.adFormat || 'interstitial');
-
-      // Safety timeout of 50 seconds
-      setTimeout(() => {
-        if (!isSettled) {
-          isSettled = true;
-          cleanup();
-          if (playbackCompleted) {
-            resolve({ success: true, network: 'adexium' });
-          } else {
-            resolve({
-              success: false,
-              network: 'adexium',
-              error: 'Ad session timed out. Please tap again.'
-            });
-          }
-        }
-      }, 50000);
-    });
-  } catch (err) {
-    console.warn('[AdManager] Adexium exception, trying USL fallback:', err);
-    const uslRes = await showTowerAd();
-    if (uslRes.success) return { ...uslRes, network: 'adexium' };
-    const fb = await showGigaPubDirect('gigapub');
-    return { ...fb, network: 'adexium' };
-  }
+      }
+    }, 40000);
+  });
 }
 
 /**
