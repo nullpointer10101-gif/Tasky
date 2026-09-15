@@ -181,15 +181,6 @@ bot.onText(/\/start(?:@\w+)?(?:\s+(.+))?/i, async (msg, match) => {
     await handleStartCommand(msg, match ? match[1] : null);
 });
 
-bot.on('message', async (msg) => {
-    if (!msg || !msg.text) return;
-    if (msg.text.trim().toLowerCase().startsWith('/start')) {
-        const parts = msg.text.trim().split(/\s+/);
-        const param = parts.length > 1 ? parts[1] : null;
-        await handleStartCommand(msg, param);
-    }
-});
-
 bot.onText(/Tasks 📋|\/tasks/, async (msg) => {
     if (msg.chat.type !== 'private') return;
     const chatId = msg.chat.id;
