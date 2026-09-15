@@ -97,9 +97,13 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
         // 4.5 Referral check (min 2 invited friends required for all users)
-        const claimsCountRes = await pool.query('SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1', [telegram_id]);
+        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const current_claim_seq = total_previous_claims + 1;
+        const is_first_attempt = total_previous_claims === 0;
+        const required_gigapub = is_first_attempt ? 30 : 40;
+        const required_adexium = is_first_attempt ? 30 : 40;
+        const total_required_ads = required_gigapub + required_adexium;
 
         const userRefRes = await pool.query('SELECT total_referrals, referral_code FROM users WHERE telegram_id = $1', [telegram_id]);
         const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
@@ -108,9 +112,9 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const requires_referrals = true;
         const referral_requirement_met = total_referrals >= 2;
 
-        // 5. Determine if they can claim (30 gigapub + 30 adexium, or 60 total)
+        // 5. Determine if they can claim
         const activeWallet = gram_wallet_address || wallet_address || '';
-        const can_claim = gigapub_ads_watched_today >= 30 && adexium_ads_watched_today >= 30 && !claimed_in_last_24h && !!activeWallet && referral_requirement_met;
+        const can_claim = gigapub_ads_watched_today >= required_gigapub && adexium_ads_watched_today >= required_adexium && !claimed_in_last_24h && !!activeWallet && referral_requirement_met;
 
         res.json({
             gram_wallet_address: activeWallet,
@@ -124,6 +128,10 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
             can_claim,
             current_claim_seq,
             total_previous_claims,
+            is_first_attempt,
+            required_gigapub,
+            required_adexium,
+            total_required_ads,
             requires_referrals,
             referral_requirement_met,
             total_referrals,
@@ -317,11 +325,17 @@ router.post('/watch-ad', async (req, res) => {
 
         const targetAdType = isAdexium ? 'gram_adexium' : 'gram_gigapub';
 
-        if (isAdexium && adexiumCount >= 30) {
-            return res.status(429).json({ error: 'Daily Adexium ad quota completed (30/30). Please complete GigaPub ads.' });
+        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
+        const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
+        const is_first_attempt = total_previous_claims === 0;
+        const required_gigapub = is_first_attempt ? 30 : 40;
+        const required_adexium = is_first_attempt ? 30 : 40;
+
+        if (isAdexium && adexiumCount >= required_adexium) {
+            return res.status(429).json({ error: `Daily Adexium ad quota completed (${required_adexium}/${required_adexium}). Please complete GigaPub ads.` });
         }
-        if (!isAdexium && gigapubCount >= 30) {
-            return res.status(429).json({ error: 'Daily GigaPub ad quota completed (30/30). Please complete Adexium ads.' });
+        if (!isAdexium && gigapubCount >= required_gigapub) {
+            return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). Please complete GigaPub ads.` });
         }
 
         // Enforce 1-second cooldown between consecutive ads
@@ -462,10 +476,16 @@ router.post('/claim', async (req, res) => {
         const adexiumWatched = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
         const ads_watched_today = gigaWatched + adexiumWatched;
 
-        if (gigaWatched < 30 || adexiumWatched < 30) {
+        const claimsCountRes = await client.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
+        const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
+        const is_first_attempt = total_previous_claims === 0;
+        const required_gigapub = is_first_attempt ? 30 : 40;
+        const required_adexium = is_first_attempt ? 30 : 40;
+
+        if (gigaWatched < required_gigapub || adexiumWatched < required_adexium) {
             await client.query('ROLLBACK');
             return res.status(400).json({ 
-                error: `Please complete all 30 Adexium ads (${Math.min(30, adexiumWatched)}/30) and 30 GigaPub ads (${Math.min(30, gigaWatched)}/30) to claim!` 
+                error: `Please complete all ${required_adexium} Adexium ads (${Math.min(required_adexium, adexiumWatched)}/${required_adexium}) and ${required_gigapub} GigaPub ads (${Math.min(required_gigapub, gigaWatched)}/${required_gigapub}) to claim!` 
             });
         }
 
