@@ -62,11 +62,11 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const adCountRes = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count,
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
@@ -279,7 +279,7 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(403).json({ error: 'Session user mismatch' });
         }
 
-        const isAdexium = provider === 'adexium' || provider === 'monetag';
+        const isAdexium = provider === 'adexium' || provider === 'monetag' || provider === 'taddy';
         const requestedProvider = isAdexium ? 'adexium' : 'gigapub';
         if (sessionData.provider && sessionData.provider !== requestedProvider) {
             return res.status(400).json({ error: 'Ad provider mismatch' });
@@ -310,11 +310,11 @@ router.post('/watch-ad', async (req, res) => {
         const countRes = await pool.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count,
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);

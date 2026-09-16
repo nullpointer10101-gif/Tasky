@@ -19,6 +19,41 @@ const TOWER_ADS_PLACEMENT_ID = 'plc_c529a877186e2def';
 const TOWER_ADS_SCRIPT_URL   = 'https://uslads.com/sdk/tower-ads-v4.js';
 const TOWER_ADS_SCRIPT_ID    = 'tower-ads-sdk';
 
+// Taddy Ad Server Config
+const TADDY_SCRIPT_URL = 'https://sdk.taddy.pro/web/taddy.min.js?1317';
+const TADDY_SCRIPT_ID  = 'taddy-ad-sdk';
+const TADDY_PUB_ID     = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TADDY_PUB_ID) || '';
+
+/**
+ * Initializes the Taddy Ad SDK script & instance
+ */
+export function initTaddy(pubId) {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  const targetPubId = pubId || TADDY_PUB_ID;
+
+  if (!document.getElementById(TADDY_SCRIPT_ID)) {
+    try {
+      const s = document.createElement('script');
+      s.id = TADDY_SCRIPT_ID;
+      s.src = TADDY_SCRIPT_URL;
+      if (targetPubId) {
+        s.setAttribute('data-pub-id', targetPubId);
+      }
+      s.async = true;
+      document.head.appendChild(s);
+      console.log('[AdManager] 🚀 Injected Taddy SDK script');
+    } catch (e) {
+      console.error('[AdManager] Taddy script injection error:', e);
+    }
+  } else if (window.Taddy && targetPubId) {
+    try {
+      if (typeof window.Taddy.init === 'function') {
+        window.Taddy.init(targetPubId);
+      }
+    } catch (e) {}
+  }
+}
+
 /**
  * Initializes the GigaPub Ad SDK script
  */
@@ -155,17 +190,20 @@ export function getOrInitAdexiumWidget() {
 initGigaAds();
 initAdexium();
 initTowerAds();
+initTaddy();
 
 // Also hook to DOMContentLoaded for guaranteed execution
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       initAdexium();
+      initTaddy();
       getOrInitTowerAds();
     });
   } else {
     setTimeout(() => {
       initAdexium();
+      initTaddy();
       getOrInitTowerAds();
     }, 100);
   }
@@ -175,10 +213,99 @@ export function prefetchGramAd() {
   initGigaAds();
   initAdexium();
   initTowerAds();
+  initTaddy();
 }
 
 /**
- * Option 1: Executes an Adexium interstitial ad properly using official Adexium SDK workflow
+ * Executes a Taddy Interstitial Ad session
+ */
+export async function showTaddyAd(pubId) {
+  if (typeof window === 'undefined') {
+    return { success: false, error: 'Browser environment required' };
+  }
+
+  try {
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+  } catch (e) {}
+
+  initTaddy(pubId);
+
+  let taddy = window.Taddy;
+  if (!taddy) {
+    let waited = 0;
+    while (!taddy && waited < 2000) {
+      await new Promise(r => setTimeout(r, 60));
+      waited += 60;
+      taddy = window.Taddy;
+    }
+  }
+
+  if (!taddy || typeof taddy.ads !== 'function') {
+    console.warn('[AdManager] Taddy SDK not ready yet');
+    return { success: false, error: 'Taddy SDK warming up. Please try again in a moment.' };
+  }
+
+  return new Promise((resolve) => {
+    let isSettled = false;
+    let viewedThrough = false;
+
+    try {
+      const adsService = taddy.ads();
+      adsService.interstitial({
+        onClosed: () => {
+          if (isSettled) return;
+          isSettled = true;
+          console.log('[AdManager] Taddy ad closed. viewedThrough:', viewedThrough);
+          if (viewedThrough) {
+            resolve({ success: true, network: 'taddy' });
+          } else {
+            resolve({
+              success: false,
+              network: 'taddy',
+              error: 'Ad was closed early. You must watch the entire ad to get progress.'
+            });
+          }
+        },
+        onViewThrough: (id) => {
+          console.log('[AdManager] ✅ Taddy view-through achieved:', id);
+          viewedThrough = true;
+        }
+      }).then((shown) => {
+        console.log('[AdManager] Taddy interstitial call result (shown):', shown);
+        if (shown === false && !isSettled) {
+          isSettled = true;
+          resolve({ success: false, network: 'taddy', error: 'No Taddy ad inventory available' });
+        }
+      }).catch((err) => {
+        if (isSettled) return;
+        isSettled = true;
+        console.warn('[AdManager] Taddy ad error:', err);
+        resolve({ success: false, network: 'taddy', error: err?.message || 'Taddy ad display failed' });
+      });
+
+      // Safety timeout of 40s
+      setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          if (viewedThrough) {
+            resolve({ success: true, network: 'taddy' });
+          } else {
+            resolve({ success: false, network: 'taddy', error: 'Taddy ad session timed out.' });
+          }
+        }
+      }, 40000);
+    } catch (e) {
+      console.error('[AdManager] Exception in showTaddyAd:', e);
+      resolve({ success: false, network: 'taddy', error: e?.message || 'Failed to request Taddy ad' });
+    }
+  });
+}
+
+/**
+ * Option 1: Executes an Adexium interstitial ad properly using official Adexium SDK workflow,
+ * with Taddy -> USL -> GigaPub fallback
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
@@ -193,6 +320,7 @@ export async function showAdexiumAd() {
   } catch (e) {}
 
   initAdexium();
+  initTaddy();
 
   // Check Adexium SDK instance
   let widget = getOrInitAdexiumWidget();
@@ -205,9 +333,11 @@ export async function showAdexiumAd() {
     }
   }
 
-  // If widget is not available, try USL fallback, then GigaPub
+  // If widget is not available, try Taddy fallback, then USL, then GigaPub
   if (!widget) {
-    console.warn('[AdManager] Adexium SDK warming up, trying USL fallback...');
+    console.warn('[AdManager] Adexium SDK warming up, trying Taddy fallback...');
+    const taddyRes = await showTaddyAd();
+    if (taddyRes.success) return { ...taddyRes, network: 'taddy' };
     const uslRes = await showTowerAd();
     if (uslRes.success) return { ...uslRes, network: 'adexium' };
     const fallbackRes = await showGigaPubDirect('gigapub');
@@ -269,7 +399,10 @@ export async function showAdexiumAd() {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium error — trying USL fallback...');
+      console.log('[AdManager] Adexium error — trying Taddy fallback...');
+      const taddyRes = await showTaddyAd();
+      if (taddyRes.success) { resolve({ ...taddyRes, network: 'taddy' }); return; }
+      console.log('[AdManager] Taddy error — trying USL fallback...');
       const uslRes = await showTowerAd();
       if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
       const fb = await showGigaPubDirect('gigapub');
@@ -280,7 +413,10 @@ export async function showAdexiumAd() {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium noAdFound — trying USL fallback...');
+      console.log('[AdManager] Adexium noAdFound — trying Taddy fallback...');
+      const taddyRes = await showTaddyAd();
+      if (taddyRes.success) { resolve({ ...taddyRes, network: 'taddy' }); return; }
+      console.log('[AdManager] Taddy noAdFound — trying USL fallback...');
       const uslRes = await showTowerAd();
       if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
       const fb = await showGigaPubDirect('gigapub');
