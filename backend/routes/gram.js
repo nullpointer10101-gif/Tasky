@@ -289,9 +289,10 @@ router.post('/watch-ad', async (req, res) => {
         // Invalidate session immediately to prevent replay attacks
         global.gramAdSessions.delete(session_token);
 
-        if (elapsedSec < 15.0) {
-            const remaining = Math.ceil(15.0 - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video (at least 15s) to earn credit. Please wait ${remaining}s.` });
+        const minElapsed = isAdexium ? 3.0 : 12.0;
+        if (elapsedSec < minElapsed) {
+            const remaining = Math.ceil(minElapsed - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video to earn credit. Please wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours

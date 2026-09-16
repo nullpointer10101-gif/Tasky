@@ -257,9 +257,12 @@ export async function showTaddyAd(pubId) {
     return { success: false, error: 'Taddy SDK warming up. Please try again in a moment.' };
   }
 
+  const startTime = Date.now();
+
   return new Promise((resolve) => {
     let isSettled = false;
     let viewedThrough = false;
+    let adWasShown = false;
 
     try {
       const adsService = taddy.ads();
@@ -267,8 +270,11 @@ export async function showTaddyAd(pubId) {
         onClosed: () => {
           if (isSettled) return;
           isSettled = true;
-          console.log('[AdManager] Taddy ad closed. viewedThrough:', viewedThrough);
-          if (viewedThrough) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          console.log(`[AdManager] Taddy ad closed. Elapsed: ${elapsed.toFixed(1)}s, shown: ${adWasShown}, viewedThrough: ${viewedThrough}`);
+
+          // Consider completed if displayed/viewedThrough or closed after at least 3 seconds
+          if (adWasShown || viewedThrough || elapsed >= 3.0) {
             resolve({ success: true, network: 'taddy' });
           } else {
             resolve({
@@ -284,7 +290,9 @@ export async function showTaddyAd(pubId) {
         }
       }).then((shown) => {
         console.log('[AdManager] Taddy interstitial call result (shown):', shown);
-        if (shown === false && !isSettled) {
+        if (shown !== false) {
+          adWasShown = true;
+        } else if (!isSettled) {
           isSettled = true;
           resolve({ success: false, network: 'taddy', error: 'No Taddy ad inventory available' });
         }
@@ -299,11 +307,7 @@ export async function showTaddyAd(pubId) {
       setTimeout(() => {
         if (!isSettled) {
           isSettled = true;
-          if (viewedThrough) {
-            resolve({ success: true, network: 'taddy' });
-          } else {
-            resolve({ success: false, network: 'taddy', error: 'Taddy ad session timed out.' });
-          }
+          resolve({ success: true, network: 'taddy' });
         }
       }, 40000);
     } catch (e) {
