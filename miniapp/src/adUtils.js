@@ -273,14 +273,15 @@ export async function showTaddyAd(pubId) {
           const elapsed = (Date.now() - startTime) / 1000;
           console.log(`[AdManager] Taddy ad closed. Elapsed: ${elapsed.toFixed(1)}s, shown: ${adWasShown}, viewedThrough: ${viewedThrough}`);
 
-          // Consider completed if displayed/viewedThrough or closed after at least 3 seconds
-          if (adWasShown || viewedThrough || elapsed >= 3.0) {
+          // Require viewedThrough event OR at least 10 seconds of active ad viewing
+          if (viewedThrough || elapsed >= 10.0) {
             resolve({ success: true, network: 'taddy' });
           } else {
+            console.warn(`[AdManager] Taddy ad closed early (${elapsed.toFixed(1)}s elapsed). Minimum 10s required.`);
             resolve({
               success: false,
               network: 'taddy',
-              error: 'Ad was closed early. You must watch the entire ad to get progress.'
+              error: 'Ad was closed early! You must watch the complete ad (at least 10 seconds) to receive credit.'
             });
           }
         },
@@ -307,7 +308,12 @@ export async function showTaddyAd(pubId) {
       setTimeout(() => {
         if (!isSettled) {
           isSettled = true;
-          resolve({ success: true, network: 'taddy' });
+          const elapsed = (Date.now() - startTime) / 1000;
+          if (viewedThrough || elapsed >= 10.0) {
+            resolve({ success: true, network: 'taddy' });
+          } else {
+            resolve({ success: false, network: 'taddy', error: 'Ad session timed out. Please watch the ad completely.' });
+          }
         }
       }, 40000);
     } catch (e) {

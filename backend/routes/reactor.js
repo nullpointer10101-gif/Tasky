@@ -69,7 +69,7 @@ router.get('/status/:telegram_id?', async (req, res) => {
     );
     const lastClaimAt = claimRes.rows[0]?.claimed_at;
 
-    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad')`;
+    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad', 'reactor_taddy')`;
     const countParams = [tid];
     if (lastClaimAt) {
       adCountQuery += ` AND created_at > $2`;
@@ -166,7 +166,7 @@ router.post('/start-view', async (req, res) => {
  * Requires valid one-time session_token, minimum 15s elapsed watching time, and 20s cooldown between records.
  */
 router.post('/record-view', async (req, res) => {
-  const { telegram_id, session_token } = req.body;
+  const { telegram_id, session_token, provider = 'usl' } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
 
   const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
@@ -179,10 +179,10 @@ router.post('/record-view', async (req, res) => {
   const tidStr = String(telegram_id);
   const now = Date.now();
 
-  // Rate limit: Enforce at least 20 seconds between recorded ads per user
+  // Rate limit: Enforce at least 15 seconds between recorded ads per user
   const lastRecord = lastRecordReactorTime.get(tidStr) || 0;
-  if (now - lastRecord < 20000) {
-    const wait = Math.ceil((20000 - (now - lastRecord)) / 1000);
+  if (now - lastRecord < 15000) {
+    const wait = Math.ceil((15000 - (now - lastRecord)) / 1000);
     return res.status(429).json({ error: `Ad recorded too fast! Please wait ${wait}s.` });
   }
 
@@ -196,10 +196,10 @@ router.post('/record-view', async (req, res) => {
     return res.status(403).json({ error: 'Session user mismatch.' });
   }
 
-  // Enforce minimum 15 seconds watching duration
+  // Enforce minimum 12 seconds watching duration
   const elapsed = (now - sessionData.created_at) / 1000;
-  if (elapsed < 15.0) {
-    return res.status(400).json({ error: 'Ad watched too fast! You must watch the complete video ad (at least 15s).' });
+  if (elapsed < 12.0) {
+    return res.status(400).json({ error: 'Ad watched too fast! You must watch the complete video ad (at least 12s).' });
   }
 
   // Consume token (one-time use)
@@ -222,7 +222,7 @@ router.post('/record-view', async (req, res) => {
     );
     const lastClaimAt = claimRes.rows[0]?.claimed_at;
 
-    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad')`;
+    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad', 'reactor_taddy')`;
     const countParams = [tid];
     if (lastClaimAt) {
       adCountQuery += ` AND created_at > $2`;
@@ -282,7 +282,7 @@ router.post('/claim', async (req, res) => {
     );
     const lastClaimAt = claimRes.rows[0]?.claimed_at;
 
-    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad')`;
+    let adCountQuery = `SELECT COUNT(*) as count FROM ad_views WHERE telegram_id = $1 AND ad_type IN ('reactor_usl', 'reactor_ad', 'reactor_taddy')`;
     const countParams = [tid];
     if (lastClaimAt) {
       adCountQuery += ` AND created_at > $2`;

@@ -365,7 +365,7 @@ export const startReactorAdView = withMock(
 
 export const recordReactorAdView = withMock(
   { success: true, total_ads: 1, stage: 0, can_claim: false },
-  (telegram_id, session_token = null) => () => api.post('/api/reactor/record-view', { telegram_id, session_token })
+  (telegram_id, session_token = null, provider = 'usl') => () => api.post('/api/reactor/record-view', { telegram_id, session_token, provider })
 )
 
 export const claimReactorReward = withMock(

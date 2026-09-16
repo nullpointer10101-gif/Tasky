@@ -7,7 +7,7 @@ import {
   Coins, Star, Check
 } from 'lucide-react';
 import triggerConfetti from '../confetti';
-import { showTowerAd } from '../adUtils';
+import { showTowerAd, showTaddyAd } from '../adUtils';
 import { getReactorStatus, startReactorAdView, recordReactorAdView, claimReactorReward } from '../api';
 import { useToast } from '../App';
 
@@ -172,7 +172,7 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
       }
       const sessionToken = startRes.data.session_token;
 
-      // 2. Play USL Ads only (TowerAds SDK v4) — no fallback
+      // 2. Play USL Ads only (TowerAds SDK v4)
       const res = await showTowerAd();
 
       if (!res?.success) {
@@ -190,7 +190,6 @@ export default function CyberReactorModal({ isOpen, onClose, user }) {
           errMsg.includes('sponsor');
 
         if (isNoFill) {
-          // Clear message: USL has no ad right now, NOT the user's fault, try again in a few mins
           showToast(
             '📡 USL Ad Network has no ad available right now. This is normal — ad inventory refreshes every few minutes. Please tap again shortly!',
             'error'
