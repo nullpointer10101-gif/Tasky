@@ -22,7 +22,7 @@ const TOWER_ADS_SCRIPT_ID    = 'tower-ads-sdk';
 // Taddy Ad Server Config
 const TADDY_SCRIPT_URL = 'https://sdk.taddy.pro/web/taddy.min.js?1317';
 const TADDY_SCRIPT_ID  = 'taddy-ad-sdk';
-const TADDY_PUB_ID     = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TADDY_PUB_ID) || '';
+const TADDY_PUB_ID     = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_TADDY_PUB_ID) || 'cc758817bd4491aedd406d4b02df178a';
 
 /**
  * Initializes the Taddy Ad SDK script & instance
@@ -30,6 +30,19 @@ const TADDY_PUB_ID     = (typeof import.meta !== 'undefined' && import.meta.env 
 export function initTaddy(pubId) {
   if (typeof window === 'undefined' || typeof document === 'undefined') return;
   const targetPubId = pubId || TADDY_PUB_ID;
+
+  const triggerReady = () => {
+    try {
+      if (window.Taddy) {
+        if (targetPubId && typeof window.Taddy.init === 'function') {
+          window.Taddy.init(targetPubId);
+        }
+        if (typeof window.Taddy.ready === 'function') {
+          window.Taddy.ready();
+        }
+      }
+    } catch (e) {}
+  };
 
   if (!document.getElementById(TADDY_SCRIPT_ID)) {
     try {
@@ -40,17 +53,14 @@ export function initTaddy(pubId) {
         s.setAttribute('data-pub-id', targetPubId);
       }
       s.async = true;
+      s.onload = triggerReady;
       document.head.appendChild(s);
-      console.log('[AdManager] 🚀 Injected Taddy SDK script');
+      console.log('[AdManager] 🚀 Injected Taddy SDK script with Pub ID:', targetPubId);
     } catch (e) {
       console.error('[AdManager] Taddy script injection error:', e);
     }
-  } else if (window.Taddy && targetPubId) {
-    try {
-      if (typeof window.Taddy.init === 'function') {
-        window.Taddy.init(targetPubId);
-      }
-    } catch (e) {}
+  } else {
+    triggerReady();
   }
 }
 
