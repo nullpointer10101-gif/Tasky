@@ -265,8 +265,18 @@ export async function showTaddyAd(pubId) {
     let adWasShown = false;
 
     try {
-      const adsService = taddy.ads();
-      adsService.interstitial({
+      const adsService = typeof taddy.ads === 'function' ? taddy.ads() : taddy;
+      const adMethod = (adsService && typeof adsService.interstitial === 'function') 
+        ? adsService.interstitial.bind(adsService) 
+        : ((adsService && typeof adsService.show === 'function') ? adsService.show.bind(adsService) : null);
+
+      if (!adMethod) {
+        return resolve({ success: false, network: 'taddy', error: 'Taddy ad format not supported' });
+      }
+
+      adMethod({
+        autoImpressions: true,
+        payload: { source: 'gram_task', app: 'tasky' },
         onClosed: () => {
           if (isSettled) return;
           isSettled = true;
@@ -290,7 +300,7 @@ export async function showTaddyAd(pubId) {
           viewedThrough = true;
         }
       }).then((shown) => {
-        console.log('[AdManager] Taddy interstitial call result (shown):', shown);
+        console.log('[AdManager] Taddy ad call result (shown):', shown);
         if (shown !== false) {
           adWasShown = true;
         } else if (!isSettled) {
