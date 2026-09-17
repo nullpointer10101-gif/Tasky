@@ -182,11 +182,23 @@ export default function Broadcast() {
     },
     {
       label: 'Variant 4: High Demand Cap Urgency 🚨',
-      text: `🚨 <b>URGENT: Gram rewards are filling up fast!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before it resets!\n\n💰 <b>Secure your payout here:</b>`
+      text: `🚨 <b>URGENT: Gram rewards pool is active!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before the reset!\n\n💰 <b>Secure your payout here:</b>`
     },
     {
       label: 'Variant 5: Claim & Rank Up 🏆',
       text: `🏆 <b>Boost your Tasky status with free GRAM!</b>\n\nDaily active miners are already claiming. Watch your 60 ads to unlock <b>0.02 GRAM</b> and increase your daily rank!\n\n💎 <b>Claim & Rank Up:</b>`
+    },
+    {
+      label: 'Variant 6: Cyber Reactor Jackpot Special 💥',
+      text: `💥 <b>2.00 GRAM Jackpot Vault is Charging!</b>\n\nCharge your Cyber Reactor! Every ad watched brings you closer to unlocking the <b>2.00 GRAM</b> jackpot vault + 20,000 TASKY bonus!\n\n⚡️ <b>Charge Core & Earn GRAM:</b>`
+    },
+    {
+      label: 'Variant 7: Daily Bounty Refresh 💸',
+      text: `🎁 <b>Fresh Daily Bounty Available!</b>\n\nYour 0.02 GRAM daily task reward is ready for pickup. Complete your short ad sessions and cash out straight to TON!\n\n💸 <b>Claim your bounty below:</b>`
+    },
+    {
+      label: 'Variant 8: Exclusive Instant Payout 👑',
+      text: `👑 <b>Exclusive GRAM Rewards Active!</b>\n\nDon't leave free crypto on the table! Tap below to open Tasky, complete your ads, and receive your <b>0.02 GRAM</b> reward instantly.\n\n💎 <b>Tap to launch Tasky:</b>`
     }
   ];
 

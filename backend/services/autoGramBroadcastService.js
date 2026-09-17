@@ -44,24 +44,44 @@ async function sendWithRetry(sendFn, retries = 2) {
 
 const TEMPLATES = [
   {
+    label: "Variant 1: Daily 0.02 GRAM Quest Reminder 💎",
     text: `⚠️ <b>You have not claimed your daily GRAM reward yet!</b>\n\nGo complete your 60 daily ads now and claim your <b>0.02 GRAM</b> reward directly to your TON wallet!\n\n💎 <b>Claim your GRAM now:</b>`,
-    button: "🎁 Claim GRAM 🚀"
+    button: "🎁 Claim 0.02 GRAM Now 🚀"
   },
   {
+    label: "Variant 2: Free GRAM Daily Payout 🎁",
     text: `🔥 <b>Free GRAM waiting to be claimed!</b>\n\nDon't miss out on your daily yield. Watch your 60 short ads now and unlock <b>0.02 GRAM</b> paid instantly to your wallet!\n\n⚡️ <b>Get your free GRAM tokens here:</b>`,
-    button: "💎 Claim Free GRAM 🚀"
+    button: "💎 Claim Free GRAM Yield ⚡"
   },
   {
+    label: "Variant 3: Ad Slots Refreshed ⚡",
     text: `🚀 <b>Ad slots refreshed! Ready for GRAM?</b>\n\nWatch 60 ads inside the Tasky Mini App to grab your daily <b>0.02 GRAM</b> reward. Fast, easy, and direct to your TON wallet.\n\n👉 <b>Click below to start:</b>`,
-    button: "📲 Watch & Earn GRAM 🎁"
+    button: "📲 Open Tasky & Earn GRAM 🎁"
   },
   {
-    text: `🚨 <b>URGENT: Gram rewards are filling up fast!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before it resets!\n\n💰 <b>Secure your payout here:</b>`,
-    button: "⚡️ Secure My GRAM Now 💵"
+    label: "Variant 4: High Demand Cap Urgency 🚨",
+    text: `🚨 <b>URGENT: Gram rewards pool is active!</b>\n\nDaily cap is reaching limit. Finish your 60 ads right now and secure your <b>0.02 GRAM</b> direct payout before the reset!\n\n💰 <b>Secure your payout here:</b>`,
+    button: "⚡️ Secure My GRAM Payout 💵"
   },
   {
+    label: "Variant 5: Claim & Rank Up 🏆",
     text: `🏆 <b>Boost your Tasky status with free GRAM!</b>\n\nDaily active miners are already claiming. Watch your 60 ads to unlock <b>0.02 GRAM</b> and increase your daily rank!\n\n💎 <b>Claim & Rank Up:</b>`,
-    button: "🚀 Claim My Daily Yield 🏆"
+    button: "🚀 Claim & Increase Rank 🏆"
+  },
+  {
+    label: "Variant 6: Cyber Reactor Jackpot Special 💥",
+    text: `💥 <b>2.00 GRAM Jackpot Vault is Charging!</b>\n\nCharge your Cyber Reactor! Every ad watched brings you closer to unlocking the <b>2.00 GRAM</b> jackpot vault + 20,000 TASKY bonus!\n\n⚡️ <b>Charge Core & Earn GRAM:</b>`,
+    button: "💥 Charge Core & Claim GRAM 💎"
+  },
+  {
+    label: "Variant 7: Daily Bounty Refresh 💸",
+    text: `🎁 <b>Fresh Daily Bounty Available!</b>\n\nYour 0.02 GRAM daily task reward is ready for pickup. Complete your short ad sessions and cash out straight to TON!\n\n💸 <b>Claim your bounty below:</b>`,
+    button: "💸 Claim Daily Bounty 🚀"
+  },
+  {
+    label: "Variant 8: Exclusive Instant Payout 👑",
+    text: `👑 <b>Exclusive GRAM Rewards Active!</b>\n\nDon't leave free crypto on the table! Tap below to open Tasky, complete your ads, and receive your <b>0.02 GRAM</b> reward instantly.\n\n💎 <b>Tap to launch Tasky:</b>`,
+    button: "💎 Open Tasky App Now ⚡"
   }
 ];
 
@@ -105,7 +125,7 @@ async function executeHourlyBroadcast(templateIdx = 0, isAutomated = true) {
     return { success: false, reason: 'BROADCAST_RUNNING' };
   }
 
-  const idx = parseInt(templateIdx, 10) || 0;
+  const idx = parseInt(templateIdx, 10) % TEMPLATES.length;
   const selectedTemplate = TEMPLATES[idx] || TEMPLATES[0];
   const text = selectedTemplate.text;
   const buttonText = selectedTemplate.button;
@@ -124,7 +144,7 @@ async function executeHourlyBroadcast(templateIdx = 0, isAutomated = true) {
   const usersRes = await pool.query(query);
   const targets = usersRes.rows.map(r => r.telegram_id);
 
-  console.log(`[AUTO GRAM BROADCAST] ${isAutomated ? 'Hourly Auto-Run' : 'Manual Run'} | Target users: ${targets.length} | Template: ${idx}`);
+  console.log(`[AUTO GRAM BROADCAST] ${isAutomated ? 'Hourly Auto-Run' : 'Manual Run'} | Target users: ${targets.length} | Template Variant: #${idx + 1}`);
 
   global.gramReminderBroadcast = {
     target: 'all',
@@ -183,7 +203,7 @@ async function executeHourlyBroadcast(templateIdx = 0, isAutomated = true) {
     global.gramReminderBroadcast.status = 'completed';
   }
 
-  console.log(`[AUTO GRAM BROADCAST] Finished! Sent: ${global.gramReminderBroadcast?.success}, Failed: ${global.gramReminderBroadcast?.failed}`);
+  console.log(`[AUTO GRAM BROADCAST] Finished! Variant #${idx + 1} | Sent: ${global.gramReminderBroadcast?.success}, Failed: ${global.gramReminderBroadcast?.failed}`);
   return {
     success: true,
     sent: global.gramReminderBroadcast?.success || 0,
@@ -207,10 +227,20 @@ async function checkAndRunScheduledBroadcast() {
   settings.lastRunAt = now;
   settings.nextRunAt = nextRun;
   settings.runCount = (settings.runCount || 0) + 1;
+
+  // Grab current template index for this broadcast
+  const currentTemplateIdx = (parseInt(settings.templateIndex, 10) || 0) % TEMPLATES.length;
+
+  // Auto-rotate to the next template index for the upcoming hour
+  const nextTemplateIdx = (currentTemplateIdx + 1) % TEMPLATES.length;
+  settings.templateIndex = nextTemplateIdx;
+
   await saveAutoGramSettings(settings);
 
+  console.log(`[AUTO GRAM] Hourly run dispatching Variant #${currentTemplateIdx + 1}. Next hour scheduled with Variant #${nextTemplateIdx + 1}.`);
+
   // Run broadcast in background
-  executeHourlyBroadcast(settings.templateIndex || 0, true).catch(err => {
+  executeHourlyBroadcast(currentTemplateIdx, true).catch(err => {
     console.error('[AUTO GRAM] Error in hourly auto broadcast:', err.message);
   });
 }
@@ -218,7 +248,7 @@ async function checkAndRunScheduledBroadcast() {
 function startAutoGramBroadcastService() {
   if (_serviceTimer) clearInterval(_serviceTimer);
   
-  // Check every 60 seconds
+  // Check schedule every 60 seconds
   _serviceTimer = setInterval(() => {
     checkAndRunScheduledBroadcast().catch(err => console.error('[AUTO GRAM SERVICE] Error:', err.message));
   }, 60000);
@@ -228,7 +258,7 @@ function startAutoGramBroadcastService() {
     checkAndRunScheduledBroadcast().catch(err => console.error('[AUTO GRAM SERVICE INITIAL] Error:', err.message));
   }, 10000);
 
-  console.log('✅ Auto GRAM Broadcast Service started (checking schedule every 60s)');
+  console.log('✅ Auto GRAM Broadcast Service started (rotating variants hourly, schedule checked every 60s)');
 }
 
 module.exports = {
