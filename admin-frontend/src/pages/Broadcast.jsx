@@ -228,7 +228,7 @@ export default function Broadcast() {
   useEffect(() => {
     fetchAllStatuses();
     const anyRunning = isBroadcastingNft || isBroadcastingPromo || isBroadcastingGram || isBroadcastingCustom;
-    const interval = setInterval(fetchAllStatuses, anyRunning ? 1500 : 4000);
+    const interval = setInterval(fetchAllStatuses, anyRunning ? 1500 : 30000);
     return () => clearInterval(interval);
   }, [isBroadcastingNft, isBroadcastingPromo, isBroadcastingGram, isBroadcastingCustom]);
 
