@@ -162,7 +162,7 @@ export default function Gram({ user, refreshUser }) {
 
   useEffect(() => {
     if (user?.telegram_id) fetchStatus();
-  }, [user]);
+  }, [user?.telegram_id]);
 
   const isFirstAttempt = status?.is_first_attempt ?? (status?.total_previous_claims === 0);
   const reqGiga = status?.required_gigapub ?? (isFirstAttempt ? 30 : 40);

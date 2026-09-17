@@ -75,7 +75,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
     }
   }, [tonAddressRaw, user?.wallet_address]);
 
-  useEffect(() => { fetchData(); }, [user, activeTab]);
+  useEffect(() => { fetchGramData(); }, [user?.telegram_id, activeTab]);
 
   const handleSaveWallet = async () => {
     if (!walletInput || walletInput.length < 20 || !walletInput.startsWith('0x')) {
