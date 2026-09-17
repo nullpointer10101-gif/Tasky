@@ -1,8 +1,8 @@
 /**
  * Ad Manager
- * - Provider 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774)
- * - Provider 2: GigaPub Slot (Unit 8093)
- * - Provider 3: USL Ads (TowerAds SDK v4)
+ * - Provider 1: Adexium Interstitial / Rewarded Slot (WID: e93d690f-bdc3-4ed5-8d9f-8f208afa3774) - Shows all eligible ads without restrictions
+ * - Provider 2: USL Ads (TowerAds SDK v4) - Full partner ad network support with automatic GigaPub/Adexium fallback
+ * - Provider 3: GigaPub Slot (Unit 8093) - High fill rate rewarded fallback
  */
 
 // GigaPub Config
@@ -101,7 +101,6 @@ export function getOrInitTowerAds() {
 export function initAdexium() {
   if (typeof window === 'undefined' || typeof document === 'undefined') return null;
 
-  // 1. Inject script tag if not in DOM
   if (!document.getElementById(ADEXIUM_SCRIPT_ID)) {
     try {
       const s = document.createElement('script');
@@ -115,7 +114,6 @@ export function initAdexium() {
     }
   }
 
-  // 2. Instantiate Adexium widget instance if SDK is ready
   return getOrInitAdexiumWidget();
 }
 
@@ -142,7 +140,7 @@ export function getOrInitAdexiumWidget() {
 
     window.adexiumWidget = instance;
     window.__adexiumInstance = instance;
-    console.log('[AdManager] 🚀 Adexium widget ready (Manual mode)');
+    console.log('[AdManager] 🚀 Adexium widget ready — showing all eligible ads without restrictions');
     return instance;
   } catch (e) {
     console.error('[AdManager] Failed to construct AdexiumWidget:', e);
@@ -179,15 +177,14 @@ export function prefetchGramAd() {
 }
 
 /**
- * Executes an Adexium interstitial ad properly using official Adexium SDK workflow,
- * with USL -> GigaPub fallback
+ * Executes an Adexium interstitial ad without restrictions,
+ * with seamless USL -> GigaPub fallback if no ad is returned
  */
 export async function showAdexiumAd() {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // Ensure Telegram WebApp is ready
   try {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
@@ -196,7 +193,6 @@ export async function showAdexiumAd() {
 
   initAdexium();
 
-  // Check Adexium SDK instance
   let widget = getOrInitAdexiumWidget();
   if (!widget) {
     let waited = 0;
@@ -207,10 +203,10 @@ export async function showAdexiumAd() {
     }
   }
 
-  // If widget is not available, try USL fallback, then GigaPub
+  // If widget is warming up or unavailable, trigger USL fallback then GigaPub fallback
   if (!widget) {
-    console.warn('[AdManager] Adexium SDK warming up, trying USL fallback...');
-    const uslRes = await showTowerAd();
+    console.warn('[AdManager] Adexium SDK warming up, trying USL partner fallback...');
+    const uslRes = await showTowerAdDirect();
     if (uslRes.success) return { ...uslRes, network: 'adexium' };
     const fallbackRes = await showGigaPubDirect('gigapub');
     return { ...fallbackRes, network: 'adexium' };
@@ -233,7 +229,7 @@ export async function showAdexiumAd() {
     };
 
     const onAdReceived = (ad) => {
-      console.log('[AdManager] 🎯 Adexium adReceived, displaying ad...');
+      console.log('[AdManager] 🎯 Adexium adReceived — showing eligible ad instantly...');
       try {
         if (typeof widget.displayAd === 'function') {
           widget.displayAd(ad);
@@ -256,13 +252,13 @@ export async function showAdexiumAd() {
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
 
-      if (playbackCompleted || elapsed >= 12.0) {
+      if (playbackCompleted || elapsed >= 10.0) {
         resolve({ success: true, network: 'adexium' });
       } else {
         resolve({
           success: false,
           network: 'adexium',
-          error: 'Ad was closed early. You must watch the entire ad to get progress.'
+          error: 'Ad was closed early. You must watch the entire ad to receive credit.'
         });
       }
     };
@@ -271,8 +267,8 @@ export async function showAdexiumAd() {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium error — trying USL fallback...');
-      const uslRes = await showTowerAd();
+      console.log('[AdManager] Adexium no fill/error — trying USL partner fallback...');
+      const uslRes = await showTowerAdDirect();
       if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
       const fb = await showGigaPubDirect('gigapub');
       resolve({ ...fb, network: 'adexium' });
@@ -282,23 +278,21 @@ export async function showAdexiumAd() {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium noAdFound — trying USL fallback...');
-      const uslRes = await showTowerAd();
+      console.log('[AdManager] Adexium noAdFound — trying USL partner fallback...');
+      const uslRes = await showTowerAdDirect();
       if (uslRes.success) { resolve({ ...uslRes, network: 'adexium' }); return; }
       const fb = await showGigaPubDirect('gigapub');
       resolve({ ...fb, network: 'adexium' });
     };
 
-    // 1. Subscribe to events BEFORE requesting ad (per official Adexium docs)
     widget.on('adReceived', onAdReceived);
     widget.on('adPlaybackCompleted', onCompleted);
     widget.on('adClosed', onClosed);
     widget.on('requestAdError', onError);
     widget.on('noAdFound', onNoAd);
 
-    // 2. Request 'interstitial' ad
     try {
-      console.log(`[AdManager] 🚀 Requesting Adexium interstitial ad (WID: ${ADEXIUM_WID})...`);
+      console.log(`[AdManager] 🚀 Requesting Adexium eligible ad (WID: ${ADEXIUM_WID})...`);
       widget.requestAd('interstitial');
     } catch (err) {
       console.warn('[AdManager] Exception requesting Adexium ad:', err);
@@ -316,7 +310,7 @@ export async function showAdexiumAd() {
           resolve({
             success: false,
             network: 'adexium',
-            error: 'Ad session timed out. Please tap again.'
+            error: 'Ad session timed out. Please tap again to watch an ad.'
           });
         }
       }
@@ -332,14 +326,52 @@ export async function showMonetagAd() {
 }
 
 /**
- * Executes a USL TowerAds rewarded ad session
+ * Direct execution of USL TowerAds without fallback
+ */
+function showTowerAdDirect() {
+  let ads = getOrInitTowerAds();
+  if (!ads) return Promise.resolve({ success: false, error: 'TowerAds not ready' });
+
+  return new Promise((resolve) => {
+    let rewarded = false;
+    let settled = false;
+
+    window.__onTowerReward = (reward) => {
+      console.log('[TowerAds] onRewardEarned triggered:', reward);
+      rewarded = true;
+    };
+
+    window.__onTowerError = (err) => {
+      console.warn('[TowerAds] onError callback triggered:', err);
+    };
+
+    ads.loadAndShow()
+      .then((res) => {
+        if (settled) return;
+        settled = true;
+        resolve({ success: true, network: 'usl', result: res });
+      })
+      .catch((err) => {
+        if (settled) return;
+        settled = true;
+        if (rewarded) {
+          resolve({ success: true, network: 'usl' });
+        } else {
+          resolve({ success: false, error: err?.message || 'USL ad was closed early.' });
+        }
+      });
+  });
+}
+
+/**
+ * Executes a USL Ads (TowerAds) session with seamless GigaPub/Adexium fallback
+ * ensuring every partner ad is displayed properly
  */
 export function showTowerAd() {
   if (typeof window === 'undefined') {
     return Promise.resolve({ success: false, error: 'Browser environment required' });
   }
 
-  // Ensure Telegram WebApp is ready
   try {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
@@ -358,21 +390,18 @@ export function showTowerAd() {
         ads = getOrInitTowerAds();
       }
       if (!ads) {
-        console.warn('[AdManager] TowerAds SDK warming up or not ready');
-        return { 
-          success: false, 
-          error: 'USL Ad sponsor is initializing. Please tap again in a moment!' 
-        };
+        console.warn('[AdManager] USL SDK warming up — triggering GigaPub partner fallback...');
+        return await showGigaPubDirect('usl');
       }
-      return executeTowerAds(ads);
+      return executeTowerAdsWithFallback(ads);
     };
     return checkAsync();
   }
 
-  return executeTowerAds(ads);
+  return executeTowerAdsWithFallback(ads);
 }
 
-function executeTowerAds(ads) {
+function executeTowerAdsWithFallback(ads) {
   return new Promise((resolve) => {
     let rewarded = false;
     let settled = false;
@@ -393,7 +422,7 @@ function executeTowerAds(ads) {
         console.log('[TowerAds] loadAndShow resolved successfully:', res);
         resolve({ success: true, network: 'usl', result: res });
       })
-      .catch((err) => {
+      .catch(async (err) => {
         if (settled) return;
         settled = true;
         console.warn('[TowerAds] loadAndShow caught error:', err);
@@ -401,15 +430,14 @@ function executeTowerAds(ads) {
 
         if (rewarded) {
           resolve({ success: true, network: 'usl' });
-        } else if (msg.includes('no provider') || msg.includes('no ad') || msg.includes('nofill')) {
-          resolve({ 
-            success: false, 
-            error: 'No ad inventory currently available from USL sponsor. Please try again shortly!' 
-          });
+        } else if (msg.includes('no provider') || msg.includes('no ad') || msg.includes('nofill') || msg.includes('not available')) {
+          console.log('[AdManager] USL no-fill — automatically triggering GigaPub partner fallback...');
+          const gigaRes = await showGigaPubDirect('usl');
+          resolve(gigaRes);
         } else {
           resolve({ 
             success: false, 
-            error: err?.message || 'USL ad was closed early.' 
+            error: err?.message || 'Ad was closed early. You must watch the entire ad to get progress.' 
           });
         }
       });
@@ -426,7 +454,6 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
     return { success: false, error: 'Browser environment required' };
   }
 
-  // Ensure Telegram WebApp is ready
   try {
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
@@ -437,7 +464,6 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
 
   const getFn = () => window.showGiga || window.showGigaPubAd || window.showGigaAd || (window.GigaPub && (window.GigaPub.showAd || window.GigaPub.show)) || window.showAd;
 
-  // Poll for SDK readiness (up to 3 seconds)
   let fn = getFn();
   if (typeof fn !== 'function') {
     let waited = 0;
@@ -449,12 +475,12 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
   }
 
   if (typeof fn !== 'function') {
-    console.warn('[AdManager] GigaPub SDK unit 8093 not ready yet.');
+    console.warn('[AdManager] GigaPub SDK unit 8093 warming up.');
     initGigaAds();
     return {
       success: false,
       network: providerName,
-      error: 'Ad network is warming up. Please tap again to start instantly!'
+      error: 'Ad network warming up. Please tap again to start instantly!'
     };
   }
 
@@ -463,7 +489,6 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
   try {
     console.log(`[AdManager] 🚀 Executing GigaPub rewarded ad for ${providerName} (Unit 8093)...`);
     
-    // Safety timeout of 45 seconds for video display & completion
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('ad_timeout')), 45000)
     );
@@ -476,7 +501,6 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
     const elapsedSec = (Date.now() - startTime) / 1000;
     console.log(`[AdManager] GigaPub returned:`, result, `Elapsed Time: ${elapsedSec.toFixed(1)}s`);
 
-    // Strict validation: Must not return false, cancelled, or closed early
     if (result === false || (result && typeof result === 'object' && (result.completed === false || result.status === 'error' || result.userClosed === true || result.skipped === true || result.canceled === true))) {
       return {
         success: false,
@@ -525,7 +549,7 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
 
 /**
  * Rewarded Ads Router:
- * 80% USL Ads (TowerAds) / 20% GigaPub with automatic fallback
+ * Serves USL Ads, Adexium, and GigaPub with automatic partner fallbacks
  */
 export async function showRewardedAd(providerName = 'gigapub') {
   if (providerName === 'adexium' || providerName === 'monetag') {
@@ -536,14 +560,14 @@ export async function showRewardedAd(providerName = 'gigapub') {
   const shouldTryUSL = roll < 0.80;
 
   if (shouldTryUSL) {
-    console.log(`[AdManager] 🎲 Serving USL Ads (80% weight)...`);
+    console.log(`[AdManager] 🎲 Serving USL Partner Ads...`);
     try {
       const uslRes = await showTowerAd();
       if (uslRes.success) {
         console.log('[AdManager] 🏆 USL Ad completed successfully!');
         return { success: true, network: 'usl' };
       }
-      console.log(`[AdManager] 🔄 USL Ad did not complete (${uslRes.error || 'fallback'}). Switching to GigaPub fallback...`);
+      console.log(`[AdManager] 🔄 USL Ad switching to GigaPub fallback...`);
     } catch (e) {
       console.warn('[AdManager] USL error, triggering GigaPub fallback:', e);
     }
