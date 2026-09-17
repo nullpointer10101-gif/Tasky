@@ -77,7 +77,7 @@ let lastDashboardStatsTime = 0;
 router.get('/stats', async (req, res) => {
   try {
     const now = Date.now();
-    if (cachedDashboardStats && (now - lastDashboardStatsTime < 4000)) {
+    if (cachedDashboardStats && (now - lastDashboardStatsTime < 15000)) {
       return res.json(cachedDashboardStats);
     }
 
@@ -127,7 +127,7 @@ router.get('/stats', async (req, res) => {
         FROM users
         WHERE created_at >= CURRENT_DATE
         ORDER BY created_at DESC
-        LIMIT 500
+        LIMIT 50
       `),
       onlineIds.length > 0 ? pool.query(
         'SELECT telegram_id, username, first_name, balance FROM users WHERE telegram_id = ANY($1)',
@@ -152,7 +152,7 @@ router.get('/stats', async (req, res) => {
       }).sort((a, b) => b.timestamp - a.timestamp);
     }
 
-    const recentLogsList = (global.recentLogs || []).map(log => {
+    const recentLogsList = (global.recentLogs || []).slice(0, 30).map(log => {
       const matchedUser = activeUsersList.find(u => u.telegram_id.toString() === log.telegram_id);
       return {
         ...log,
