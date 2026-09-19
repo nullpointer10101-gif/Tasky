@@ -167,8 +167,7 @@ async function executeHourlyBroadcast(templateIdx = 0, isAutomated = true) {
 
   const replyMarkup = {
     inline_keyboard: [
-      // Deep link: triggers /start → counts as Telegram Monthly Active User (MAU)
-      [{ text: buttonText, url: 'https://t.me/TaskyAppbot?start=open' }]
+      [{ text: buttonText, url: 'https://t.me/TaskyAppbot/app' }]
     ]
   };
 
