@@ -466,10 +466,10 @@ router.post('/claim', async (req, res) => {
         const adCountRes = await client.query(`
             SELECT 
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
-                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag')) as adexium_count
+                COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
@@ -502,7 +502,7 @@ router.post('/claim', async (req, res) => {
             SELECT COUNT(*) as total
             FROM ad_views
             WHERE telegram_id = $1
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag')
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [telegram_id]);
         const totalAdsToday = parseInt(totalAdsRes.rows[0].total || 0, 10);
@@ -520,7 +520,7 @@ router.post('/claim', async (req, res) => {
             UPDATE ad_views 
             SET claimed = TRUE 
             WHERE telegram_id = $1 
-              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag') 
+              AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy') 
               AND claimed = FALSE
         `, [telegram_id]);
 
