@@ -1169,7 +1169,17 @@ router.post('/broadcast', async (req, res) => {
           try {
             const activeBot = getActiveTelegramBot();
             if (activeBot && typeof activeBot.sendMessage === 'function') {
-              await sendWithRetry(() => activeBot.sendMessage(tid, message, { parse_mode: 'HTML' }));
+              // Deep-link button: clicking it sends /start to the bot, which
+              // registers the user as a Telegram Monthly Active User (MAU)
+              const broadcastOpts = {
+                parse_mode: 'HTML',
+                reply_markup: {
+                  inline_keyboard: [[
+                    { text: '🤖 Open TASKY 🚀', url: 'https://t.me/TaskyAppbot?start=open' }
+                  ]]
+                }
+              };
+              await sendWithRetry(() => activeBot.sendMessage(tid, message, broadcastOpts));
               if (global.customBroadcast) global.customBroadcast.success++;
             } else {
               if (global.customBroadcast) {
