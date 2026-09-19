@@ -61,58 +61,63 @@ export default function App() {
   }, [activePage])
 
   const boot = async () => {
-    // Robust ref extraction supporting Telegram Mobile SDK, query params, and URL hash
-    let ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
-    
-    if (!ref) {
-      const urlParams = new URLSearchParams(window.location.search);
-      ref = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || urlParams.get('start') || urlParams.get('ref') || null;
-    }
-
-    if (!ref && window.location.hash) {
-      const hashClean = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : window.location.hash;
-      const hashParams = new URLSearchParams(hashClean);
-      ref = hashParams.get('tgWebAppStartParam') || hashParams.get('startapp') || hashParams.get('start') || hashParams.get('ref') || null;
-    }
-
-    if (ref) {
-      ref = String(ref).trim();
-    }
-    
-    setNetworkError(false);
-    const { data, error } = await registerUser({
-      telegram_id: tgUser.id,
-      username: tgUser.username,
-      first_name: tgUser.first_name,
-      ref,
-    })
-    if (error) {
-      console.error("Boot error:", error);
-      if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
-        setMaintenance(true)
-      } else if (String(error).includes('Network Error') || String(error).includes('timeout') || String(error).includes('502') || String(error).includes('504')) {
-        setNetworkError(true)
-      } else {
-        // If it's another error, just set user to a fallback state so it doesn't hang infinitely
-        setUser({ 
-          ...tgUser, 
-          telegram_id: tgUser.id,
-          balance: 0,
-          total_earned: 0,
-          task_earnings: 0,
-          referral_earnings: 0,
-          streak_days: 0,
-          created_at: new Date().toISOString(),
-          tasks_done: 0,
-          spins_available: 0,
-          spins_used_today: 0,
-          is_banned: false
-        }) 
-        setToast({ message: String(error), type: 'error' })
+    try {
+      // Robust ref extraction supporting Telegram Mobile SDK, query params, and URL hash
+      let ref = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+      
+      if (!ref) {
+        const urlParams = new URLSearchParams(window.location.search);
+        ref = urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || urlParams.get('start') || urlParams.get('ref') || null;
       }
-    } else if (data) {
-      setUser(data)
-      setNetworkError(false)
+
+      if (!ref && window.location.hash) {
+        const hashClean = window.location.hash.startsWith('#') ? window.location.hash.substring(1) : window.location.hash;
+        const hashParams = new URLSearchParams(hashClean);
+        ref = hashParams.get('tgWebAppStartParam') || hashParams.get('startapp') || hashParams.get('start') || hashParams.get('ref') || null;
+      }
+
+      if (ref) {
+        ref = String(ref).trim();
+      }
+      
+      setNetworkError(false);
+      const { data, error } = await registerUser({
+        telegram_id: tgUser.id,
+        username: tgUser.username,
+        first_name: tgUser.first_name,
+        ref,
+      })
+      if (error) {
+        console.error("Boot error:", error);
+        if (error === 'MAINTENANCE_MODE' || String(error).includes('503')) {
+          setMaintenance(true)
+        } else if (String(error).includes('Network Error') || String(error).includes('timeout') || String(error).includes('502') || String(error).includes('504')) {
+          setNetworkError(true)
+        } else {
+          // If it's another error, set user fallback state so it doesn't hang
+          setUser({ 
+            ...tgUser, 
+            telegram_id: tgUser.id,
+            balance: 0,
+            total_earned: 0,
+            task_earnings: 0,
+            referral_earnings: 0,
+            streak_days: 0,
+            created_at: new Date().toISOString(),
+            tasks_done: 0,
+            spins_available: 0,
+            spins_used_today: 0,
+            is_banned: false
+          }) 
+          setToast({ message: String(error), type: 'error' })
+        }
+      } else if (data) {
+        setUser(data)
+        setNetworkError(false)
+      }
+    } catch (err) {
+      console.error("[App] Uncaught exception during boot:", err);
+      setNetworkError(true);
     }
   }
 
