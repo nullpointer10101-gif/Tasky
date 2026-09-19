@@ -148,27 +148,7 @@ export function getOrInitAdexiumWidget() {
   }
 }
 
-// Auto-initialize ad networks immediately
-initGigaAds();
-initAdexium();
-initTowerAds();
-
-// Also hook to DOMContentLoaded for guaranteed execution
-if (typeof document !== 'undefined') {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      initAdexium();
-      initGigaAds();
-      getOrInitTowerAds();
-    });
-  } else {
-    setTimeout(() => {
-      initAdexium();
-      initGigaAds();
-      getOrInitTowerAds();
-    }, 100);
-  }
-}
+// Ad SDKs are loaded on-demand when a user requests an ad
 
 export function prefetchGramAd() {
   initGigaAds();
