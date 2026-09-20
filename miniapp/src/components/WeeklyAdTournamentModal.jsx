@@ -131,23 +131,41 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
       </div>
 
       {/* ── TROPHY HERO ── */}
-      <div style={{ flexShrink:0, textAlign:'center', padding:'10px 20px 14px',
+      <div style={{ flexShrink:0, textAlign:'center', padding:'8px 14px 12px',
         borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
-        <div style={{ fontSize:48, lineHeight:1, animation:'trophy-bob 3s ease-in-out infinite',
-          filter:'drop-shadow(0 0 20px rgba(251,191,36,0.9)) drop-shadow(0 0 40px rgba(251,191,36,0.4))' }}>
-          🏆
-        </div>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginTop:8 }}>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>1st Prize</div>
-            <div style={{ fontSize:28, fontWeight:900, color:'#fbbf24', lineHeight:1, letterSpacing:'-0.02em' }}>1.00 GRAM</div>
-          </div>
-          <div style={{ width:1, height:40, background:'rgba(255,255,255,0.1)' }}/>
-          <div>
-            <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Ends in</div>
-            <div style={{ fontSize:16, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.02em', fontFamily:'monospace' }}>
-              {pad(tl.d)}d {pad(tl.h)}h {pad(tl.m)}m {pad(tl.s)}s
+        
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:10, marginBottom:4 }}>
+          <div style={{ fontSize:32, lineHeight:1, animation:'trophy-bob 3s ease-in-out infinite',
+            filter:'drop-shadow(0 0 15px rgba(251,191,36,0.9))' }}>🏆</div>
+          <div style={{ textAlign:'left' }}>
+            <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Tournament Ends In</div>
+            <div style={{ fontSize:15, fontWeight:900, color:'#fff', letterSpacing:'0.02em', fontFamily:'monospace' }}>
+              ⏳ {pad(tl.d)}d {pad(tl.h)}h {pad(tl.m)}m {pad(tl.s)}s
             </div>
+          </div>
+        </div>
+
+        {/* Top 3 Prize Cards Row */}
+        <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:8 }}>
+          <div style={{ flex:1, padding:'7px 4px', borderRadius:12,
+            background:'linear-gradient(135deg,rgba(251,191,36,0.18),rgba(245,158,11,0.06))',
+            border:'1px solid rgba(251,191,36,0.35)', textAlign:'center' }}>
+            <div style={{ fontSize:9, fontWeight:900, color:'#fbbf24', textTransform:'uppercase' }}>🥇 1st Place</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:1 }}>1.00 GRAM</div>
+          </div>
+
+          <div style={{ flex:1, padding:'7px 4px', borderRadius:12,
+            background:'linear-gradient(135deg,rgba(203,213,225,0.14),rgba(148,163,184,0.05))',
+            border:'1px solid rgba(203,213,225,0.25)', textAlign:'center' }}>
+            <div style={{ fontSize:9, fontWeight:900, color:'#cbd5e1', textTransform:'uppercase' }}>🥈 2nd Place</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:1 }}>0.50 GRAM</div>
+          </div>
+
+          <div style={{ flex:1, padding:'7px 4px', borderRadius:12,
+            background:'linear-gradient(135deg,rgba(245,158,11,0.14),rgba(180,83,9,0.05))',
+            border:'1px solid rgba(245,158,11,0.25)', textAlign:'center' }}>
+            <div style={{ fontSize:9, fontWeight:900, color:'#f59e0b', textTransform:'uppercase' }}>🥉 3rd Place</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:1 }}>0.30 GRAM</div>
           </div>
         </div>
       </div>
