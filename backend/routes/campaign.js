@@ -220,6 +220,42 @@ router.get('/tournament', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/campaign/start-watch — Create crypto session token for campaign ad
+// ─────────────────────────────────────────────────────────────────────────────
+global.campaignAdSessions = global.campaignAdSessions || new Map();
+
+router.post('/start-watch', async (req, res) => {
+  const { telegram_id, provider = 'adexium' } = req.body;
+  if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
+
+  try {
+    const tidStr = String(telegram_id);
+    const session_token = crypto.randomBytes(24).toString('hex');
+    const normalizedProvider = (provider === 'adexium' || provider === 'monetag') ? 'adexium' : 'gigapub';
+
+    global.campaignAdSessions.set(session_token, {
+      telegram_id: tidStr,
+      provider: normalizedProvider,
+      created_at: Date.now()
+    });
+
+    if (global.campaignAdSessions.size > 2000) {
+      const now = Date.now();
+      for (const [tok, data] of global.campaignAdSessions.entries()) {
+        if (now - data.created_at > 300000) {
+          global.campaignAdSessions.delete(tok);
+        }
+      }
+    }
+
+    res.json({ success: true, session_token });
+  } catch (err) {
+    console.error('[Campaign] Error in /start-watch:', err);
+    res.status(500).json({ error: 'Failed to initiate campaign ad session' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/campaign/watch-ad — Track ad view for active 7-day tournament
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/watch-ad', async (req, res) => {
@@ -235,6 +271,27 @@ router.post('/watch-ad', async (req, res) => {
     const userRes = await pool.query('SELECT telegram_id, is_banned FROM users WHERE telegram_id::text = $1', [String(telegram_id)]);
     if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
     if (userRes.rows[0].is_banned) return res.status(403).json({ error: 'Account suspended' });
+
+    // Server-Side Session Validation
+    global.campaignAdSessions = global.campaignAdSessions || new Map();
+    const sessionData = session_token ? global.campaignAdSessions.get(session_token) : null;
+
+    if (!session_token || !sessionData) {
+      return res.status(400).json({ error: 'Invalid or expired ad session. You must watch the full ad (at least 15s).' });
+    }
+
+    if (sessionData.telegram_id !== String(telegram_id)) {
+      return res.status(403).json({ error: 'Session user mismatch' });
+    }
+
+    const elapsedSec = (Date.now() - sessionData.created_at) / 1000;
+    global.campaignAdSessions.delete(session_token);
+
+    const MIN_ELAPSED = 15.0;
+    if (elapsedSec < MIN_ELAPSED) {
+      const remaining = Math.ceil(MIN_ELAPSED - elapsedSec);
+      return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor ad (at least 15s) to earn credit. Please wait ${remaining}s.` });
+    }
 
     const tournament = await getActiveTournament();
 

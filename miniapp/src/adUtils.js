@@ -232,13 +232,13 @@ export async function showAdexiumAd() {
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
 
-      if (playbackCompleted || elapsed >= 10.0) {
+      if (elapsed >= 15.0) {
         resolve({ success: true, network: 'adexium' });
       } else {
         resolve({
           success: false,
           network: 'adexium',
-          error: 'Ad was closed early. You must watch the entire ad to receive credit.'
+          error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch at least 15 seconds to receive credit.`
         });
       }
     };
@@ -315,6 +315,7 @@ function showTowerAdDirect() {
   return new Promise((resolve) => {
     let rewarded = false;
     let settled = false;
+    const startTime = Date.now();
 
     window.__onTowerReward = (reward) => {
       console.log('[TowerAds] onRewardEarned triggered:', reward);
@@ -329,15 +330,21 @@ function showTowerAdDirect() {
       .then((res) => {
         if (settled) return;
         settled = true;
-        resolve({ success: true, network: 'usl', result: res });
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        if (elapsedSec < 15.0) {
+          resolve({ success: false, error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 15 seconds to receive credit.` });
+        } else {
+          resolve({ success: true, network: 'usl', result: res });
+        }
       })
       .catch((err) => {
         if (settled) return;
         settled = true;
-        if (rewarded) {
+        const elapsedSec = (Date.now() - startTime) / 1000;
+        if (rewarded && elapsedSec >= 15.0) {
           resolve({ success: true, network: 'usl' });
         } else {
-          resolve({ success: false, error: err?.message || 'USL ad was closed early.' });
+          resolve({ success: false, error: err?.message || `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 15 seconds to receive credit.` });
         }
       });
   });
@@ -486,6 +493,15 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
         success: false,
         network: providerName,
         error: 'Ad was closed early. You must watch the entire ad to get progress.'
+      };
+    }
+
+    if (elapsedSec < 15.0) {
+      console.warn(`[AdManager] GigaPub ad closed early (${elapsedSec.toFixed(1)}s < 15s). Credit denied.`);
+      return {
+        success: false,
+        network: providerName,
+        error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 15 seconds to receive credit.`
       };
     }
 

@@ -196,10 +196,10 @@ router.post('/record-view', async (req, res) => {
     return res.status(403).json({ error: 'Session user mismatch.' });
   }
 
-  // Enforce minimum 12 seconds watching duration
+  // Enforce minimum 15 seconds watching duration
   const elapsed = (now - sessionData.created_at) / 1000;
-  if (elapsed < 12.0) {
-    return res.status(400).json({ error: 'Ad watched too fast! You must watch the complete video ad (at least 12s).' });
+  if (elapsed < 15.0) {
+    return res.status(400).json({ error: 'Ad watched too fast! You must watch the complete video ad (at least 15s).' });
   }
 
   // Consume token (one-time use)

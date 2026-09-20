@@ -389,6 +389,11 @@ export const getCampaignTournament = withMock(
   (telegram_id) => () => api.get(`/api/campaign/tournament?telegram_id=${telegram_id}&_t=${Date.now()}`)
 )
 
+export const startWatchCampaignAd = withMock(
+  { success: true, session_token: 'mock_campaign_token' },
+  (telegram_id, provider = 'adexium') => () => api.post('/api/campaign/start-watch', { telegram_id, provider })
+)
+
 export const recordCampaignAd = withMock(
   { success: true, campaign_ads_watched: 86 },
   (telegram_id, provider = 'gigapub', session_token = null) => () => api.post('/api/campaign/watch-ad', { telegram_id, provider, session_token })

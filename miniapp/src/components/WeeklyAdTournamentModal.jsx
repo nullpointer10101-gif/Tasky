@@ -1,6 +1,6 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { X, Play, RefreshCw, Zap } from 'lucide-react';
-import { getCampaignTournament, recordCampaignAd } from '../api';
+import { getCampaignTournament, startWatchCampaignAd, recordCampaignAd } from '../api';
 import { showRewardedAd } from '../adUtils';
 import { useToast } from '../App';
 
@@ -54,13 +54,26 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
     if (watching) return;
     setWatching(true);
     try {
+      const startRes = await startWatchCampaignAd(user?.telegram_id, 'adexium').catch(() => null);
+      const sessionToken = startRes?.data?.session_token || null;
+
       const r = await showRewardedAd('adexium');
       if (r.success) {
-        const { data: rec } = await recordCampaignAd(user.telegram_id, r.network || 'gigapub');
-        if (rec?.success) { showToast?.('🔥 +1 Ad counted! Rank updating...', 'success'); load(); }
-      } else { showToast?.(r.error || 'Watch the full ad!', 'error'); }
-    } catch { showToast?.('Try again!', 'error'); }
-    finally { setWatching(false); }
+        const res = await recordCampaignAd(user?.telegram_id, r.network || 'gigapub', sessionToken);
+        if (res?.data?.success) {
+          showToast?.('🔥 +1 Ad counted! Rank updating...', 'success');
+          load();
+        } else {
+          showToast?.(res?.data?.error || 'Ad verification failed. Must watch for at least 15 seconds!', 'error');
+        }
+      } else {
+        showToast?.(r.error || 'Must watch the ad for at least 15 seconds!', 'error');
+      }
+    } catch (err) {
+      showToast?.(err?.response?.data?.error || 'Try again!', 'error');
+    } finally {
+      setWatching(false);
+    }
   };
 
   if (!isOpen) return null;
