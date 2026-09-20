@@ -52,8 +52,10 @@ function App() {
     return <div className="h-screen bg-surface flex items-center justify-center text-ink">Loading Vault...</div>;
   }
 
+  const basename = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin') ? '/admin' : '/';
+
   return (
-    <BrowserRouter basename="/admin">
+    <BrowserRouter basename={basename}>
       <Toaster position="top-right" toastOptions={{ style: { background: '#1e293b', color: '#fff' } }} />
       <Routes>
         <Route path="/login" element={!auth ? <Login setAuth={setAuth} /> : <Navigate to="/" />} />
