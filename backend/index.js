@@ -156,7 +156,7 @@ app.get('/tonconnect-manifest.json', (req, res) => {
   res.json({
     url: 'https://tasky3.onrender.com',
     name: 'TASKY',
-    iconUrl: 'https://tasky3.onrender.com/assets/tasky-coin-CftrDQ6_.jpg',
+    iconUrl: 'https://tasky-v3.vercel.app/assets/tasky-coin-CftrDQ6_.jpg',
     termsOfUseUrl: 'https://tasky3.onrender.com',
     privacyPolicyUrl: 'https://tasky3.onrender.com'
   });

@@ -15,7 +15,7 @@ const API_BASE = `http://127.0.0.1:${PORT}/api`;
 
 let bot;
 if (token) {
-    bot = new TelegramBot(token, { polling: { interval: 300, autoStart: true, params: { timeout: 30 } } });
+    bot = new TelegramBot(token, { polling: { interval: 2000, autoStart: true, params: { timeout: 50 } } });
     bot.isDummy = false;
 
     bot.on('polling_error', (err) => {
