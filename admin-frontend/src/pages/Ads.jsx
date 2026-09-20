@@ -371,6 +371,49 @@ const Ads = () => {
                         </div>
                       </div>
 
+                      {/* Campaign Overall Summary Stats */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                          <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider block mb-1">
+                            📊 Total Ads (All Users)
+                          </span>
+                          <span className="text-xl font-black text-white font-mono">
+                            {(tournament.total_ads_watched || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-ink-soft block mt-0.5">Watched in total</span>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                          <span className="text-[10px] font-black uppercase text-indigo-400 tracking-wider block mb-1">
+                            👥 Active Competitors
+                          </span>
+                          <span className="text-xl font-black text-white font-mono">
+                            {(tournament.total_participants || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-ink-soft block mt-0.5">Participating users</span>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                          <span className="text-[10px] font-black uppercase text-emerald-400 tracking-wider block mb-1">
+                            ⚡ Top 30 Combined Ads
+                          </span>
+                          <span className="text-xl font-black text-emerald-400 font-mono">
+                            {(tournament.winners?.reduce((acc, w) => acc + (w.ads_watched || 0), 0) || 0).toLocaleString()}
+                          </span>
+                          <span className="text-[10px] text-ink-soft block mt-0.5">Leaderboard total</span>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-3">
+                          <span className="text-[10px] font-black uppercase text-purple-400 tracking-wider block mb-1">
+                            💎 GRAM Pool Allocation
+                          </span>
+                          <span className="text-xl font-black text-purple-300 font-mono">
+                            4.10 GRAM
+                          </span>
+                          <span className="text-[10px] text-ink-soft block mt-0.5">+ 85,000 TASKY</span>
+                        </div>
+                      </div>
+
                       {/* Top 30 Winners Table */}
                       <div className="overflow-x-auto">
                         <table className="w-full text-left text-xs">

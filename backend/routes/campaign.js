@@ -336,6 +336,17 @@ router.get('/admin/overview', async (req, res) => {
 
     const tournaments = [];
     for (const t of tournamentsRes.rows) {
+      const statsRes = await pool.query(`
+        SELECT 
+          COUNT(*) as total_ads_watched,
+          COUNT(DISTINCT telegram_id) as total_participants
+        FROM ad_views
+        WHERE created_at >= $1 AND created_at <= $2
+      `, [t.start_at, t.end_at]);
+
+      const total_ads_watched = parseInt(statsRes.rows[0]?.total_ads_watched || 0, 10);
+      const total_participants = parseInt(statsRes.rows[0]?.total_participants || 0, 10);
+
       const top30Res = await pool.query(`
         SELECT 
           u.telegram_id,
@@ -383,6 +394,8 @@ router.get('/admin/overview', async (req, res) => {
 
       tournaments.push({
         ...t,
+        total_ads_watched,
+        total_participants,
         winners
       });
     }
