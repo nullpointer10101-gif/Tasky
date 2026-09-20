@@ -2115,6 +2115,24 @@ router.post('/broadcast/nft', async (req, res) => {
         ]
       };
 
+      let globalBannerFileId = cachedBannerPhotoId;
+      const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
+      
+      // Pre-upload image ONCE to get Telegram file_id (saves ~1.2 GB of outbound server bandwidth per broadcast)
+      if (!globalBannerFileId && image_url && fs.existsSync(bannerPath) && typeof activeBot.sendPhoto === 'function' && targets.length > 0) {
+        try {
+          const firstRes = await activeBot.sendPhoto(targets[0], fs.createReadStream(bannerPath), {
+            caption: message,
+            parse_mode: 'HTML',
+            reply_markup: replyMarkup
+          });
+          if (firstRes && firstRes.photo && firstRes.photo.length > 0) {
+            globalBannerFileId = firstRes.photo[firstRes.photo.length - 1].file_id;
+            cachedBannerPhotoId = globalBannerFileId;
+          }
+        } catch (_) {}
+      }
+
       for (let i = 0; i < targets.length; i += BATCH_SIZE) {
         if (global.nftBroadcast && global.nftBroadcast.status === 'cancelled') break;
 
@@ -2123,8 +2141,7 @@ router.post('/broadcast/nft', async (req, res) => {
           try {
             let sent = false;
             if (image_url && typeof activeBot.sendPhoto === 'function') {
-              const bannerPath = path.join(__dirname, '../public/uploads/nft_banner_official.jpg');
-              const photoSource = cachedBannerPhotoId || (fs.existsSync(bannerPath) ? fs.createReadStream(bannerPath) : image_url);
+              const photoSource = globalBannerFileId || cachedBannerPhotoId || (fs.existsSync(bannerPath) ? fs.createReadStream(bannerPath) : image_url);
 
               try {
                 const resPhoto = await sendWithRetry(() => activeBot.sendPhoto(tid, photoSource, {
@@ -2133,8 +2150,9 @@ router.post('/broadcast/nft', async (req, res) => {
                   reply_markup: replyMarkup
                 }));
                 sent = true;
-                if (!cachedBannerPhotoId && resPhoto && resPhoto.photo && resPhoto.photo.length > 0) {
-                  cachedBannerPhotoId = resPhoto.photo[resPhoto.photo.length - 1].file_id;
+                if (!globalBannerFileId && resPhoto && resPhoto.photo && resPhoto.photo.length > 0) {
+                  globalBannerFileId = resPhoto.photo[resPhoto.photo.length - 1].file_id;
+                  cachedBannerPhotoId = globalBannerFileId;
                 }
               } catch (photoErr) {
                 if (!isUserBlockError(photoErr.message)) {
