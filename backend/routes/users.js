@@ -6,7 +6,7 @@ const https = require('https');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
 
 // Direct Telegram Bot API call — no polling conflicts, works in production
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || process.env.BOT_TOKEN || process.env.TG_BOT_TOKEN || process.env.TELEGRAM_TOKEN;
 
 const CHANNEL_TARGETS = {
     tasky_official: { handle: '@Tasky_Official', chatId: '-1004403506848' },
