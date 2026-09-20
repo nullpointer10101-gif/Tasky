@@ -1,4 +1,5 @@
 {
+  "alias": ["tasky-v3.vercel.app"],
   "headers": [
     {
       "source": "/assets/(.*)",
