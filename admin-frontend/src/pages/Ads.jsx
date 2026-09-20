@@ -34,7 +34,9 @@ const Ads = () => {
       setLoading(true);
       const [statsRes, campaignRes] = await Promise.all([
         api.get('/ads/stats').catch(() => ({ data: { stats: null, chart: [] } })),
-        api.get('/campaign/admin/overview').catch(() => ({ data: { tournaments: [] } }))
+        api.get('/campaign/admin/overview')
+          .catch(() => api.get('/campaign/overview'))
+          .catch(() => ({ data: { tournaments: [] } }))
       ]);
       if (statsRes.data) setData(statsRes.data);
       if (campaignRes.data?.tournaments) setCampaignTournaments(campaignRes.data.tournaments);

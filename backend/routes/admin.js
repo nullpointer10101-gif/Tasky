@@ -3296,4 +3296,137 @@ router.get('/treasury-status', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CAMPAIGN OVERVIEW & PAYOUT ALIASES FOR ADMIN PANEL
+// ─────────────────────────────────────────────────────────────────────────────
+function getPrizeForRankAdmin(rank) {
+  if (rank === 1) return { gram: 1.00, tasky: 20000 };
+  if (rank === 2) return { gram: 0.50, tasky: 10000 };
+  if (rank === 3) return { gram: 0.30, tasky: 5000 };
+  if (rank <= 10) return { gram: 0.10, tasky: 2000 };
+  if (rank <= 30) return { gram: 0.05, tasky: 1000 };
+  return { gram: 0, tasky: 0 };
+}
+
+const getCampaignAdminOverviewHandler = async (req, res) => {
+  try {
+    const tournamentsRes = await pool.query(
+      "SELECT * FROM campaign_tournaments ORDER BY id DESC LIMIT 20"
+    );
+
+    const tournaments = [];
+    for (const t of tournamentsRes.rows) {
+      const statsRes = await pool.query(`
+        SELECT 
+          COUNT(*) as total_ads_watched,
+          COUNT(DISTINCT telegram_id) as total_participants
+        FROM ad_views
+        WHERE created_at >= $1 AND created_at <= $2
+      `, [t.start_at, t.end_at]);
+
+      const total_ads_watched = parseInt(statsRes.rows[0]?.total_ads_watched || 0, 10);
+      const total_participants = parseInt(statsRes.rows[0]?.total_participants || 0, 10);
+
+      const top30Res = await pool.query(`
+        SELECT 
+          u.telegram_id,
+          u.username,
+          u.first_name,
+          u.wallet_address,
+          u.is_banned,
+          COUNT(a.id) as ads_watched
+        FROM ad_views a
+        JOIN users u ON u.telegram_id::text = a.telegram_id::text
+        WHERE a.created_at >= $1 AND a.created_at <= $2
+        GROUP BY u.telegram_id, u.username, u.first_name, u.wallet_address, u.is_banned
+        ORDER BY ads_watched DESC, u.telegram_id ASC
+        LIMIT 30
+      `, [t.start_at, t.end_at]);
+
+      const payoutsRes = await pool.query(
+        "SELECT * FROM campaign_payouts WHERE tournament_id = $1",
+        [t.id]
+      );
+      const paidMap = {};
+      payoutsRes.rows.forEach(p => {
+        paidMap[p.telegram_id] = p;
+      });
+
+      const winners = top30Res.rows.map((row, idx) => {
+        const rank = idx + 1;
+        const prize = getPrizeForRankAdmin(rank);
+        const payout = paidMap[row.telegram_id];
+        return {
+          rank,
+          telegram_id: row.telegram_id,
+          username: row.username,
+          first_name: row.first_name,
+          wallet_address: row.wallet_address,
+          is_banned: row.is_banned,
+          ads_watched: parseInt(row.ads_watched || 0, 10),
+          prize_gram: prize.gram,
+          prize_tasky: prize.tasky,
+          payout_status: payout ? payout.status : 'unpaid',
+          approved_by: payout?.approved_by || null,
+          approved_at: payout?.approved_at || null
+        };
+      });
+
+      tournaments.push({
+        ...t,
+        total_ads_watched,
+        total_participants,
+        winners
+      });
+    }
+
+    res.json({ success: true, tournaments });
+  } catch (err) {
+    console.error('[Campaign Admin Overview] Error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch campaign admin overview' });
+  }
+};
+
+router.get('/campaign/admin/overview', getCampaignAdminOverviewHandler);
+router.get('/campaign/overview', getCampaignAdminOverviewHandler);
+
+router.post('/campaign/admin/approve-payout', async (req, res) => {
+  const { tournament_id, telegram_id, rank, admin_username = 'Admin' } = req.body;
+  if (!tournament_id || !telegram_id || !rank) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  try {
+    const prize = getPrizeForRankAdmin(parseInt(rank, 10));
+    if (prize.gram === 0 && prize.tasky === 0) {
+      return res.status(400).json({ error: 'Invalid rank prize' });
+    }
+
+    const existing = await pool.query(
+      "SELECT * FROM campaign_payouts WHERE tournament_id = $1 AND telegram_id = $2",
+      [tournament_id, String(telegram_id)]
+    );
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Winner payout already processed for this tournament' });
+    }
+
+    await pool.query(`
+      UPDATE users 
+      SET gram_balance = COALESCE(gram_balance, 0) + $1,
+          balance = COALESCE(balance, 0) + $2
+      WHERE telegram_id::text = $3
+    `, [prize.gram, prize.tasky, String(telegram_id)]);
+
+    await pool.query(`
+      INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, tasky_amount, status, approved_by, approved_at)
+      VALUES ($1, $2, $3, $4, $5, 'approved_and_paid', $6, NOW())
+    `, [tournament_id, String(telegram_id), rank, prize.gram, prize.tasky, admin_username]);
+
+    res.json({ success: true, message: `Payout of ${prize.gram} GRAM + ${prize.tasky} TASKY approved and credited to user ${telegram_id}!` });
+  } catch (err) {
+    console.error('[Campaign Admin Payout] Error:', err.message);
+    res.status(500).json({ error: 'Failed to process winner payout' });
+  }
+});
+
 module.exports = router;
