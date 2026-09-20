@@ -16,7 +16,7 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import CyberReactorModal, { CyberReactorFloatingBubble } from './components/CyberReactorModal'
-import WeeklyAdTournamentModal from './components/WeeklyAdTournamentModal'
+import WeeklyAdTournamentModal, { WeeklyAdTournamentFloatingBubble } from './components/WeeklyAdTournamentModal'
 import { registerUser } from './api'
 import { initGigaAds, triggerStartupAd } from './adUtils'
 import { AdminProvider } from './AdminContext'
@@ -302,6 +302,7 @@ export default function App() {
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <CyberReactorFloatingBubble user={user} onOpen={() => setIsReactorModalOpen(true)} />
+          <WeeklyAdTournamentFloatingBubble user={user} onOpen={() => setIsTournamentModalOpen(true)} />
           <CyberReactorModal isOpen={isReactorModalOpen} onClose={() => { setIsReactorModalOpen(false); refreshUser(); }} user={user} />
           <WeeklyAdTournamentModal isOpen={isTournamentModalOpen} onClose={() => { setIsTournamentModalOpen(false); refreshUser(); }} user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
