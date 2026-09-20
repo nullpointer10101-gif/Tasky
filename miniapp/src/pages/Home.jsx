@@ -26,7 +26,7 @@ const itemVariants = {
   animate: { opacity: 1, y: 0, transition: { type: 'spring', stiffness: 300, damping: 24 } }
 };
 
-export default function Home({ user, refreshUser, navigate }) {
+export default function Home({ user, refreshUser, navigate, onOpenTournamentModal }) {
   const { t } = useTranslation();
   const { showToast } = useToast();
   const isAdmin = useIsAdmin();
@@ -205,6 +205,52 @@ export default function Home({ user, refreshUser, navigate }) {
           </div>
         </motion.div>
       )}
+
+      {/* 7-Day Ad Championship Banner Card */}
+      <motion.div
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onOpenTournamentModal && onOpenTournamentModal()}
+        className="relative overflow-hidden rounded-[1.5rem] p-4 text-white cursor-pointer transition-all flex items-center justify-between group border-2 border-yellow-500/60 shadow-[0_0_25px_rgba(234,179,8,0.25)]"
+        style={{ background: 'radial-gradient(circle at 80% 20%, #2b1d03 0%, #170e01 50%, #0a0600 100%)' }}
+      >
+        {/* Shimmer sweep */}
+        <motion.div
+          animate={{ x: ['-100%', '250%'] }}
+          transition={{ repeat: Infinity, duration: 3.5, ease: 'linear', repeatDelay: 1 }}
+          className="absolute inset-0 w-1/3 bg-gradient-to-r from-transparent via-yellow-400/20 to-transparent skew-x-12 pointer-events-none"
+        />
+
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-yellow-400 via-amber-500 to-yellow-200 p-0.5 shadow-[0_0_15px_rgba(234,179,8,0.5)] shrink-0" style={{ width: '52px', height: '52px' }}>
+            <div className="w-full h-full bg-[#140d02] rounded-2xl flex flex-col items-center justify-center">
+              <span className="text-xl select-none animate-pulse">🏆</span>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-yellow-400 to-amber-500 text-black px-2 py-0.5 rounded-full shadow-sm font-mono">
+                🏆 7-DAY CHAMPIONSHIP
+              </span>
+              <span className="text-[9px] font-black bg-amber-950/80 text-yellow-300 border border-yellow-500/40 px-2 py-0.5 rounded-full font-mono">
+                TOP 30 WIN GRAMS
+              </span>
+            </div>
+            <h3 className="text-[15px] font-black text-white flex items-center gap-1.5 tracking-tight">
+              Ad Championship Leaderboard 🚀
+            </h3>
+            <p className="text-[11.5px] text-yellow-200/90 font-medium leading-tight">
+              1st: <b className="text-yellow-400 font-bold">1 GRAM</b> | 2nd: <b className="text-amber-300 font-bold">0.5 GRAM</b> | Top 30 Rewarded!
+            </p>
+          </div>
+        </div>
+
+        <div className="shrink-0 pl-2 relative z-10">
+          <div className="w-9 h-9 rounded-2xl bg-yellow-500/20 border border-yellow-400/40 flex items-center justify-center text-yellow-300 group-hover:bg-yellow-500/40 transition-all shadow-md">
+            <ChevronRight size={20} />
+          </div>
+        </div>
+      </motion.div>
 
       {/* NFT Miners Banner Card */}
       <motion.div

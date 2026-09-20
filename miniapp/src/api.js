@@ -373,3 +373,24 @@ export const claimReactorReward = withMock(
   (telegram_id, wallet_address) => () => api.post('/api/reactor/claim', { telegram_id, wallet_address })
 )
 
+// --- 7-DAY AD CHAMPIONSHIP LEADERBOARD ---
+export const getCampaignTournament = withMock(
+  {
+    success: true,
+    tournament: { id: 1, title: '🔥 7-Day Ad Championship', time_left_ms: 500000000, status: 'active' },
+    leaderboard: [
+      { rank: 1, first_name: 'Alex', ads_watched: 340, prize_gram: 1.00, prize_tasky: 20000 },
+      { rank: 2, first_name: 'CryptoKing', ads_watched: 290, prize_gram: 0.50, prize_tasky: 10000 },
+      { rank: 3, first_name: 'Satoshi', ads_watched: 240, prize_gram: 0.30, prize_tasky: 5000 }
+    ],
+    user_stats: { rank: 14, ads_watched: 85, estimated_gram: 0.05, estimated_tasky: 1000 },
+    prize_structure: []
+  },
+  (telegram_id) => () => api.get(`/api/campaign/tournament?telegram_id=${telegram_id}&_t=${Date.now()}`)
+)
+
+export const recordCampaignAd = withMock(
+  { success: true, campaign_ads_watched: 86 },
+  (telegram_id, provider = 'gigapub', session_token = null) => () => api.post('/api/campaign/watch-ad', { telegram_id, provider, session_token })
+)
+

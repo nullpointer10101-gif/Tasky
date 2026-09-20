@@ -45,7 +45,7 @@ function getProgressColor(count) {
   return 'from-indigo-400 to-purple-500';
 }
 
-export default function Gram({ user, refreshUser }) {
+export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [watchingProvider, setWatchingProvider] = useState(null); // 'gigapub' | 'monetag' | null
@@ -390,6 +390,33 @@ export default function Gram({ user, refreshUser }) {
           Watch {totalAdsNeeded} sponsor ads daily ({reqAdexium} Adexium + {reqGiga} GigaPub) and receive <span className="text-emerald-400 font-black">0.02 GRAM</span> directly to your wallet!
         </p>
       </div>
+
+      {/* ── 7-DAY AD CHAMPIONSHIP BANNER ── */}
+      <motion.div
+        whileTap={{ scale: 0.97 }}
+        onClick={() => onOpenTournamentModal && onOpenTournamentModal()}
+        className="relative overflow-hidden rounded-2xl p-4 text-white cursor-pointer transition-all flex items-center justify-between group border border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
+        style={{ background: 'linear-gradient(135deg, #2b1d03 0%, #170e01 100%)' }}
+      >
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-11 h-11 rounded-xl bg-yellow-500/20 border border-yellow-400/30 flex items-center justify-center text-yellow-300 shrink-0">
+            <Trophy size={22} className="animate-bounce text-yellow-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <span className="text-[9px] font-black uppercase tracking-wider bg-yellow-400 text-black px-2 py-0.5 rounded-full font-mono">
+                🏆 7-DAY LEADERBOARD
+              </span>
+              <span className="text-[9px] font-black text-yellow-300">Top 30 Win Grams</span>
+            </div>
+            <h3 className="text-sm font-black text-white">Ad Championship Quest 🚀</h3>
+            <p className="text-[11px] text-yellow-200/90 font-medium">Watch campaign ads & grab 1.00, 0.50, or 0.30 GRAM!</p>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-yellow-500/20 border border-yellow-400/40 flex items-center justify-center text-yellow-300 group-hover:bg-yellow-500/40 transition-all shrink-0">
+          <ChevronRight size={18} />
+        </div>
+      </motion.div>
 
       {/* ── LINKED WALLET STATUS ── */}
       {status?.gram_wallet_address ? (
