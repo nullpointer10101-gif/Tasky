@@ -54,7 +54,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
 
     try {
       if (showToast) showToast("Launching Tournament Ad...", "info");
-      const res = await showRewardedAd('gigapub');
+      const res = await showRewardedAd('adexium');
 
       if (res.success) {
         const { data: rec, error } = await recordCampaignAd(user.telegram_id, res.network || 'gigapub');

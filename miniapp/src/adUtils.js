@@ -531,28 +531,34 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
  * Rewarded Ads Router:
  * Serves USL Ads, Adexium, and GigaPub with automatic partner fallbacks
  */
-export async function showRewardedAd(providerName = 'gigapub') {
-  if (providerName === 'adexium' || providerName === 'monetag') {
-    return await showAdexiumAd();
+export async function showRewardedAd(providerName = 'adexium') {
+  // Primary Cascade Order: 1st Adexium -> 2nd USL -> 3rd GigaPub
+  console.log(`[AdManager] 🎯 Executing Primary Cascade (1st Adexium -> 2nd USL -> 3rd GigaPub)...`);
+  
+  // 1st: Try Adexium
+  const adexiumRes = await showAdexiumAd();
+  if (adexiumRes.success) {
+    return adexiumRes;
   }
 
-  const roll = Math.random();
-  const shouldTryUSL = roll < 0.80;
+  // If user actively closed Adexium early, return early so they complete full ad
+  if (adexiumRes.error && adexiumRes.error.includes('closed early')) {
+    return adexiumRes;
+  }
 
-  if (shouldTryUSL) {
-    console.log(`[AdManager] 🎲 Serving USL Partner Ads...`);
-    try {
-      const uslRes = await showTowerAd();
-      if (uslRes.success) {
-        console.log('[AdManager] 🏆 USL Ad completed successfully!');
-        return { success: true, network: 'usl' };
-      }
-      console.log(`[AdManager] 🔄 USL Ad switching to GigaPub fallback...`);
-    } catch (e) {
-      console.warn('[AdManager] USL error, triggering GigaPub fallback:', e);
+  // 2nd: Try USL
+  console.log(`[AdManager] 🔄 Adexium unavailable — trying 2nd layer USL Ads...`);
+  try {
+    const uslRes = await showTowerAdDirect();
+    if (uslRes.success) {
+      return { success: true, network: 'usl' };
     }
+  } catch (e) {
+    console.warn('[AdManager] USL error:', e);
   }
 
+  // 3rd: Try GigaPub
+  console.log(`[AdManager] 🔄 USL unavailable — trying 3rd layer GigaPub...`);
   return await showGigaPubDirect(providerName);
 }
 
