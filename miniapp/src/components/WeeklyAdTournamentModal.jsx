@@ -210,6 +210,14 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
                   <span className="font-bold text-yellow-400">0.05 GRAM ea.</span>
                 </div>
               </div>
+
+              {/* Admin Verification & Payout Notice */}
+              <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/30 flex items-start gap-2 text-left">
+                <Shield size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <p className="text-[10.5px] text-amber-200/90 font-medium leading-tight">
+                  <strong className="text-amber-300 font-bold">Admin Manual Review Policy:</strong> When the 7-day timer ends, Top 30 ad activity is verified for fair play. Prizes are reviewed & manually credited/paid by Admin to prevent auto-botting.
+                </p>
+              </div>
             </div>
 
             {/* Leaderboard Table */}

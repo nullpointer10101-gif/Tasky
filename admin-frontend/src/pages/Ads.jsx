@@ -25,21 +25,56 @@ function formatChartDate(dateStr) {
 
 const Ads = () => {
   const [data, setData] = useState({ stats: null, chart: [] });
+  const [campaignTournaments, setCampaignTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [payingId, setPayingId] = useState(null);
+
+  const fetchStatsAndCampaigns = async () => {
+    try {
+      setLoading(true);
+      const [statsRes, campaignRes] = await Promise.all([
+        api.get('/ads/stats').catch(() => ({ data: { stats: null, chart: [] } })),
+        api.get('/campaign/admin/overview').catch(() => ({ data: { tournaments: [] } }))
+      ]);
+      if (statsRes.data) setData(statsRes.data);
+      if (campaignRes.data?.tournaments) setCampaignTournaments(campaignRes.data.tournaments);
+    } catch (error) {
+      console.error('Failed to fetch ad/campaign stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const response = await api.get('/ads/stats');
-        setData(response.data);
-      } catch (error) {
-        console.error('Failed to fetch ad stats:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchStats();
+    fetchStatsAndCampaigns();
   }, []);
+
+  const handleApprovePayout = async (tournamentId, winner) => {
+    const confirmPay = window.confirm(
+      `Approve & Pay Rank #${winner.rank} (${winner.prize_gram} GRAM + ${winner.prize_tasky} TASKY) to ${winner.first_name} (ID: ${winner.telegram_id})?`
+    );
+    if (!confirmPay) return;
+
+    setPayingId(`${tournamentId}-${winner.telegram_id}`);
+    try {
+      const res = await api.post('/campaign/admin/approve-payout', {
+        tournament_id: tournamentId,
+        telegram_id: winner.telegram_id,
+        rank: winner.rank,
+        admin_username: 'Admin'
+      });
+      if (res.data?.success) {
+        alert(res.data.message || 'Payout successfully sent!');
+        fetchStatsAndCampaigns();
+      } else {
+        alert(res.data?.error || 'Failed to process payout');
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || 'Error processing payout');
+    } finally {
+      setPayingId(null);
+    }
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -292,6 +327,113 @@ const Ads = () => {
                   </div>
                 )}
               </div>
+            </div>
+          </motion.div>
+
+          {/* 7-DAY CHAMPIONSHIP ADMIN MANUAL PAYOUT MANAGER */}
+          <motion.div variants={itemVariants}>
+            <div className="bg-surface p-6 rounded-3xl border border-yellow-500/30 shadow-lg">
+              <div className="flex items-center justify-between mb-6 flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-yellow-500/10 text-yellow-500 rounded-2xl border border-yellow-500/20">
+                    <Sparkles size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-ink flex items-center gap-2">
+                      🏆 7-Day Ad Championship Payout Manager
+                    </h3>
+                    <p className="text-xs text-ink-soft">
+                      Strict Manual Policy: Tournaments NEVER auto-pay. Inspect Top 30 user activity & approve payouts manually.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {campaignTournaments.length > 0 ? (
+                <div className="space-y-6">
+                  {campaignTournaments.map((tournament) => (
+                    <div key={tournament.id} className="bg-bg/50 p-5 rounded-2xl border border-border/80">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b border-border/50 flex-wrap gap-2">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-black text-white">{tournament.title}</span>
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase border ${
+                              tournament.status === 'active' 
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                                : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                            }`}>
+                              {tournament.status === 'active' ? '🟢 Active Campaign' : '⏳ Ended — Pending Admin Review'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-ink-soft mt-1 font-mono">
+                            Window: {formatChartDate(tournament.start_at)} — {formatChartDate(tournament.end_at)}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Top 30 Winners Table */}
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs">
+                          <thead>
+                            <tr className="text-ink-soft uppercase font-bold border-b border-border/40 text-[10px]">
+                              <th className="py-2 px-3">Rank</th>
+                              <th className="py-2 px-3">User</th>
+                              <th className="py-2 px-3">Telegram ID</th>
+                              <th className="py-2 px-3">Wallet</th>
+                              <th className="py-2 px-3 text-center">Ads Watched</th>
+                              <th className="py-2 px-3">Prize</th>
+                              <th className="py-2 px-3 text-right">Action / Payout</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-border/30">
+                            {tournament.winners?.map((w) => {
+                              const isPaid = w.payout_status === 'approved_and_paid';
+                              const isPaying = payingId === `${tournament.id}-${w.telegram_id}`;
+
+                              return (
+                                <tr key={w.rank} className="hover:bg-white/5 transition-colors">
+                                  <td className="py-2.5 px-3 font-black text-yellow-400">
+                                    {w.rank === 1 ? '🥇 #1' : w.rank === 2 ? '🥈 #2' : w.rank === 3 ? '🥉 #3' : `#${w.rank}`}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-white">
+                                    {w.first_name} {w.username ? `(@${w.username})` : ''}
+                                    {w.is_banned && <span className="ml-1 text-[9px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded">BANNED</span>}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-mono text-ink-soft">{w.telegram_id}</td>
+                                  <td className="py-2.5 px-3 font-mono text-[11px] text-indigo-300">
+                                    {w.wallet_address ? `${w.wallet_address.slice(0, 6)}...${w.wallet_address.slice(-4)}` : <span className="text-red-400/80">No Wallet</span>}
+                                  </td>
+                                  <td className="py-2.5 px-3 font-bold text-center text-emerald-400">{w.ads_watched}</td>
+                                  <td className="py-2.5 px-3 font-bold text-yellow-400">
+                                    💎 {w.prize_gram} GRAM <span className="text-[10px] text-indigo-300 block">+{w.prize_tasky} TASKY</span>
+                                  </td>
+                                  <td className="py-2.5 px-3 text-right">
+                                    {isPaid ? (
+                                      <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+                                        ✓ Approved & Paid
+                                      </span>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleApprovePayout(tournament.id, w)}
+                                        disabled={isPaying}
+                                        className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-black font-black text-[11px] uppercase rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
+                                      >
+                                        {isPaying ? 'Processing...' : 'Approve & Pay Winner 💎'}
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-ink-soft italic">No campaign tournaments found.</p>
+              )}
             </div>
           </motion.div>
         </motion.div>
