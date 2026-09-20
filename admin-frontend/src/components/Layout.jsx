@@ -58,7 +58,7 @@ export default function Layout({ setAuth }) {
     { path: '/gram-deposits', label: '⚡ GRAM Deposits', icon: ArrowDownLeft },
     { path: '/live-activity', label: 'Live User Activity', icon: Activity },
     { path: '/users', label: 'Users', icon: Users },
-    { path: '/ads', label: 'Ads Dashboard', icon: PlaySquare },
+    { path: '/ads', label: '🏆 Campaign & Ads', icon: PlaySquare },
     { path: '/tasks', label: 'Manage Tasks', icon: PlusSquare },
     { path: '/reviews', label: 'Task Reviews', icon: CheckSquare, badge: badges.pendingTasks },
     { path: '/withdrawals', label: 'Withdrawals', icon: ArrowDownToLine, badge: badges.pendingWithdrawals },
