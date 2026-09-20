@@ -37,7 +37,7 @@ app.use(compression({
 
 app.use(cors({
   origin: '*',
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-password', 'x-telegram-init-data']
 }));
 app.use(express.json());
 

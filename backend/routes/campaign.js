@@ -116,7 +116,9 @@ async function getActiveTournament() {
   return newRes.rows[0];
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
 // GET /api/campaign/tournament — Leaderboard & Current User Status
+// ─────────────────────────────────────────────────────────────────────────────
 router.get('/tournament', async (req, res) => {
   const telegram_id = req.query.telegram_id ? String(req.query.telegram_id).trim() : null;
 
@@ -217,7 +219,9 @@ router.get('/tournament', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/campaign/watch-ad — Track ad view for active 7-day tournament
+// ─────────────────────────────────────────────────────────────────────────────
 router.post('/watch-ad', async (req, res) => {
   const { telegram_id, provider = 'gigapub', session_token } = req.body;
   if (!telegram_id) return res.status(400).json({ error: 'telegram_id is required' });
@@ -256,6 +260,12 @@ router.post('/watch-ad', async (req, res) => {
       message: 'Campaign ad view recorded!',
       campaign_ads_watched: newCount
     });
+  } catch (err) {
+    console.error('[Campaign] Error recording campaign ad view:', err.message);
+    res.status(500).json({ error: 'Failed to record ad view' });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN ENDPOINTS (Manual Winner Inspection & Payout Control)
 // ─────────────────────────────────────────────────────────────────────────────
