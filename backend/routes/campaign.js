@@ -295,6 +295,19 @@ router.post('/watch-ad', async (req, res) => {
 
     const tournament = await getActiveTournament();
 
+    // Database-level Cooldown Check (at least 14 seconds between ad views in DB)
+    const lastAdRes = await pool.query(
+      'SELECT created_at FROM ad_views WHERE telegram_id::text = $1 ORDER BY created_at DESC LIMIT 1',
+      [String(telegram_id)]
+    );
+    if (lastAdRes.rows.length > 0) {
+      const elapsedDb = (Date.now() - new Date(lastAdRes.rows[0].created_at).getTime()) / 1000;
+      if (elapsedDb < 14.0) {
+        const remaining = Math.ceil(14.0 - elapsedDb);
+        return res.status(429).json({ error: `Ad watch too fast! Please wait ${remaining}s between watching ads.` });
+      }
+    }
+
     // Record ad view
     const adType = (provider === 'adexium' || provider === 'monetag') ? 'gram_adexium' : 'gram_gigapub';
     await pool.query('INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)', [String(telegram_id), adType]);

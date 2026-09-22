@@ -339,11 +339,12 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). Please complete GigaPub ads.` });
         }
 
-        // Enforce 1-second cooldown between consecutive ads
+        // Enforce strict 14-second cooldown between consecutive ads
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 1.5) {
-                return res.status(429).json({ error: `Please wait a moment before watching another ad.` });
+            if (secondsSinceLast < 14.0) {
+                const remaining = Math.ceil(14.0 - secondsSinceLast);
+                return res.status(429).json({ error: `Please wait ${remaining} seconds before watching another ad.` });
             }
         }
 
