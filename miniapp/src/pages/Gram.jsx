@@ -243,26 +243,35 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
       const sessionToken = startRes?.data?.session_token || null;
 
       const networkName = isAdexium ? 'Adexium' : (adResult.network === 'usl' ? 'USL Ads' : 'GigaPub');
-      showToast(`✅ ${networkName} ad verified by sponsor!`, 'success');
 
       const res = await watchGramAd(user?.telegram_id, targetProvider, sessionToken);
+      const resPayload = res?.data || res;
+      const resError = res?.error || (resPayload && resPayload.error);
 
-      if (res.error) {
-        showToast(res.error, 'error');
+      if (resError) {
+        showToast(resError, 'error');
       } else {
+        showToast(`✅ +1 Ad Verified via ${networkName}!`, 'success');
         const newCount = (status?.ads_watched_today || 0) + 1;
         const newStreak = streakCount + 1;
         setStreakCount(newStreak);
 
+        const serverGiga = resPayload?.gigapub_ads_watched_today;
+        const serverAdexium = resPayload?.adexium_ads_watched_today !== undefined ? resPayload?.adexium_ads_watched_today : resPayload?.monetag_ads_watched_today;
+        const serverTotal = resPayload?.ads_watched_today;
+
         setStatus(prev => {
           if (!prev) return prev;
-          const updatedAdexium = res.adexium_ads_watched_today !== undefined 
-            ? res.adexium_ads_watched_today 
-            : (res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (isAdexium ? (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0) + 1 : (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0)));
+          const updatedAdexium = serverAdexium !== undefined 
+            ? serverAdexium 
+            : (isAdexium ? (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0) + 1 : (prev.adexium_ads_watched_today || prev.monetag_ads_watched_today || 0));
+          const updatedGiga = serverGiga !== undefined 
+            ? serverGiga 
+            : (!isAdexium ? (prev.gigapub_ads_watched_today || 0) + 1 : (prev.gigapub_ads_watched_today || 0));
           return {
             ...prev,
-            ads_watched_today: res.ads_watched_today || newCount,
-            gigapub_ads_watched_today: res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (!isAdexium ? (prev.gigapub_ads_watched_today || 0) + 1 : prev.gigapub_ads_watched_today),
+            ads_watched_today: serverTotal || newCount,
+            gigapub_ads_watched_today: updatedGiga,
             adexium_ads_watched_today: updatedAdexium,
             monetag_ads_watched_today: updatedAdexium,
             last_ad_time: new Date().toISOString()
@@ -274,8 +283,8 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
           window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('heavy');
         } catch(e){}
 
-        const updatedGiga = res.gigapub_ads_watched_today !== undefined ? res.gigapub_ads_watched_today : (!isAdexium ? currentGiga + 1 : currentGiga);
-        const updatedAdexium = res.adexium_ads_watched_today !== undefined ? res.adexium_ads_watched_today : (res.monetag_ads_watched_today !== undefined ? res.monetag_ads_watched_today : (isAdexium ? currentAdexium + 1 : currentAdexium));
+        const updatedGiga = serverGiga !== undefined ? serverGiga : (!isAdexium ? currentGiga + 1 : currentGiga);
+        const updatedAdexium = serverAdexium !== undefined ? serverAdexium : (isAdexium ? currentAdexium + 1 : currentAdexium);
         const isComplete = updatedGiga >= 30 && updatedAdexium >= 30;
 
         if (isComplete) {
