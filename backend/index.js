@@ -60,6 +60,16 @@ const staticCacheOptions = {
 
 app.use(express.static(path.join(__dirname, 'public'), staticCacheOptions));
 
+// Deployment Version & Build Status Endpoint
+app.get('/api/version', (req, res) => {
+  res.json({
+    status: 'ok',
+    version: '1.0.4',
+    deploy_time: '2026-09-23T00:44:00Z',
+    message: 'Referral, Ad verification & payout locking active'
+  });
+});
+
 // In-memory tracker for active users and recent logs
 global.onlineUsers = new Map();
 global.recentLogs = [];
