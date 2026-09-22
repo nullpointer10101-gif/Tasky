@@ -210,11 +210,14 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
       return { success: false, reason: 'Auto-payout is only enabled for Daily Gram Claims.' };
     }
 
-    // 0.1 Check if claim was already approved or processed
-    const currentClaimRes = await pool.query('SELECT status, tx_hash FROM gram_claims WHERE id = $1', [recordId]);
-    if (!currentClaimRes.rows[0] || currentClaimRes.rows[0].status === 'approved') {
-      console.log(`[AutoPayout] Skipping claim #${recordId}: already approved.`);
-      return { success: false, reason: 'Already approved' };
+    // 0.1 Atomic status lock: Change status from 'pending' to 'processing' to prevent concurrent/duplicate payouts
+    const lockRes = await pool.query(
+      `UPDATE gram_claims SET status = 'processing' WHERE id = $1 AND status = 'pending' RETURNING id`,
+      [recordId]
+    );
+    if (lockRes.rows.length === 0) {
+      console.log(`[AutoPayout] Skipping claim #${recordId}: already processing or approved.`);
+      return { success: false, reason: 'Already processing or approved' };
     }
 
     // 1. Check if auto payout is globally enabled in settings
@@ -222,24 +225,28 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
     const isAutoPayoutEnabled = settingsRes.rows[0]?.auto_payout_enabled === true;
     if (!isAutoPayoutEnabled) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Auto-payout is disabled in settings.`);
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
       return { success: false, reason: 'Auto-payout is disabled in settings.' };
     }
 
     // 2. Check treasury mnemonic configuration
     if (!TREASURY_MNEMONIC) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: TREASURY_MNEMONIC is not configured in .env.`);
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
       return { success: false, reason: 'TREASURY_MNEMONIC is not configured.' };
     }
 
     // 3. Only auto-pay if amount is within threshold
     if (receiveAmount > AUTO_PAYOUT_MAX_TON) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: ${receiveAmount} > threshold ${AUTO_PAYOUT_MAX_TON}`);
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
       return { success: false, reason: 'Amount exceeds auto-payout max threshold.' };
     }
 
     // 4. Skip flagged payouts (keep for manual admin review)
     if (isFlagged) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Flagged for security (${flagReason})`);
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
       return { success: false, reason: 'Flagged for security review.' };
     }
 
@@ -247,6 +254,7 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
     const hasBalance = await hasTreasuryBalance(receiveAmount);
     if (!hasBalance) {
       console.log(`[AutoPayout] Skipping ${tableName} #${recordId}: Treasury balance too low for payout + gas.`);
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
       return { success: false, reason: 'Treasury balance too low.' };
     }
 
@@ -412,6 +420,9 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
       return { success: true, txHash };
     } else {
       console.error(`[AutoPayout] ❌ On-chain send failed for ${tableName} #${recordId}: ${result.error}`);
+      try {
+        await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
+      } catch (revErr) {}
       const adminId = process.env.ADMIN_TELEGRAM_ID || '8823265955';
       if (bot && bot.sendMessage && adminId) {
         bot.sendMessage(
@@ -424,6 +435,9 @@ async function tryAutoPayoutGram(recordId, tableName, receiveAmount, walletAddre
     }
   } catch (err) {
     console.error(`[AutoPayout] tryAutoPayoutGram error:`, err);
+    try {
+      await pool.query(`UPDATE gram_claims SET status = 'pending' WHERE id = $1 AND status = 'processing'`, [recordId]);
+    } catch (revErr) {}
     return { success: false, error: err.message };
   } finally {
     global.processingPayouts.delete(payoutKey);
