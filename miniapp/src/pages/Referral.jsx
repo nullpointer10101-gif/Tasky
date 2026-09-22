@@ -119,25 +119,22 @@ export default function Referral({ user }) {
     return () => { isMounted = false; };
   }, [user]);
 
+  const referralLink = refData?.referral_link || (user?.referral_code ? `https://t.me/TaskyAppbot?start=${user.referral_code}` : (user?.telegram_id ? `https://t.me/TaskyAppbot?start=${user.telegram_id}` : ''));
+
   const handleCopy = () => {
-    if (refData?.referral_link) {
-      navigator.clipboard.writeText(refData.referral_link);
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
       showToast('Referral link copied!');
     }
   };
 
   const handleShare = () => {
-    if (refData?.referral_link && window.Telegram?.WebApp) {
-      const text = `🚨 *Claim your free USDT and crypto rewards on Tasky!* 💸\n\n⚡️ Tap the link below to start earning instantly and build your passive income! 👇\n\n${refData.referral_link}`;
-      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(refData.referral_link)}&text=${encodeURIComponent('🚨 *Claim your free USDT and crypto rewards on Tasky!* 💸\n\n⚡️ Tap the link below to start earning instantly and build your passive income! 👇\n\n')}`);
+    if (referralLink && window.Telegram?.WebApp) {
+      window.Telegram.WebApp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('🚨 *Claim your free USDT and crypto rewards on Tasky!* 💸\n\n⚡️ Tap the link below to start earning instantly and build your passive income! 👇\n\n')}`);
     } else {
       handleCopy();
     }
   };
-
-
-
-
 
   return (
     <div className="p-4 space-y-4 pb-20 min-h-full relative">
@@ -156,7 +153,7 @@ export default function Referral({ user }) {
             <input 
               type="text" 
               readOnly 
-              value={refData?.referral_link || ''} 
+              value={referralLink} 
               className="bg-transparent flex-1 px-3 text-sm text-white focus:outline-none min-w-0"
             />
             <Button size="sm" variant="secondary" className="!bg-white !text-black border-0 hover:!bg-white/90" onClick={handleCopy}>
@@ -169,10 +166,6 @@ export default function Referral({ user }) {
             <span>Invite Friends</span>
           </Button>
         </div>
-        
-        {/* Decorative circles */}
-        
-        
       </Card>
 
       <div className="flex bg-surface-soft p-1.5 rounded-pill relative mb-4 shadow-inner border border-black/5">
@@ -224,7 +217,7 @@ export default function Referral({ user }) {
                   <Users size={16} className="text-blue-400" />
                 </div>
                 <p className="text-sm text-ink-faint mb-1">Total Invites</p>
-                <p className="text-xl font-bold">{refData?.total_referrals || 0}</p>
+                <p className="text-xl font-bold">{refData?.total_referrals ?? user?.total_referrals ?? 0}</p>
               </Card>
               
               <Card className="flex flex-col">
@@ -232,7 +225,7 @@ export default function Referral({ user }) {
                   <CheckCircle2 size={16} className="text-green-400" />
                 </div>
                 <p className="text-sm text-ink-faint mb-1">Valid Invites</p>
-                <p className="text-xl font-bold">{refData?.valid_referrals || 0}</p>
+                <p className="text-xl font-bold">{refData?.valid_referrals ?? user?.valid_referrals ?? 0}</p>
               </Card>
 
               <Card className="flex flex-col">

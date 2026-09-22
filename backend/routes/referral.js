@@ -47,47 +47,81 @@ function sendAdminBroadcast(message) {
   } catch (e) {
     console.error('Error sending admin broadcast:', e.message);
   }
+async function ensureReferralTables() {
+    try {
+        await pool.query(`
+            ALTER TABLE users ADD COLUMN IF NOT EXISTS unclaimed_commission NUMERIC(14, 4) DEFAULT 0.0000;
+            CREATE TABLE IF NOT EXISTS nft_commission_claims (
+                id SERIAL PRIMARY KEY,
+                telegram_id BIGINT NOT NULL,
+                amount_gram NUMERIC(14, 4) NOT NULL,
+                status VARCHAR(20) DEFAULT 'pending',
+                wallet_address TEXT,
+                requested_at TIMESTAMPTZ DEFAULT NOW(),
+                processed_at TIMESTAMPTZ
+            );
+        `);
+    } catch (e) {
+        console.error('[Referral] Table check error:', e.message);
+    }
 }
+ensureReferralTables();
 
 // GET /api/referral/:telegram_id
 router.get('/:telegram_id(\\d+)', async (req, res) => {
     try {
         const userRes = await pool.query(
-            'SELECT referral_code, total_referrals, valid_referrals, unclaimed_commission, gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1',
-            [req.params.telegram_id]
+            'SELECT referral_code, total_referrals, valid_referrals, unclaimed_commission, gram_wallet_address, wallet_address FROM users WHERE telegram_id::text = $1',
+            [String(req.params.telegram_id)]
         );
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
         let user = userRes.rows[0];
         if (!user.referral_code) {
             const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000);
-            await pool.query('UPDATE users SET referral_code = $1 WHERE telegram_id = $2', [newRefCode, req.params.telegram_id]);
+            await pool.query('UPDATE users SET referral_code = $1 WHERE telegram_id::text = $2', [newRefCode, String(req.params.telegram_id)]);
             user.referral_code = newRefCode;
         }
         
         const link = `https://t.me/${process.env.BOT_USERNAME || 'TaskyAppbot'}?start=${user.referral_code}`;
 
-        const referredRes = await pool.query(`
-            SELECT u.telegram_id, u.username, u.first_name, u.created_at, u.valid_referrals
-            FROM referrals r
-            JOIN users u ON r.referred_telegram_id = u.telegram_id
-            WHERE r.referrer_telegram_id = $1
-            ORDER BY r.created_at DESC
-        `, [req.params.telegram_id]);
+        let referredRows = [];
+        try {
+            const referredRes = await pool.query(`
+                SELECT u.telegram_id, u.username, u.first_name, u.created_at, u.valid_referrals
+                FROM referrals r
+                JOIN users u ON r.referred_telegram_id::text = u.telegram_id::text
+                WHERE r.referrer_telegram_id::text = $1
+                ORDER BY r.created_at DESC
+            `, [String(req.params.telegram_id)]);
+            referredRows = referredRes.rows || [];
+        } catch (rErr) {
+            console.warn('[Referral] Error fetching referred users list:', rErr.message);
+        }
 
-        // Query pending commission claims
-        const pendingClaimRes = await pool.query(
-            `SELECT COALESCE(SUM(amount_gram), 0) as pending_amount FROM nft_commission_claims WHERE telegram_id = $1 AND status = 'pending'`,
-            [req.params.telegram_id]
-        );
-        const pendingClaimGram = parseFloat(pendingClaimRes.rows[0]?.pending_amount || 0);
+        // Query pending commission claims safely
+        let pendingClaimGram = 0;
+        try {
+            const pendingClaimRes = await pool.query(
+                `SELECT COALESCE(SUM(amount_gram), 0) as pending_amount FROM nft_commission_claims WHERE telegram_id::text = $1 AND status = 'pending'`,
+                [String(req.params.telegram_id)]
+            );
+            pendingClaimGram = parseFloat(pendingClaimRes.rows[0]?.pending_amount || 0);
+        } catch (cErr) {
+            console.warn('[Referral] Error fetching pending commission claims:', cErr.message);
+        }
 
-        // Get referral rules
-        const rulesRes = await pool.query('SELECT * FROM referral_rules LIMIT 1');
-        const rules = rulesRes.rows[0] || { reward_per_referral: 300, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
+        // Get referral rules safely
+        let rules = { reward_per_referral: 300, tasks_required_for_valid: 3, spin_reward_per_referral: 1 };
+        try {
+            const rulesRes = await pool.query('SELECT * FROM referral_rules LIMIT 1');
+            if (rulesRes.rows.length > 0) rules = rulesRes.rows[0];
+        } catch (ruleErr) {
+            console.warn('[Referral] Error fetching referral rules:', ruleErr.message);
+        }
 
-        const total = user.total_referrals;
-        let valid = user.valid_referrals;
+        const total = parseInt(user.total_referrals || 0, 10);
+        let valid = parseInt(user.valid_referrals || 0, 10);
         if (req.params.telegram_id.toString() === '1117992896' && valid > 11) {
             valid = 11;
         }
@@ -105,10 +139,10 @@ router.get('/:telegram_id(\\d+)', async (req, res) => {
             reward_per_referral: rules.reward_per_referral,
             tasks_required_for_valid: rules.tasks_required_for_valid,
             spin_reward_per_referral: rules.spin_reward_per_referral,
-            referred_users: referredRes.rows,
+            referred_users: referredRows,
         });
     } catch (err) {
-        console.error(err);
+        console.error('[Referral] Error loading user referral stats:', err);
         res.status(500).json({ error: 'Internal server error' });
     }
 });
