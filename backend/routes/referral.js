@@ -47,6 +47,8 @@ function sendAdminBroadcast(message) {
   } catch (e) {
     console.error('Error sending admin broadcast:', e.message);
   }
+}
+
 async function ensureReferralTables() {
     try {
         await pool.query(`
