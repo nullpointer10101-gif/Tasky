@@ -13,14 +13,17 @@ const bot = require('../bot');
  * @returns {Promise<{mining_level, efficiency_percent, level_name, days_stable, newly_unlocked_machines}>}
  */
 const recalculateTier = async (telegram_id) => {
+    const tidStr = String(telegram_id || '').trim();
+    if (!tidStr) return null;
+
     try {
         // Fetch user, config tables in parallel
         const [userRes, levelsRes, tiersRes, machinesRes] = await Promise.all([
             pool.query(`
                 SELECT id, balance, mining_level, efficiency_percent,
                        holding_stable_since, last_known_balance, username, first_name
-                FROM users WHERE telegram_id = $1
-            `, [telegram_id]),
+                FROM users WHERE telegram_id::text = $1
+            `, [tidStr]),
             pool.query('SELECT * FROM mining_levels ORDER BY min_holding DESC'),
             pool.query('SELECT * FROM efficiency_tiers ORDER BY min_days DESC'),
             pool.query('SELECT * FROM machines ORDER BY min_holding ASC')
@@ -74,7 +77,6 @@ const recalculateTier = async (telegram_id) => {
 
         // Write updated values to DB
         const oldLevel = parseInt(user.mining_level) || 0;
-        const oldEff = parseFloat(user.efficiency_percent) || 100;
 
         await pool.query(`
             UPDATE users
@@ -82,22 +84,22 @@ const recalculateTier = async (telegram_id) => {
                 efficiency_percent = $2,
                 holding_stable_since = $3,
                 last_known_balance = $4
-            WHERE telegram_id = $5
-        `, [new_mining_level, new_efficiency_percent, holding_stable_since, currentBalance, telegram_id]);
+            WHERE telegram_id::text = $5
+        `, [new_mining_level, new_efficiency_percent, holding_stable_since, currentBalance, tidStr]);
 
         // Bot notifications
         if (bot && bot.sendMessage) {
             if (new_mining_level > oldLevel) {
                 try {
-                    bot.sendMessage(telegram_id, `🎉 Your Rig leveled up to *${new_level_name}*! Mining speed increased.`, { parse_mode: 'Markdown' });
+                    bot.sendMessage(tidStr, `🎉 Your Rig leveled up to *${new_level_name}*! Mining speed increased.`, { parse_mode: 'Markdown' }).catch(() => {});
                 } catch (e) { /* non-critical */ }
             }
         }
 
         // Check & unlock newly qualifying machines
         const userMachinesRes = await pool.query(
-            'SELECT machine_id FROM user_machines WHERE telegram_id = $1',
-            [telegram_id]
+            'SELECT machine_id FROM user_machines WHERE telegram_id::text = $1',
+            [tidStr]
         );
         const ownedIds = new Set(userMachinesRes.rows.map(r => r.machine_id));
         const newly_unlocked_machines = [];
@@ -106,18 +108,18 @@ const recalculateTier = async (telegram_id) => {
             if (currentBalance >= Number(machine.min_holding) && !ownedIds.has(machine.id)) {
                 await pool.query(`
                     INSERT INTO user_machines (telegram_id, machine_id)
-                    VALUES ($1, $2)
+                    VALUES ($1::bigint, $2)
                     ON CONFLICT (telegram_id, machine_id) DO NOTHING
-                `, [telegram_id, machine.id]);
+                `, [tidStr, machine.id]);
                 newly_unlocked_machines.push(machine);
 
                 if (bot && bot.sendMessage) {
                     try {
                         bot.sendMessage(
-                            telegram_id,
+                            tidStr,
                             `⚙️ New Rig Machine unlocked: *${machine.name}* (${machine.rarity})! +${machine.speed_bonus_percent}% speed bonus.`,
                             { parse_mode: 'Markdown' }
-                        );
+                        ).catch(() => {});
                     } catch (e) { /* non-critical */ }
                 }
             }

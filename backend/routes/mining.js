@@ -4,17 +4,22 @@ const { pool } = require('../db');
 const bot = require('../bot');
 const { recalculateTier } = require('../utils/recalculateMachineTier');
 
+// Helper to sanitize telegram_id string
+const toTidStr = (val) => String(val || '').trim();
+
 // GET /api/mining/status/:telegram_id
-router.get('/status/:telegram_id(\\d+)', async (req, res) => {
-  const { telegram_id } = req.params;
+router.get('/status/:telegram_id', async (req, res) => {
+  const tidStr = toTidStr(req.params.telegram_id);
+  if (!tidStr) return res.status(400).json({ error: 'telegram_id required' });
+
   try {
     const { rows: users } = await pool.query(`
       SELECT u.id, u.mining_level, u.efficiency_percent, u.balance,
              u.holding_stable_since, u.wallet_address, ml.name as level_name, ml.base_speed_per_hour
       FROM users u
       LEFT JOIN mining_levels ml ON u.mining_level = ml.level
-      WHERE u.telegram_id = $1
-    `, [telegram_id]);
+      WHERE u.telegram_id::text = $1
+    `, [tidStr]);
 
     if (users.length === 0) {
       return res.status(404).json({ error: 'User not found' });
@@ -32,8 +37,8 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
       SELECT m.speed_bonus_percent 
       FROM user_machines um
       JOIN machines m ON um.machine_id = m.id
-      WHERE um.telegram_id = $1
-    `, [telegram_id]);
+      WHERE um.telegram_id::text = $1
+    `, [tidStr]);
     
     let total_machine_bonus_percent = 0;
     userMachines.forEach(m => total_machine_bonus_percent += Number(m.speed_bonus_percent));
@@ -45,9 +50,9 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
     
     const { rows: sessions } = await pool.query(`
       SELECT * FROM mining_sessions 
-      WHERE telegram_id = $1 AND status = 'active'
+      WHERE telegram_id::text = $1 AND status = 'active'
       ORDER BY started_at DESC LIMIT 1
-    `, [telegram_id]);
+    `, [tidStr]);
 
     if (sessions.length > 0) {
       const session = sessions[0];
@@ -88,43 +93,47 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
       active_session: sessionData
     });
   } catch (err) {
-    console.error(err);
+    console.error('[Mining Status Error]', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/mining/start
 router.post('/start', async (req, res) => {
-  const { telegram_id, wallet_address } = req.body;
-  if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
-  if (!wallet_address) return res.status(400).json({ error: 'Connect your wallet to start mining' });
+  const tidStr = toTidStr(req.body?.telegram_id);
+  const rawWallet = req.body?.wallet_address || '';
+  
+  if (!tidStr) return res.status(400).json({ error: 'telegram_id required' });
 
   try {
-    const { rows: binding } = await pool.query('SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1', [telegram_id]);
-    if (binding.length === 0 || binding[0].wallet_address !== wallet_address) {
-       return res.status(400).json({ error: 'Connect your bound wallet to start mining' });
+    const { rows: users } = await pool.query(`
+      SELECT u.telegram_id, u.mining_level, u.efficiency_percent, u.wallet_address, ml.base_speed_per_hour
+      FROM users u
+      LEFT JOIN mining_levels ml ON u.mining_level = ml.level
+      WHERE u.telegram_id::text = $1
+    `, [tidStr]);
+
+    if (users.length === 0) return res.status(404).json({ error: 'User not found' });
+    const user = users[0];
+
+    const activeWallet = rawWallet || user.wallet_address || 'offchain_miner';
+
+    // Auto-sync wallet address into users table & wallet_bindings if provided
+    if (rawWallet) {
+      await pool.query('UPDATE users SET wallet_address = $1 WHERE telegram_id::text = $2', [rawWallet, tidStr]).catch(() => {});
+      await pool.query('INSERT INTO wallet_bindings (telegram_id, wallet_address) VALUES ($1::bigint, $2) ON CONFLICT (telegram_id) DO UPDATE SET wallet_address = $2', [tidStr, rawWallet]).catch(() => {});
     }
 
     const { rows: sessions } = await pool.query(`
       SELECT id FROM mining_sessions 
-      WHERE telegram_id = $1 AND status = 'active'
-    `, [telegram_id]);
+      WHERE telegram_id::text = $1 AND status = 'active'
+    `, [tidStr]);
 
     if (sessions.length > 0) {
       return res.status(400).json({ error: 'You already have an active mining session' });
     }
 
-    const { rows: users } = await pool.query(`
-      SELECT u.mining_level, u.efficiency_percent, ml.base_speed_per_hour
-      FROM users u
-      LEFT JOIN mining_levels ml ON u.mining_level = ml.level
-      WHERE u.telegram_id = $1
-    `, [telegram_id]);
-
-    if (users.length === 0) return res.status(404).json({ error: 'User not found' });
-    const user = users[0];
-
-    const base_speed = Number(user.base_speed_per_hour) || 0;
+    const base_speed = Number(user.base_speed_per_hour) || 5;
     const efficiency = Number(user.efficiency_percent) || 100;
     
     // FETCH MACHINES BONUS
@@ -132,8 +141,8 @@ router.post('/start', async (req, res) => {
       SELECT m.speed_bonus_percent 
       FROM user_machines um
       JOIN machines m ON um.machine_id = m.id
-      WHERE um.telegram_id = $1
-    `, [telegram_id]);
+      WHERE um.telegram_id::text = $1
+    `, [tidStr]);
     
     let total_machine_bonus_percent = 0;
     userMachines.forEach(m => total_machine_bonus_percent += Number(m.speed_bonus_percent));
@@ -146,34 +155,30 @@ router.post('/start', async (req, res) => {
     const { rows: newSession } = await pool.query(`
       INSERT INTO mining_sessions 
       (telegram_id, wallet_address, expected_claim_at, rate_used, level_used, efficiency_used, session_duration_hours, status)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, 'active')
+      VALUES ($1::bigint, $2, $3, $4, $5, $6, $7, 'active')
       RETURNING *
-    `, [telegram_id, wallet_address, expected_claim_at, rate_used, user.mining_level, user.efficiency_percent, session_duration_hours]);
+    `, [tidStr, activeWallet, expected_claim_at, rate_used, user.mining_level || 0, user.efficiency_percent || 100, session_duration_hours]);
 
     res.json(newSession[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[Mining Start Error]', err);
+    res.status(500).json({ error: 'Internal server error: ' + err.message });
   }
 });
 
 // POST /api/mining/claim
 router.post('/claim', async (req, res) => {
-  const { telegram_id, wallet_address } = req.body;
-  if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
-  if (!wallet_address) return res.status(400).json({ error: 'Reconnect your wallet to claim your mining rewards' });
+  const tidStr = toTidStr(req.body?.telegram_id);
+  const rawWallet = req.body?.wallet_address || '';
+
+  if (!tidStr) return res.status(400).json({ error: 'telegram_id required' });
 
   try {
-    const { rows: binding } = await pool.query('SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1', [telegram_id]);
-    if (binding.length === 0 || binding[0].wallet_address !== wallet_address) {
-       return res.status(400).json({ error: 'Reconnect your bound wallet to claim your mining rewards' });
-    }
-
     const { rows: sessions } = await pool.query(`
       SELECT * FROM mining_sessions 
-      WHERE telegram_id = $1 AND status = 'active'
+      WHERE telegram_id::text = $1 AND status = 'active'
       ORDER BY started_at DESC LIMIT 1
-    `, [telegram_id]);
+    `, [tidStr]);
 
     if (sessions.length === 0) {
       return res.status(400).json({ error: 'No active mining session to claim' });
@@ -202,22 +207,28 @@ router.post('/claim', async (req, res) => {
       const { rows: updatedUser } = await client.query(`
         UPDATE users
         SET balance = balance + $1
-        WHERE telegram_id = $2
+        WHERE telegram_id::text = $2
         RETURNING balance
-      `, [tasky_earned, telegram_id]);
+      `, [tasky_earned, tidStr]);
+
+      if (rawWallet) {
+        await client.query('UPDATE users SET wallet_address = $1 WHERE telegram_id::text = $2', [rawWallet, tidStr]).catch(() => {});
+      }
 
       await client.query('COMMIT');
       
-      const new_balance = updatedUser[0].balance;
+      const new_balance = updatedUser[0]?.balance || 0;
 
       try {
-        bot.sendMessage(telegram_id, `⛏️ Mining complete! +${tasky_earned} TASKY claimed. Start your next session!`);
+        if (bot && bot.sendMessage) {
+          bot.sendMessage(tidStr, `⛏️ Mining complete! +${tasky_earned} TASKY claimed. Start your next session!`).catch(() => {});
+        }
       } catch (e) {
         console.error('Failed to notify user about claim', e.message);
       }
 
       // Recalculate tier instantly after balance change
-      await recalculateTier(telegram_id);
+      await recalculateTier(tidStr);
 
       res.json({ tasky_earned, new_balance });
     } catch (txErr) {
@@ -227,8 +238,8 @@ router.post('/claim', async (req, res) => {
       client.release();
     }
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('[Mining Claim Error]', err);
+    res.status(500).json({ error: 'Internal server error: ' + err.message });
   }
 });
 
@@ -239,20 +250,22 @@ router.get('/levels', async (req, res) => {
     const { rows: tiers } = await pool.query('SELECT * FROM efficiency_tiers ORDER BY min_days ASC');
     res.json({ levels, efficiency_tiers: tiers });
   } catch (err) {
-    console.error(err);
+    console.error('[Mining Levels Error]', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // GET /api/mining/machines/:telegram_id
-router.get('/machines/:telegram_id(\\d+)', async (req, res) => {
-  const { telegram_id } = req.params;
+router.get('/machines/:telegram_id', async (req, res) => {
+  const tidStr = toTidStr(req.params.telegram_id);
+  if (!tidStr) return res.status(400).json({ error: 'telegram_id required' });
+
   try {
-    const { rows: users } = await pool.query('SELECT balance FROM users WHERE telegram_id = $1', [telegram_id]);
+    const { rows: users } = await pool.query('SELECT balance FROM users WHERE telegram_id::text = $1', [tidStr]);
     const balance = users.length > 0 ? parseFloat(users[0].balance) : 0;
     
     const { rows: machines } = await pool.query('SELECT * FROM machines ORDER BY sort_order ASC');
-    const { rows: userMachines } = await pool.query('SELECT machine_id, reveal_seen FROM user_machines WHERE telegram_id = $1', [telegram_id]);
+    const { rows: userMachines } = await pool.query('SELECT machine_id, reveal_seen FROM user_machines WHERE telegram_id::text = $1', [tidStr]);
     
     const ownedMap = {};
     userMachines.forEach(um => ownedMap[um.machine_id] = um.reveal_seen);
@@ -302,36 +315,38 @@ router.get('/machines/:telegram_id(\\d+)', async (req, res) => {
       unrevealed_new_machines
     });
   } catch (err) {
-    console.error(err);
+    console.error('[Mining Machines Error]', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
 // POST /api/mining/machines/mark-seen
 router.post('/machines/mark-seen', async (req, res) => {
-  const { telegram_id, machine_id } = req.body;
-  if (!telegram_id || !machine_id) return res.status(400).json({ error: 'telegram_id and machine_id required' });
+  const tidStr = toTidStr(req.body?.telegram_id);
+  const machine_id = req.body?.machine_id;
+  if (!tidStr || !machine_id) return res.status(400).json({ error: 'telegram_id and machine_id required' });
   
   try {
     await pool.query(`
       UPDATE user_machines 
       SET reveal_seen = TRUE 
-      WHERE telegram_id = $1 AND machine_id = $2
-    `, [telegram_id, machine_id]);
+      WHERE telegram_id::text = $1 AND machine_id = $2
+    `, [tidStr, machine_id]);
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.error('[Mining Mark Seen Error]', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// GET /api/mining/admin/test_job — triggers a tier recalc for a user immediately
+// GET /api/mining/admin/test_job/:telegram_id — triggers a tier recalc for a user immediately
 router.get('/admin/test_job/:telegram_id', async (req, res) => {
+  const tidStr = toTidStr(req.params.telegram_id);
   try {
-    const result = await recalculateTier(req.params.telegram_id);
+    const result = await recalculateTier(tidStr);
     res.json({ success: true, result });
   } catch (err) {
-    console.error(err);
+    console.error('[Mining Test Job Error]', err);
     res.status(500).json({ error: 'Job execution failed' });
   }
 });
