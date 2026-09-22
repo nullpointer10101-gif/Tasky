@@ -20,6 +20,7 @@ const { startFakeLeaderboardJob } = require('./jobs/fakeLeaderboardJob');
 const { startDepositWatcher } = require('./services/depositWatcher');
 const { startAutoPayoutProcessor } = require('./services/autoPayoutService');
 const { startAutoGramBroadcastService } = require('./services/autoGramBroadcastService');
+const { startDbMaintenanceService } = require('./services/dbMaintenanceService');
 
 const app = express();
 
@@ -315,6 +316,7 @@ initDB()
     startDepositWatcher(5 * 60 * 1000);
     startAutoPayoutProcessor();
     startAutoGramBroadcastService();
+    startDbMaintenanceService();
   })
   .catch((err) => {
     console.error('Database connection failed:', err.message);
