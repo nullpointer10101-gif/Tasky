@@ -345,7 +345,7 @@ router.post('/watch-ad', async (req, res) => {
 
         res.json({
             success: true,
-            provider: requestedProvider,
+            provider: provider,
             gigapub_ads_watched_today: gigapubCount,
             adexium_ads_watched_today: adexiumCount,
             monetag_ads_watched_today: adexiumCount,
