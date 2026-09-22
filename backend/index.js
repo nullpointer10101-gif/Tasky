@@ -277,19 +277,16 @@ if (fs.existsSync(miniappDistPath)) {
   });
 }
 
-app.listen(PORT, async () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on 0.0.0.0:${PORT}`);
   console.log(`Test UI: http://localhost:${PORT}/test.html`);
   console.log(`Admin Panel Live: http://localhost:${PORT}/admin`);
 
-  // Ensure Telegram Webhook is deleted so Long-Polling receives all updates in real-time without delay
+  // Ensure Telegram Webhook is deleted asynchronously so it never blocks Render port detection
   if (bot && !bot.isDummy && typeof bot.deleteWebHook === 'function') {
-    try {
-      await bot.deleteWebHook({ drop_pending_updates: false });
-      console.log('✅ Cleared Telegram webhooks — Active Polling Enabled');
-    } catch (e) {
-      console.warn('⚠️ Delete webhook warning:', e.message);
-    }
+    bot.deleteWebHook({ drop_pending_updates: false })
+      .then(() => console.log('✅ Cleared Telegram webhooks — Active Polling Enabled'))
+      .catch((e) => console.warn('⚠️ Delete webhook warning:', e.message));
   }
 });
 
