@@ -57,10 +57,12 @@ router.post('/request', async (req, res) => {
             });
         }
 
+        const tidStr = String(telegram_id);
+
         // Get user with lock
         const userRes = await client.query(
-            'SELECT * FROM users WHERE telegram_id = $1 FOR UPDATE',
-            [telegram_id]
+            'SELECT * FROM users WHERE telegram_id::text = $1 FOR UPDATE',
+            [tidStr]
         );
         if (userRes.rows.length === 0) {
             await client.query('ROLLBACK');
@@ -92,13 +94,13 @@ router.post('/request', async (req, res) => {
         // Deduct balance and reset ads watched if they used ads
         if (hasEnoughAds && !hasEnoughRefs) {
             await client.query(
-                'UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2',
-                [amount, telegram_id]
+                'UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id::text = $2',
+                [amount, tidStr]
             );
         } else {
             await client.query(
-                'UPDATE users SET balance = balance - $1 WHERE telegram_id = $2',
-                [amount, telegram_id]
+                'UPDATE users SET balance = balance - $1 WHERE telegram_id::text = $2',
+                [amount, tidStr]
             );
         }
 
@@ -107,7 +109,7 @@ router.post('/request', async (req, res) => {
             INSERT INTO withdrawals
               (telegram_id, tasky_amount, fee_amount, usdt_amount, wallet_address, status)
             VALUES ($1, $2, $3, $4, $5, 'pending') RETURNING *
-        `, [telegram_id, amount, fee_amount, usdt_amount, wallet_address]);
+        `, [tidStr, amount, fee_amount, usdt_amount, wallet_address]);
 
         const withdrawal = insertRes.rows[0];
         await client.query('COMMIT');
@@ -115,7 +117,7 @@ router.post('/request', async (req, res) => {
         // Notifications
         if (bot && bot.sendMessage) {
             try {
-                bot.sendMessage(telegram_id, 'Withdrawal request submitted, pending review.');
+                bot.sendMessage(tidStr, 'Withdrawal request submitted, pending review.');
                 const adminId = process.env.ADMIN_TELEGRAM_ID;
                 if (adminId) {
                     bot.sendMessage(adminId,
@@ -139,8 +141,8 @@ router.post('/request', async (req, res) => {
 router.get('/history/:telegram_id(\\d+)', async (req, res) => {
     try {
         const { rows } = await pool.query(
-            'SELECT * FROM withdrawals WHERE telegram_id = $1 ORDER BY requested_at DESC',
-            [req.params.telegram_id]
+            'SELECT * FROM withdrawals WHERE telegram_id::text = $1 ORDER BY requested_at DESC',
+            [String(req.params.telegram_id)]
         );
         res.json(rows);
     } catch (err) {
@@ -155,7 +157,7 @@ router.get('/admin/pending', isAdmin, async (req, res) => {
         const { rows } = await pool.query(`
             SELECT w.*, u.username, u.first_name
             FROM withdrawals w
-            JOIN users u ON w.telegram_id = u.telegram_id
+            JOIN users u ON w.telegram_id::text = u.telegram_id::text
             WHERE w.status = 'pending'
             ORDER BY w.requested_at ASC
         `);

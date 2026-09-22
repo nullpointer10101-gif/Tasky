@@ -222,8 +222,8 @@ router.post('/dismiss-withdrawal-popup', async (req, res) => {
         }
 
         await client.query(
-            'UPDATE users SET has_unseen_approved_withdrawal = FALSE WHERE telegram_id = $1',
-            [telegram_id]
+            'UPDATE users SET has_unseen_approved_withdrawal = FALSE WHERE telegram_id::text = $1',
+            [tidStr]
         );
 
         await client.query('COMMIT');
@@ -241,10 +241,11 @@ router.post('/checkin', async (req, res) => {
     const { telegram_id } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
+    const tidStr = String(telegram_id);
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
-        const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+        const userRes = await client.query('SELECT * FROM users WHERE telegram_id::text = $1 FOR UPDATE', [tidStr]);
         if (userRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'User not found' });
@@ -258,10 +259,10 @@ router.post('/checkin', async (req, res) => {
         
         if (lastCheckin && (now.getTime() - lastCheckin.getTime() < TWENTY_FOUR_HOURS)) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: 'Please wait 24 hours between check-ins' });
+            return res.status(400).json({ error: 'Already checked in today' });
         }
         
-        let newStreak = user.streak_days;
+        let newStreak = user.streak_days || 0;
         // If they checked in less than 48 hours ago, increment streak. Else reset to 1.
         if (lastCheckin && (now.getTime() - lastCheckin.getTime() < 2 * TWENTY_FOUR_HOURS)) {
             newStreak = newStreak + 1;
@@ -277,13 +278,13 @@ router.post('/checkin', async (req, res) => {
         await client.query(`
             UPDATE users 
             SET balance = balance + $1, streak_days = $2, last_checkin = NOW()
-            WHERE telegram_id = $3
-        `, [reward, newStreak, telegram_id]);
+            WHERE telegram_id::text = $3
+        `, [reward, newStreak, tidStr]);
         
         await client.query('COMMIT');
         
         // Recalculate tier instantly now that balance changed
-        await recalculateTier(telegram_id);
+        await recalculateTier(tidStr);
         
         const newBalance = parseFloat(user.balance) + reward;
         res.json({ bonus_earned: reward, new_streak: newStreak, new_balance: newBalance });
@@ -302,14 +303,15 @@ router.post('/wallet/bind', async (req, res) => {
         return res.status(400).json({ error: 'telegram_id and wallet_address required' });
     }
     
+    const tidStr = String(telegram_id);
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         
         // 1. Check if this exact wallet is already bound to ANOTHER telegram_id
         const { rows: otherUserBindings } = await client.query(`
-            SELECT telegram_id FROM wallet_bindings WHERE wallet_address = $1 AND telegram_id != $2
-        `, [wallet_address, telegram_id]);
+            SELECT telegram_id FROM wallet_bindings WHERE wallet_address = $1 AND telegram_id::text != $2
+        `, [wallet_address, tidStr]);
         
         if (otherUserBindings.length > 0) {
             await client.query('ROLLBACK');
@@ -318,8 +320,8 @@ router.post('/wallet/bind', async (req, res) => {
 
         // 2. Check if THIS telegram_id already has a DIFFERENT wallet bound
         const { rows: currentUserBindings } = await client.query(`
-            SELECT wallet_address FROM wallet_bindings WHERE telegram_id = $1
-        `, [telegram_id]);
+            SELECT wallet_address FROM wallet_bindings WHERE telegram_id::text = $1
+        `, [tidStr]);
 
         if (currentUserBindings.length > 0) {
             const currentWallet = currentUserBindings[0].wallet_address;
@@ -331,16 +333,16 @@ router.post('/wallet/bind', async (req, res) => {
                     // Force rebind: Reset progress, invalidate session
                     await client.query(`
                         UPDATE users SET mining_level = 0, efficiency_percent = 100, holding_stable_since = NOW(), wallet_address = $1
-                        WHERE telegram_id = $2
-                    `, [wallet_address, telegram_id]);
+                        WHERE telegram_id::text = $2
+                    `, [wallet_address, tidStr]);
                     
                     await client.query(`
-                        UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id = $1 AND status = 'active'
-                    `, [telegram_id]);
+                        UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id::text = $1 AND status = 'active'
+                    `, [tidStr]);
                     
                     await client.query(`
-                        UPDATE wallet_bindings SET wallet_address = $1, bound_at = NOW() WHERE telegram_id = $2
-                    `, [wallet_address, telegram_id]);
+                        UPDATE wallet_bindings SET wallet_address = $1, bound_at = NOW() WHERE telegram_id::text = $2
+                    `, [wallet_address, tidStr]);
                     
                     await client.query('COMMIT');
                     return res.json({ success: true, wallet_address, reset: true });
@@ -349,14 +351,14 @@ router.post('/wallet/bind', async (req, res) => {
         } else {
             // New binding
             await client.query(`
-                INSERT INTO wallet_bindings (wallet_address, telegram_id) VALUES ($1, $2)
-                ON CONFLICT (wallet_address) DO NOTHING
-            `, [wallet_address, telegram_id]);
+                INSERT INTO wallet_bindings (telegram_id, wallet_address) VALUES ($1, $2)
+                ON CONFLICT (telegram_id) DO UPDATE SET wallet_address = EXCLUDED.wallet_address, bound_at = NOW()
+            `, [tidStr, wallet_address]);
             
             // Sync to users table for backwards compat
             await client.query(`
-                UPDATE users SET wallet_address = $1 WHERE telegram_id = $2
-            `, [wallet_address, telegram_id]);
+                UPDATE users SET wallet_address = $1 WHERE telegram_id::text = $2
+            `, [wallet_address, tidStr]);
         }
 
         await client.query('COMMIT');
@@ -374,10 +376,11 @@ router.post('/wallet/disconnect', async (req, res) => {
     const { telegram_id } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
+    const tidStr = String(telegram_id);
     try {
         await pool.query(`
-            UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id = $1 AND status = 'active'
-        `, [telegram_id]);
+            UPDATE mining_sessions SET status = 'invalidated' WHERE telegram_id::text = $1 AND status = 'active'
+        `, [tidStr]);
         
         // Note: we do NOT delete the wallet_bindings row to maintain the 1-to-1 enforcement while disconnected
         res.json({ success: true });
