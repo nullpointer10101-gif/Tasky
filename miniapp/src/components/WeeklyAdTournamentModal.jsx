@@ -166,10 +166,10 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           showToast?.('🔥 +1 Ad counted! Rank updating...', 'success');
           load();
         } else {
-          showToast?.(res?.data?.error || 'Ad verification failed. Must watch for at least 5 seconds!', 'error');
+          showToast?.(res?.data?.error || 'Ad verification failed. Must watch for at least 10 seconds!', 'error');
         }
       } else {
-        showToast?.(r.error || 'Must watch the ad for at least 5 seconds!', 'error');
+        showToast?.(r.error || 'Must watch the ad for at least 10 seconds!', 'error');
       }
     } catch (err) {
       showToast?.(err?.response?.data?.error || 'Try again!', 'error');

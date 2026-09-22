@@ -232,13 +232,13 @@ export async function showAdexiumAd() {
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
 
-      if (elapsed >= 5.0) {
+      if (elapsed >= 10.0) {
         resolve({ success: true, network: 'adexium' });
       } else {
         resolve({
           success: false,
           network: 'adexium',
-          error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch at least 5 seconds to receive credit.`
+          error: `Ad was closed early (${elapsed.toFixed(1)}s). You must watch at least 10 seconds to receive credit.`
         });
       }
     };
@@ -331,8 +331,8 @@ function showTowerAdDirect() {
         if (settled) return;
         settled = true;
         const elapsedSec = (Date.now() - startTime) / 1000;
-        if (elapsedSec < 5.0) {
-          resolve({ success: false, error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 5 seconds to receive credit.` });
+        if (elapsedSec < 10.0) {
+          resolve({ success: false, error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 10 seconds to receive credit.` });
         } else {
           resolve({ success: true, network: 'usl', result: res });
         }
@@ -341,10 +341,10 @@ function showTowerAdDirect() {
         if (settled) return;
         settled = true;
         const elapsedSec = (Date.now() - startTime) / 1000;
-        if (rewarded && elapsedSec >= 5.0) {
+        if (rewarded && elapsedSec >= 10.0) {
           resolve({ success: true, network: 'usl' });
         } else {
-          resolve({ success: false, error: err?.message || `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 5 seconds to receive credit.` });
+          resolve({ success: false, error: err?.message || `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 10 seconds to receive credit.` });
         }
       });
   });
@@ -496,12 +496,12 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
       };
     }
 
-    if (elapsedSec < 5.0) {
-      console.warn(`[AdManager] GigaPub ad closed early (${elapsedSec.toFixed(1)}s < 5s). Credit denied.`);
+    if (elapsedSec < 10.0) {
+      console.warn(`[AdManager] GigaPub ad closed early (${elapsedSec.toFixed(1)}s < 10s). Credit denied.`);
       return {
         success: false,
         network: providerName,
-        error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 5 seconds to receive credit.`
+        error: `Ad was closed early (${elapsedSec.toFixed(1)}s). You must watch at least 10 seconds to receive credit.`
       };
     }
 

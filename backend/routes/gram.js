@@ -198,27 +198,10 @@ router.post('/start-watch', async (req, res) => {
 
     const tidStr = telegram_id.toString();
 
-    // ── Light rate-limit: 30s minimum between start-watch calls per user ──
+    // ── Zero rate-limit on start-watch to allow continuous ad watching ──
     const now = Date.now();
-    const lastCall = lastStartWatchTime.get(tidStr) || 0;
-    const secSinceLast = (now - lastCall) / 1000;
-    if (secSinceLast < AD_SESSION_COOLDOWN_SEC) {
-        const wait = Math.ceil(AD_SESSION_COOLDOWN_SEC - secSinceLast);
-        return res.status(429).json({ error: `Please wait ${wait}s before starting another ad.` });
-    }
 
     try {
-        // Update cooldown timestamp
-        lastStartWatchTime.set(tidStr, now);
-
-        // Cleanup old entries from cooldown map (keep it small)
-        if (lastStartWatchTime.size > 5000) {
-            const cutoff = now - (AD_SESSION_COOLDOWN_SEC * 2 * 1000);
-            for (const [id, ts] of lastStartWatchTime.entries()) {
-                if (ts < cutoff) lastStartWatchTime.delete(id);
-            }
-        }
-
         global.gramAdSessions = global.gramAdSessions || new Map();
 
         // Generate cryptographically secure one-time session token
@@ -280,19 +263,16 @@ router.post('/watch-ad', async (req, res) => {
         }
 
         const isAdexium = provider === 'adexium' || provider === 'monetag' || provider === 'taddy';
-        const requestedProvider = isAdexium ? 'adexium' : 'gigapub';
-        if (sessionData.provider && sessionData.provider !== requestedProvider) {
-            return res.status(400).json({ error: 'Ad provider mismatch' });
-        }
 
         const elapsedSec = (Date.now() - sessionData.created_at) / 1000;
         // Invalidate session immediately to prevent replay attacks
         global.gramAdSessions.delete(session_token);
 
-        const minElapsed = 5.0;
+        // Server tolerance buffer: 7.0s server time accounts for ~3s network latency during 10.0s client watch requirement
+        const minElapsed = 7.0;
         if (elapsedSec < minElapsed) {
-            const remaining = Math.ceil(minElapsed - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video (at least 5s) to earn credit. Please wait ${remaining}s.` });
+            const remaining = Math.ceil(10.0 - elapsedSec);
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video (at least 10s) to earn credit. Please wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
@@ -339,11 +319,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). Please complete GigaPub ads.` });
         }
 
-        // Enforce strict 5-second cooldown between consecutive ads
+        // Enforce light 2-second cooldown between consecutive ads in DB
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 5.0) {
-                const remaining = Math.ceil(5.0 - secondsSinceLast);
+            if (secondsSinceLast < 2.0) {
+                const remaining = Math.ceil(2.0 - secondsSinceLast);
                 return res.status(429).json({ error: `Please wait ${remaining} seconds before watching another ad.` });
             }
         }

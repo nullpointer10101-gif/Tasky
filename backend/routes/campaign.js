@@ -277,7 +277,7 @@ router.post('/watch-ad', async (req, res) => {
     const sessionData = session_token ? global.campaignAdSessions.get(session_token) : null;
 
     if (!session_token || !sessionData) {
-      return res.status(400).json({ error: 'Invalid or expired ad session. You must watch the full ad (at least 5s).' });
+      return res.status(400).json({ error: 'Invalid or expired ad session. You must watch the full ad (at least 10s).' });
     }
 
     if (sessionData.telegram_id !== String(telegram_id)) {
@@ -287,23 +287,24 @@ router.post('/watch-ad', async (req, res) => {
     const elapsedSec = (Date.now() - sessionData.created_at) / 1000;
     global.campaignAdSessions.delete(session_token);
 
-    const MIN_ELAPSED = 5.0;
+    // Server tolerance buffer: 7.0s server time accounts for ~3s network latency during 10.0s client watch requirement
+    const MIN_ELAPSED = 7.0;
     if (elapsedSec < MIN_ELAPSED) {
-      const remaining = Math.ceil(MIN_ELAPSED - elapsedSec);
-      return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor ad (at least 5s) to earn credit. Please wait ${remaining}s.` });
+      const remaining = Math.ceil(10.0 - elapsedSec);
+      return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor ad (at least 10s) to earn credit. Please wait ${remaining}s.` });
     }
 
     const tournament = await getActiveTournament();
 
-    // Database-level Cooldown Check (at least 5 seconds between ad views in DB)
+    // Database-level Cooldown Check (at least 2 seconds between ad views in DB)
     const lastAdRes = await pool.query(
       'SELECT created_at FROM ad_views WHERE telegram_id::text = $1 ORDER BY created_at DESC LIMIT 1',
       [String(telegram_id)]
     );
     if (lastAdRes.rows.length > 0) {
       const elapsedDb = (Date.now() - new Date(lastAdRes.rows[0].created_at).getTime()) / 1000;
-      if (elapsedDb < 5.0) {
-        const remaining = Math.ceil(5.0 - elapsedDb);
+      if (elapsedDb < 2.0) {
+        const remaining = Math.ceil(2.0 - elapsedDb);
         return res.status(429).json({ error: `Ad watch too fast! Please wait ${remaining}s between watching ads.` });
       }
     }
