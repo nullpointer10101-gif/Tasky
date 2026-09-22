@@ -79,13 +79,18 @@ router.post('/register', async (req, res) => {
         await client.query('BEGIN');
         
         // check if user exists
-        const userRes = await client.query('SELECT * FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await client.query('SELECT * FROM users WHERE telegram_id::text = $1', [String(telegram_id)]);
         if (userRes.rows.length > 0) {
             let existingUser = userRes.rows[0];
+            if (!existingUser.referral_code) {
+                const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000);
+                await client.query('UPDATE users SET referral_code = $1 WHERE telegram_id::text = $2', [newRefCode, String(telegram_id)]);
+                existingUser.referral_code = newRefCode;
+            }
             if (first_name || username) {
                 const upRes = await client.query(
-                    'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id = $3 RETURNING *',
-                    [first_name, username, telegram_id]
+                    'UPDATE users SET first_name = COALESCE($1, first_name), username = COALESCE($2, username) WHERE telegram_id::text = $3 RETURNING *',
+                    [first_name, username, String(telegram_id)]
                 );
                 if (upRes.rows.length > 0) existingUser = upRes.rows[0];
             }
@@ -124,7 +129,7 @@ router.post('/register', async (req, res) => {
         
         if (referred_by) {
             await client.query('INSERT INTO referrals (referrer_telegram_id, referred_telegram_id) VALUES ($1, $2)', [referred_by, telegram_id]);
-            await client.query('UPDATE users SET total_referrals = total_referrals + 1 WHERE telegram_id = $1', [referred_by]);
+            await client.query('UPDATE users SET total_referrals = total_referrals + 1 WHERE telegram_id::text = $1', [String(referred_by)]);
             
             // notify referrer
             if (bot && bot.sendMessage) {
@@ -157,10 +162,15 @@ router.post('/register', async (req, res) => {
 
 router.get('/:telegram_id(\\d+)', async (req, res) => {
     try {
-        const { rows } = await pool.query('SELECT * FROM users WHERE telegram_id = $1', [req.params.telegram_id]);
+        const { rows } = await pool.query('SELECT * FROM users WHERE telegram_id::text = $1', [String(req.params.telegram_id)]);
         if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
         
         let user = rows[0];
+        if (!user.referral_code) {
+            const newRefCode = 'TASKY' + Math.floor(100000 + Math.random() * 900000);
+            await pool.query('UPDATE users SET referral_code = $1 WHERE telegram_id::text = $2', [newRefCode, String(req.params.telegram_id)]);
+            user.referral_code = newRefCode;
+        }
         
         // Auto-increment withdrawal popup views on app load
         if (user.has_unseen_approved_withdrawal) {
@@ -169,14 +179,14 @@ router.get('/:telegram_id(\\d+)', async (req, res) => {
             if (newViews > 5) {
                 // If it exceeds 5 views, disable it completely
                 await pool.query(
-                    'UPDATE users SET has_unseen_approved_withdrawal = FALSE, withdrawal_popup_views = $1 WHERE telegram_id = $2',
-                    [newViews, req.params.telegram_id]
+                    'UPDATE users SET has_unseen_approved_withdrawal = FALSE, withdrawal_popup_views = $1 WHERE telegram_id::text = $2',
+                    [newViews, String(req.params.telegram_id)]
                 );
                 user.has_unseen_approved_withdrawal = false;
             } else {
                 await pool.query(
-                    'UPDATE users SET withdrawal_popup_views = $1 WHERE telegram_id = $2',
-                    [newViews, req.params.telegram_id]
+                    'UPDATE users SET withdrawal_popup_views = $1 WHERE telegram_id::text = $2',
+                    [newViews, String(req.params.telegram_id)]
                 );
                 user.withdrawal_popup_views = newViews;
             }
