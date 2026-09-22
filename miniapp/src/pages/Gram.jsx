@@ -176,16 +176,19 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
 
   // Countdown timer for 24h reset
   useEffect(() => {
-    if (!status?.claimed_in_last_24h || !status?.recent_claim?.requested_at) {
+    const claimTimeStr = status?.last_claim_time || status?.recent_claim?.requested_at;
+    if (!status?.claimed_in_last_24h || !claimTimeStr) {
       setClaimCountdown('');
       return;
     }
     const updateTimer = () => {
-      const claimTime = new Date(status.recent_claim.requested_at).getTime();
+      const claimTime = new Date(claimTimeStr).getTime();
       const unlockTime = claimTime + 24 * 60 * 60 * 1000;
       const diff = unlockTime - Date.now();
-      if (diff <= 0) { setClaimCountdown(''); fetchStatus(); }
-      else {
+      if (diff <= 0) { 
+        setClaimCountdown(''); 
+        fetchStatus(); 
+      } else {
         const h = Math.floor(diff / (1000 * 60 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const s = Math.floor((diff % (1000 * 60)) / 1000);

@@ -91,12 +91,13 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
 
         // 4. Check if the user has claimed in the last 24 hours
         const last24hClaimRes = await pool.query(`
-            SELECT COUNT(*) FROM gram_claims
+            SELECT COUNT(*), MAX(requested_at) as last_claim_time FROM gram_claims
             WHERE telegram_id::text = $1 
               AND requested_at >= NOW() - INTERVAL '24 hours'
               AND status IN ('pending', 'approved')
         `, [tidStr]);
-        const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
+        const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0]?.count || 0, 10) > 0;
+        const last_claim_time = last24hClaimRes.rows[0]?.last_claim_time || (recent_claim?.requested_at) || null;
 
         // 4.5 Referral check (min 2 invited friends required for all users)
         const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id::text = $1 AND status IN ('approved', 'pending', 'done')", [tidStr]);
@@ -127,6 +128,7 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
             ads_watched_today,
             last_ad_time,
             claimed_in_last_24h,
+            last_claim_time,
             can_claim,
             current_claim_seq,
             total_previous_claims,
