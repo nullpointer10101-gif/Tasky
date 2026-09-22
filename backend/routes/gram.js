@@ -52,9 +52,11 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
     const { telegram_id } = req.params;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
+    const tidStr = String(telegram_id);
+
     try {
         // 1. Get user and their gram_wallet_address and connected wallet_address
-        const userRes = await pool.query('SELECT gram_wallet_address, wallet_address FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await pool.query('SELECT gram_wallet_address, wallet_address FROM users WHERE telegram_id::text = $1', [tidStr]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         const { gram_wallet_address, wallet_address } = userRes.rows[0];
 
@@ -65,11 +67,11 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
               AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
-        `, [telegram_id]);
+        `, [tidStr]);
         const gigapub_ads_watched_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
         const adexium_ads_watched_today = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
         const monetag_ads_watched_today = adexium_ads_watched_today; // backward compat alias
@@ -80,24 +82,24 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const claimsHistoryRes = await pool.query(`
             SELECT id, telegram_id, gram_wallet_address, amount, status, requested_at, processed_at, rejection_reason, tx_hash, is_flagged
             FROM gram_claims
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
             ORDER BY requested_at DESC
             LIMIT 10
-        `, [telegram_id]);
+        `, [tidStr]);
         const claims_history = claimsHistoryRes.rows;
         const recent_claim = claims_history[0] || null;
 
         // 4. Check if the user has claimed in the last 24 hours
         const last24hClaimRes = await pool.query(`
             SELECT COUNT(*) FROM gram_claims
-            WHERE telegram_id = $1 
+            WHERE telegram_id::text = $1 
               AND requested_at >= NOW() - INTERVAL '24 hours'
               AND status IN ('pending', 'approved')
-        `, [telegram_id]);
+        `, [tidStr]);
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
         // 4.5 Referral check (min 2 invited friends required for all users)
-        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
+        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id::text = $1 AND status IN ('approved', 'pending', 'done')", [tidStr]);
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const current_claim_seq = total_previous_claims + 1;
         const is_first_attempt = total_previous_claims === 0;
@@ -105,7 +107,7 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const required_adexium = is_first_attempt ? 30 : 40;
         const total_required_ads = required_gigapub + required_adexium;
 
-        const userRefRes = await pool.query('SELECT total_referrals, referral_code FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRefRes = await pool.query('SELECT total_referrals, referral_code FROM users WHERE telegram_id::text = $1', [tidStr]);
         const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
         const referral_code = userRefRes.rows[0]?.referral_code || '';
 
@@ -246,7 +248,7 @@ router.post('/watch-ad', async (req, res) => {
 
     try {
         // Check user exists
-        const userRes = await pool.query('SELECT id, is_banned FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await pool.query('SELECT id, is_banned FROM users WHERE telegram_id::text = $1', [tidStr]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
         if (userRes.rows[0].is_banned) return res.status(403).json({ error: 'Account suspended' });
 
@@ -258,7 +260,7 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(400).json({ error: 'Invalid or expired ad session. Please watch the ad properly.' });
         }
 
-        if (sessionData.telegram_id !== telegram_id.toString()) {
+        if (sessionData.telegram_id !== tidStr) {
             return res.status(403).json({ error: 'Session user mismatch' });
         }
 
@@ -278,10 +280,10 @@ router.post('/watch-ad', async (req, res) => {
         // Check if user claimed reward in the last 24 hours
         const claimCheckRes = await pool.query(`
             SELECT COUNT(*) FROM gram_claims
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
               AND requested_at >= NOW() - INTERVAL '24 hours'
               AND status IN ('pending', 'approved')
-        `, [telegram_id]);
+        `, [tidStr]);
         
         if (parseInt(claimCheckRes.rows[0].count, 10) > 0) {
             return res.status(429).json({ error: 'You have already claimed your daily reward. Please wait 24 hours before watching ads again.' });
@@ -294,11 +296,11 @@ router.post('/watch-ad', async (req, res) => {
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count,
                 MAX(created_at) as last_ad_time
             FROM ad_views
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
               AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
-        `, [telegram_id]);
+        `, [tidStr]);
         
         let gigapubCount = parseInt(countRes.rows[0].gigapub_count || 0, 10);
         let adexiumCount = parseInt(countRes.rows[0].adexium_count || 0, 10);
@@ -306,7 +308,7 @@ router.post('/watch-ad', async (req, res) => {
 
         const targetAdType = isAdexium ? 'gram_adexium' : 'gram_gigapub';
 
-        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
+        const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id::text = $1 AND status IN ('approved', 'pending', 'done')", [tidStr]);
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const is_first_attempt = total_previous_claims === 0;
         const required_gigapub = is_first_attempt ? 30 : 40;
@@ -331,13 +333,13 @@ router.post('/watch-ad', async (req, res) => {
         // Record the ad view
         await pool.query(
             `INSERT INTO ad_views (telegram_id, ad_type) VALUES ($1, $2)`,
-            [telegram_id, targetAdType]
+            [tidStr, targetAdType]
         );
 
         // Increment total_ads_watched for user statistics
         await pool.query(
-            `UPDATE users SET total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id = $1`,
-            [telegram_id]
+            `UPDATE users SET total_ads_watched = COALESCE(total_ads_watched, 0) + 1 WHERE telegram_id::text = $1`,
+            [tidStr]
         );
 
         if (isAdexium) adexiumCount++;
@@ -371,12 +373,14 @@ router.post('/claim', async (req, res) => {
         }
     }
 
+    const tidStr = String(telegram_id);
+
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
         // 1. Get user and their wallet addresses
-        const userRes = await client.query('SELECT id, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id = $1 FOR UPDATE', [telegram_id]);
+        const userRes = await client.query('SELECT id, gram_wallet_address, wallet_address, username, first_name FROM users WHERE telegram_id::text = $1 FOR UPDATE', [tidStr]);
         if (userRes.rows.length === 0) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'User not found' });
@@ -400,7 +404,7 @@ router.post('/claim', async (req, res) => {
         let chat = null;
         try {
             if (bot && bot.getChat) {
-                chat = await bot.getChat(telegram_id);
+                chat = await bot.getChat(tidStr);
             }
         } catch (e) {
             console.log('Bot getChat failed on claim (falling back to user payload):', e.message);
@@ -419,7 +423,7 @@ router.post('/claim', async (req, res) => {
         }
 
         // 1.8 Verify Referral Requirement for all users (1-time account verification: min 2 invited friends)
-        const userRefRes = await client.query('SELECT total_referrals FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRefRes = await client.query('SELECT total_referrals FROM users WHERE telegram_id::text = $1', [tidStr]);
         const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
 
         if (total_referrals < 2) {
@@ -432,10 +436,10 @@ router.post('/claim', async (req, res) => {
         // 1.9 Verify no claims in the last 24 hours (checked before ad count check)
         const last24hClaimRes = await client.query(`
             SELECT COUNT(*) FROM gram_claims
-            WHERE telegram_id = $1 
+            WHERE telegram_id::text = $1 
               AND requested_at >= NOW() - INTERVAL '24 hours'
               AND status IN ('pending', 'approved')
-        `, [telegram_id]);
+        `, [tidStr]);
         const claimed_in_last_24h = parseInt(last24hClaimRes.rows[0].count, 10) > 0;
 
         if (claimed_in_last_24h) {
@@ -449,16 +453,16 @@ router.post('/claim', async (req, res) => {
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_ad', 'gram_gigapub')) as gigapub_count,
                 COUNT(*) FILTER (WHERE ad_type IN ('gram_adexium', 'gram_monetag', 'gram_taddy')) as adexium_count
             FROM ad_views
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
               AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND claimed = FALSE
               AND created_at >= NOW() - INTERVAL '24 hours'
-        `, [telegram_id]);
+        `, [tidStr]);
         const gigaWatched = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
         const adexiumWatched = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
         const ads_watched_today = gigaWatched + adexiumWatched;
 
-        const claimsCountRes = await client.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id = $1 AND status IN ('approved', 'pending', 'done')", [telegram_id]);
+        const claimsCountRes = await client.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id::text = $1 AND status IN ('approved', 'pending', 'done')", [tidStr]);
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const is_first_attempt = total_previous_claims === 0;
         const required_gigapub = is_first_attempt ? 30 : 40;
@@ -473,7 +477,7 @@ router.post('/claim', async (req, res) => {
 
         // 4. Update the user's gram_wallet_address if not set
         if (!gram_wallet_address) {
-            await client.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id = $2', [cleanAddress, telegram_id]);
+            await client.query('UPDATE users SET gram_wallet_address = $1 WHERE telegram_id::text = $2', [cleanAddress, tidStr]);
         }
 
         // 5. Check fraud — pass total ALL ads watched today (claimed + unclaimed) for excess detection
@@ -482,28 +486,28 @@ router.post('/claim', async (req, res) => {
         const totalAdsRes = await client.query(`
             SELECT COUNT(*) as total
             FROM ad_views
-            WHERE telegram_id = $1
+            WHERE telegram_id::text = $1
               AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy')
               AND created_at >= NOW() - INTERVAL '24 hours'
-        `, [telegram_id]);
+        `, [tidStr]);
         const totalAdsToday = parseInt(totalAdsRes.rows[0].total || 0, 10);
 
-        const fraud = await checkFraud(telegram_id, cleanAddress, client, totalAdsToday);
+        const fraud = await checkFraud(tidStr, cleanAddress, client, totalAdsToday);
 
         // 6. Insert new claim
         const claimRes = await client.query(`
             INSERT INTO gram_claims (telegram_id, gram_wallet_address, amount, status, is_flagged, flag_reason)
             VALUES ($1, $2, 0.02, 'pending', $3, $4) RETURNING *
-        `, [telegram_id, cleanAddress, fraud.flagged, fraud.reason]);
+        `, [tidStr, cleanAddress, fraud.flagged, fraud.reason]);
 
         // 7. Mark the used ad views as claimed
         await client.query(`
             UPDATE ad_views 
             SET claimed = TRUE 
-            WHERE telegram_id = $1 
+            WHERE telegram_id::text = $1 
               AND ad_type IN ('gram_ad', 'gram_gigapub', 'gram_adexium', 'gram_monetag', 'gram_taddy') 
               AND claimed = FALSE
-        `, [telegram_id]);
+        `, [tidStr]);
 
         await client.query('COMMIT');
 
