@@ -289,10 +289,10 @@ router.post('/watch-ad', async (req, res) => {
         // Invalidate session immediately to prevent replay attacks
         global.gramAdSessions.delete(session_token);
 
-        const minElapsed = 10.0;
+        const minElapsed = 5.0;
         if (elapsedSec < minElapsed) {
             const remaining = Math.ceil(minElapsed - elapsedSec);
-            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video (at least 10s) to earn credit. Please wait ${remaining}s.` });
+            return res.status(429).json({ error: `Ad view duration too short (${elapsedSec.toFixed(1)}s)! You must watch the complete sponsor video (at least 5s) to earn credit. Please wait ${remaining}s.` });
         }
 
         // Check if user claimed reward in the last 24 hours
@@ -339,11 +339,11 @@ router.post('/watch-ad', async (req, res) => {
             return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). Please complete GigaPub ads.` });
         }
 
-        // Enforce strict 10-second cooldown between consecutive ads
+        // Enforce strict 5-second cooldown between consecutive ads
         if (lastAdTime) {
             const secondsSinceLast = (Date.now() - new Date(lastAdTime).getTime()) / 1000;
-            if (secondsSinceLast < 10.0) {
-                const remaining = Math.ceil(10.0 - secondsSinceLast);
+            if (secondsSinceLast < 5.0) {
+                const remaining = Math.ceil(5.0 - secondsSinceLast);
                 return res.status(429).json({ error: `Please wait ${remaining} seconds before watching another ad.` });
             }
         }
