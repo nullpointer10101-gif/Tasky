@@ -50,7 +50,7 @@ async function handleRewardClaim(data) {
       body: JSON.stringify({
         userId: targetUserId,
         rewardId: data.rewardId,
-        projectId: data.projectId || '8093',
+        projectId: data.projectId || '7451',
         amount: data.amount,
         hash: data.hash
       })
@@ -134,7 +134,7 @@ export function initOfferwall(telegramId, onReward) {
       if (typeof window.loadOfferWallSDK === 'function') {
         ensureTelegramUserData(currentUserId);
         window.loadOfferWallSDK({
-          projectId: '8093'
+          projectId: '7451'
         })
           .then((sdk) => {
             offerWallSDKInstance = sdk;
@@ -176,7 +176,7 @@ function openFallbackIframe(userId) {
   closeFallbackModal();
 
   const uid = userId || currentUserId || '123456';
-  const iframeUrl = `https://cdn.giga.pub/iframe/1.0.26/?userId=${encodeURIComponent(uid)}&projectId=8093&sdkVersion=1.0.13&platform=web&version=0.0.0&apiUrl=https://wall.giga.pub/api&_t=${Date.now()}`;
+  const iframeUrl = `https://cdn.giga.pub/iframe/1.0.26/?userId=${encodeURIComponent(uid)}&projectId=7451&sdkVersion=1.0.13&platform=web&version=0.0.0&apiUrl=https://wall.giga.pub/api&_t=${Date.now()}`;
 
   const container = document.createElement('div');
   container.id = 'giga-offerwall-fallback-container';

@@ -6,7 +6,7 @@
  */
 
 // GigaPub Config
-const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=8093';
+const GIGAPUB_SCRIPT_URL = 'https://ad.gigapub.tech/script?id=7451';
 const GIGAPUB_SCRIPT_ID  = 'gigapub-ad-sdk';
 
 // Adexium Config
