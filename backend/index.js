@@ -261,19 +261,20 @@ app.get(['/admin', '/admin/*'], (req, res) => {
   return res.redirect(302, 'https://tasky-d81s.vercel.app');
 });
 
-// Serve Miniapp Static Build directly from Backend
-const miniappDistPath = fs.existsSync(path.join(__dirname, 'public/app')) 
-  ? path.join(__dirname, 'public/app') 
-  : path.join(__dirname, '../miniapp/dist');
-
-if (fs.existsSync(miniappDistPath)) {
-  app.use(express.static(miniappDistPath, staticCacheOptions));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api') || req.path.startsWith('/admin') || req.path.startsWith('/uploads') || req.path.startsWith('/health') || req.path === '/bot-webhook') return next();
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(miniappDistPath, 'index.html'));
-  });
-}
+// Redirect Mini App UI on Render to Vercel CDN (suspends Render UI so 100% of UI traffic runs on Vercel)
+app.get('*', (req, res, next) => {
+  if (
+    req.path.startsWith('/api') || 
+    req.path.startsWith('/admin') || 
+    req.path.startsWith('/uploads') || 
+    req.path.startsWith('/health') || 
+    req.path === '/bot-webhook' || 
+    req.path === '/tonconnect-manifest.json'
+  ) {
+    return next();
+  }
+  return res.redirect(302, `https://tasky-v3.vercel.app${req.originalUrl}`);
+});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on 0.0.0.0:${PORT}`);
