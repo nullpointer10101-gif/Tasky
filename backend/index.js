@@ -251,16 +251,19 @@ app.use('/api/campaign', require('./routes/campaign'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI
-// Serve Admin Panel Static Build directly from Backend
+// Serve Admin Panel Static Build directly from Backend (No Redirection)
 const adminDistPath = fs.existsSync(path.join(__dirname, 'public/admin')) 
   ? path.join(__dirname, 'public/admin') 
   : path.join(__dirname, '../admin-frontend/dist');
 
-// Redirect Admin Panel on Render to Vercel Admin App for $0 Render Bandwidth
-app.get(['/admin', '/admin/*'], (req, res) => {
-  const targetPath = req.originalUrl.replace(/^\/admin/, '') || '/';
-  return res.redirect(302, `https://tasky-d81s.vercel.app${targetPath}`);
-});
+if (fs.existsSync(adminDistPath)) {
+  app.use('/admin', express.static(adminDistPath, staticCacheOptions));
+  app.get('/admin*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.sendFile(path.join(adminDistPath, 'index.html'));
+  });
+}
 
 // Redirect Mini App UI on Render to Vercel CDN (suspends Render UI so 100% of UI traffic runs on Vercel)
 app.get('*', (req, res, next) => {
