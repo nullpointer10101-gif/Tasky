@@ -1,8 +1,8 @@
 import axios from 'axios'
 
-export const BACKEND_URL = typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('onrender.com') 
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || (typeof window !== 'undefined' && window.location.origin && window.location.origin.includes('onrender.com') 
   ? '' 
-  : 'https://tasky3.onrender.com';
+  : 'https://tasky3.onrender.com');
 
 const api = axios.create({
   baseURL: BACKEND_URL,

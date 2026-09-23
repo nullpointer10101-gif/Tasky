@@ -35,9 +35,9 @@ const mockData = {
   ]
 };
 
-// --- AXIOS INSTANCE WITH MOCK ADAPTER ---
+const BACKEND_BASE = import.meta.env.VITE_BACKEND_URL || 'https://tasky3.onrender.com';
 const api = axios.create({
-  baseURL: 'https://tasky3.onrender.com/api/admin',
+  baseURL: `${BACKEND_BASE}/api/admin`,
 });
 
 // Request Interceptor to add password header
