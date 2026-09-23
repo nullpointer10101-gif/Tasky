@@ -25,3 +25,5 @@ brain/
 
 .vercel
 .env*
+scratch/
+backend/scratch/

@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Direct connection — no pooler, single persistent connection for entire restore
-const neonUrl = 'postgresql://neondb_owner:npg_hdzlyY4E8Dmu@ep-floral-block-ao1exyu8.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
+const neonUrl = process.env.DATABASE_URL;
 
 const sleep = (ms) => new Promise(res => setTimeout(res, ms));
 

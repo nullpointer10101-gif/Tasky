@@ -1,6 +1,6 @@
 const { Client } = require('pg');
 
-const neonUrl = 'postgresql://neondb_owner:npg_hdzlyY4E8Dmu@ep-floral-block-ao1exyu8.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require';
+const neonUrl = process.env.DATABASE_URL;
 
 async function unbanAndSync() {
   console.log('=== UNBANNING ALL USERS & FULL DATA RECOVERY ON NEON ===');

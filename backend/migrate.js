@@ -1,7 +1,7 @@
 const { Pool } = require('pg');
 
-const oldUrl = 'postgresql://neondb_owner:npg_hdzlyY4E8Dmu@ep-floral-block-ao1exyu8-pooler.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
-const newUrl = 'postgresql://postgres.dnnubveqzoxrnkgbnxrr:AleekAleem123%23@aws-1-ap-south-1.pooler.supabase.com:5432/postgres';
+const oldUrl = process.env.DATABASE_URL;
+const newUrl = process.env.DATABASE_URL;
 
 const oldPool = new Pool({ connectionString: oldUrl });
 const newPool = new Pool({ connectionString: newUrl });
