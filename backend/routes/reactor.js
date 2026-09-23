@@ -331,7 +331,7 @@ router.post('/claim', async (req, res) => {
           `🎯 Stage: *Stage 5 Complete (1,000 USL Ads)*\n` +
           `💰 Reward: *2.00 GRAM + 20,000 TASKY*\n` +
           `💳 Wallet: \`${wallet_address}\`\n\n` +
-          `👉 Review in Admin Panel: [Tasky Admin](https://tasky3.onrender.com/admin)`,
+          `👉 Review in Admin Panel: [Tasky Admin](https://tasky-d81s.vercel.app)`,
           { parse_mode: 'Markdown' }
         ).catch(() => {});
       }

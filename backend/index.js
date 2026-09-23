@@ -256,9 +256,10 @@ const adminDistPath = fs.existsSync(path.join(__dirname, 'public/admin'))
   ? path.join(__dirname, 'public/admin') 
   : path.join(__dirname, '../admin-frontend/dist');
 
-// Redirect Admin Panel to Vercel CDN for $0 Render Bandwidth
+// Redirect Admin Panel on Render to Vercel Admin App for $0 Render Bandwidth
 app.get(['/admin', '/admin/*'], (req, res) => {
-  return res.redirect(302, 'https://tasky-d81s.vercel.app');
+  const targetPath = req.originalUrl.replace(/^\/admin/, '') || '/';
+  return res.redirect(302, `https://tasky-d81s.vercel.app${targetPath}`);
 });
 
 // Redirect Mini App UI on Render to Vercel CDN (suspends Render UI so 100% of UI traffic runs on Vercel)
