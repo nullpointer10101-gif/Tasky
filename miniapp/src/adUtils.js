@@ -15,8 +15,8 @@ const ADEXIUM_SCRIPT_ID  = 'adexium-widget-sdk';
 const ADEXIUM_WID        = 'e93d690f-bdc3-4ed5-8d9f-8f208afa3774';
 
 // USL Ads / TowerAds Config
-const TOWER_ADS_API_KEY      = 'feb662719eb08611a669069ba17cb0e8';
-const TOWER_ADS_PLACEMENT_ID = 'plc_c529a877186e2def';
+const TOWER_ADS_API_KEY      = '1cf9aeb3977fb03f6709ad8b23c028f6';
+const TOWER_ADS_PLACEMENT_ID = 'plc_740da497294c102f';
 const TOWER_ADS_SCRIPT_URL   = 'https://uslads.com/sdk/tower-ads-v4.js';
 const TOWER_ADS_SCRIPT_ID    = 'tower-ads-sdk';
 
