@@ -138,13 +138,13 @@ const handleStartCommand = async (msg, rawParam) => {
             webAppUrl = `${STABLE_APP_URL}?startapp=${cleanRef}`;
         }
 
-        // Always configure Chat Menu Button for the user
+        // Configure clean Chat Menu Button for the user (without query params to avoid Telegram reset)
         bot.setChatMenuButton({
             chat_id: chatId,
             menu_button: {
                 type: 'web_app',
-                text: 'Launch TASKY',
-                web_app: { url: webAppUrl }
+                text: 'Open TASKY',
+                web_app: { url: STABLE_APP_URL }
             }
         }).catch(() => {});
 
