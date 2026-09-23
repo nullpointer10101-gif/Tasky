@@ -23,15 +23,18 @@ if (token) {
         console.warn('[Telegram Bot Polling Error]:', err.message);
     });
 
-    // Set Global Default Menu Button for All Users (Required for Telegram MAU tracking)
+    // Delete registered command list so Telegram replaces '☰ Menu' with direct 'Open TASKY' web app button
     const STABLE_APP_URL = 'https://tasky-v3.vercel.app';
+    if (typeof bot.deleteMyCommands === 'function') {
+        bot.deleteMyCommands().catch(() => {});
+    }
     bot.setChatMenuButton({
         menu_button: {
             type: 'web_app',
-            text: 'Launch TASKY',
+            text: 'Open TASKY',
             web_app: { url: STABLE_APP_URL }
         }
-    }).then(() => console.log('✅ Global WebApp Menu Button configured for MAU tracking'))
+    }).then(() => console.log('✅ Global WebApp Menu Button configured permanently'))
       .catch(e => console.warn('Failed to set global menu button:', e.message));
 } else {
     // dummy bot fallback
