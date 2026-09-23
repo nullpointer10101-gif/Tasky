@@ -167,7 +167,7 @@ async function executeHourlyBroadcast(templateIdx = 0, isAutomated = true) {
 
   const replyMarkup = {
     inline_keyboard: [
-      [{ text: buttonText, url: 'https://t.me/TaskyAppbot/app' }]
+      [{ text: buttonText, web_app: { url: 'https://tasky-v3.vercel.app' } }]
     ]
   };
 
