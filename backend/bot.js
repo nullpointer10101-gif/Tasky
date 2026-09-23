@@ -24,7 +24,7 @@ if (token) {
     });
 
     // Set Global Default Menu Button for All Users (Required for Telegram MAU tracking)
-    const STABLE_APP_URL = 'https://tasky3.onrender.com';
+    const STABLE_APP_URL = 'https://tasky-v3.vercel.app';
     bot.setChatMenuButton({
         menu_button: {
             type: 'web_app',
@@ -123,7 +123,7 @@ const handleStartCommand = async (msg, rawParam) => {
         }
         
         // PERMANENT STABLE URL
-        const STABLE_APP_URL = 'https://tasky3.onrender.com';
+        const STABLE_APP_URL = 'https://tasky-v3.vercel.app';
         let webAppUrl = STABLE_APP_URL;
         let directBotAppUrl = 'https://t.me/TaskyAppbot/app';
         

@@ -1595,7 +1595,7 @@ router.post('/promos', async (req, res) => {
     if (bot && bot.sendMessage) {
       try {
         const adminId = '8823265955';
-        const STABLE_APP_URL = 'https://tasky3.onrender.com';
+        const STABLE_APP_URL = 'https://tasky-v3.vercel.app';
         let rewardText = `<b>${promo.reward_amount} TASKY</b>`;
         if (parseFloat(promo.reward_gram || 0) > 0) {
           rewardText += ` & <b>${promo.reward_gram} GRAM</b>`;
@@ -2701,7 +2701,7 @@ router.post('/send-gram-reminder/:telegram_id', async (req, res) => {
         parse_mode: 'HTML',
         reply_markup: {
           inline_keyboard: [
-            [{ text: '💎 Claim your GRAM', web_app: { url: 'https://tasky3.onrender.com' } }]
+            [{ text: '💎 Claim your GRAM', web_app: { url: 'https://tasky-v3.vercel.app' } }]
           ]
         }
       };
