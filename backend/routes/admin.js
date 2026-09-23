@@ -3072,12 +3072,21 @@ router.get('/treasury-status', async (req, res) => {
             hardDeadline.then(() => ({ ok: false, error: 'timeout' }))
           ]).catch(() => ({ ok: false, error: 'failed' })),
 
-          // Wallet TON balance
+          // Wallet TON balance with TonAPI fallback
           Promise.race([
             (async () => {
-              const c = new TonClient({ endpoint: TON_ENDPOINT, apiKey: process.env.TONCENTER_API_KEY || undefined });
-              const nano = await c.getBalance(wallet.address);
-              return { ok: true, nano };
+              try {
+                const c = new TonClient({ endpoint: TON_ENDPOINT, apiKey: process.env.TONCENTER_API_KEY || undefined });
+                const nano = await c.getBalance(wallet.address);
+                return { ok: true, nano };
+              } catch (e) {
+                const r = await fetch(`https://tonapi.io/v2/accounts/${encodeURIComponent(friendly)}`);
+                if (r.ok) {
+                  const d = await r.json();
+                  return { ok: true, nano: BigInt(d.balance || 0) };
+                }
+                return { ok: false };
+              }
             })(),
             hardDeadline.then(() => ({ ok: false }))
           ]).catch(() => ({ ok: false })),

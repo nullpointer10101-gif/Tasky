@@ -134,9 +134,15 @@ export default function TreasuryAndSystem() {
             </span>
             <span className="text-sm font-extrabold text-cyan-400">TON</span>
           </div>
+          {treasury.jettons && treasury.jettons.length > 0 && (
+            <div className="mt-2 text-xs font-bold text-emerald-400 flex items-center gap-1.5 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
+              <Gem size={13} className="text-emerald-400" />
+              <span>{treasury.jettons.find(j => j.symbol === 'GRAM')?.balance || '0.4000'} GRAM Jetton Token</span>
+            </div>
+          )}
           <p className="text-[11px] text-slate-400 mt-2 flex items-center gap-1.5">
             <Zap size={12} className="text-amber-400" />
-            Auto-Payouts active for ≤ 0.03 TON
+            Auto-Payouts active (Gas: native TON required)
           </p>
         </div>
 
