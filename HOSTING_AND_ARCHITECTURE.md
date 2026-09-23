@@ -8,25 +8,24 @@ This document is the **single source of truth** for all hosting environments, pr
 
 | Component | Host / Platform | Project / Service Name | Live URL | Deployment Command |
 | :--- | :--- | :--- | :--- | :--- |
-| **Telegram Bot** | Render | `Tasky3` | [`@TaskyAppbot`](https://t.me/TaskyAppbot) | `git push origin main` |
-| **Backend API** | Render | `Tasky3` | `https://tasky3.onrender.com/api` | `git push origin main` |
-| **Database** | Render | PostgreSQL | Internal / External Pool | Managed via Render DB |
-| **Mini App (Frontend)** | Vercel (CDN) + Render | `tasky-v3` (Vercel) / `Tasky3` (Render) | `https://tasky3.onrender.com/` | `npm run build` in `miniapp/` → `npx vercel --prod --yes --cwd miniapp` → Copy to `backend/public/app` → `git push` |
-| **Admin Panel** | Vercel (CDN) + Render | `tasky-d81s` (Vercel) / `Tasky3` (Render) | `https://tasky3.onrender.com/admin` | `npm run build` in `admin-frontend/` → `npx vercel --prod --yes --cwd admin-frontend` → Copy to `backend/public/admin` → `git push` |
+| **Telegram Bot** | Render | `Tasky4` | [`@TaskyAppbot`](https://t.me/TaskyAppbot) | `git push origin main` |
+| **Backend API** | Render | `Tasky4` | `https://tasky4.onrender.com/api` | `git push origin main` |
+| **Database** | Neon PostgreSQL | `Tasky` | PostgreSQL URI | Managed via Neon Console |
+| **Mini App (Frontend)** | Vercel (CDN) | `tasky-v3` (Vercel) | `https://tasky-v3.vercel.app/` | `npx vercel --prod --yes` in `miniapp/` |
+| **Admin Panel** | Vercel (CDN) | `tasky-d81s` (Vercel) | `https://tasky-d81s.vercel.app/` | `npx vercel --prod --yes` in `admin-frontend/` |
 
 ---
 
 ## 2. Platform Accounts & Infrastructure Details
 
 ### 2.1 Render (Backend & API Host)
-- **Service Name**: `Tasky3`
-- **Service ID**: `srv-daell71t0dsc73aodmmg`
-- **Base URL**: `https://tasky3.onrender.com`
+- **Service Name**: `Tasky4`
+- **Base URL**: `https://tasky4.onrender.com`
 - **GitHub Repository**: `https://github.com/nullpointer10101-gif/Tasky.git` (Branch: `main`)
-- **Direct Static Serving**:
-  - Mini App Shell: `https://tasky3.onrender.com/` (from `backend/public/app`)
-  - Admin Panel Shell: `https://tasky3.onrender.com/admin` (from `backend/public/admin`)
-  - Health Check: `https://tasky3.onrender.com/api/health`
+- **Vercel Redirection**:
+  - Mini App: `https://tasky4.onrender.com/` -> 302 Redirects to `https://tasky-v3.vercel.app/`
+  - Admin Panel: `https://tasky4.onrender.com/admin` -> 302 Redirects to `https://tasky-d81s.vercel.app/`
+  - Health Check: `https://tasky4.onrender.com/api/health`
 
 ### 2.2 Vercel (Free Static CDN — $0 Render Bill)
 - **Primary Vercel Account**: `meelas-projects-784c876a`
