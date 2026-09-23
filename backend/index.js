@@ -42,6 +42,25 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Redirection middleware: Redirect all Admin Panel & Mini App UI traffic on Render to Vercel CDNs
+app.use((req, res, next) => {
+  if (
+    req.path.startsWith('/api') || 
+    req.path.startsWith('/uploads') || 
+    req.path.startsWith('/health') || 
+    req.path === '/bot-webhook' || 
+    req.path === '/tonconnect-manifest.json'
+  ) {
+    return next();
+  }
+
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) {
+    return res.redirect(302, 'https://tasky-d81s.vercel.app');
+  }
+
+  return res.redirect(302, `https://tasky-v3.vercel.app${req.originalUrl}`);
+});
+
 // Long-lived caching headers for static hashed assets (1 year) & no-cache for index.html
 // Vite content-hashes filenames so 1yr cache is safe — browser only re-fetches on new deploy
 const staticCacheOptions = {
@@ -251,25 +270,6 @@ app.use('/api/campaign', require('./routes/campaign'));
 app.use('/api/admin', require('./routes/admin'));
 
 // Always start Express first — DB failure won't block the UI
-// Redirect Admin Panel on Render to Vercel CDN
-app.get('/admin*', (req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
-  return res.redirect(302, 'https://tasky-d81s.vercel.app');
-});
-
-// Redirect Mini App UI on Render to Vercel CDN (suspends Render UI so 100% of UI traffic runs on Vercel)
-app.get('*', (req, res, next) => {
-  if (
-    req.path.startsWith('/api') || 
-    req.path.startsWith('/uploads') || 
-    req.path.startsWith('/health') || 
-    req.path === '/bot-webhook' || 
-    req.path === '/tonconnect-manifest.json'
-  ) {
-    return next();
-  }
-  return res.redirect(302, `https://tasky-v3.vercel.app${req.originalUrl}`);
-});
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server is running on 0.0.0.0:${PORT}`);
