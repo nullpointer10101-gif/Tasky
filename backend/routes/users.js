@@ -138,8 +138,14 @@ router.post('/register', async (req, res) => {
                     const message = `🎉 <b>New Referral Joined!</b>\n\n` +
                                     `👤 <b>${name}</b> has joined Tasky using your link!\n\n` +
                                     `⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete their first withdrawal (Gram Claim/Withdrawal)!</i>\n\n` +
-                                    `🔗 Keep sharing your link to earn more!`;
-                    bot.sendMessage(referred_by, message, { parse_mode: 'HTML' });
+                    bot.sendMessage(referred_by, message, { 
+                        parse_mode: 'HTML',
+                        reply_markup: {
+                            inline_keyboard: [
+                                [{ text: '🎁 Open Tasky Mini App 🚀', web_app: { url: 'https://tasky-v3.vercel.app' } }]
+                            ]
+                        }
+                    });
                 } catch (e) {
                     console.error('Failed to notify referrer', e);
                 }

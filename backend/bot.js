@@ -108,7 +108,14 @@ const handleStartCommand = async (msg, rawParam) => {
                         // Notify referrer
                         const name = msg.from.username ? `@${msg.from.username}` : (msg.from.first_name || 'Someone');
                         const refMsg = `🎉 <b>New Referral Joined!</b>\n\n👤 <b>${name}</b> has joined Tasky using your link!\n\n⚡️ <i>To unlock your rewards (+300 TASKY & +1 Spin), remind them to complete their first withdrawal (Gram Claim/Withdrawal)!</i>\n\n🔗 Keep sharing your link to earn more!`;
-                        bot.sendMessage(referred_by, refMsg, { parse_mode: 'HTML' }).catch(() => {});
+                        bot.sendMessage(referred_by, refMsg, {
+                            parse_mode: 'HTML',
+                            reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: '🎁 Open Tasky Mini App 🚀', web_app: { url: 'https://tasky-v3.vercel.app' } }]
+                                ]
+                            }
+                        }).catch(() => {});
                     }
                 }
                 await client.query('COMMIT');
@@ -125,21 +132,21 @@ const handleStartCommand = async (msg, rawParam) => {
         // PERMANENT STABLE URL
         const STABLE_APP_URL = 'https://tasky-v3.vercel.app';
         let webAppUrl = STABLE_APP_URL;
-        let directBotAppUrl = 'https://t.me/TaskyAppbot/app';
         
         if (refCode) {
             const cleanRef = String(refCode).trim();
             webAppUrl = `${STABLE_APP_URL}?startapp=${cleanRef}`;
-            directBotAppUrl = `https://t.me/TaskyAppbot/app?startapp=${cleanRef}`;
-            bot.setChatMenuButton({
-                chat_id: chatId,
-                menu_button: {
-                    type: 'web_app',
-                    text: 'Launch Tasky',
-                    web_app: { url: webAppUrl }
-                }
-            }).catch(() => {});
         }
+
+        // Always configure Chat Menu Button for the user
+        bot.setChatMenuButton({
+            chat_id: chatId,
+            menu_button: {
+                type: 'web_app',
+                text: 'Launch TASKY',
+                web_app: { url: webAppUrl }
+            }
+        }).catch(() => {});
 
         const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
         const firstNameEscaped = escapeHtml(msg.from.first_name || 'User');
@@ -149,7 +156,7 @@ const handleStartCommand = async (msg, rawParam) => {
         const replyMarkup = {
             inline_keyboard: [
                 [
-                    { text: '🎁 Open Tasky Mini App 🚀', url: directBotAppUrl }
+                    { text: '🎁 Open Tasky Mini App 🚀', web_app: { url: webAppUrl } }
                 ],
                 [
                     { text: '📢 Official Channel', url: 'https://t.me/Tasky_Official' },
@@ -169,7 +176,7 @@ const handleStartCommand = async (msg, rawParam) => {
                 parse_mode: 'HTML',
                 reply_markup: {
                     inline_keyboard: [
-                        [{ text: '🎁 Open Tasky Mini App 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+                        [{ text: '🎁 Open Tasky Mini App 🚀', web_app: { url: 'https://tasky-v3.vercel.app' } }]
                     ]
                 }
             });
