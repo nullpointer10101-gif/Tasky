@@ -256,13 +256,10 @@ const adminDistPath = fs.existsSync(path.join(__dirname, 'public/admin'))
   ? path.join(__dirname, 'public/admin') 
   : path.join(__dirname, '../admin-frontend/dist');
 
-if (fs.existsSync(adminDistPath)) {
-  app.use('/admin', express.static(adminDistPath, staticCacheOptions));
-  app.get('/admin*', (req, res) => {
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.sendFile(path.join(adminDistPath, 'index.html'));
-  });
-}
+// Redirect Admin Panel to Vercel CDN for $0 Render Bandwidth
+app.get(['/admin', '/admin/*'], (req, res) => {
+  return res.redirect(302, 'https://tasky-d81s.vercel.app');
+});
 
 // Serve Miniapp Static Build directly from Backend
 const miniappDistPath = fs.existsSync(path.join(__dirname, 'public/app')) 
