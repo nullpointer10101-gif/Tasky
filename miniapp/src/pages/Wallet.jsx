@@ -41,6 +41,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const [gramInfo, setGramInfo] = useState(null);
   const [withdrawGramAmount, setWithdrawGramAmount] = useState('');
   const [isWithdrawingGram, setIsWithdrawingGram] = useState(false);
+  const [showGram60AdsModal, setShowGram60AdsModal] = useState(false);
   const [suffixOk, setSuffixOk] = useState(false);
   const [suffixChecking, setSuffixChecking] = useState(false);
   const [suffixCopied, setSuffixCopied] = useState(false);
@@ -163,8 +164,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
       return;
     }
     if (gramInfo?.has_completed_daily_claim === false) {
-      showToast("Please complete today's 60 Ads Claim (0.02 GRAM) on the Gram page first!", 'error');
-      if (navigate) navigate('gram');
+      setShowGram60AdsModal(true);
       return;
     }
 
@@ -393,39 +393,6 @@ export default function Wallet({ user, refreshUser, navigate }) {
                   )}
                 </div>
 
-                {/* Daily 60-Ads Claim Requirement Banner */}
-                {gramInfo && !gramInfo.has_completed_daily_claim ? (
-                  <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-yellow-500/10 border border-amber-500/30 rounded-2xl p-3 space-y-2 text-left">
-                    <div className="flex items-start gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0 mt-0.5">
-                        <Flame size={16} />
-                      </div>
-                      <div>
-                        <p className="text-[11px] font-black text-amber-300 leading-snug">
-                          Complete Today's Claim (60 Ads) First
-                        </p>
-                        <p className="text-[9.5px] text-amber-200/70 mt-0.5 leading-relaxed">
-                          To place a GRAM withdrawal, you must complete today's 60 ads (30 Monetag + 30 GigaPub) in the Gram tab.
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => navigate && navigate('gram')}
-                      className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-[11px] uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all"
-                    >
-                      <span>Go to Gram & Complete 60 Ads</span>
-                      <ArrowUpRight size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 size={14} className="text-emerald-400 shrink-0" />
-                      <span className="text-[11px] text-emerald-300 font-bold">Daily 60 Ads Claim Completed ✓</span>
-                    </div>
-                  </div>
-                )}
-
                 {/* Suffix Live Badge */}
                 {suffixOk ? (
                   <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-2.5 flex items-center justify-between">
@@ -452,13 +419,11 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 {/* Submit button */}
                 <button
                   onClick={handleWithdrawGram}
-                  disabled={isWithdrawingGram || !withdrawGramAmount || parseFloat(withdrawGramAmount) < 0.01 || gramInfo?.has_reached_daily_limit || gramInfo?.has_completed_daily_claim === false}
+                  disabled={isWithdrawingGram || !withdrawGramAmount || parseFloat(withdrawGramAmount) < 0.01 || gramInfo?.has_reached_daily_limit}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-black font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
                 >
                   {isWithdrawingGram ? (
                     <><Loader2 size={16} className="animate-spin" /> Processing...</>
-                  ) : gramInfo?.has_completed_daily_claim === false ? (
-                    <><Lock size={16} /> Complete 60 Ads Claim to Unlock</>
                   ) : gramInfo?.has_reached_daily_limit ? (
                     <><Clock size={16} /> Daily Limit Reached (1/1)</>
                   ) : (
@@ -856,6 +821,57 @@ export default function Wallet({ user, refreshUser, navigate }) {
         </AnimatePresence>,
         document.body
       ) : null}
+
+      {/* 60-Ads Requirement Modal when Withdraw Button is Clicked */}
+      {showGram60AdsModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-[#0f172a] border border-amber-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative text-left">
+            <button
+              onClick={() => setShowGram60AdsModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 transition-colors"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+                <Flame size={24} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-amber-300 uppercase tracking-wide">
+                  Complete Today's Claim (60 Ads) First
+                </h3>
+                <p className="text-[10px] text-amber-200/70 mt-0.5">
+                  Daily Requirement Locked
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed font-medium">
+              To place a GRAM withdrawal, you must complete today's 60 ads (30 Monetag + 30 GigaPub) in the Gram tab.
+            </p>
+
+            <div className="pt-2 space-y-2">
+              <button
+                onClick={() => {
+                  setShowGram60AdsModal(false);
+                  if (navigate) navigate('gram');
+                }}
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+              >
+                <span>Go to Gram & Complete 60 Ads</span>
+                <ArrowUpRight size={16} />
+              </button>
+              <button
+                onClick={() => setShowGram60AdsModal(false)}
+                className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
