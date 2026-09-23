@@ -36,6 +36,20 @@ if (token) {
         }
     }).then(() => console.log('✅ Global WebApp Menu Button configured permanently'))
       .catch(e => console.warn('Failed to set global menu button:', e.message));
+
+    // Automatically enforce per-chat WebApp Menu Button on any user interaction
+    bot.on('message', (msg) => {
+        if (msg && msg.chat && msg.chat.id) {
+            bot.setChatMenuButton({
+                chat_id: msg.chat.id,
+                menu_button: {
+                    type: 'web_app',
+                    text: 'Open TASKY',
+                    web_app: { url: STABLE_APP_URL }
+                }
+            }).catch(() => {});
+        }
+    });
 } else {
     // dummy bot fallback
     bot = {
