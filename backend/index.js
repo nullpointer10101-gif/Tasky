@@ -165,11 +165,11 @@ app.get('/tonconnect-manifest.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.json({
-    url: 'https://tasky3.onrender.com',
+    url: 'https://tasky-v3.vercel.app',
     name: 'TASKY',
     iconUrl: 'https://tasky-v3.vercel.app/assets/tasky-coin-CftrDQ6_.jpg',
-    termsOfUseUrl: 'https://tasky3.onrender.com',
-    privacyPolicyUrl: 'https://tasky3.onrender.com'
+    termsOfUseUrl: 'https://tasky-v3.vercel.app',
+    privacyPolicyUrl: 'https://tasky-v3.vercel.app'
   });
 });
 

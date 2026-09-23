@@ -23,7 +23,7 @@ const options = {
   reply_markup: {
     inline_keyboard: [
       [
-        { text: "💎 Claim S1 Miner Now 🚀", web_app: { url: "https://tasky3.onrender.com" } }
+        { text: "💎 Claim S1 Miner Now 🚀", web_app: { url: "https://tasky-v3.vercel.app" } }
       ]
     ]
   }

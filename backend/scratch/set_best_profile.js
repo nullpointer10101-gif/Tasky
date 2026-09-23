@@ -36,7 +36,7 @@ Tap "Launch Tasky" below to start earning today! 👇`;
       menu_button: {
         type: 'web_app',
         text: 'Launch Tasky',
-        web_app: { url: 'https://tasky3.onrender.com/' }
+        web_app: { url: 'https://tasky-v3.vercel.app/' }
       }
     });
     console.log('✅ setChatMenuButton:', rMenu.data);

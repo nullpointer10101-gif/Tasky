@@ -133,7 +133,7 @@ export default function Broadcast() {
     {
       id: 'official',
       label: '🖼️ Official NFT Miners Promo Banner (0.7 & 1.5 GRAM)',
-      url: 'https://tasky-ivho.onrender.com/uploads/nft_banner_official.jpg'
+      url: 'https://tasky3.onrender.com/uploads/nft_banner_official.jpg'
     },
     {
       id: 'none',

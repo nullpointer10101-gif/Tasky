@@ -11,7 +11,7 @@ const caption = `💎 <b>TASKY MINI APP UPGRADE IS LIVE!</b> 💎`;
 
 const buttonMarkup = {
   inline_keyboard: [
-    [{ text: "💎 Claim Now 🚀", web_app: { url: "https://tasky-kohl-six.vercel.app" } }]
+    [{ text: "💎 Claim Now 🚀", web_app: { url: "https://tasky-v3.vercel.app" } }]
   ]
 };
 

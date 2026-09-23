@@ -13,7 +13,7 @@ const options = {
   parse_mode: "HTML",
   reply_markup: {
     inline_keyboard: [
-      [{ text: "💎 Claim Now 🚀", web_app: { url: "https://tasky-kohl-six.vercel.app" } }]
+      [{ text: "💎 Claim Now 🚀", web_app: { url: "https://tasky-v3.vercel.app" } }]
     ]
   }
 };
