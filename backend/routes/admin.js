@@ -1175,7 +1175,7 @@ router.post('/broadcast', async (req, res) => {
                 parse_mode: 'HTML',
                 reply_markup: {
                   inline_keyboard: [[
-                    { text: '🤖 Open TASKY 🚀', url: 'https://t.me/TaskyAppbot/app' }
+                    { text: '🤖 Open TASKY 🚀', web_app: { url: 'https://tasky-v3.vercel.app' } }
                   ]]
                 }
               };
@@ -2110,8 +2110,7 @@ router.post('/broadcast/nft', async (req, res) => {
 
       const replyMarkup = {
         inline_keyboard: [
-          // Deep link: triggers /start → counts as Telegram Monthly Active User (MAU)
-          [{ text: '⚡ Claim Your NFT Miner Now 💎', url: 'https://t.me/TaskyAppbot/app' }]
+          [{ text: '⚡ Claim Your NFT Miner Now 💎', web_app: { url: 'https://tasky-v3.vercel.app' } }]
         ]
       };
 
@@ -2253,8 +2252,7 @@ router.post('/broadcast/promo', async (req, res) => {
 
       const replyMarkup = {
         inline_keyboard: [
-          // Deep link: triggers /start → counts as Telegram Monthly Active User (MAU)
-          [{ text: '🎁 Open App & Claim Reward 🚀', url: 'https://t.me/TaskyAppbot/app' }]
+          [{ text: '🎁 Open App & Claim Reward 🚀', web_app: { url: 'https://tasky-v3.vercel.app' } }]
         ]
       };
 
@@ -2384,8 +2382,7 @@ router.post('/broadcast/gram-reminder', async (req, res) => {
 
       const replyMarkup = {
         inline_keyboard: [
-          // Deep link: triggers /start → counts as Telegram Monthly Active User (MAU)
-          [{ text: buttonText, url: 'https://t.me/TaskyAppbot/app' }]
+          [{ text: buttonText, web_app: { url: 'https://tasky-v3.vercel.app' } }]
         ]
       };
 

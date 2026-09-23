@@ -475,7 +475,7 @@ bot.on('callback_query', async (query) => {
             const options = {
                 parse_mode: "HTML",
                 reply_markup: { 
-                    inline_keyboard: [[{ text: "🎁 CLAIM 1 USDT + 20K TASKY 🚀", url: "https://t.me/TaskyAppbot/app" }]] 
+                    inline_keyboard: [[{ text: "🎁 CLAIM 1 USDT + 20K TASKY 🚀", web_app: { url: "https://tasky-v3.vercel.app" } }]] 
                 }
             };
 
