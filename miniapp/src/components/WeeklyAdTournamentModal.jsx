@@ -260,8 +260,8 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
               {isEnded ? 'Championship Status' : 'Tournament Ends In'}
             </div>
             {isEnded ? (
-              <div style={{ fontSize:14, fontWeight:900, color:'#fbbf24', letterSpacing:'0.02em' }}>
-                🏁 Ended • Audit &amp; Payouts
+              <div style={{ fontSize:13, fontWeight:900, color:'#fbbf24', letterSpacing:'0.02em' }}>
+                ⏳ Ended • Checking &amp; Processing All Payments
               </div>
             ) : (
               <div style={{ fontSize:15, fontWeight:900, color:'#fff', letterSpacing:'0.02em', fontFamily:'monospace' }}>
@@ -274,15 +274,18 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
         {/* Audit & Payout Alert Banner if Ended */}
         {isEnded && (
           <div style={{
-            margin:'6px 0 10px', padding:'10px 12px', borderRadius:14,
-            background:'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(168,85,247,0.15) 100%)',
-            border:'1px solid rgba(244,63,94,0.4)', boxShadow:'0 0 16px rgba(244,63,94,0.2)', textAlign:'left'
+            margin:'6px 0 10px', padding:'11px 13px', borderRadius:14,
+            background:'linear-gradient(135deg, rgba(245,158,11,0.16) 0%, rgba(168,85,247,0.14) 100%)',
+            border:'1px solid rgba(251,191,36,0.45)', boxShadow:'0 0 16px rgba(251,191,36,0.2)', textAlign:'left'
           }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:10, fontWeight:900, color:'#f43f5e', textTransform:'uppercase', letterSpacing:'0.04em' }}>
-              <span>🛡️ FRAUD PURGE &amp; TOP 30 PAYOUTS UNDERWAY</span>
+            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:10, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+              <span>⏳ PROCESSING ALL PAYMENTS — SECURITY AUDIT</span>
             </div>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.85)', marginTop:3, lineHeight:1.4 }}>
-              Bot accounts &amp; Sybil farms are being purged. <b>Payouts in GRAM &amp; TASKY</b> are being distributed directly to verified Top 30 winners!
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.88)', marginTop:3, lineHeight:1.45 }}>
+              We are checking every account and removing all bot/fake ad watchers. All payments are currently being verified before payout release.
+            </div>
+            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:5, display:'flex', alignItems:'center', gap:5 }}>
+              <span>✅ Top 30 Genuine Human Winners will receive payment upon check completion!</span>
             </div>
           </div>
         )}
@@ -369,17 +372,20 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
       {isEnded && inPrize && (
         <div style={{
           flexShrink:0, margin:'8px 14px 0', padding:'12px 14px', borderRadius:16,
-          background:'linear-gradient(135deg, rgba(251,191,36,0.24) 0%, rgba(16,185,129,0.18) 100%)',
+          background:'linear-gradient(135deg, rgba(251,191,36,0.24) 0%, rgba(99,102,241,0.18) 100%)',
           border:'1.5px solid #fbbf24', boxShadow:'0 0 20px rgba(251,191,36,0.35)', textAlign:'center'
         }}>
           <div style={{ fontSize:12, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>
-            🎉 CONGRATULATIONS! YOU PLACED #{me.rank} OF TOP 30!
+            🎯 YOU PLACED #{me.rank} OF TOP 30!
           </div>
           <div style={{ fontSize:15, fontWeight:900, color:'#fff', marginTop:2 }}>
             💎 {me.estimated_gram} GRAM + {Number(me.estimated_tasky).toLocaleString()} TASKY
           </div>
-          <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.8)', marginTop:3 }}>
-            Your prize will be deposited into your wallet following final audit approval.
+          <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4, display:'inline-block', background:'rgba(251,191,36,0.15)', padding:'3px 10px', borderRadius:20, border:'1px solid rgba(251,191,36,0.3)' }}>
+            ⏳ Payment Processing: Under Security Review
+          </div>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.75)', marginTop:4 }}>
+            All payments are being checked and will be released to genuine users shortly.
           </div>
         </div>
       )}
@@ -452,7 +458,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
       {/* ── EXCITING LEADERBOARD CARDS ── */}
       <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 16px 6px' }}>
         <span style={{ fontSize:10, fontWeight:900, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.15em', display:'flex', alignItems:'center', gap:4 }}>
-          {isEnded ? '👑 Official Top 30 Winners Podium' : '🏅 Top 30 Championship Standings'}
+          {isEnded ? '👑 Top 30 Standings (Checking All Payments)' : '🏅 Top 30 Championship Standings'}
         </span>
         <button onClick={load} style={{ fontSize:10, fontWeight:700, color:'#818cf8', background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
           <RefreshCw size={10}/> Refresh
