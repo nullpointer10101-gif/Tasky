@@ -279,10 +279,10 @@ ${explorerLink ? `🔗 <a href="${explorerLink}"><b>View Transaction on Tonviewe
 ${explorerLink ? `🔗 <a href="${explorerLink}"><b>View Transaction on Tonviewer</b></a>` : ''}`;
     }
 
-    // 5. Build Inline Keyboard
+    // 5. Build Inline Keyboard (Uses official startapp link that works across all Telegram clients)
     const inline_keyboard = [
       [
-        { text: isNftPayout ? '⚡ Claim NFT Miner Now 💎' : '🚀 Open Tasky & Earn', url: 'https://t.me/TaskyAppbot/app' }
+        { text: isNftPayout ? '⚡ Claim NFT Miner Now 💎' : '🚀 Open Tasky & Earn', url: 'https://t.me/TaskyAppbot?startapp=payout' }
       ]
     ];
 
