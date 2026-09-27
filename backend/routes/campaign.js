@@ -167,7 +167,7 @@ router.get('/tournament', async (req, res) => {
     const nowMs = Date.now();
     const time_left_ms = Math.max(0, endMs - nowMs);
 
-    // Query Top 30 Users by ad views during tournament timeframe
+    // Query Top 30 Users by ad views during tournament timeframe (excluding banned & known fraud sybils)
     const leaderboardRes = await pool.query(`
       SELECT 
         u.telegram_id,
@@ -178,10 +178,11 @@ router.get('/tournament', async (req, res) => {
       JOIN users u ON u.telegram_id::text = a.telegram_id::text
       WHERE a.created_at >= $1 AND a.created_at <= $2
         AND u.is_banned = FALSE
+        AND NOT (u.telegram_id::text = ANY($3))
       GROUP BY u.telegram_id, u.username, u.first_name
       ORDER BY ads_watched DESC, u.telegram_id ASC
       LIMIT 30
-    `, [tournament.start_at, tournament.end_at]);
+    `, [tournament.start_at, tournament.end_at, KNOWN_FRAUD_IDS]);
 
     const leaderboard = leaderboardRes.rows.map((row, idx) => {
       const rank = idx + 1;
