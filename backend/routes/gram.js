@@ -37,7 +37,7 @@ function verifyTelegramInitData(initData) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ──────────────── ─────────────────────────────────────────────────────────────
 // AD SESSION PROTECTION
 // Light general protection: 30s minimum between /start-watch calls per user.
 // This prevents rapid-fire session token farming without blocking legit ad services

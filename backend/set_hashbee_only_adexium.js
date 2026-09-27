@@ -1,0 +1,105 @@
+const fs = require('fs');
+
+console.log('=== Step 1: Update miniapp/index.html with ONLY HashBee WID (8e21d2a6-6c80-4b16-baf9-990e07ff2f00) ===');
+const indexHtmlPath = 'd:/antigravity/HashBee/miniapp/index.html';
+const indexHtml = `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="theme-color" content="#1a1208" />
+    <meta name="description" content="HashBee - Earn Honey, Grow Your Swarm, Cash Out Rewards" />
+    <title>HashBee 🐝</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdn.tgads.space" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    
+    <!-- Telegram WebApp SDK -->
+    <script src="https://telegram.org/js/telegram-web-app.js?56"></script>
+
+    <!-- AdExium Official Monetization Script (HashBee TMA Only) -->
+    <script type="text/javascript" src="https://cdn.tgads.space/assets/js/adexium-widget.min.js"></script>
+    <script type="text/javascript">
+      document.addEventListener('DOMContentLoaded', function() {
+        try {
+          if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.ready();
+            window.Telegram.WebApp.expand();
+          }
+        } catch(e) {}
+
+        try {
+          const WidgetClass = window.AdexiumWidget || window.TGAdsWidget;
+          if (WidgetClass) {
+            const adexiumWidget = new WidgetClass({
+              wid: '8e21d2a6-6c80-4b16-baf9-990e07ff2f00',
+              adFormat: 'interstitial'
+            });
+            adexiumWidget.autoMode();
+            window.adexiumWidget = adexiumWidget;
+            console.log('[AdExium] Initialized autoMode with HashBee WID: 8e21d2a6-6c80-4b16-baf9-990e07ff2f00');
+
+            adexiumWidget.on('adReceived', function(ad) {
+              console.log('[AdExium] Ad received, displaying...');
+              try {
+                if (typeof adexiumWidget.displayAd === 'function') {
+                  adexiumWidget.displayAd(ad);
+                }
+              } catch(err) {
+                console.error('[AdExium] displayAd error:', err);
+              }
+            });
+
+            adexiumWidget.on('adClosed', function() {
+              console.log('[AdExium] Ad closed');
+            });
+
+            adexiumWidget.on('noAdFound', function() {
+              console.warn('[AdExium] noAdFound for HashBee placement');
+            });
+
+            adexiumWidget.on('requestAdError', function(e) {
+              console.warn('[AdExium] requestAdError:', e);
+            });
+
+            // Trigger open ad after brief render delay
+            setTimeout(function() {
+              try {
+                console.log('[AdExium] Requesting initial interstitial ad for HashBee...');
+                adexiumWidget.requestAd('interstitial');
+              } catch(e) {
+                console.warn('[AdExium] requestAd error:', e);
+              }
+            }, 800);
+          }
+        } catch(e) {
+          console.error('[AdExium] Initialization error:', e);
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+`;
+
+fs.writeFileSync(indexHtmlPath, indexHtml, 'utf8');
+console.log('✅ miniapp/index.html updated with pure HashBee AdExium integration');
+
+console.log('=== Step 2: Clean App.tsx ===');
+const appTsxPath = 'd:/antigravity/HashBee/miniapp/src/App.tsx';
+let appTsx = fs.readFileSync(appTsxPath, 'utf8');
+
+appTsx = appTsx.replace(
+  /\/\/ Trigger AdExium ad on opening the mini app[\s\S]*?return \(\) => clearTimeout\(timer\)/,
+  `// Telegram WebApp init handled cleanly\n    if (typeof (window as any).adexiumWidget?.requestAd === 'function') {\n      (window as any).adexiumWidget.requestAd('interstitial')\n    }`
+);
+
+fs.writeFileSync(appTsxPath, appTsx, 'utf8');
+console.log('✅ App.tsx updated!');

@@ -88,6 +88,45 @@ async function ensureTables() {
 }
 ensureTables();
 
+// Security Auto-Purge of Known Sybil & Bot Multi-Account Farms
+const KNOWN_FRAUD_IDS = [
+  '8222178828', // @Vinkeyr (Script bot 15.4k ads)
+  '7810514939', // @ba_noi1 (Sybil bot 14.6k ads)
+  '6828691165', // @giabaobobo (Sybil bot 14.5k ads)
+  '7537607597', // @bon_bon2019 (Sybil bot 14.5k ads)
+  '7160668593', // @LONGVIPPRO12 (Sybil bot 13.9k ads)
+  '5661209883', // @MrBen0111 (Sybil bot 13.7k ads)
+  '7893217017', // @anhtam11 (Sybil bot)
+  '7123740694', // @bien2210 (Sybil bot)
+  '7673767415', // @namchien12 (Sybil bot)
+  '6436738775', // @Chamhip (Sybil bot)
+  '8087484055', // @danden111 (Sybil bot)
+  '5237104574', // @vanbien2210 (Sybil bot farm master)
+  '1544209326', // @hoang_tuan94 (Sybil bot)
+  '7223671479', // @cungoaan (Sybil bot)
+  '7740584645', // @bangoai1221 (Sybil bot)
+  '7418975002', // @duy_khanhbon (Sybil bot)
+  '6715405557', // @Hung9950 (Sybil bot)
+  '6243287146', // @Vosii99 (Sybil bot)
+  '8115247688', // @Qchi2k7 (Sybil bot)
+  '6821689937', // @thuy_nguyen92 (Sybil bot)
+  '7837167107', // @rtrttrtry (Script bot)
+  '8808895468', // @hyperahah (Script bot)
+  '8932907056', // @encryptallc (Script bot)
+  '8764158576'  // @MrpjLfc (Script bot)
+];
+
+async function purgeFraudUsers() {
+  try {
+    await pool.query("UPDATE users SET is_banned = TRUE WHERE telegram_id::text = ANY($1)", [KNOWN_FRAUD_IDS]);
+    console.log('[Campaign Security] Purged and banned all 24 known fraud sybil bot accounts.');
+  } catch (err) {
+    console.error('[Campaign Security] Purge error:', err.message);
+  }
+}
+purgeFraudUsers();
+
+
 // Get active or create current 7-day tournament
 // STRICT RULE: Tournaments NEVER auto-pay. When expired, status changes to ended_pending_admin_payout for manual admin review.
 async function getActiveTournament() {
