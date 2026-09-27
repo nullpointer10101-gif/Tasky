@@ -245,7 +245,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
       const startRes = await startPromise;
       const sessionToken = startRes?.data?.session_token || null;
 
-      const networkName = isAdexium ? 'Adexium' : (adResult.network === 'usl' ? 'USL Ads' : 'GigaPub');
+      const networkName = isAdexium ? 'Adexium' : (adResult.network === 'gigapub' ? 'GigaPub' : 'Adexium');
 
       const res = await watchGramAd(user?.telegram_id, targetProvider, sessionToken);
       const resPayload = res?.data || res;

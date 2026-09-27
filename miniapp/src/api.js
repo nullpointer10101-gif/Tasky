@@ -352,7 +352,7 @@ export const claimReferralCommission = withMock(
   (telegram_id, wallet_address) => () => api.post('/api/referral/claim-commission', { telegram_id, wallet_address })
 )
 
-// --- CYBER AD REACTOR (USL ADS 5-STAGE OVERDRIVE) ---
+// --- CYBER AD REACTOR (5-STAGE OVERDRIVE) ---
 export const getReactorStatus = withMock(
   { success: true, total_ads: 0, current_stage: 0, next_target: 20, stages: [], active_claim: null, user_wallet: '' },
   (telegram_id) => () => api.get(`/api/reactor/status/${telegram_id}?_t=${Date.now()}`)
@@ -365,7 +365,7 @@ export const startReactorAdView = withMock(
 
 export const recordReactorAdView = withMock(
   { success: true, total_ads: 1, stage: 0, can_claim: false },
-  (telegram_id, session_token = null, provider = 'usl') => () => api.post('/api/reactor/record-view', { telegram_id, session_token, provider })
+  (telegram_id, session_token = null, provider = 'adexium') => () => api.post('/api/reactor/record-view', { telegram_id, session_token, provider })
 )
 
 export const claimReactorReward = withMock(
