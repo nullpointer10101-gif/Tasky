@@ -129,7 +129,7 @@ purgeFraudUsers();
 
 
 // Get active or create current 7-day tournament
-// STRICT RULE: Tournaments NEVER auto-pay. When expired, status changes to ended_pending_admin_payout for manual admin review.
+// STRICT RULE: Tournaments NEVER auto-pay. When expired, status changes to ended_pending_admin_payout for manual admin review & bot purge.
 async function getActiveTournament() {
   const res = await pool.query(
     "SELECT * FROM campaign_tournaments WHERE status = 'active' ORDER BY id DESC LIMIT 1"
@@ -141,7 +141,17 @@ async function getActiveTournament() {
     } else {
       // Mark as ended awaiting manual admin review & payout
       await pool.query("UPDATE campaign_tournaments SET status = 'ended_pending_admin_payout' WHERE id = $1", [t.id]);
+      t.status = 'ended_pending_admin_payout';
+      return t;
     }
+  }
+
+  // If there's an ended tournament pending admin review/payout, return it so users see the final winners & audit message
+  const pendingRes = await pool.query(
+    "SELECT * FROM campaign_tournaments WHERE status = 'ended_pending_admin_payout' ORDER BY id DESC LIMIT 1"
+  );
+  if (pendingRes.rows.length > 0) {
+    return pendingRes.rows[0];
   }
 
   // Create fresh 7-day tournament
@@ -336,6 +346,9 @@ router.post('/watch-ad', async (req, res) => {
     }
 
     const tournament = await getActiveTournament();
+    if (tournament.status !== 'active' || new Date(tournament.end_at) <= new Date()) {
+      return res.status(400).json({ error: 'This tournament championship has concluded! Anti-cheat audit and Top 30 payouts are currently in progress.' });
+    }
 
     // Database-level Cooldown Check (at least 2 seconds between ad views in DB)
     const lastAdRes = await pool.query(

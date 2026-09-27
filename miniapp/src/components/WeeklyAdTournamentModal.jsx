@@ -152,8 +152,15 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
 
   useEffect(() => { if (isOpen) load(); }, [isOpen, load]);
 
+  const isEnded = Boolean(
+    data?.tournament?.status === 'ended_pending_admin_payout' ||
+    data?.tournament?.status === 'completed' ||
+    (data?.tournament?.time_left_ms !== undefined && data.tournament.time_left_ms <= 0) ||
+    (data && tl.d === 0 && tl.h === 0 && tl.m === 0 && tl.s === 0 && data?.tournament?.time_left_ms !== undefined)
+  );
+
   const watchAd = async () => {
-    if (watching) return;
+    if (watching || isEnded) return;
     setWatching(true);
     try {
       const startRes = await startWatchCampaignAd(user?.telegram_id, 'adexium').catch(() => null);
@@ -218,10 +225,18 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
       <div style={{ flexShrink:0, display:'flex', alignItems:'center',
         justifyContent:'space-between', padding:'16px 16px 0' }}>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:9, fontWeight:900, color:'#ef4444', textTransform:'uppercase',
-            letterSpacing:'0.15em', animation:'live-blink 1.4s ease-in-out infinite',
-            background:'rgba(239,68,68,0.14)', border:'1px solid rgba(239,68,68,0.3)',
-            borderRadius:20, padding:'3px 8px' }}>● LIVE TOURNAMENT</span>
+          <span style={{
+            fontSize:9, fontWeight:900,
+            color: isEnded ? '#fbbf24' : '#ef4444',
+            textTransform:'uppercase',
+            letterSpacing:'0.15em',
+            animation: isEnded ? 'none' : 'live-blink 1.4s ease-in-out infinite',
+            background: isEnded ? 'rgba(251,191,36,0.18)' : 'rgba(239,68,68,0.14)',
+            border: isEnded ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(239,68,68,0.3)',
+            borderRadius:20, padding:'3px 8px'
+          }}>
+            {isEnded ? '● TOURNAMENT CONCLUDED' : '● LIVE TOURNAMENT'}
+          </span>
           <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,255,255,0.4)',
             textTransform:'uppercase', letterSpacing:'0.1em' }}>Ad Championship</span>
         </div>
@@ -241,12 +256,36 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           <div style={{ fontSize:34, lineHeight:1, animation:'trophy-bob 3s ease-in-out infinite',
             filter:'drop-shadow(0 0 18px rgba(251,191,36,0.95))' }}>🏆</div>
           <div style={{ textAlign:'left' }}>
-            <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Tournament Ends In</div>
-            <div style={{ fontSize:15, fontWeight:900, color:'#fff', letterSpacing:'0.02em', fontFamily:'monospace' }}>
-              ⏳ {pad(tl.d)}d {pad(tl.h)}h {pad(tl.m)}m {pad(tl.s)}s
+            <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
+              {isEnded ? 'Championship Status' : 'Tournament Ends In'}
             </div>
+            {isEnded ? (
+              <div style={{ fontSize:14, fontWeight:900, color:'#fbbf24', letterSpacing:'0.02em' }}>
+                🏁 Ended • Audit &amp; Payouts
+              </div>
+            ) : (
+              <div style={{ fontSize:15, fontWeight:900, color:'#fff', letterSpacing:'0.02em', fontFamily:'monospace' }}>
+                ⏳ {pad(tl.d)}d {pad(tl.h)}h {pad(tl.m)}m {pad(tl.s)}s
+              </div>
+            )}
           </div>
         </div>
+
+        {/* Audit & Payout Alert Banner if Ended */}
+        {isEnded && (
+          <div style={{
+            margin:'6px 0 10px', padding:'10px 12px', borderRadius:14,
+            background:'linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(168,85,247,0.15) 100%)',
+            border:'1px solid rgba(244,63,94,0.4)', boxShadow:'0 0 16px rgba(244,63,94,0.2)', textAlign:'left'
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:10, fontWeight:900, color:'#f43f5e', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+              <span>🛡️ FRAUD PURGE &amp; TOP 30 PAYOUTS UNDERWAY</span>
+            </div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.85)', marginTop:3, lineHeight:1.4 }}>
+              Bot accounts &amp; Sybil farms are being purged. <b>Payouts in GRAM &amp; TASKY</b> are being distributed directly to verified Top 30 winners!
+            </div>
+          </div>
+        )}
 
         {/* High-Dopamine Top 3 Prize Podium Cards */}
         <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -296,34 +335,57 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             ? 'linear-gradient(135deg,rgba(251,191,36,0.22),rgba(245,158,11,0.09))'
             : 'rgba(255,255,255,0.05)',
           border: inPrize ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>Your Rank</div>
+          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>
+            {isEnded ? 'Final Rank' : 'Your Rank'}
+          </div>
           <div style={{ fontSize:34, fontWeight:900, color: inPrize ? '#fbbf24' : '#fff', lineHeight:1, letterSpacing:'-0.02em' }}>
             {me.rank ? '#'+me.rank : '—'}
           </div>
           {me.rank === 1 ? (
             <div style={{ fontSize:10, fontWeight:900, color:'#fbbf24', marginTop:4 }}>🏆 #1 CHAMPION</div>
           ) : me.rank <= 3 ? (
-            <div style={{ fontSize:10, fontWeight:900, color:'#fbbf24', marginTop:4 }}>🥇 TOP 3 PRIZE ZONE</div>
+            <div style={{ fontSize:10, fontWeight:900, color:'#fbbf24', marginTop:4 }}>🥇 TOP 3 WINNER</div>
           ) : inPrize ? (
-            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:4 }}>🎯 TOP 30 PRIZE ZONE</div>
+            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:4 }}>🎯 TOP 30 WINNER</div>
           ) : (
-            <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>Watch ads to rank</div>
+            <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>
+              {isEnded ? 'Ended' : 'Watch ads to rank'}
+            </div>
           )}
         </div>
 
         {/* Ads card */}
         <div style={{ flex:1, borderRadius:16, padding:'12px 14px',
           background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>Ads This Week</div>
+          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>Ads Watched</div>
           <div style={{ fontSize:34, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.02em' }}>{myAds}</div>
           {me.estimated_gram > 0
-            ? <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4 }}>💎 {me.estimated_gram} GRAM est.</div>
-            : <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>Keep watching!</div>}
+            ? <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4 }}>💎 {me.estimated_gram} GRAM Won</div>
+            : <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>{isEnded ? 'Championship ended' : 'Keep watching!'}</div>}
         </div>
       </div>
 
-      {/* ── HIGH DOPAMINE PROGRESS BAR TO NEXT RANK ── */}
-      {me.rank > 1 && adsToOvercome > 0 && (
+      {/* Special Winner Banner if in Prize Zone & Tournament Ended */}
+      {isEnded && inPrize && (
+        <div style={{
+          flexShrink:0, margin:'8px 14px 0', padding:'12px 14px', borderRadius:16,
+          background:'linear-gradient(135deg, rgba(251,191,36,0.24) 0%, rgba(16,185,129,0.18) 100%)',
+          border:'1.5px solid #fbbf24', boxShadow:'0 0 20px rgba(251,191,36,0.35)', textAlign:'center'
+        }}>
+          <div style={{ fontSize:12, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>
+            🎉 CONGRATULATIONS! YOU PLACED #{me.rank} OF TOP 30!
+          </div>
+          <div style={{ fontSize:15, fontWeight:900, color:'#fff', marginTop:2 }}>
+            💎 {me.estimated_gram} GRAM + {Number(me.estimated_tasky).toLocaleString()} TASKY
+          </div>
+          <div style={{ fontSize:9, fontWeight:700, color:'rgba(255,255,255,0.8)', marginTop:3 }}>
+            Your prize will be deposited into your wallet following final audit approval.
+          </div>
+        </div>
+      )}
+
+      {/* ── HIGH DOPAMINE PROGRESS BAR TO NEXT RANK (Only while active) ── */}
+      {!isEnded && me.rank > 1 && adsToOvercome > 0 && (
         <div style={{ flexShrink:0, margin:'8px 14px 0',
           background:'linear-gradient(135deg, rgba(99,102,241,0.14), rgba(168,85,247,0.10))',
           border:'1px solid rgba(168,85,247,0.35)',
@@ -353,26 +415,44 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
         </div>
       )}
 
-      {/* ── WATCH AD BUTTON ── */}
+      {/* ── ACTION BUTTON (Watch Ad or View Channel) ── */}
       <div style={{ flexShrink:0, padding:'10px 14px 8px' }}>
-        <button onClick={watchAd} disabled={watching} style={{
-          width:'100%', padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
-          fontSize:15, fontWeight:900, letterSpacing:'0.05em', textTransform:'uppercase',
-          color:'#000', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
-          background: watching ? 'rgba(251,191,36,0.5)' : 'linear-gradient(135deg,#fde68a 0%,#fbbf24 50%,#d97706 100%)',
-          animation: watching ? 'none' : 'gold-glow 2s ease-in-out infinite',
-          opacity: watching ? 0.7 : 1, transition:'opacity 0.2s',
-        }}>
-          {watching
-            ? <><RefreshCw size={18} style={{ animation:'spin-icon 1s linear infinite' }}/> Loading Ad...</>
-            : <><Play size={18} fill="#000"/> Watch Ad — Climb Ranks</>}
-        </button>
+        {isEnded ? (
+          <button onClick={() => {
+            if (window.Telegram?.WebApp?.openTelegramLink) {
+              window.Telegram.WebApp.openTelegramLink('https://t.me/TaskyPayouts');
+            } else {
+              window.open('https://t.me/TaskyPayouts', '_blank');
+            }
+          }} style={{
+            width:'100%', padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
+            fontSize:14, fontWeight:900, letterSpacing:'0.04em', textTransform:'uppercase',
+            color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)',
+            boxShadow: '0 0 20px rgba(124,58,237,0.5)',
+          }}>
+            📢 View Payouts Channel (@TaskyPayouts)
+          </button>
+        ) : (
+          <button onClick={watchAd} disabled={watching} style={{
+            width:'100%', padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
+            fontSize:15, fontWeight:900, letterSpacing:'0.05em', textTransform:'uppercase',
+            color:'#000', display:'flex', alignItems:'center', justifyContent:'center', gap:10,
+            background: watching ? 'rgba(251,191,36,0.5)' : 'linear-gradient(135deg,#fde68a 0%,#fbbf24 50%,#d97706 100%)',
+            animation: watching ? 'none' : 'gold-glow 2s ease-in-out infinite',
+            opacity: watching ? 0.7 : 1, transition:'opacity 0.2s',
+          }}>
+            {watching
+              ? <><RefreshCw size={18} style={{ animation:'spin-icon 1s linear infinite' }}/> Loading Ad...</>
+              : <><Play size={18} fill="#000"/> Watch Ad — Climb Ranks</>}
+          </button>
+        )}
       </div>
 
       {/* ── EXCITING LEADERBOARD CARDS ── */}
       <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 16px 6px' }}>
         <span style={{ fontSize:10, fontWeight:900, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.15em', display:'flex', alignItems:'center', gap:4 }}>
-          🏅 Top 30 Championship Standings
+          {isEnded ? '👑 Official Top 30 Winners Podium' : '🏅 Top 30 Championship Standings'}
         </span>
         <button onClick={load} style={{ fontSize:10, fontWeight:700, color:'#818cf8', background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
           <RefreshCw size={10}/> Refresh
