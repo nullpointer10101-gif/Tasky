@@ -7,7 +7,6 @@ import {
   Coins, Star, Check
 } from 'lucide-react';
 import triggerConfetti from '../confetti';
-import { showTowerAd } from '../adUtils';
 import { getReactorStatus, startReactorAdView, recordReactorAdView, claimReactorReward } from '../api';
 import { useToast } from '../App';
 

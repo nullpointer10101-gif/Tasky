@@ -50,9 +50,8 @@ This document is the **single source of truth** for all hosting environments, pr
 | Provider | SDK / Unit ID | Configuration / Placement | Format |
 | :--- | :--- | :--- | :--- |
 | **Adexium** | WID: `e93d690f-bdc3-4ed5-8d9f-8f208afa3774` | Script: `https://cdn.tgads.space/assets/js/adexium-widget.min.js` | Interstitial & Rewarded |
-| **USL Ads (TowerAds v4)** | Placement: `plc_c529a877186e2def`<br>API Key: `feb662719eb08611a669069ba17cb0e8` | Script: `https://uslads.com/sdk/tower-ads-v4.js` | Partner Rewarded Video |
-| **GigaPub Primary** | Unit ID: `8093` | Script: `https://ad.gigapub.tech/script?id=8093` | High Fill Rewarded Video |
-| **GigaPub Offerwall** | Project ID: `8093` | Script: `https://wall.giga.pub/api/v1/loader.js?projectId=8093` | Interactive Offerwall |
+| **GigaPub Primary** | Unit ID: `7451` | Script: `https://ad.gigapub.tech/script?id=7451` | High Fill Rewarded Video |
+| **GigaPub Offerwall** | Project ID: `7451` | Script: `https://wall.giga.pub/api/v1/loader.js?projectId=7451` | Interactive Offerwall |
 
 ---
 
