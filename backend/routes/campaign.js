@@ -92,6 +92,7 @@ ensureTables();
 const KNOWN_FRAUD_IDS = [
   '8222178828', // @Vinkeyr (Script bot 15.4k ads)
   '7810514939', // @ba_noi1 (Sybil bot 14.6k ads)
+  '7366534603', // @ong_noi1 (Sybil bot)
   '6828691165', // @giabaobobo (Sybil bot 14.5k ads)
   '7537607597', // @bon_bon2019 (Sybil bot 14.5k ads)
   '7160668593', // @LONGVIPPRO12 (Sybil bot 13.9k ads)
