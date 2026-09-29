@@ -2027,7 +2027,7 @@ router.get('/gram/claims/pending', async (req, res) => {
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
-      JOIN users u ON gc.telegram_id = u.telegram_id
+      LEFT JOIN users u ON gc.telegram_id::text = u.telegram_id::text
       WHERE gc.status IN ('pending', 'processing')
       ORDER BY gc.requested_at ASC
     `;
@@ -2063,7 +2063,7 @@ router.get('/gram/claims/history', async (req, res) => {
         (SELECT COUNT(*) FROM gram_claims WHERE telegram_id = gc.telegram_id AND requested_at <= gc.requested_at) as claim_seq,
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id AND (processed_at < gc.processed_at OR gc.processed_at IS NULL) ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
-      JOIN users u ON gc.telegram_id = u.telegram_id
+      LEFT JOIN users u ON gc.telegram_id::text = u.telegram_id::text
       WHERE gc.status IN ('approved', 'rejected')
       ORDER BY COALESCE(gc.processed_at, gc.requested_at) DESC
       LIMIT 500

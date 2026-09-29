@@ -535,21 +535,43 @@ router.get('/payout-preview', async (req, res) => {
     }
     const t = tournament.rows[0];
 
-    const winnersRes = await pool.query(`
-      SELECT 
-        u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
-        COUNT(a.id) as ads_watched,
-        cp.tx_hash, cp.status as payout_status, cp.paid_at
-      FROM ad_views a
-      JOIN users u ON u.telegram_id::text = a.telegram_id::text
-      LEFT JOIN campaign_payouts cp ON cp.tournament_id = $4 AND cp.telegram_id::text = u.telegram_id::text
-      WHERE a.created_at >= $1 AND a.created_at <= $2
-        AND u.is_banned = FALSE
-        AND NOT (u.telegram_id::text = ANY($3))
-      GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address, cp.tx_hash, cp.status, cp.paid_at
-      ORDER BY ads_watched DESC, u.telegram_id ASC
-      LIMIT 30
-    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS, t.id]);
+    let winnersRes;
+    try {
+      winnersRes = await pool.query(`
+        SELECT 
+          u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
+          COUNT(a.id) as ads_watched,
+          cp.tx_hash, cp.status as payout_status, cp.paid_at
+        FROM ad_views a
+        JOIN users u ON u.telegram_id::text = a.telegram_id::text
+        LEFT JOIN campaign_payouts cp ON cp.tournament_id = $4 AND cp.telegram_id::text = u.telegram_id::text
+        WHERE a.created_at >= $1 AND a.created_at <= $2
+          AND u.is_banned = FALSE
+          AND NOT (u.telegram_id::text = ANY($3))
+        GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address, cp.tx_hash, cp.status, cp.paid_at
+        ORDER BY ads_watched DESC, u.telegram_id ASC
+        LIMIT 30
+      `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS, t.id]);
+    } catch (dbErr) {
+      console.warn('[Campaign] Querying without cp columns fallback:', dbErr.message);
+      // Auto-migrate column if missing
+      pool.query('ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255); ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS status VARCHAR(64) DEFAULT \'pending\'; ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP WITH TIME ZONE;').catch(() => {});
+      
+      winnersRes = await pool.query(`
+        SELECT 
+          u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
+          COUNT(a.id) as ads_watched,
+          NULL as tx_hash, NULL as payout_status, NULL as paid_at
+        FROM ad_views a
+        JOIN users u ON u.telegram_id::text = a.telegram_id::text
+        WHERE a.created_at >= $1 AND a.created_at <= $2
+          AND u.is_banned = FALSE
+          AND NOT (u.telegram_id::text = ANY($3))
+        GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address
+        ORDER BY ads_watched DESC, u.telegram_id ASC
+        LIMIT 30
+      `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS]);
+    }
 
     const winners = winnersRes.rows.map((row, idx) => {
       const rank = idx + 1;
