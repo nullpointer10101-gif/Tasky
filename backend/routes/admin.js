@@ -96,7 +96,7 @@ router.get('/stats', async (req, res) => {
         SELECT 
           (SELECT COUNT(*) FROM user_tasks WHERE status = 'pending') as pending_tasks,
           (SELECT COUNT(*) FROM withdrawals WHERE status = 'pending') as pending_withdrawals,
-          (SELECT COUNT(*) FROM gram_claims WHERE status = 'pending') as pending_gram_claims,
+          (SELECT COUNT(*) FROM gram_claims WHERE status IN ('pending', 'processing')) as pending_gram_claims,
           (SELECT COUNT(*) FROM gram_withdrawals WHERE status = 'pending') as pending_gram_withdrawals
         `),
       pool.query(`
@@ -2028,7 +2028,7 @@ router.get('/gram/claims/pending', async (req, res) => {
         (SELECT COALESCE(processed_at, requested_at) FROM gram_claims WHERE telegram_id = gc.telegram_id AND status = 'approved' AND id != gc.id ORDER BY COALESCE(processed_at, requested_at) DESC LIMIT 1) as last_claim_at
       FROM gram_claims gc
       JOIN users u ON gc.telegram_id = u.telegram_id
-      WHERE gc.status = 'pending'
+      WHERE gc.status IN ('pending', 'processing')
       ORDER BY gc.requested_at ASC
     `;
     const { rows } = await pool.query(query);
@@ -2083,7 +2083,7 @@ router.post('/gram/claims/review', async (req, res) => {
   try {
     await client.query('BEGIN');
 
-    const claimRes = await client.query('SELECT telegram_id, amount, gram_wallet_address FROM gram_claims WHERE id = $1 AND status = \'pending\'', [claim_id]);
+    const claimRes = await client.query('SELECT telegram_id, amount, gram_wallet_address FROM gram_claims WHERE id = $1 AND status IN (\'pending\', \'processing\')', [claim_id]);
     if (claimRes.rows.length === 0) {
       const existingRes = await client.query('SELECT status, tx_hash FROM gram_claims WHERE id = $1', [claim_id]);
       if (existingRes.rows.length > 0 && existingRes.rows[0].status === 'approved') {
