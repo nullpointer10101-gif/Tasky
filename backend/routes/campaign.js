@@ -658,43 +658,58 @@ router.post('/distribute-prizes', async (req, res) => {
         }).join('\n');
 
         const msgHtml =
-`🏆 <b>AD CHAMPIONSHIP — SEASON RESULTS!</b> 🏆
+`👑 🏆 <b>AD CHAMPIONSHIP GRAND FINALE — WINNERS REWARDED!</b> 🏆 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
+🔥 <b>THE 7-DAY BATTLE IS OVER! TOP 30 CHAMPIONS PAID!</b>
+Real GRAM. Real TASKY. Guaranteed payouts every season. 💎
 
-🎉 <b>Congratulations to our TOP GRINDERS!</b>
-Real GRAM. Real TASKY. Real payouts. Every season.
+🌟 <b>PODIUM CHAMPIONS SPOTLIGHT:</b>
+🥇 <b>#1 CHAMPION:</b> ${top10[0]?.username ? `@${top10[0].username}` : (top10[0]?.first_name || 'Champion')}
+    ⚡ <b>${top10[0]?.ads_watched?.toLocaleString()} Ads Watched</b>
+    🎁 <b>Prize: 1.00 GRAM + 20,000 TASKY</b>
 
-<b>🔥 THIS SEASON'S WINNERS:</b>
+🥈 <b>#2 RUNNER-UP:</b> ${top10[1]?.username ? `@${top10[1].username}` : (top10[1]?.first_name || 'Runner-Up')}
+    ⚡ <b>${top10[1]?.ads_watched?.toLocaleString()} Ads Watched</b>
+    🎁 <b>Prize: 0.50 GRAM + 10,000 TASKY</b>
+
+🥉 <b>#3 BRONZE HERO:</b> ${top10[2]?.username ? `@${top10[2].username}` : (top10[2]?.first_name || 'Bronze Hero')}
+    ⚡ <b>${top10[2]?.ads_watched?.toLocaleString()} Ads Watched</b>
+    🎁 <b>Prize: 0.30 GRAM + 5,000 TASKY</b>
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+🎖️ <b>TOP 10 FINAL LEADERBOARD:</b>
 ${lines}
-<i>…and ${winners.length > 10 ? winners.length - 10 + ' more winners' : ''} in ranks 11–30!</i>
+<i>…plus ${winners.length > 10 ? winners.length - 10 + ' more winners' : 'all contenders'} in ranks 11–30 rewarded!</i>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-💰 <b>PRIZE BREAKDOWN:</b>
-🥇 1st → <b>1.00 GRAM + 20,000 TASKY</b>
-🥈 2nd → <b>0.50 GRAM + 10,000 TASKY</b>
-🥉 3rd → <b>0.30 GRAM + 5,000 TASKY</b>
-🏅 4th–10th → <b>0.10 GRAM + 2,000 TASKY</b>
-🎖️ 11th–30th → <b>0.05 GRAM + 1,000 TASKY</b>
+💰 <b>SEASON PRIZE POOL REWARDED:</b>
+💎 <b>3.50 GRAM + 69,000 TASKY Total Distributed!</b>
+⚡ <b>Status:</b> All TASKY credited & GRAM transfers issued! ✅
 
-${customMessage ? `\n💬 <i>${customMessage}</i>\n` : ''}
+${customMessage ? `\n📢 <i>${customMessage}</i>\n` : ''}
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 <b>New season starting soon!</b>
-Watch ads. Climb the board. Win GRAM every week.
-<b>Your name could be here next season! 👑</b>`;
+🚀 <b>NEW SEASON HAS OFFICIALLY LAUNCHED!</b>
+Grind sponsor ads daily. Climb the ranks. Win real GRAM every week!
+<b>Will YOU take the #1 Crown next season? 👑</b>`;
 
-        const inline_keyboard = [[
-          { text: '🏆 Watch Ads & Compete', url: 'https://t.me/TaskyAppbot/app' },
-          { text: '📊 View Results', url: 'https://t.me/TaskyAppbot/app' }
-        ]];
+        const inline_keyboard = [
+          [
+            { text: '👑 Join New Championship Season', url: 'https://t.me/TaskyAppbot/app' }
+          ],
+          [
+            { text: '💎 Open Tasky App', url: 'https://t.me/TaskyAppbot/app' },
+            { text: '📊 Official Leaderboard', url: 'https://t.me/TaskyAppbot/app' }
+          ]
+        ];
 
         try {
           const { generatePayoutCardPngBuffer } = require('../utils/payoutChannel');
           const pngBuffer = generatePayoutCardPngBuffer({
-            amount: `${winners.length} Winners`,
-            token: 'PAID',
-            recipient: 'Ad Championship Season',
-            wallet: 'GRAM + TASKY Rewards',
-            type: 'Ad Championship Payout',
+            amount: `3.50 GRAM + 69k TASKY`,
+            token: 'CHAMPIONSHIP POOL',
+            recipient: 'Top 30 Grand Champions',
+            wallet: 'Season Grand Finale',
+            type: 'Ad Championship Grand Payout',
             dateStr: new Date().toUTCString().replace('GMT', 'UTC')
           });
           await tBot.sendPhoto(channelId, pngBuffer, {
