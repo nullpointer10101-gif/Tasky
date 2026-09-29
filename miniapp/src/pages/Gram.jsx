@@ -396,29 +396,35 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
         </p>
       </div>
 
-      {/* ── 7-DAY AD CHAMPIONSHIP BANNER ── */}
+      {/* ── 20-DAY REFERRAL CHAMPIONSHIP BANNER ── */}
       <motion.div
         whileTap={{ scale: 0.97 }}
         onClick={() => onOpenTournamentModal && onOpenTournamentModal()}
-        className="relative overflow-hidden rounded-2xl p-4 text-white cursor-pointer transition-all flex items-center justify-between group border border-yellow-500/50 shadow-[0_0_20px_rgba(234,179,8,0.2)]"
-        style={{ background: 'linear-gradient(135deg, #2b1d03 0%, #170e01 100%)' }}
+        className="relative overflow-hidden rounded-2xl p-4 text-white cursor-pointer transition-all flex items-center justify-between group border border-amber-500/50 shadow-[0_0_20px_rgba(245,158,11,0.25)]"
+        style={{ background: 'linear-gradient(135deg, #2b1703 0%, #150901 50%, #1e0e33 100%)' }}
       >
         <div className="flex items-center gap-3.5 relative z-10">
-          <div className="w-11 h-11 rounded-xl bg-yellow-500/20 border border-yellow-400/30 flex items-center justify-center text-yellow-300 shrink-0">
-            <Trophy size={22} className="animate-bounce text-yellow-400" />
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-amber-500/30 to-purple-500/30 border border-amber-400/40 flex items-center justify-center text-amber-300 shrink-0 shadow-md">
+            <span className="text-2xl select-none animate-bounce">👑</span>
           </div>
           <div>
-            <div className="flex items-center gap-1.5 mb-0.5">
-              <span className="text-[9px] font-black uppercase tracking-wider bg-yellow-400 text-black px-2 py-0.5 rounded-full font-mono">
-                🏆 7-DAY LEADERBOARD
+            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+              <span className="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-orange-500 text-black px-2 py-0.5 rounded-full font-mono shadow-sm">
+                🚀 20-DAY SEASON
               </span>
-              <span className="text-[9px] font-black text-yellow-300">Top 30 Win Grams</span>
+              <span className="text-[9px] font-black bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-mono">
+                TOP 20 WIN GRAM
+              </span>
             </div>
-            <h3 className="text-sm font-black text-white">Ad Championship Quest 🚀</h3>
-            <p className="text-[11px] text-yellow-200/90 font-medium">Watch campaign ads & grab 1.00, 0.50, or 0.30 GRAM!</p>
+            <h3 className="text-sm font-black text-white flex items-center gap-1">
+              Referral Championship Quest 👥
+            </h3>
+            <p className="text-[11px] text-amber-200/90 font-medium">
+              Invite friends (1 task required) & grab up to <b className="text-amber-300">1.50 GRAM</b>!
+            </p>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-yellow-500/20 border border-yellow-400/40 flex items-center justify-center text-yellow-300 group-hover:bg-yellow-500/40 transition-all shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/40 transition-all shrink-0">
           <ChevronRight size={18} />
         </div>
       </motion.div>
