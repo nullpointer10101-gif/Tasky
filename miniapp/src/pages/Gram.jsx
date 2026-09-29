@@ -13,20 +13,9 @@ import { showRewardedAd, showAdexiumAd, showMonetagAd, prefetchGramAd } from '..
 import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
-const TOTAL_ADS = 60;
 
-const MILESTONES = [
-  { at: 10, label: '🔥 10 down!', msg: 'You\'re on fire! Keep going!', color: 'text-orange-400' },
-  { at: 20, label: '⚡ 20 done!', msg: 'Amazing streak! 40 more to go!', color: 'text-yellow-400' },
-  { at: 30, label: '💎 Halfway!', msg: 'HALFWAY THERE! 30 more to claim!', color: 'text-cyan-400' },
-  { at: 40, label: '🚀 40 done!', msg: 'Almost there! Just 20 left!', color: 'text-violet-400' },
-  { at: 50, label: '🎯 Only 10 left!', msg: 'SO CLOSE! Final stretch!', color: 'text-pink-400' },
-  { at: 55, label: '⭐ 5 more!', msg: 'Last 5 ads! YOU GOT THIS!', color: 'text-amber-300' },
-  { at: 59, label: '🏆 1 MORE AD!', msg: 'ONE MORE! YOUR 0.02 GRAM AWAITS!', color: 'text-emerald-300' },
-];
-
-function getAdsLeft(count, total = 60) {
-  const left = total - count;
+function getAdsLeft(count, total = 80) {
+  const left = Math.max(0, total - count);
   if (count >= total) return null;
   if (left <= 1) return { text: '🏆 1 AD LEFT!', urgency: 'ultra' };
   if (left <= 5) return { text: `⭐ Only ${left} ads left!`, urgency: 'high' };
@@ -35,8 +24,8 @@ function getAdsLeft(count, total = 60) {
   return { text: `⚡ ${left} ads remaining`, urgency: 'low' };
 }
 
-function getProgressColor(count) {
-  const pct = (count / TOTAL_ADS) * 100;
+function getProgressColor(count, total = 80) {
+  const pct = (count / total) * 100;
   if (pct >= 100) return 'from-emerald-400 to-teal-400';
   if (pct >= 83) return 'from-pink-400 to-rose-500';
   if (pct >= 66) return 'from-violet-400 to-purple-500';
@@ -292,7 +281,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
 
         const updatedGiga = serverGiga !== undefined ? serverGiga : (!isAdexium ? currentGiga + 1 : currentGiga);
         const updatedAdexium = serverAdexium !== undefined ? serverAdexium : (isAdexium ? currentAdexium + 1 : currentAdexium);
-        const isComplete = updatedGiga >= 30 && updatedAdexium >= 30;
+        const isComplete = updatedGiga >= reqGiga && updatedAdexium >= reqAdexium;
 
         if (isComplete) {
           setShowCompletionBurst(true);
@@ -302,10 +291,10 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
         }
 
         const getEncouragement = (cnt, strk) => {
-          if (isComplete) return `🏆 60/60 MAX REACHED! 0.02 GRAM is ready to claim!`;
-          if (cnt >= 50) return `⚡ ALMOST THERE! Only ${TOTAL_ADS - cnt} ads left!`;
-          if (cnt >= 40) return `🔥 Final Stretch! ${TOTAL_ADS - cnt} remaining!`;
-          if (cnt >= 30) return `💎 HALFWAY MILESTONE! Big rewards getting closer!`;
+          if (isComplete) return `🏆 ${totalAdsNeeded}/${totalAdsNeeded} MAX REACHED! 0.02 GRAM is ready to claim!`;
+          if (cnt >= Math.floor(totalAdsNeeded * 0.83)) return `⚡ ALMOST THERE! Only ${totalAdsNeeded - cnt} ads left!`;
+          if (cnt >= Math.floor(totalAdsNeeded * 0.66)) return `🔥 Final Stretch! ${totalAdsNeeded - cnt} remaining!`;
+          if (cnt >= Math.floor(totalAdsNeeded * 0.50)) return `💎 HALFWAY MILESTONE! Big rewards getting closer!`;
           if (cnt >= 20) return `🚀 Unstoppable! ${cnt} ads validated! Keep rolling!`;
           if (cnt >= 10) return `⚡ Great rhythm! ${strk} in a row streak active!`;
           return `🌱 +1 Ad Validated via ${networkName}! Keep rolling towards 0.02 GRAM!`;
@@ -313,8 +302,8 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
 
         setRewardCelebration({
           count: newCount,
-          left: Math.max(0, TOTAL_ADS - (updatedGiga + updatedAdexium)),
-          pct: Math.min(100, Math.round(((updatedGiga + updatedAdexium) / TOTAL_ADS) * 100)),
+          left: Math.max(0, totalAdsNeeded - (updatedGiga + updatedAdexium)),
+          pct: Math.min(100, Math.round(((updatedGiga + updatedAdexium) / totalAdsNeeded) * 100)),
           streak: newStreak,
           network: networkName,
           message: getEncouragement(updatedGiga + updatedAdexium, newStreak)
@@ -380,7 +369,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
   const isQuestFinished = gigaCount >= reqGiga && adexiumCount >= reqAdexium;
   const pct = Math.min(100, (count / totalAdsNeeded) * 100);
   const adsLeft = getAdsLeft(count, totalAdsNeeded);
-  const progressColor = getProgressColor(count);
+  const progressColor = getProgressColor(count, totalAdsNeeded);
 
   const claimsHistory = status?.claims_history || (status?.recent_claim ? [status.recent_claim] : []);
 
@@ -840,11 +829,11 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
               <div className="space-y-2">
                 <button disabled className="w-full py-4 rounded-2xl bg-surface text-ink-faint font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 border border-border opacity-50">
                   <Sparkles size={18} />
-                  Receive 0.02 GRAM ({TOTAL_ADS - count} ads left)
+                  Receive 0.02 GRAM ({totalAdsNeeded - count} ads left)
                 </button>
                 <div className="flex justify-between items-center text-[10px] text-white/40 font-bold px-1">
-                  <span>Adexium: {adexiumCount}/30</span>
-                  <span>GigaPub: {gigaCount}/30</span>
+                  <span>Adexium: {adexiumCount}/{reqAdexium}</span>
+                  <span>GigaPub: {gigaCount}/{reqGiga}</span>
                 </div>
               </div>
             )}
