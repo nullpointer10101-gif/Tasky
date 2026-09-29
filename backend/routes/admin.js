@@ -316,6 +316,225 @@ router.get('/leaderboard/detailed', async (req, res) => {
 });
 
 // ==========================================
+// 2b. LEADERBOARD REWARD DISTRIBUTION
+// ==========================================
+router.post('/leaderboard/distribute-rewards', async (req, res) => {
+  const { tiers = [], customMessage = null } = req.body;
+  if (!tiers || !Array.isArray(tiers) || tiers.length === 0) {
+    return res.status(400).json({ error: 'No reward tiers provided' });
+  }
+
+  const client = await pool.connect();
+  try {
+    // Fetch top 30 real users ordered by balance
+    const { rows: top30 } = await client.query(`
+      SELECT telegram_id, username, first_name, balance, is_banned
+      FROM users
+      WHERE is_banned = false
+      ORDER BY balance DESC
+      LIMIT 30
+    `);
+
+    if (top30.length === 0) {
+      return res.status(400).json({ error: 'No eligible users found on leaderboard' });
+    }
+
+    await client.query('BEGIN');
+
+    let rewarded = 0;
+    let skipped = 0;
+    const rewardedUsers = [];
+
+    for (let i = 0; i < top30.length; i++) {
+      const rank = i + 1;
+      const user = top30[i];
+      const tier = tiers.find(t => rank >= t.rankStart && rank <= t.rankEnd);
+      if (!tier || tier.token !== 'TASKY') {
+        // USDT/GRAM payouts are manual — skip balance credit but track
+        if (tier) rewardedUsers.push({ rank, user, tier, method: 'manual' });
+        skipped++;
+        continue;
+      }
+
+      // Credit TASKY balance directly
+      await client.query(
+        `UPDATE users SET balance = balance + $1, total_earned = total_earned + $1 WHERE telegram_id = $2`,
+        [tier.reward, user.telegram_id]
+      );
+
+      rewardedUsers.push({ rank, user, tier, method: 'auto' });
+      rewarded++;
+    }
+
+    await client.query('COMMIT');
+
+    // Post strategic marketing announcement to Tasky Payouts channel
+    let channelPost = false;
+    try {
+      const tBot = getActiveTelegramBot();
+      if (tBot) {
+        const channelRes = await pool.query('SELECT payout_channel_id FROM withdrawal_settings LIMIT 1');
+        const channelId = channelRes.rows[0]?.payout_channel_id || '@TaskyPayouts';
+
+        // Build stunning leaderboard announcement
+        const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+        const top10Lines = top30.slice(0, 10).map((u, i) => {
+          const tier = tiers.find(t => (i+1) >= t.rankStart && (i+1) <= t.rankEnd);
+          const handle = u.username ? `@${u.username}` : u.first_name || 'Member';
+          const rewardStr = tier ? `<b>${tier.reward.toLocaleString()} ${tier.token}</b>` : '';
+          return `${rankEmojis[i] || `${i+1}.`} ${handle} ${rewardStr ? '— ' + rewardStr : ''}`;
+        }).join('\n');
+
+        const msgHtml =
+`🏆 <b>WEEKLY LEADERBOARD REWARDS DISTRIBUTED!</b> 🏆
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 <b>Congratulations to our TOP GRINDERS!</b>
+Real rewards. Real payouts. Every single week.
+
+<b>🔥 THIS WEEK'S WINNERS:</b>
+${top10Lines}
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>REWARD BREAKDOWN:</b>
+🥇 1st Place → <b>${tiers.find(t=>t.rankStart===1)?.reward?.toLocaleString() || '100'} ${tiers.find(t=>t.rankStart===1)?.token || 'USDT'}</b>
+🥈 2nd Place → <b>${tiers.find(t=>t.rankStart===2)?.reward?.toLocaleString() || '50'} ${tiers.find(t=>t.rankStart===2)?.token || 'USDT'}</b>
+🥉 3rd Place → <b>${tiers.find(t=>t.rankStart===3)?.reward?.toLocaleString() || '20'} ${tiers.find(t=>t.rankStart===3)?.token || 'USDT'}</b>
+🏅 4th–10th → <b>50,000 TASKY</b> each
+⭐ 11th–20th → <b>20,000 TASKY</b> each
+✨ 21st–30th → <b>10,000 TASKY</b> each
+
+${customMessage ? `\n💬 ${customMessage}\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 <b>Next season starts NOW.</b>
+Grind tasks. Invite friends. Dominate the board.
+<b>Your name could be here next week! 👑</b>`;
+
+        const inline_keyboard = [[
+          { text: '🏆 Start Grinding Now', url: 'https://t.me/TaskyAppbot/app' },
+          { text: '📊 View Leaderboard', url: 'https://t.me/TaskyAppbot/app' }
+        ]];
+
+        // Try to send with the dynamic payout card image (Option C from payoutChannel)
+        try {
+          const { generatePayoutCardPngBuffer } = require('../utils/payoutChannel');
+          const pngBuffer = generatePayoutCardPngBuffer({
+            amount: `${top30.length} Users`,
+            token: 'REWARDED',
+            recipient: 'Top 30 Community Leaders',
+            wallet: 'Weekly Leaderboard Season',
+            type: 'Weekly Leaderboard Rewards',
+            dateStr: new Date().toUTCString().replace('GMT', 'UTC')
+          });
+          await tBot.sendPhoto(channelId, pngBuffer, {
+            caption: msgHtml,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard }
+          }, { filename: 'leaderboard-rewards.png', contentType: 'image/png' });
+        } catch (imgErr) {
+          // Fallback to text if image fails
+          await tBot.sendMessage(channelId, msgHtml, {
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard }
+          });
+        }
+        channelPost = true;
+      }
+    } catch (botErr) {
+      console.error('[LeaderboardDistribute] Channel post error:', botErr.message);
+    }
+
+    res.json({
+      success: true,
+      rewarded,
+      skipped,
+      channelPost,
+      total: top30.length,
+      message: `Distributed TASKY rewards to ${rewarded} users. ${skipped} require manual USDT/GRAM payout.`
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[LeaderboardDistribute] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ==========================================
+// 2c. LEADERBOARD STANDALONE ANNOUNCE (no balance credit)
+// ==========================================
+router.post('/leaderboard/announce', async (req, res) => {
+  const { users = [], tiers = [], customMessage = null } = req.body;
+
+  try {
+    const tBot = getActiveTelegramBot();
+    if (!tBot) return res.status(500).json({ error: 'Bot not available' });
+
+    const channelRes = await pool.query('SELECT payout_channel_id FROM withdrawal_settings LIMIT 1');
+    const channelId = channelRes.rows[0]?.payout_channel_id || '@TaskyPayouts';
+
+    const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+    const lines = users.slice(0, 10).map((u, i) => {
+      const tier = tiers.find(t => (i+1) >= t.rankStart && (i+1) <= t.rankEnd);
+      const handle = u.username ? `@${u.username}` : u.first_name || 'Member';
+      const rewardStr = tier ? `<b>${Number(tier.reward).toLocaleString()} ${tier.token}</b>` : '';
+      return `${rankEmojis[i] || `${i+1}.`} ${handle}${rewardStr ? ' — ' + rewardStr : ''}`;
+    }).join('\n');
+
+    const previewText =
+`🏆 WEEKLY LEADERBOARD — TOP 10 ANNOUNCEMENT 🏆
+
+🎉 Our community's top grinders this week:
+
+${lines}
+
+${customMessage ? '\n💬 ' + customMessage + '\n' : ''}
+🚀 Join now and compete for next week's rewards!`;
+
+    const msgHtml =
+`🏆 <b>WEEKLY LEADERBOARD — TOP 10!</b> 🏆
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 <b>Our community's top grinders this week:</b>
+
+${lines}
+
+${customMessage ? `\n💬 <i>${customMessage}</i>\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 <b>Think you can beat them?</b>
+Start grinding NOW — next week's rewards are waiting! 💰`;
+
+    const inline_keyboard = [[
+      { text: '🏆 Join & Compete', url: 'https://t.me/TaskyAppbot/app' }
+    ]];
+
+    try {
+      const { generatePayoutCardPngBuffer } = require('../utils/payoutChannel');
+      const pngBuffer = generatePayoutCardPngBuffer({
+        amount: 'TOP 10',
+        token: 'WINNERS',
+        recipient: 'Weekly Leaderboard',
+        wallet: 'Community Competition',
+        type: 'Leaderboard Season Results',
+        dateStr: new Date().toUTCString().replace('GMT', 'UTC')
+      });
+      await tBot.sendPhoto(channelId, pngBuffer, {
+        caption: msgHtml, parse_mode: 'HTML', reply_markup: { inline_keyboard }
+      }, { filename: 'leaderboard-top10.png', contentType: 'image/png' });
+    } catch {
+      await tBot.sendMessage(channelId, msgHtml, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+    }
+
+    res.json({ success: true, previewText });
+  } catch (err) {
+    console.error('[LeaderboardAnnounce] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+// ==========================================
 // 3. CONFIGURATION (GLOBAL SETTINGS)
 // ==========================================
 router.get('/config', async (req, res) => {
