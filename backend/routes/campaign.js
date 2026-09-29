@@ -102,10 +102,15 @@ async function ensureTables() {
     await pool.query(`
       ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS tournament_type VARCHAR(50) DEFAULT 'ad';
       ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS winners_count INTEGER DEFAULT 30;
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS gram_amount NUMERIC(10,4) DEFAULT 0;
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS tasky_amount NUMERIC(15,2) DEFAULT 0;
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS rank INT;
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS wallet_address VARCHAR(255);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
     `);
   } catch (e) {
     console.error('[Campaign] Error creating/updating tables:', e.message);
