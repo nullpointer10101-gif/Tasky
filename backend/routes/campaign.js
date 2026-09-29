@@ -177,7 +177,7 @@ router.get('/tournament', async (req, res) => {
     const endMs = new Date(tournament.end_at).getTime();
     const nowMs = Date.now();
     const time_left_ms = Math.max(0, endMs - nowMs);
-    const isReferral = (tournament.tournament_type === 'referral') || (tournament.title && tournament.title.toLowerCase().includes('referral') && !tournament.title.toLowerCase().includes('ad'));
+    const isReferral = (tournament.tournament_type === 'referral' || (tournament.title && tournament.title.toLowerCase().includes('referral'))) && !(tournament.title && tournament.title.toLowerCase().includes('ad')) && (tournament.tournament_type !== 'ad');
     const maxWinners = parseInt(tournament.winners_count || (isReferral ? 20 : 30), 10);
 
     let leaderboard = [];
@@ -369,7 +369,7 @@ router.get('/payout-preview', async (req, res) => {
       return res.status(404).json({ error: 'No active or ended tournament found' });
     }
     const t = tournament.rows[0];
-    const isReferral = (t.tournament_type === 'referral') || (t.title && t.title.toLowerCase().includes('referral') && !t.title.toLowerCase().includes('ad'));
+    const isReferral = (t.tournament_type === 'referral' || (t.title && t.title.toLowerCase().includes('referral'))) && !(t.title && t.title.toLowerCase().includes('ad')) && (t.tournament_type !== 'ad');
     const maxWinners = parseInt(t.winners_count || (isReferral ? 20 : 30), 10);
 
     let winnersRes;
