@@ -111,6 +111,9 @@ async function ensureTables() {
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+      ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS ads_watched INT DEFAULT 0;
+      ALTER TABLE campaign_payouts ALTER COLUMN ads_watched DROP NOT NULL;
+      ALTER TABLE campaign_payouts ALTER COLUMN ads_watched SET DEFAULT 0;
       CREATE UNIQUE INDEX IF NOT EXISTS idx_campaign_payouts_tourney_user ON campaign_payouts (tournament_id, telegram_id);
     `);
   } catch (e) {
@@ -691,8 +694,8 @@ router.post('/submit-winner-payout', async (req, res) => {
       `, [cleanTxHash, wallet_address || null, gram_amount || 0.05, rank || 1, existing.rows[0].id]);
     } else {
       await client.query(`
-        INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, wallet_address, tx_hash, status, paid_at, approved_at)
-        VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
+        INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, wallet_address, tx_hash, status, paid_at, approved_at, ads_watched)
+        VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW(), 0)
       `, [targetTournamentId, String(telegram_id), rank || 1, gram_amount || 0.05, wallet_address || null, cleanTxHash]);
     }
 
