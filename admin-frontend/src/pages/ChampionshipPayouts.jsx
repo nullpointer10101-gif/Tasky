@@ -4,7 +4,8 @@ import toast from "react-hot-toast";
 import {
   Trophy, Loader2, RefreshCw, Gift, Megaphone, CheckCircle,
   AlertTriangle, Copy, ExternalLink, Coins, Zap, Star, Crown, Wallet,
-  Check, ArrowUpRight, Send, ListChecks, ShieldCheck, X, PlusCircle, Users
+  Check, ArrowUpRight, Send, ListChecks, ShieldCheck, X, PlusCircle, Users,
+  Search, Sparkles
 } from "lucide-react";
 
 const DEFAULT_PRIZE_STRUCTURE = [
@@ -42,6 +43,8 @@ export default function ChampionshipPayouts() {
   const [notifyUser, setNotifyUser]       = useState(true);
   const [broadcastChan, setBroadcastChan] = useState(true);
   const [submittingProof, setSubmittingProof] = useState(false);
+  const [detectingTx, setDetectingTx]     = useState(false);
+  const [detectedSource, setDetectedSource] = useState(null); // 'clipboard' | 'blockchain' | null
 
   const getPrize = (rank) => {
     const list = prizeStructure || DEFAULT_PRIZE_STRUCTURE;
@@ -52,6 +55,139 @@ export default function ChampionshipPayouts() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-fetch TX hash when payout modal opens
+  useEffect(() => {
+    if (!payoutModal || !payoutModal.wallet_address) {
+      setDetectedSource(null);
+      setDetectingTx(false);
+      return;
+    }
+
+    let isMounted = true;
+
+    // 1. Try reading clipboard automatically
+    const checkClipboard = async () => {
+      try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          const clipText = await navigator.clipboard.readText();
+          if (clipText && (clipText.includes('tonviewer') || clipText.includes('tonscan') || clipText.includes('ton.cx') || /^[a-fA-F0-9]{64}$/.test(clipText.trim()))) {
+            if (isMounted) {
+              const formatted = clipText.trim().startsWith('http') ? clipText.trim() : `https://tonviewer.com/transaction/${clipText.trim()}`;
+              setTxHashInput(formatted);
+              setDetectedSource('clipboard');
+              toast.success('📋 Auto-pasted transaction link from clipboard!');
+              return true;
+            }
+          }
+        }
+      } catch (e) {
+        // Clipboard read permission might be denied or un-focused
+      }
+      return false;
+    };
+
+    // 2. Auto-detect from TonAPI Blockchain
+    const autoDetectFromBlockchain = async (silent = true) => {
+      if (!payoutModal.wallet_address) return;
+      if (silent) setDetectingTx(true);
+      try {
+        const cleanAddr = payoutModal.wallet_address.trim();
+        const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${encodeURIComponent(cleanAddr)}/transactions?limit=3`);
+        if (!res.ok) throw new Error('TonAPI request failed');
+        const data = await res.json();
+        
+        if (data && Array.isArray(data.transactions) && data.transactions.length > 0) {
+          const latestTx = data.transactions[0];
+          const txTime = latestTx.utime * 1000;
+          const now = Date.now();
+          const diffMinutes = (now - txTime) / (1000 * 60);
+
+          // Check if transaction happened within the last 30 minutes
+          if (diffMinutes <= 30 && latestTx.hash) {
+            const tonviewerUrl = `https://tonviewer.com/transaction/${latestTx.hash}`;
+            if (isMounted) {
+              setTxHashInput(tonviewerUrl);
+              setDetectedSource('blockchain');
+              toast.success('⚡ Auto-detected latest transaction from TON Blockchain!');
+            }
+            return;
+          }
+        }
+        if (!silent && isMounted) {
+          toast.error('No recent blockchain transactions found for this address in the last 30 minutes.');
+        }
+      } catch (err) {
+        console.warn('TonAPI auto-detection note:', err.message);
+        if (!silent && isMounted) {
+          toast.error('Could not auto-detect on blockchain. Please paste the transaction link manually.');
+        }
+      } finally {
+        if (isMounted) setDetectingTx(false);
+      }
+    };
+
+    const initDetection = async () => {
+      const foundClip = await checkClipboard();
+      if (!foundClip) {
+        autoDetectFromBlockchain(true);
+      }
+    };
+
+    initDetection();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [payoutModal]);
+
+  const handlePasteClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text) {
+          const cleanText = text.trim();
+          const formatted = cleanText.startsWith('http') ? cleanText : `https://tonviewer.com/transaction/${cleanText}`;
+          setTxHashInput(formatted);
+          setDetectedSource('clipboard');
+          toast.success('Pasted from clipboard!');
+        } else {
+          toast.error('Clipboard is empty');
+        }
+      } else {
+        toast.error('Clipboard API not supported');
+      }
+    } catch (e) {
+      toast.error('Clipboard permission denied. Please paste manually into the input box.');
+    }
+  };
+
+  const handleManualBlockchainDetect = async () => {
+    if (!payoutModal?.wallet_address) return;
+    setDetectingTx(true);
+    try {
+      const cleanAddr = payoutModal.wallet_address.trim();
+      const res = await fetch(`https://tonapi.io/v2/blockchain/accounts/${encodeURIComponent(cleanAddr)}/transactions?limit=3`);
+      if (!res.ok) throw new Error('TonAPI request failed');
+      const data = await res.json();
+      
+      if (data && Array.isArray(data.transactions) && data.transactions.length > 0) {
+        const latestTx = data.transactions[0];
+        if (latestTx.hash) {
+          const tonviewerUrl = `https://tonviewer.com/transaction/${latestTx.hash}`;
+          setTxHashInput(tonviewerUrl);
+          setDetectedSource('blockchain');
+          toast.success('⚡ Auto-detected latest transaction from TON Blockchain!');
+          return;
+        }
+      }
+      toast.error('No recent blockchain transactions found for this address.');
+    } catch (e) {
+      toast.error('Failed to query TON Blockchain. Please paste transaction link manually.');
+    } finally {
+      setDetectingTx(false);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -619,6 +755,20 @@ export default function ChampionshipPayouts() {
               </div>
             </div>
 
+            {/* Auto-detected Status Badge */}
+            {detectedSource === 'blockchain' && (
+              <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-3.5 py-2 flex items-center gap-2 text-xs text-emerald-400 font-bold">
+                <Sparkles size={16} className="text-emerald-400 shrink-0" />
+                <span>⚡ Auto-detected latest transaction from TON Blockchain!</span>
+              </div>
+            )}
+            {detectedSource === 'clipboard' && (
+              <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-3.5 py-2 flex items-center gap-2 text-xs text-indigo-300 font-bold">
+                <Copy size={16} className="text-indigo-400 shrink-0" />
+                <span>📋 Auto-pasted link from your Clipboard!</span>
+              </div>
+            )}
+
             {/* Step 2: TX Hash Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
@@ -626,15 +776,44 @@ export default function ChampionshipPayouts() {
                   <Zap size={14} className="text-cyan-400" />
                   Step 2: Enter Transaction Hash <span className="text-red-400">*</span>
                 </span>
-                <span className="text-[10px] text-slate-400 font-normal">From Tonkeeper/Tonviewer</span>
+                {detectingTx ? (
+                  <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 animate-pulse">
+                    <Loader2 size={12} className="animate-spin" /> Detecting on blockchain...
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 font-normal">From Tonkeeper/Tonviewer</span>
+                )}
               </label>
               <input
                 type="text"
                 value={txHashInput}
-                onChange={e => setTxHashInput(e.target.value)}
+                onChange={e => {
+                  setTxHashInput(e.target.value);
+                  setDetectedSource(null);
+                }}
                 placeholder="e.g. 4dc180752b7186847e6b54... or https://tonviewer.com/transaction/..."
                 className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder-slate-500 focus:outline-none transition-all"
               />
+            </div>
+
+            {/* Quick Helper Action Buttons */}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handlePasteClipboard}
+                className="flex-1 py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 border border-slate-700"
+              >
+                <Copy size={13} /> Paste Clipboard
+              </button>
+              <button
+                type="button"
+                onClick={handleManualBlockchainDetect}
+                disabled={detectingTx}
+                className="flex-1 py-2 px-3 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                {detectingTx ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
+                Auto-Detect Tx
+              </button>
             </div>
 
             {/* Broadcast Options */}
