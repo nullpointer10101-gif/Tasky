@@ -579,7 +579,7 @@ router.post('/distribute-prizes', async (req, res) => {
   const client = await pool.connect();
   try {
     const tournamentRes = await pool.query(
-      "SELECT * FROM campaign_tournaments WHERE status = 'ended_pending_admin_payout' ORDER BY id DESC LIMIT 1"
+      "SELECT * FROM campaign_tournaments WHERE status IN ('ended_pending_admin_payout', 'active') ORDER BY id DESC LIMIT 1"
     );
     if (!tournamentRes.rows[0]) {
       return res.status(400).json({ error: 'No tournament pending payout. Tournament must be ended first.' });
