@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 import {
   Trophy, Loader2, RefreshCw, Gift, Megaphone, CheckCircle,
   AlertTriangle, Copy, ExternalLink, Coins, Zap, Star, Crown, Wallet,
-  Check, ArrowUpRight, Send, ListChecks
+  Check, ArrowUpRight, Send, ListChecks, ShieldCheck, X
 } from "lucide-react";
 
 const PRIZE_STRUCTURE = [
@@ -37,24 +37,18 @@ export default function ChampionshipPayouts() {
   const [result, setResult]               = useState(null);
   const [customMsg, setCustomMsg]         = useState("");
   const [copiedId, setCopiedId]           = useState(null);
-  const [paidMap, setPaidMap]             = useState({});
-  const [filter, setFilter]               = useState("all"); // 'all' | 'needs_gram' | 'paid' | 'no_wallet'
+  const [filter, setFilter]               = useState("all");
+
+  // Proof Modal state
+  const [payoutModal, setPayoutModal]     = useState(null);
+  const [txHashInput, setTxHashInput]     = useState("");
+  const [notifyUser, setNotifyUser]       = useState(true);
+  const [broadcastChan, setBroadcastChan] = useState(true);
+  const [submittingProof, setSubmittingProof] = useState(false);
 
   useEffect(() => {
     fetchData();
-    try {
-      const saved = localStorage.getItem("tasky_championship_paid_map");
-      if (saved) setPaidMap(JSON.parse(saved));
-    } catch {}
   }, []);
-
-  const togglePaid = (telegram_id) => {
-    setPaidMap(prev => {
-      const next = { ...prev, [telegram_id]: !prev[telegram_id] };
-      try { localStorage.setItem("tasky_championship_paid_map", JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -88,6 +82,52 @@ export default function ChampionshipPayouts() {
     }
     copy(list, "bulk_export");
     toast.success("Copied full CSV/Batch list to clipboard!");
+  };
+
+  const openPayoutModal = (winner) => {
+    const prize = getPrize(winner.rank);
+    setPayoutModal({
+      tournament_id: tournament?.id || 1,
+      telegram_id: winner.telegram_id,
+      rank: winner.rank,
+      gram_amount: prize.gram,
+      wallet_address: winner.gram_wallet_address,
+      username: winner.username,
+      first_name: winner.first_name,
+      existing_tx: winner.tx_hash || ""
+    });
+    setTxHashInput(winner.tx_hash || "");
+    setNotifyUser(true);
+    setBroadcastChan(true);
+  };
+
+  const handleSubmitProof = async () => {
+    if (!txHashInput || !txHashInput.trim()) {
+      toast.error("Please enter a valid Transaction Hash or Tonviewer link");
+      return;
+    }
+    setSubmittingProof(true);
+    try {
+      const payload = {
+        tournament_id: payoutModal.tournament_id,
+        telegram_id: payoutModal.telegram_id,
+        rank: payoutModal.rank,
+        gram_amount: payoutModal.gram_amount,
+        wallet_address: payoutModal.wallet_address,
+        tx_hash: txHashInput.trim(),
+        notify_user: notifyUser,
+        broadcast_channel: broadcastChan
+      };
+
+      const { data } = await api.post("/campaign/submit-winner-payout", payload);
+      toast.success(data.message || "Payout proof broadcasted to @TaskyPayouts!");
+      setPayoutModal(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to submit payout proof");
+    } finally {
+      setSubmittingProof(false);
+    }
   };
 
   const handleDistribute = async () => {
@@ -130,11 +170,11 @@ export default function ChampionshipPayouts() {
   const totalGram = winners.reduce((s, w) => s + getPrize(w.rank).gram, 0);
   const totalTasky = winners.reduce((s, w) => s + getPrize(w.rank).tasky, 0);
   const missingWalletCount = winners.filter(w => !w.gram_wallet_address && getPrize(w.rank).gram > 0).length;
-  const paidGramCount = winners.filter(w => paidMap[w.telegram_id]).length;
+  const paidGramCount = winners.filter(w => w.is_paid).length;
 
   const filteredWinners = winners.filter(w => {
-    if (filter === "needs_gram") return w.gram_wallet_address && !paidMap[w.telegram_id];
-    if (filter === "paid") return paidMap[w.telegram_id];
+    if (filter === "needs_gram") return w.gram_wallet_address && !w.is_paid;
+    if (filter === "paid") return w.is_paid;
     if (filter === "no_wallet") return !w.gram_wallet_address;
     return true;
   });
@@ -236,8 +276,8 @@ export default function ChampionshipPayouts() {
                     <th className="py-3 px-3 text-left">User</th>
                     <th className="py-3 px-3 text-center">Ads</th>
                     <th className="py-3 px-3 text-right">Prize</th>
-                    <th className="py-3 px-3 text-left">External Wallet &amp; Pay</th>
-                    <th className="py-3 px-3 text-center">Status</th>
+                    <th className="py-3 px-3 text-left">External Wallet &amp; Links</th>
+                    <th className="py-3 px-3 text-center">Payout Proof</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -245,12 +285,12 @@ export default function ChampionshipPayouts() {
                     const meta = getRankMeta(w.rank);
                     const prize = getPrize(w.rank);
                     const hasWallet = !!w.gram_wallet_address;
-                    const isPaid = !!paidMap[w.telegram_id];
                     const tonkeeperUrl = hasWallet ? `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}` : null;
                     const tonUri = hasWallet ? `ton://transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}` : null;
+                    const explorerUrl = w.tx_hash ? (w.tx_hash.startsWith('http') ? w.tx_hash : `https://tonviewer.com/transaction/${w.tx_hash}`) : null;
 
                     return (
-                      <tr key={w.telegram_id} style={{ background: isPaid ? "rgba(16, 185, 129, 0.05)" : meta.bg }}
+                      <tr key={w.telegram_id} style={{ background: w.is_paid ? "rgba(16, 185, 129, 0.05)" : meta.bg }}
                         className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                         <td className="py-2.5 px-3">
                           <span className="text-base">{meta.icon}</span>
@@ -280,7 +320,7 @@ export default function ChampionshipPayouts() {
                                   {copiedId === w.telegram_id ? <CheckCircle size={13} className="text-green-400" /> : <Copy size={13} />}
                                 </button>
                                 <a href={`https://tonviewer.com/${w.gram_wallet_address}`} target="_blank" rel="noreferrer"
-                                  title="View on Tonviewer"
+                                  title="View Wallet on Tonviewer"
                                   className="text-slate-400 hover:text-cyan-400 transition-colors">
                                   <ExternalLink size={13} />
                                 </a>
@@ -311,17 +351,29 @@ export default function ChampionshipPayouts() {
                           )}
                         </td>
                         <td className="py-2.5 px-3 text-center">
-                          <button
-                            onClick={() => togglePaid(w.telegram_id)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 mx-auto transition-all ${
-                              isPaid 
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40" 
-                                : "bg-slate-800 hover:bg-slate-700 text-slate-400 border border-slate-700"
-                            }`}
-                          >
-                            {isPaid ? <Check size={12} className="text-emerald-400" /> : null}
-                            {isPaid ? "Paid" : "Mark Paid"}
-                          </button>
+                          {w.is_paid ? (
+                            <div className="space-y-1">
+                              <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 inline-flex items-center gap-1">
+                                <CheckCircle size={12} /> Paid
+                              </span>
+                              {explorerUrl && (
+                                <div>
+                                  <a href={explorerUrl} target="_blank" rel="noreferrer"
+                                    className="text-[10px] text-cyan-400 hover:underline font-mono inline-flex items-center gap-0.5">
+                                    View TX <ExternalLink size={9} />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => openPayoutModal(w)}
+                              disabled={!hasWallet}
+                              className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 text-black shadow-md flex items-center gap-1.5 mx-auto transition-all"
+                            >
+                              <Zap size={13} /> Submit TX Proof
+                            </button>
+                          )}
                         </td>
                       </tr>
                     );
@@ -339,7 +391,7 @@ export default function ChampionshipPayouts() {
             <div className="p-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Zap className="text-cyan-400" size={16} />
-                <span className="font-bold text-white text-sm">External Wallet Payout Hub</span>
+                <span className="font-bold text-white text-sm">External Wallet Hub</span>
               </div>
               <button
                 onClick={copyAllBatchList}
@@ -352,16 +404,15 @@ export default function ChampionshipPayouts() {
             <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto">
               {winners.filter(w => w.gram_wallet_address && getPrize(w.rank).gram > 0).map(w => {
                 const prize = getPrize(w.rank);
-                const isPaid = !!paidMap[w.telegram_id];
                 const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}`;
 
                 return (
-                  <div key={w.telegram_id} className={`flex items-center justify-between p-2 rounded-xl border transition-all ${isPaid ? "bg-emerald-950/20 border-emerald-900/40 opacity-70" : "bg-slate-950/60 border-slate-800"}`}>
+                  <div key={w.telegram_id} className={`flex items-center justify-between p-2 rounded-xl border transition-all ${w.is_paid ? "bg-emerald-950/20 border-emerald-900/40 opacity-75" : "bg-slate-950/60 border-slate-800"}`}>
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-black text-yellow-400">#{w.rank}</span>
                         <span className="text-xs font-semibold text-slate-200 truncate max-w-[90px]">{w.username ? "@"+w.username : w.first_name}</span>
-                        {isPaid && <span className="text-[9px] bg-emerald-900/60 text-emerald-300 font-bold px-1 rounded">PAID</span>}
+                        {w.is_paid && <span className="text-[9px] bg-emerald-900/60 text-emerald-300 font-bold px-1 rounded">PAID</span>}
                       </div>
                       <div className="text-[10px] text-cyan-300 font-black">{prize.gram} GRAM</div>
                     </div>
@@ -381,6 +432,13 @@ export default function ChampionshipPayouts() {
                       >
                         <Send size={11} /> Pay
                       </a>
+                      <button
+                        onClick={() => openPayoutModal(w)}
+                        title="Submit TX Proof to Channel"
+                        className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all"
+                      >
+                        <Zap size={13} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -449,6 +507,111 @@ export default function ChampionshipPayouts() {
           )}
         </div>
       </div>
+
+      {/* Payout Proof Submit Modal */}
+      {payoutModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPayoutModal(null)}>
+          <div className="bg-[#0f1424] border border-slate-700 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400">
+                  <Trophy size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-white text-lg">Submit Championship Payout Proof</h3>
+                  <p className="text-xs text-slate-400">Record on-chain TX and post verified proof to @TaskyPayouts</p>
+                </div>
+              </div>
+              <button onClick={() => setPayoutModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Winner Overview Card */}
+            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+              <div className="flex justify-between items-center">
+                <div>
+                  <span className="text-sm font-black text-yellow-400 mr-2">Rank #{payoutModal.rank}</span>
+                  <span className="text-sm font-bold text-white">{payoutModal.username ? "@" + payoutModal.username : payoutModal.first_name}</span>
+                  <div className="text-[10px] text-slate-500 font-mono">TG ID: {payoutModal.telegram_id}</div>
+                </div>
+                <div className="text-right">
+                  <span className="text-base font-black text-cyan-300">{payoutModal.gram_amount} GRAM</span>
+                  <div className="text-[10px] text-emerald-400 font-bold">Championship Prize</div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
+                <span className="text-slate-400">Destination Wallet:</span>
+                <div className="flex items-center gap-1.5 font-mono text-emerald-300">
+                  <span className="truncate max-w-[200px]">{payoutModal.wallet_address}</span>
+                  <button onClick={() => copy(payoutModal.wallet_address, "modal_w")} className="text-slate-400 hover:text-white">
+                    <Copy size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* TX Hash Input */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                <Zap size={14} className="text-cyan-400" />
+                Transaction Hash / Tonviewer URL <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={txHashInput}
+                onChange={e => setTxHashInput(e.target.value)}
+                placeholder="e.g. 4dc180752b7186847e6b54... or https://tonviewer.com/transaction/..."
+                className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder-slate-500 focus:outline-none transition-all"
+              />
+              <p className="text-[11px] text-slate-500">
+                Paste the transaction hash from Tonkeeper, MyTonWallet, or Tonviewer after sending funds.
+              </p>
+            </div>
+
+            {/* Broadcast Options */}
+            <div className="space-y-2 pt-1">
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={broadcastChan}
+                  onChange={e => setBroadcastChan(e.target.checked)}
+                  className="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0"
+                />
+                <span>📣 Broadcast verified payout proof card to <strong>@TaskyPayouts</strong></span>
+              </label>
+              <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={notifyUser}
+                  onChange={e => setNotifyUser(e.target.checked)}
+                  className="rounded bg-slate-800 border-slate-700 text-cyan-500 focus:ring-0"
+                />
+                <span>📩 Send winner notification message in Telegram Bot</span>
+              </label>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setPayoutModal(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-bold transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitProof}
+                disabled={submittingProof || !txHashInput.trim()}
+                className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-50 text-black text-sm font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 transition-all"
+              >
+                {submittingProof ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
+                {submittingProof ? "Broadcasting…" : "Confirm & Post Proof"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

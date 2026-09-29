@@ -538,16 +538,18 @@ router.get('/payout-preview', async (req, res) => {
     const winnersRes = await pool.query(`
       SELECT 
         u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
-        COUNT(a.id) as ads_watched
+        COUNT(a.id) as ads_watched,
+        cp.tx_hash, cp.status as payout_status, cp.paid_at
       FROM ad_views a
       JOIN users u ON u.telegram_id::text = a.telegram_id::text
+      LEFT JOIN campaign_payouts cp ON cp.tournament_id = $4 AND cp.telegram_id::text = u.telegram_id::text
       WHERE a.created_at >= $1 AND a.created_at <= $2
         AND u.is_banned = FALSE
         AND NOT (u.telegram_id::text = ANY($3))
-      GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address
+      GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address, cp.tx_hash, cp.status, cp.paid_at
       ORDER BY ads_watched DESC, u.telegram_id ASC
       LIMIT 30
-    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS]);
+    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS, t.id]);
 
     const winners = winnersRes.rows.map((row, idx) => {
       const rank = idx + 1;
@@ -560,7 +562,10 @@ router.get('/payout-preview', async (req, res) => {
         ads_watched: parseInt(row.ads_watched || 0, 10),
         gram_wallet_address: row.gram_wallet_address || null,
         prize_gram: prize.gram,
-        prize_tasky: prize.tasky
+        prize_tasky: prize.tasky,
+        tx_hash: row.tx_hash || null,
+        is_paid: !!row.tx_hash || row.payout_status === 'paid',
+        paid_at: row.paid_at || null
       };
     });
 
@@ -793,10 +798,100 @@ Watch ads every day to compete next season. 🔥`;
       await tBot.sendMessage(channelId, msgHtml, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
     }
 
-    res.json({ success: true });
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/campaign/submit-winner-payout — Admin: Submit manual on-chain GRAM TX proof for individual winner
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/submit-winner-payout', async (req, res) => {
+  const {
+    tournament_id,
+    telegram_id,
+    rank,
+    gram_amount,
+    wallet_address,
+    tx_hash,
+    notify_user = true,
+    broadcast_channel = true
+  } = req.body;
+
+  if (!telegram_id || !tx_hash || !tx_hash.trim()) {
+    return res.status(400).json({ error: 'Telegram ID and Transaction Hash / Tonviewer link are required' });
+  }
+
+  const client = await pool.connect();
+  try {
+    const cleanTxHash = tx_hash.trim();
+    const targetTournamentId = tournament_id || 1;
+
+    // 1. Record or update payout in DB
+    await client.query(`
+      INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, wallet_address, tx_hash, status, paid_at, approved_at)
+      VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
+      ON CONFLICT (tournament_id, telegram_id) 
+      DO UPDATE SET 
+        tx_hash = EXCLUDED.tx_hash,
+        wallet_address = EXCLUDED.wallet_address,
+        status = 'paid',
+        paid_at = NOW()
+    `, [targetTournamentId, String(telegram_id), rank || 1, gram_amount || 0.05, wallet_address || null, cleanTxHash]);
+
+    // 2. Fetch user details for notification & proof
+    const userRes = await client.query('SELECT username, first_name FROM users WHERE telegram_id::text = $1', [String(telegram_id)]);
+    const userFull = userRes.rows[0] || {};
+    const handle = userFull.username ? `@${userFull.username}` : (userFull.first_name || 'Champion');
+
+    const bot = require('../bot');
+    const tBot = (bot && !bot.isDummy) ? bot : null;
+
+    // 3. Notify user via Telegram Bot
+    if (notify_user && tBot && tBot.sendMessage) {
+      try {
+        const txLink = cleanTxHash.startsWith('http') ? cleanTxHash : `https://tonviewer.com/transaction/${cleanTxHash}`;
+        const userMsg = 
+`🏆 <b>AD CHAMPIONSHIP PRIZE PAID!</b> 🏆
+
+Congratulations <b>${userFull.first_name || 'Champion'}</b>! 🚀
+Your <b>#${rank || 'Top'} Place</b> prize of <b>${gram_amount} GRAM</b> has been sent to your wallet on the TON Blockchain!
+
+💳 <b>Wallet:</b> <code>${wallet_address || 'Connected Wallet'}</code>
+🔗 <b>Payment Proof:</b> <a href="${txLink}">View on Tonviewer</a>
+
+⚠️ <b>SHARE YOUR WIN:</b>
+Take a screenshot of your payment proof and share it in <a href="https://t.me/TaskyOfficialCommunity">@TaskyOfficialCommunity</a>! 🔥`;
+
+        await tBot.sendMessage(String(telegram_id), userMsg, {
+          parse_mode: 'HTML',
+          link_preview_options: { url: txLink, is_disabled: false }
+        }).catch(e => console.warn('[CampaignPayout] Notify user warning:', e.message));
+      } catch (userErr) {
+        console.error('[CampaignPayout] User notify error:', userErr.message);
+      }
+    }
+
+    // 4. Broadcast verified payout proof to official Telegram Payout Channel
+    if (broadcast_channel && tBot) {
+      const { broadcastPayoutProof } = require('../utils/payoutChannel');
+      const rankLabel = rank === 1 ? '🥇 1st Place Champion' : rank === 2 ? '🥈 2nd Place Runner-Up' : rank === 3 ? '🥉 3rd Place Bronze' : `🏅 Rank #${rank} Finalist`;
+      await broadcastPayoutProof(tBot, {
+        type: `🏆 Ad Championship ${rankLabel}`,
+        amount: `${gram_amount}`,
+        token: 'GRAM',
+        wallet: wallet_address || '',
+        tx_hash: cleanTxHash,
+        telegram_id: String(telegram_id),
+        username: userFull.username || '',
+        first_name: userFull.first_name || ''
+      }).catch(e => console.error('[CampaignPayout] Channel proof error:', e.message));
+    }
+
+    res.json({
+      success: true,
+      message: `Payout of ${gram_amount} GRAM for Rank #${rank} (${handle}) recorded & broadcasted!`
+    });
   } catch (err) {
-    console.error('[Campaign] announce-winners error:', err.message);
+    console.error('[Campaign] submit-winner-payout error:', err.message);
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 
