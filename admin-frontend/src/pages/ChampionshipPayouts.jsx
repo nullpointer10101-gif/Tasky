@@ -74,7 +74,7 @@ export default function ChampionshipPayouts() {
   const copyAllBatchList = () => {
     const list = winners
       .filter(w => w.gram_wallet_address && getPrize(w.rank).gram > 0)
-      .map(w => `${w.gram_wallet_address},${getPrize(w.rank).gram},Tasky Championship #${w.rank} ${w.username ? "@"+w.username : w.first_name}`)
+      .map(w => `${w.gram_wallet_address},${getPrize(w.rank).gram},Tasky Leaderboard Prize - Rank #${w.rank} (${w.username ? "@"+w.username : w.first_name})`)
       .join("\n");
     if (!list) {
       toast.error("No valid wallets to export");
@@ -194,10 +194,11 @@ export default function ChampionshipPayouts() {
             </span>
             <span className="text-slate-500">•</span>
             <span className="text-emerald-400 font-black flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 text-xs uppercase">
-              👑 Grand Finale Payouts Ready
+              👑 Leaderboard Prizes Ready
             </span>
           </div>
         </div>
+
         <div className="flex gap-2 flex-wrap">
           <button onClick={fetchData}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
@@ -240,7 +241,7 @@ export default function ChampionshipPayouts() {
           <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Trophy className="text-yellow-400" size={18} />
-              <span className="font-bold text-white text-sm">Top 30 Grand Finalists</span>
+              <span className="font-bold text-white text-sm">Top 30 Leaderboard Finalists</span>
               <span className="text-xs text-slate-500 font-mono">({filteredWinners.length}/{winners.length})</span>
             </div>
             
@@ -276,8 +277,8 @@ export default function ChampionshipPayouts() {
                     <th className="py-3 px-3 text-left">User</th>
                     <th className="py-3 px-3 text-center">Ads</th>
                     <th className="py-3 px-3 text-right">Prize</th>
-                    <th className="py-3 px-3 text-left">External Wallet &amp; Links</th>
-                    <th className="py-3 px-3 text-center">Payout Proof</th>
+                    <th className="py-3 px-3 text-left">Destination Wallet</th>
+                    <th className="py-3 px-3 text-center">⚡ 1-Click Pay &amp; Proof</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -285,8 +286,9 @@ export default function ChampionshipPayouts() {
                     const meta = getRankMeta(w.rank);
                     const prize = getPrize(w.rank);
                     const hasWallet = !!w.gram_wallet_address;
-                    const tonkeeperUrl = hasWallet ? `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}` : null;
-                    const tonUri = hasWallet ? `ton://transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}` : null;
+                    const memoText = `Tasky Leaderboard Prize - Rank #${w.rank}`;
+                    const tonkeeperUrl = hasWallet ? `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=${encodeURIComponent(memoText)}` : null;
+                    const tonUri = hasWallet ? `ton://transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=${encodeURIComponent(memoText)}` : null;
                     const explorerUrl = w.tx_hash ? (w.tx_hash.startsWith('http') ? w.tx_hash : `https://tonviewer.com/transaction/${w.tx_hash}`) : null;
 
                     return (
@@ -311,9 +313,9 @@ export default function ChampionshipPayouts() {
                         </td>
                         <td className="py-2.5 px-3">
                           {hasWallet ? (
-                            <div className="space-y-1.5">
+                            <div className="space-y-1">
                               <div className="flex items-center gap-1.5">
-                                <span className="font-mono text-[10px] text-emerald-300 truncate max-w-[120px]">{w.gram_wallet_address}</span>
+                                <span className="font-mono text-[10px] text-emerald-300 truncate max-w-[130px]">{w.gram_wallet_address}</span>
                                 <button onClick={() => copy(w.gram_wallet_address, w.telegram_id)}
                                   title="Copy Wallet Address"
                                   className="text-slate-400 hover:text-white flex-shrink-0 transition-colors">
@@ -325,23 +327,8 @@ export default function ChampionshipPayouts() {
                                   <ExternalLink size={13} />
                                 </a>
                               </div>
-                              
-                              {/* Direct External Wallet Pay Buttons */}
-                              <div className="flex items-center gap-1">
-                                <a
-                                  href={tonkeeperUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="px-2 py-0.5 rounded bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 text-[10px] font-bold border border-sky-500/30 flex items-center gap-1 transition-all"
-                                >
-                                  <Send size={10} /> Tonkeeper
-                                </a>
-                                <a
-                                  href={tonUri}
-                                  className="px-2 py-0.5 rounded bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-[10px] font-bold border border-indigo-500/30 flex items-center gap-1 transition-all"
-                                >
-                                  <Wallet size={10} /> TON App
-                                </a>
+                              <div className="text-[10px] text-slate-400">
+                                Memo: <span className="text-amber-300 font-medium">{memoText}</span>
                               </div>
                             </div>
                           ) : (
@@ -350,29 +337,39 @@ export default function ChampionshipPayouts() {
                             </span>
                           )}
                         </td>
-                        <td className="py-2.5 px-3 text-center">
+                        <td className="py-2.5 px-3">
                           {w.is_paid ? (
-                            <div className="space-y-1">
+                            <div className="flex flex-col items-center gap-1">
                               <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 inline-flex items-center gap-1">
                                 <CheckCircle size={12} /> Paid
                               </span>
                               {explorerUrl && (
-                                <div>
-                                  <a href={explorerUrl} target="_blank" rel="noreferrer"
-                                    className="text-[10px] text-cyan-400 hover:underline font-mono inline-flex items-center gap-0.5">
-                                    View TX <ExternalLink size={9} />
-                                  </a>
-                                </div>
+                                <a href={explorerUrl} target="_blank" rel="noreferrer"
+                                  className="text-[10px] text-cyan-400 hover:underline font-mono inline-flex items-center gap-0.5">
+                                  View TX <ExternalLink size={9} />
+                                </a>
                               )}
                             </div>
                           ) : (
-                            <button
-                              onClick={() => openPayoutModal(w)}
-                              disabled={!hasWallet}
-                              className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 text-black shadow-md flex items-center gap-1.5 mx-auto transition-all"
-                            >
-                              <Zap size={13} /> Submit TX Proof
-                            </button>
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              {hasWallet && (
+                                <a
+                                  href={tonkeeperUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black flex items-center gap-1.5 shadow-md shadow-sky-500/20 transition-all cursor-pointer"
+                                >
+                                  <Send size={12} /> ⚡ Pay Tonkeeper
+                                </a>
+                              )}
+                              <button
+                                onClick={() => openPayoutModal(w)}
+                                disabled={!hasWallet}
+                                className="px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 disabled:opacity-40 text-black shadow-md flex items-center gap-1 transition-all"
+                              >
+                                <ShieldCheck size={13} /> Submit Proof
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -401,44 +398,49 @@ export default function ChampionshipPayouts() {
               </button>
             </div>
             
-            <div className="p-3 space-y-1.5 max-h-72 overflow-y-auto">
+            <div className="p-3 space-y-2 max-h-80 overflow-y-auto">
               {winners.filter(w => w.gram_wallet_address && getPrize(w.rank).gram > 0).map(w => {
                 const prize = getPrize(w.rank);
-                const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=Tasky+Prize+Rank+${w.rank}`;
+                const memoText = `Tasky Leaderboard Prize - Rank #${w.rank}`;
+                const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=${encodeURIComponent(memoText)}`;
 
                 return (
-                  <div key={w.telegram_id} className={`flex items-center justify-between p-2 rounded-xl border transition-all ${w.is_paid ? "bg-emerald-950/20 border-emerald-900/40 opacity-75" : "bg-slate-950/60 border-slate-800"}`}>
-                    <div>
+                  <div key={w.telegram_id} className={`p-2.5 rounded-xl border transition-all ${w.is_paid ? "bg-emerald-950/20 border-emerald-900/40 opacity-75" : "bg-slate-950/60 border-slate-800"}`}>
+                    <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
                         <span className="text-xs font-black text-yellow-400">#{w.rank}</span>
-                        <span className="text-xs font-semibold text-slate-200 truncate max-w-[90px]">{w.username ? "@"+w.username : w.first_name}</span>
+                        <span className="text-xs font-semibold text-slate-200 truncate max-w-[100px]">{w.username ? "@"+w.username : w.first_name}</span>
                         {w.is_paid && <span className="text-[9px] bg-emerald-900/60 text-emerald-300 font-bold px-1 rounded">PAID</span>}
                       </div>
-                      <div className="text-[10px] text-cyan-300 font-black">{prize.gram} GRAM</div>
+                      <div className="text-xs text-cyan-300 font-black">{prize.gram} GRAM</div>
                     </div>
                     
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60">
                       <button onClick={() => copy(w.gram_wallet_address, "send_"+w.telegram_id)}
                         title="Copy Address"
-                        className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors">
-                        {copiedId === "send_"+w.telegram_id ? <CheckCircle size={13} className="text-green-400" /> : <Copy size={13} />}
+                        className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono flex items-center gap-1 transition-colors truncate max-w-[120px]">
+                        {copiedId === "send_"+w.telegram_id ? <CheckCircle size={11} className="text-green-400" /> : <Copy size={11} />}
+                        {w.gram_wallet_address.slice(0, 4)}...{w.gram_wallet_address.slice(-4)}
                       </button>
-                      <a
-                        href={tonkeeperUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        title="Pay directly with Tonkeeper"
-                        className="px-2.5 py-1 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold flex items-center gap-1 shadow-sm transition-all"
-                      >
-                        <Send size={11} /> Pay
-                      </a>
-                      <button
-                        onClick={() => openPayoutModal(w)}
-                        title="Submit TX Proof to Channel"
-                        className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all"
-                      >
-                        <Zap size={13} />
-                      </button>
+                      
+                      <div className="flex items-center gap-1">
+                        <a
+                          href={tonkeeperUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          title="Pay directly with Tonkeeper"
+                          className="px-3 py-1 rounded-lg bg-sky-500 hover:bg-sky-400 text-black text-xs font-black flex items-center gap-1 shadow-sm transition-all"
+                        >
+                          <Send size={11} /> Pay Tonkeeper
+                        </a>
+                        <button
+                          onClick={() => openPayoutModal(w)}
+                          title="Submit TX Proof to Channel"
+                          className="p-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white transition-all"
+                        >
+                          <ShieldCheck size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -518,8 +520,8 @@ export default function ChampionshipPayouts() {
                   <Trophy size={20} />
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-lg">Submit Championship Payout Proof</h3>
-                  <p className="text-xs text-slate-400">Record on-chain TX and post verified proof to @TaskyPayouts</p>
+                  <h3 className="font-black text-white text-lg">Championship Payout &amp; Proof</h3>
+                  <p className="text-xs text-slate-400">Pay via Tonkeeper and broadcast verified proof to @TaskyPayouts</p>
                 </div>
               </div>
               <button onClick={() => setPayoutModal(null)} className="p-1 rounded-lg text-slate-400 hover:text-white">
@@ -527,36 +529,66 @@ export default function ChampionshipPayouts() {
               </button>
             </div>
 
-            {/* Winner Overview Card */}
-            <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+            {/* 1-Click Pay Tonkeeper Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/80 via-blue-950/60 to-indigo-950/80 border border-sky-500/30 space-y-3">
               <div className="flex justify-between items-center">
                 <div>
-                  <span className="text-sm font-black text-yellow-400 mr-2">Rank #{payoutModal.rank}</span>
-                  <span className="text-sm font-bold text-white">{payoutModal.username ? "@" + payoutModal.username : payoutModal.first_name}</span>
-                  <div className="text-[10px] text-slate-500 font-mono">TG ID: {payoutModal.telegram_id}</div>
+                  <span className="text-xs font-black text-sky-400 uppercase tracking-wide">Step 1: Send GRAM via Tonkeeper</span>
+                  <div className="text-sm font-bold text-white mt-0.5">
+                    Rank #{payoutModal.rank} · {payoutModal.username ? "@" + payoutModal.username : payoutModal.first_name}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="text-base font-black text-cyan-300">{payoutModal.gram_amount} GRAM</span>
-                  <div className="text-[10px] text-emerald-400 font-bold">Championship Prize</div>
+                  <div className="text-[10px] text-emerald-400 font-bold">Leaderboard Prize</div>
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                <span className="text-slate-400">Destination Wallet:</span>
-                <div className="flex items-center gap-1.5 font-mono text-emerald-300">
-                  <span className="truncate max-w-[200px]">{payoutModal.wallet_address}</span>
-                  <button onClick={() => copy(payoutModal.wallet_address, "modal_w")} className="text-slate-400 hover:text-white">
-                    <Copy size={13} />
-                  </button>
+              <div className="pt-2 border-t border-sky-800/40 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Wallet:</span>
+                  <div className="flex items-center gap-1.5 font-mono text-emerald-300">
+                    <span className="truncate max-w-[200px]">{payoutModal.wallet_address}</span>
+                    <button onClick={() => copy(payoutModal.wallet_address, "modal_w")} className="text-slate-400 hover:text-white">
+                      <Copy size={13} />
+                    </button>
+                  </div>
                 </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Comment (Memo):</span>
+                  <span className="text-amber-300 font-medium font-mono text-[11px]">
+                    Tasky Leaderboard Prize - Rank #{payoutModal.rank}
+                  </span>
+                </div>
+              </div>
+
+              {/* Tonkeeper Direct Action */}
+              <div className="pt-1 flex gap-2">
+                <a
+                  href={`https://app.tonkeeper.com/transfer/${payoutModal.wallet_address}?amount=${Math.round(payoutModal.gram_amount * 1e9)}&text=${encodeURIComponent(`Tasky Leaderboard Prize - Rank #${payoutModal.rank}`)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 transition-all cursor-pointer"
+                >
+                  <Send size={13} /> ⚡ 1-Click Pay with Tonkeeper
+                </a>
+                <a
+                  href={`ton://transfer/${payoutModal.wallet_address}?amount=${Math.round(payoutModal.gram_amount * 1e9)}&text=${encodeURIComponent(`Tasky Leaderboard Prize - Rank #${payoutModal.rank}`)}`}
+                  className="px-3 py-2.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1.5 transition-all"
+                >
+                  <Wallet size={13} /> TON App
+                </a>
               </div>
             </div>
 
-            {/* TX Hash Input */}
+            {/* Step 2: TX Hash Input */}
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
-                <Zap size={14} className="text-cyan-400" />
-                Transaction Hash / Tonviewer URL <span className="text-red-400">*</span>
+              <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Zap size={14} className="text-cyan-400" />
+                  Step 2: Enter Transaction Hash <span className="text-red-400">*</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-normal">From Tonkeeper/Tonviewer</span>
               </label>
               <input
                 type="text"
@@ -565,9 +597,6 @@ export default function ChampionshipPayouts() {
                 placeholder="e.g. 4dc180752b7186847e6b54... or https://tonviewer.com/transaction/..."
                 className="w-full bg-slate-900 border border-slate-700 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono placeholder-slate-500 focus:outline-none transition-all"
               />
-              <p className="text-[11px] text-slate-500">
-                Paste the transaction hash from Tonkeeper, MyTonWallet, or Tonviewer after sending funds.
-              </p>
             </div>
 
             {/* Broadcast Options */}

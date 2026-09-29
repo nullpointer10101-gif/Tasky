@@ -797,6 +797,12 @@ Watch ads every day to compete next season. 🔥`;
     } catch {
       await tBot.sendMessage(channelId, msgHtml, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
     }
+    res.json({ success: true, message: 'VIP Championship Announcement posted to channel' });
+  } catch (err) {
+    console.error('[Campaign] announce-winners error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/campaign/submit-winner-payout — Admin: Submit manual on-chain GRAM TX proof for individual winner
