@@ -192,7 +192,7 @@ export default function ChampionshipPayouts() {
     }
   };
 
-  const isReferral = tournament?.tournament_type === "referral" || tournament?.title?.toLowerCase()?.includes("referral");
+  const isReferral = (tournament?.tournament_type === "referral" || tournament?.title?.toLowerCase()?.includes("referral")) && !tournament?.title?.toLowerCase()?.includes("ad") && (tournament?.tournament_type !== "ad");
   const maxWinners = tournament?.winners_count || (isReferral ? 20 : 30);
 
   const totalGram = winners.reduce((s, w) => s + getPrize(w.rank).gram, 0);

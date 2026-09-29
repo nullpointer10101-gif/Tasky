@@ -370,7 +370,7 @@ router.get('/payout-preview', async (req, res) => {
     }
     const t = tournament.rows[0];
     const isReferral = (t.tournament_type === 'referral' || (t.title && t.title.toLowerCase().includes('referral'))) && !(t.title && t.title.toLowerCase().includes('ad')) && (t.tournament_type !== 'ad');
-    const maxWinners = parseInt(t.winners_count || (isReferral ? 20 : 30), 10);
+    const maxWinners = isReferral ? parseInt(t.winners_count || 20, 10) : 30;
 
     let winnersRes;
 
@@ -465,7 +465,11 @@ router.get('/payout-preview', async (req, res) => {
 
     res.json({
       success: true,
-      tournament: t,
+      tournament: {
+        ...t,
+        tournament_type: isReferral ? 'referral' : 'ad',
+        winners_count: maxWinners
+      },
       winners,
       prize_structure: isReferral ? REFERRAL_PRIZE_STRUCTURE : AD_PRIZE_STRUCTURE,
       tournament_type: isReferral ? 'referral' : 'ad',
