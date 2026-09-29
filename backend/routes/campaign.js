@@ -111,6 +111,7 @@ async function ensureTables() {
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS paid_at TIMESTAMPTZ;
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_by VARCHAR(100);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_campaign_payouts_tourney_user ON campaign_payouts (tournament_id, telegram_id);
     `);
   } catch (e) {
     console.error('[Campaign] Error creating/updating tables:', e.message);
@@ -677,16 +678,23 @@ router.post('/submit-winner-payout', async (req, res) => {
     const cleanTxHash = tx_hash.trim();
     const targetTournamentId = tournament_id || 1;
 
-    await client.query(`
-      INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, wallet_address, tx_hash, status, paid_at, approved_at)
-      VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
-      ON CONFLICT (tournament_id, telegram_id) 
-      DO UPDATE SET 
-        tx_hash = EXCLUDED.tx_hash,
-        wallet_address = EXCLUDED.wallet_address,
-        status = 'paid',
-        paid_at = NOW()
-    `, [targetTournamentId, String(telegram_id), rank || 1, gram_amount || 0.05, wallet_address || null, cleanTxHash]);
+    const existing = await client.query(
+      'SELECT id FROM campaign_payouts WHERE tournament_id = $1 AND telegram_id::text = $2',
+      [targetTournamentId, String(telegram_id)]
+    );
+
+    if (existing.rows.length > 0) {
+      await client.query(`
+        UPDATE campaign_payouts
+        SET tx_hash = $1, wallet_address = $2, status = 'paid', paid_at = NOW(), gram_amount = $3, rank = $4
+        WHERE id = $5
+      `, [cleanTxHash, wallet_address || null, gram_amount || 0.05, rank || 1, existing.rows[0].id]);
+    } else {
+      await client.query(`
+        INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, wallet_address, tx_hash, status, paid_at, approved_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 'paid', NOW(), NOW())
+      `, [targetTournamentId, String(telegram_id), rank || 1, gram_amount || 0.05, wallet_address || null, cleanTxHash]);
+    }
 
     const userRes = await client.query('SELECT username, first_name FROM users WHERE telegram_id::text = $1', [String(telegram_id)]);
     const userFull = userRes.rows[0] || {};
