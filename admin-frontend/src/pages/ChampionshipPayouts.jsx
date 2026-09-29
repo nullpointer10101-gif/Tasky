@@ -4,21 +4,16 @@ import toast from "react-hot-toast";
 import {
   Trophy, Loader2, RefreshCw, Gift, Megaphone, CheckCircle,
   AlertTriangle, Copy, ExternalLink, Coins, Zap, Star, Crown, Wallet,
-  Check, ArrowUpRight, Send, ListChecks, ShieldCheck, X
+  Check, ArrowUpRight, Send, ListChecks, ShieldCheck, X, PlusCircle, Users
 } from "lucide-react";
 
-const PRIZE_STRUCTURE = [
-  { rankMin: 1,  rankMax: 1,  gram: 1.00, tasky: 20000, label: "🥇 1st Place" },
-  { rankMin: 2,  rankMax: 2,  gram: 0.50, tasky: 10000, label: "🥈 2nd Place" },
-  { rankMin: 3,  rankMax: 3,  gram: 0.30, tasky: 5000,  label: "🥉 3rd Place" },
-  { rankMin: 4,  rankMax: 10, gram: 0.10, tasky: 2000,  label: "🏅 Ranks 4–10" },
-  { rankMin: 11, rankMax: 30, gram: 0.05, tasky: 1000,  label: "🎖️ Ranks 11–30" },
+const DEFAULT_PRIZE_STRUCTURE = [
+  { rankMin: 1,  rankMax: 1,  gram: 1.50, tasky: 30000, label: "🥇 1st Place" },
+  { rankMin: 2,  rankMax: 2,  gram: 0.75, tasky: 15000, label: "🥈 2nd Place" },
+  { rankMin: 3,  rankMax: 3,  gram: 0.40, tasky: 8000,  label: "🥉 3rd Place" },
+  { rankMin: 4,  rankMax: 10, gram: 0.15, tasky: 3000,  label: "🏅 Ranks 4–10" },
+  { rankMin: 11, rankMax: 20, gram: 0.08, tasky: 1500,  label: "🎖️ Ranks 11–20" },
 ];
-
-function getPrize(rank) {
-  const tier = PRIZE_STRUCTURE.find(t => rank >= t.rankMin && rank <= t.rankMax);
-  return tier || { gram: 0, tasky: 0, label: "—" };
-}
 
 function getRankMeta(rank) {
   if (rank === 1) return { icon: "🥇", color: "#FFD700", bg: "rgba(255,215,0,0.08)" };
@@ -31,9 +26,11 @@ function getRankMeta(rank) {
 export default function ChampionshipPayouts() {
   const [tournament, setTournament]       = useState(null);
   const [winners, setWinners]             = useState([]);
+  const [prizeStructure, setPrizeStructure] = useState(DEFAULT_PRIZE_STRUCTURE);
   const [loading, setLoading]             = useState(true);
   const [distributing, setDistributing]   = useState(false);
   const [announcing, setAnnouncing]       = useState(false);
+  const [creating, setCreating]           = useState(false);
   const [result, setResult]               = useState(null);
   const [customMsg, setCustomMsg]         = useState("");
   const [copiedId, setCopiedId]           = useState(null);
@@ -46,6 +43,12 @@ export default function ChampionshipPayouts() {
   const [broadcastChan, setBroadcastChan] = useState(true);
   const [submittingProof, setSubmittingProof] = useState(false);
 
+  const getPrize = (rank) => {
+    const list = prizeStructure || DEFAULT_PRIZE_STRUCTURE;
+    const tier = list.find(t => rank >= t.rankMin && rank <= t.rankMax);
+    return tier || { gram: 0, tasky: 0, label: "—" };
+  };
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -56,6 +59,9 @@ export default function ChampionshipPayouts() {
       const { data } = await api.get("/campaign/payout-preview");
       setTournament(data.tournament);
       setWinners(data.winners || []);
+      if (data.prize_structure) {
+        setPrizeStructure(data.prize_structure);
+      }
     } catch {
       toast.error("Failed to load championship data");
     } finally {
@@ -82,6 +88,25 @@ export default function ChampionshipPayouts() {
     }
     copy(list, "bulk_export");
     toast.success("Copied full CSV/Batch list to clipboard!");
+  };
+
+  const handleStartReferralChampionship = async () => {
+    if (!window.confirm("🚀 Start a NEW 20-Day Referral Championship (Top 20 Winners)?\n• Referrals start counting from NOW onwards only\n• Referral counts only when friend completes at least 1 task in mini app\n• Top 20 prize structure (1.50 GRAM 1st place)")) return;
+    setCreating(true);
+    try {
+      const { data } = await api.post("/campaign/create-tournament", {
+        title: `🚀 20-Day Referral Championship #${Date.now().toString().slice(-4)}`,
+        duration_days: 20,
+        tournament_type: "referral",
+        winners_count: 20
+      });
+      toast.success("🎉 New 20-Day Referral Championship is now LIVE!");
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to create tournament");
+    } finally {
+      setCreating(false);
+    }
   };
 
   const openPayoutModal = (winner) => {
@@ -167,6 +192,9 @@ export default function ChampionshipPayouts() {
     }
   };
 
+  const isReferral = tournament?.tournament_type === "referral" || tournament?.title?.toLowerCase()?.includes("referral");
+  const maxWinners = tournament?.winners_count || (isReferral ? 20 : 30);
+
   const totalGram = winners.reduce((s, w) => s + getPrize(w.rank).gram, 0);
   const totalTasky = winners.reduce((s, w) => s + getPrize(w.rank).tasky, 0);
   const missingWalletCount = winners.filter(w => !w.gram_wallet_address && getPrize(w.rank).gram > 0).length;
@@ -186,33 +214,44 @@ export default function ChampionshipPayouts() {
         <div>
           <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
             <Trophy className="text-yellow-400" size={32} />
-            Ad Championship — Prize Distribution
+            {isReferral ? "Referral Championship" : "Ad Championship"} — Prize Hub
           </h1>
           <div className="flex items-center gap-3 mt-1 text-sm flex-wrap">
             <span className="text-orange-400 font-semibold flex items-center gap-1">
-              🔥 {tournament?.title || "7-Day Ad Championship #0029"}
+              🔥 {tournament?.title || "20-Day Referral Championship #0030"}
             </span>
             <span className="text-slate-500">•</span>
-            <span className="text-emerald-400 font-black flex items-center gap-1 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30 text-xs uppercase">
-              👑 Leaderboard Prizes Ready
+            <span className="text-cyan-400 font-black flex items-center gap-1 bg-cyan-950/60 px-2.5 py-0.5 rounded-full border border-cyan-500/30 text-xs uppercase">
+              {isReferral ? "👥 1-Task Verified Referrals" : "📺 Sponsored Ads"}
+            </span>
+            <span className="text-emerald-400 font-black flex items-center gap-1 bg-emerald-950/60 px-2.5 py-0.5 rounded-full border border-emerald-500/30 text-xs uppercase">
+              👑 Top {maxWinners} Finalists
             </span>
           </div>
         </div>
 
         <div className="flex gap-2 flex-wrap">
           <button onClick={fetchData}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-all">
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-all">
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
+          
+          <button onClick={handleStartReferralChampionship} disabled={creating}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-black transition-all shadow-md">
+            {creating ? <Loader2 size={13} className="animate-spin" /> : <PlusCircle size={13} />}
+            Start New 20-Day Season
+          </button>
+
           <button onClick={handleAnnounce} disabled={announcing || winners.length === 0}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-bold transition-all shadow-lg shadow-indigo-500/20">
-            {announcing ? <Loader2 size={14} className="animate-spin" /> : <Megaphone size={14} />}
-            Announce Grand Finale
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold transition-all shadow-lg shadow-indigo-500/20">
+            {announcing ? <Loader2 size={13} className="animate-spin" /> : <Megaphone size={13} />}
+            Announce Winners
           </button>
+
           <button onClick={handleDistribute} disabled={distributing || winners.length === 0}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 hover:from-yellow-400 hover:to-orange-400 disabled:opacity-50 text-black text-sm font-black transition-all shadow-xl shadow-yellow-500/30">
-            {distributing ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} />}
-            {distributing ? "Distributing Prizes…" : "Distribute All Prizes"}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-yellow-500 via-amber-400 to-orange-500 hover:from-yellow-400 hover:to-orange-400 disabled:opacity-50 text-black text-xs font-black transition-all shadow-xl shadow-yellow-500/30">
+            {distributing ? <Loader2 size={14} className="animate-spin" /> : <Gift size={14} />}
+            {distributing ? "Distributing…" : "Distribute All Prizes"}
           </button>
         </div>
       </div>
@@ -220,7 +259,7 @@ export default function ChampionshipPayouts() {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: "Total Winners", value: winners.length, icon: Trophy, color: "text-yellow-400" },
+          { label: "Top Prize Ranks", value: `Top ${maxWinners} Winners`, icon: Trophy, color: "text-yellow-400" },
           { label: "Total GRAM Pool", value: `${totalGram.toFixed(2)} GRAM`, icon: Zap, color: "text-cyan-400" },
           { label: "Total TASKY Pool", value: totalTasky.toLocaleString(), icon: Coins, color: "text-purple-400" },
           { label: "Paid / Missing", value: `${paidGramCount} Paid · ${missingWalletCount} Missing`, icon: Wallet, color: "text-emerald-400" },
@@ -241,14 +280,14 @@ export default function ChampionshipPayouts() {
           <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <Trophy className="text-yellow-400" size={18} />
-              <span className="font-bold text-white text-sm">Top 30 Leaderboard Finalists</span>
+              <span className="font-bold text-white text-sm">Top {maxWinners} Leaderboard Finalists</span>
               <span className="text-xs text-slate-500 font-mono">({filteredWinners.length}/{winners.length})</span>
             </div>
             
             {/* Quick Filter Tabs */}
             <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-xl border border-slate-800 text-xs">
               {[
-                { id: "all", label: "All (30)" },
+                { id: "all", label: `All (${winners.length})` },
                 { id: "needs_gram", label: "Needs GRAM" },
                 { id: "paid", label: `Paid (${paidGramCount})` },
                 { id: "no_wallet", label: `No Wallet (${missingWalletCount})` }
@@ -268,6 +307,12 @@ export default function ChampionshipPayouts() {
             <div className="flex justify-center items-center py-20">
               <Loader2 className="animate-spin text-indigo-400" size={36} />
             </div>
+          ) : winners.length === 0 ? (
+            <div className="text-center py-16 text-slate-400 text-xs space-y-2">
+              <Users size={32} className="mx-auto text-slate-600 mb-1" />
+              <p className="font-bold text-slate-300">New 20-Day Referral Season Active!</p>
+              <p>Referrals are now tracking in real-time. Invitees must complete 1 task to appear on the leaderboard.</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
@@ -275,7 +320,7 @@ export default function ChampionshipPayouts() {
                   <tr className="text-[11px] text-slate-500 uppercase border-b border-slate-800">
                     <th className="py-3 px-3 text-left">Rank</th>
                     <th className="py-3 px-3 text-left">User</th>
-                    <th className="py-3 px-3 text-center">Ads</th>
+                    <th className="py-3 px-3 text-center">{isReferral ? "Valid Refs (1+ Task)" : "Ads"}</th>
                     <th className="py-3 px-3 text-right">Prize</th>
                     <th className="py-3 px-3 text-left">Destination Wallet</th>
                     <th className="py-3 px-3 text-center">⚡ 1-Click Pay &amp; Proof</th>
@@ -288,7 +333,6 @@ export default function ChampionshipPayouts() {
                     const hasWallet = !!w.gram_wallet_address;
                     const memoText = `Tasky Leaderboard Prize - Rank #${w.rank}`;
                     const tonkeeperUrl = hasWallet ? `https://app.tonkeeper.com/transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=${encodeURIComponent(memoText)}` : null;
-                    const tonUri = hasWallet ? `ton://transfer/${w.gram_wallet_address}?amount=${Math.round(prize.gram * 1e9)}&text=${encodeURIComponent(memoText)}` : null;
                     const explorerUrl = w.tx_hash ? (w.tx_hash.startsWith('http') ? w.tx_hash : `https://tonviewer.com/transaction/${w.tx_hash}`) : null;
 
                     return (
@@ -305,7 +349,7 @@ export default function ChampionshipPayouts() {
                           <div className="text-slate-500 font-mono text-[10px]">{w.telegram_id}</div>
                         </td>
                         <td className="py-2.5 px-3 text-center">
-                          <span className="font-bold text-cyan-300">{w.ads_watched}</span>
+                          <span className="font-bold text-cyan-300 text-sm">{w.score !== undefined ? w.score : w.ads_watched}</span>
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <div className="font-black" style={{ color: meta.color }}>{prize.gram} GRAM</div>
@@ -464,10 +508,10 @@ export default function ChampionshipPayouts() {
           <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden">
             <div className="p-4 border-b border-slate-800 flex items-center gap-2">
               <Star className="text-yellow-400" size={16} />
-              <span className="font-bold text-white text-sm">Season Prize Structure</span>
+              <span className="font-bold text-white text-sm">Season Prize Structure (Top {maxWinners})</span>
             </div>
             <div className="p-3 space-y-1.5">
-              {PRIZE_STRUCTURE.map((t, i) => (
+              {(prizeStructure || DEFAULT_PRIZE_STRUCTURE).map((t, i) => (
                 <div key={i} className="flex items-center justify-between p-2 rounded-xl bg-slate-950/50 border border-slate-800 text-xs">
                   <span className="font-semibold text-slate-300">{t.label}</span>
                   <div className="text-right">
@@ -486,7 +530,7 @@ export default function ChampionshipPayouts() {
               <span className="font-bold text-white text-sm">Strategic Marketing Note</span>
             </div>
             <textarea rows={3} value={customMsg} onChange={e => setCustomMsg(e.target.value)}
-              placeholder="e.g. Next season starts tomorrow with even bigger rewards! Stay active 🔥"
+              placeholder="e.g. 20-Day Referral season is now LIVE! Invite active users & claim Top 20 rewards! 🔥"
               className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white placeholder-slate-500 resize-none focus:outline-none focus:border-indigo-500 transition-colors" />
           </div>
 
@@ -571,12 +615,6 @@ export default function ChampionshipPayouts() {
                   className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-sky-500/30 transition-all cursor-pointer"
                 >
                   <Send size={13} /> ⚡ 1-Click Pay with Tonkeeper
-                </a>
-                <a
-                  href={`ton://transfer/${payoutModal.wallet_address}?amount=${Math.round(payoutModal.gram_amount * 1e9)}&text=${encodeURIComponent(`Tasky Leaderboard Prize - Rank #${payoutModal.rank}`)}`}
-                  className="px-3 py-2.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 border border-indigo-500/40 text-xs font-bold flex items-center gap-1.5 transition-all"
-                >
-                  <Wallet size={13} /> TON App
                 </a>
               </div>
             </div>

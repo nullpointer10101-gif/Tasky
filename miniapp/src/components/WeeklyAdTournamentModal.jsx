@@ -1,12 +1,20 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, Play, RefreshCw, Zap, Trophy, Flame, Award, Sparkles, ShieldCheck } from 'lucide-react';
+import { X, Play, RefreshCw, Zap, Trophy, Flame, Award, Sparkles, ShieldCheck, UserPlus, Share2, Copy, Check } from 'lucide-react';
 import { getCampaignTournament, startWatchCampaignAd, recordCampaignAd } from '../api';
 import { showRewardedAd } from '../adUtils';
 import { useToast } from '../App';
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
-const PRIZE_MAP = [
+const REFERRAL_PRIZE_MAP = [
+  { max: 1,  gram: 1.50, tasky: 30000, label: '🥇 1st Place' },
+  { max: 2,  gram: 0.75, tasky: 15000, label: '🥈 2nd Place' },
+  { max: 3,  gram: 0.40, tasky: 8000,  label: '🥉 3rd Place' },
+  { max: 10, gram: 0.15, tasky: 3000,  label: '🏅 Top 10' },
+  { max: 20, gram: 0.08, tasky: 1500,  label: '⭐ Top 20' },
+];
+
+const AD_PRIZE_MAP = [
   { max: 1,  gram: 1.00, tasky: 20000, label: '🥇 1st Place' },
   { max: 2,  gram: 0.50, tasky: 10000, label: '🥈 2nd Place' },
   { max: 3,  gram: 0.30, tasky: 5000,  label: '🥉 3rd Place' },
@@ -14,15 +22,14 @@ const PRIZE_MAP = [
   { max: 30, gram: 0.05, tasky: 1000,  label: '⭐ Top 30' },
 ];
 
-function nextTier(rank) {
-  if (!rank || rank <= 1)  return null;
-  if (rank <= 3)  return { targetRank: rank - 1, ...PRIZE_MAP.find(p => p.max >= rank - 1) };
-  if (rank <= 10) return { targetRank: 3, gram: 0.30, tasky: 5000 };
-  if (rank <= 30) return { targetRank: 10, gram: 0.10, tasky: 2000 };
-  return { targetRank: 30, gram: 0.05, tasky: 1000 };
+function nextTier(rank, isReferral = true) {
+  if (!rank || rank <= 1) return null;
+  const list = isReferral ? REFERRAL_PRIZE_MAP : AD_PRIZE_MAP;
+  if (rank <= 3)  return { targetRank: rank - 1, ...list.find(p => p.max >= rank - 1) };
+  if (rank <= 10) return { targetRank: 3, gram: isReferral ? 0.40 : 0.30, tasky: isReferral ? 8000 : 5000 };
+  if (rank <= 20) return { targetRank: 10, gram: isReferral ? 0.15 : 0.10, tasky: isReferral ? 3000 : 2000 };
+  return { targetRank: 20, gram: isReferral ? 0.08 : 0.05, tasky: isReferral ? 1500 : 1000 };
 }
-
-const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 /**
  * Sticky Floating Side Button widget for 1-tap Campaign access anywhere on the screen
@@ -42,7 +49,7 @@ export function WeeklyAdTournamentFloatingBubble({ user, onOpen }) {
         }}
       >
         <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
-        🔥 1.00 GRAM
+        🔥 1.50 GRAM
       </div>
 
       {/* Floating Trophy Champion Button */}
@@ -59,7 +66,7 @@ export function WeeklyAdTournamentFloatingBubble({ user, onOpen }) {
         }}
       >
         <span className="text-[22px] leading-none select-none mb-0.5" style={{ animation: 'trophy-bob 2.5s ease-in-out infinite' }}>🏆</span>
-        <span className="text-[8px] font-black leading-none text-amber-300 uppercase tracking-tighter font-mono">CAMPAIGN</span>
+        <span className="text-[8px] font-black leading-none text-amber-300 uppercase tracking-tighter font-mono">20-DAY</span>
       </button>
     </div>
   );
@@ -129,6 +136,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
   const [data,     setData]     = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [watching, setWatching] = useState(false);
+  const [copied,   setCopied]   = useState(false);
   const [tl,       setTl]       = useState({ d:0,h:0,m:0,s:0 });
   const { showToast } = useToast() || {};
 
@@ -159,6 +167,29 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
     (data && tl.d === 0 && tl.h === 0 && tl.m === 0 && tl.s === 0 && data?.tournament?.time_left_ms !== undefined)
   );
 
+  const isReferral = data?.tournament?.tournament_type === 'referral' || data?.tournament?.title?.toLowerCase()?.includes('referral');
+  const maxWinners = data?.tournament?.winners_count || (isReferral ? 20 : 30);
+
+  const inviteLink = `https://t.me/TaskyAppbot/app?startapp=${user?.referral_code || user?.telegram_id}`;
+
+  const handleShare = () => {
+    const text = `🚀 Join me on Tasky! Complete 1 quick task to earn free TON and GRAM tokens daily! 💎`;
+    const tgUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`;
+    if (window.Telegram?.WebApp?.openTelegramLink) {
+      window.Telegram.WebApp.openTelegramLink(tgUrl);
+    } else {
+      window.open(tgUrl, '_blank');
+    }
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setCopied(true);
+      showToast?.('📋 Referral Link Copied! Send it to friends to climb ranks!', 'success');
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   const watchAd = async () => {
     if (watching || isEnded) return;
     setWatching(true);
@@ -187,16 +218,16 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
 
   if (!isOpen) return null;
 
-  const lb   = data?.leaderboard || [];
-  const me   = data?.user_stats  || {};
-  const inPrize = me.rank && me.rank <= 30;
-  const next = nextTier(me.rank);
-  const myAds = me.ads_watched || 0;
+  const lb = data?.leaderboard || [];
+  const me = data?.user_stats || {};
+  const inPrize = me.rank && me.rank <= maxWinners;
+  const next = nextTier(me.rank, isReferral);
+  const myScore = me.score !== undefined ? me.score : (me.ads_watched || 0);
 
-  // progress toward next tier
-  const nextLbEntry = lb[me.rank - 2]; // person just above me
-  const adsToOvercome = nextLbEntry ? Math.max(0, nextLbEntry.ads_watched - myAds + 1) : 0;
-  const progressPct = nextLbEntry ? Math.min(100, Math.max(8, Math.round((myAds / Math.max(1, nextLbEntry.ads_watched + 1)) * 100))) : (me.rank === 1 ? 100 : 50);
+  const nextLbEntry = lb[me.rank - 2];
+  const nextScore = nextLbEntry ? (nextLbEntry.score !== undefined ? nextLbEntry.score : nextLbEntry.ads_watched) : 0;
+  const toOvercome = nextLbEntry ? Math.max(0, nextScore - myScore + 1) : 0;
+  const progressPct = nextLbEntry ? Math.min(100, Math.max(8, Math.round((myScore / Math.max(1, nextScore + 1)) * 100))) : (me.rank === 1 ? 100 : 50);
 
   return (
     <div style={{
@@ -235,10 +266,12 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             border: isEnded ? '1px solid rgba(251,191,36,0.45)' : '1px solid rgba(239,68,68,0.3)',
             borderRadius:20, padding:'3px 8px'
           }}>
-            {isEnded ? '● TOURNAMENT CONCLUDED' : '● LIVE TOURNAMENT'}
+            {isEnded ? '● SEASON CONCLUDED' : '● LIVE SEASON'}
           </span>
           <span style={{ fontSize:10, fontWeight:800, color:'rgba(255,255,255,0.4)',
-            textTransform:'uppercase', letterSpacing:'0.1em' }}>Ad Championship</span>
+            textTransform:'uppercase', letterSpacing:'0.1em' }}>
+            {isReferral ? '20-Day Referral Championship' : 'Ad Championship'}
+          </span>
         </div>
         <button onClick={onClose} style={{ width:34, height:34, borderRadius:'50%',
           background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.10)',
@@ -257,7 +290,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             filter:'drop-shadow(0 0 18px rgba(251,191,36,0.95))' }}>🏆</div>
           <div style={{ textAlign:'left' }}>
             <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em' }}>
-              {isEnded ? 'Championship Status' : 'Tournament Ends In'}
+              {isEnded ? 'Championship Status' : 'Season Ends In (20 Days)'}
             </div>
             {isEnded ? (
               <div style={{ fontSize:13, fontWeight:900, color:'#fbbf24', letterSpacing:'0.02em' }}>
@@ -271,21 +304,16 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           </div>
         </div>
 
-        {/* Audit & Payout Alert Banner if Ended */}
-        {isEnded && (
+        {/* Dynamic Qualification Explainer Banner */}
+        {isReferral && !isEnded && (
           <div style={{
-            margin:'6px 0 10px', padding:'11px 13px', borderRadius:14,
-            background:'linear-gradient(135deg, rgba(245,158,11,0.16) 0%, rgba(168,85,247,0.14) 100%)',
-            border:'1px solid rgba(251,191,36,0.45)', boxShadow:'0 0 16px rgba(251,191,36,0.2)', textAlign:'left'
+            margin:'4px 0 8px', padding:'8px 12px', borderRadius:12,
+            background:'rgba(6, 182, 212, 0.12)', border:'1px solid rgba(6, 182, 212, 0.35)',
+            textAlign:'left', display:'flex', alignItems:'center', gap:8
           }}>
-            <div style={{ display:'flex', alignItems:'center', gap:6, fontSize:10, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>
-              <span>⏳ PROCESSING ALL PAYMENTS — SECURITY AUDIT</span>
-            </div>
-            <div style={{ fontSize:10, color:'rgba(255,255,255,0.88)', marginTop:3, lineHeight:1.45 }}>
-              We are checking every account and removing all bot/fake ad watchers. All payments are currently being verified before payout release.
-            </div>
-            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:5, display:'flex', alignItems:'center', gap:5 }}>
-              <span>✅ Top 30 Genuine Human Winners will receive payment upon check completion!</span>
+            <Sparkles size={16} color="#38bdf8" style={{ flexShrink:0 }} />
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.9)', lineHeight:1.35 }}>
+              <strong>Referral Rule:</strong> Newly invited friends must complete at least <strong>1 task</strong> in the mini app to count!
             </div>
           </div>
         )}
@@ -297,9 +325,11 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             background:'linear-gradient(135deg, rgba(251,191,36,0.28) 0%, rgba(217,119,6,0.12) 100%)',
             border:'1.5px solid #fbbf24', textAlign:'center', boxShadow:'0 0 16px rgba(251,191,36,0.35)', position:'relative' }}>
             <div style={{ fontSize:10, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>🥇 1ST PLACE</div>
-            <div style={{ fontSize:14, fontWeight:900, color:'#fff', marginTop:2, letterSpacing:'-0.01em' }}>1.00 GRAM</div>
+            <div style={{ fontSize:14, fontWeight:900, color:'#fff', marginTop:2, letterSpacing:'-0.01em' }}>
+              {isReferral ? '1.50 GRAM' : '1.00 GRAM'}
+            </div>
             <div style={{ fontSize:9, fontWeight:900, color:'#a855f7', marginTop:2, background:'rgba(168,85,247,0.2)', borderRadius:10, padding:'1px 4px', border:'1px solid rgba(168,85,247,0.4)' }}>
-              +20,000 TASKY
+              {isReferral ? '+30,000 TASKY' : '+20,000 TASKY'}
             </div>
           </div>
 
@@ -308,8 +338,12 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             background:'linear-gradient(135deg, rgba(226,232,240,0.20) 0%, rgba(148,163,184,0.08) 100%)',
             border:'1.5px solid #cbd5e1', textAlign:'center', boxShadow:'0 0 10px rgba(203,213,225,0.2)' }}>
             <div style={{ fontSize:9, fontWeight:900, color:'#cbd5e1', textTransform:'uppercase' }}>🥈 2ND PLACE</div>
-            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:2 }}>0.50 GRAM</div>
-            <div style={{ fontSize:9, fontWeight:800, color:'#818cf8', marginTop:2 }}>+10,000 TASKY</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:2 }}>
+              {isReferral ? '0.75 GRAM' : '0.50 GRAM'}
+            </div>
+            <div style={{ fontSize:9, fontWeight:800, color:'#818cf8', marginTop:2 }}>
+              {isReferral ? '+15,000 TASKY' : '+10,000 TASKY'}
+            </div>
           </div>
 
           {/* 3rd Place Podium */}
@@ -317,20 +351,24 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             background:'linear-gradient(135deg, rgba(245,158,11,0.20) 0%, rgba(180,83,9,0.08) 100%)',
             border:'1.5px solid #f59e0b', textAlign:'center', boxShadow:'0 0 10px rgba(245,158,11,0.2)' }}>
             <div style={{ fontSize:9, fontWeight:900, color:'#f59e0b', textTransform:'uppercase' }}>🥉 3RD PLACE</div>
-            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:2 }}>0.30 GRAM</div>
-            <div style={{ fontSize:9, fontWeight:800, color:'#818cf8', marginTop:2 }}>+5,000 TASKY</div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', marginTop:2 }}>
+              {isReferral ? '0.40 GRAM' : '0.30 GRAM'}
+            </div>
+            <div style={{ fontSize:9, fontWeight:800, color:'#818cf8', marginTop:2 }}>
+              {isReferral ? '+8,000 TASKY' : '+5,000 TASKY'}
+            </div>
           </div>
         </div>
 
         {/* All Prize Tiers Strip */}
         <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, marginTop:8, fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.5)' }}>
-          <span style={{ color:'#34d399' }}>🏅 Top 10: <b>0.10 GRAM + 2k T</b></span>
+          <span style={{ color:'#34d399' }}>🏅 Ranks 4–10: <b>{isReferral ? '0.15 GRAM + 3k' : '0.10 GRAM + 2k'}</b></span>
           <span>•</span>
-          <span style={{ color:'#818cf8' }}>⭐ Top 30: <b>0.05 GRAM + 1k T</b></span>
+          <span style={{ color:'#818cf8' }}>⭐ Ranks 11–{maxWinners}: <b>{isReferral ? '0.08 GRAM + 1.5k' : '0.05 GRAM + 1k'}</b></span>
         </div>
       </div>
 
-      {/* ── MY STATS & VIVID DOPAMINE PROGRESS ── */}
+      {/* ── MY STATS & VIVID PROGRESS ── */}
       <div style={{ flexShrink:0, display:'flex', gap:10, padding:'10px 14px 0' }}>
         {/* Rank card */}
         <div style={{ flex:1, borderRadius:16, padding:'12px 14px',
@@ -349,22 +387,24 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           ) : me.rank <= 3 ? (
             <div style={{ fontSize:10, fontWeight:900, color:'#fbbf24', marginTop:4 }}>🥇 TOP 3 WINNER</div>
           ) : inPrize ? (
-            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:4 }}>🎯 TOP 30 WINNER</div>
+            <div style={{ fontSize:10, fontWeight:800, color:'#34d399', marginTop:4 }}>🎯 TOP {maxWinners} WINNER</div>
           ) : (
             <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>
-              {isEnded ? 'Ended' : 'Watch ads to rank'}
+              {isEnded ? 'Ended' : (isReferral ? 'Invite friends to rank' : 'Watch ads to rank')}
             </div>
           )}
         </div>
 
-        {/* Ads card */}
+        {/* Score card */}
         <div style={{ flex:1, borderRadius:16, padding:'12px 14px',
           background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>Ads Watched</div>
-          <div style={{ fontSize:34, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.02em' }}>{myAds}</div>
+          <div style={{ fontSize:9, fontWeight:800, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:3 }}>
+            {isReferral ? 'Valid Referrals' : 'Ads Watched'}
+          </div>
+          <div style={{ fontSize:34, fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'-0.02em' }}>{myScore}</div>
           {me.estimated_gram > 0
-            ? <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4 }}>💎 {me.estimated_gram} GRAM Won</div>
-            : <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>{isEnded ? 'Championship ended' : 'Keep watching!'}</div>}
+            ? <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4 }}>💎 {me.estimated_gram} GRAM Prize</div>
+            : <div style={{ fontSize:10, fontWeight:700, color:'rgba(255,255,255,0.3)', marginTop:4 }}>{isEnded ? 'Season concluded' : 'Start inviting!'}</div>}
         </div>
       </div>
 
@@ -376,22 +416,19 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           border:'1.5px solid #fbbf24', boxShadow:'0 0 20px rgba(251,191,36,0.35)', textAlign:'center'
         }}>
           <div style={{ fontSize:12, fontWeight:900, color:'#fbbf24', textTransform:'uppercase', letterSpacing:'0.04em' }}>
-            🎯 YOU PLACED #{me.rank} OF TOP 30!
+            🎯 YOU PLACED #{me.rank} OF TOP {maxWinners}!
           </div>
           <div style={{ fontSize:15, fontWeight:900, color:'#fff', marginTop:2 }}>
             💎 {me.estimated_gram} GRAM + {Number(me.estimated_tasky).toLocaleString()} TASKY
           </div>
           <div style={{ fontSize:10, fontWeight:800, color:'#fbbf24', marginTop:4, display:'inline-block', background:'rgba(251,191,36,0.15)', padding:'3px 10px', borderRadius:20, border:'1px solid rgba(251,191,36,0.3)' }}>
-            ⏳ Payment Processing: Under Security Review
-          </div>
-          <div style={{ fontSize:9, color:'rgba(255,255,255,0.75)', marginTop:4 }}>
-            All payments are being checked and will be released to genuine users shortly.
+            ⏳ Payout Status: In Review
           </div>
         </div>
       )}
 
-      {/* ── HIGH DOPAMINE PROGRESS BAR TO NEXT RANK (Only while active) ── */}
-      {!isEnded && me.rank > 1 && adsToOvercome > 0 && (
+      {/* Progress Bar To Next Rank */}
+      {!isEnded && me.rank > 1 && toOvercome > 0 && (
         <div style={{ flexShrink:0, margin:'8px 14px 0',
           background:'linear-gradient(135deg, rgba(99,102,241,0.14), rgba(168,85,247,0.10))',
           border:'1px solid rgba(168,85,247,0.35)',
@@ -399,7 +436,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:5 }}>
             <span style={{ fontSize:11, fontWeight:900, color:'#fff', display:'flex', alignItems:'center', gap:5 }}>
               <Flame size={14} color="#f59e0b" fill="#f59e0b" />
-              Overtake #{me.rank - 1}: <span style={{ color:'#fbbf24' }}>{adsToOvercome} more ad{adsToOvercome > 1 ? 's' : ''}</span>
+              Overtake #{me.rank - 1}: <span style={{ color:'#fbbf24' }}>{toOvercome} more {isReferral ? 'valid referral' : 'ad'}{toOvercome > 1 ? 's' : ''}</span>
             </span>
             {next && (
               <span style={{ fontSize:10, fontWeight:900, color:'#a855f7', background:'rgba(168,85,247,0.2)', padding:'2px 8px', borderRadius:20, border:'1px solid rgba(168,85,247,0.4)' }}>
@@ -407,7 +444,6 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
               </span>
             )}
           </div>
-          {/* Glowing Animated Bar */}
           <div style={{ height:8, background:'rgba(255,255,255,0.08)', borderRadius:99, overflow:'hidden', position:'relative' }}>
             <div style={{
               width: `${progressPct}%`,
@@ -421,8 +457,8 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
         </div>
       )}
 
-      {/* ── ACTION BUTTON (Watch Ad or View Channel) ── */}
-      <div style={{ flexShrink:0, padding:'10px 14px 8px' }}>
+      {/* ── ACTION BUTTON (Invite or Watch Ad) ── */}
+      <div style={{ flexShrink:0, padding:'10px 14px 8px', display:'flex', gap:8 }}>
         {isEnded ? (
           <button onClick={() => {
             if (window.Telegram?.WebApp?.openTelegramLink) {
@@ -431,7 +467,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
               window.open('https://t.me/TaskyPayouts', '_blank');
             }
           }} style={{
-            width:'100%', padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
+            flex:1, padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
             fontSize:14, fontWeight:900, letterSpacing:'0.04em', textTransform:'uppercase',
             color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%)',
@@ -439,6 +475,27 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
           }}>
             📢 View Payouts Channel (@TaskyPayouts)
           </button>
+        ) : isReferral ? (
+          <>
+            <button onClick={handleShare} style={{
+              flex: 1.4, padding:'14px', borderRadius:18, border:'none', cursor:'pointer',
+              fontSize:14, fontWeight:900, letterSpacing:'0.03em', textTransform:'uppercase',
+              color:'#000', display:'flex', alignItems:'center', justifyContent:'center', gap:8,
+              background: 'linear-gradient(135deg,#fde68a 0%,#fbbf24 50%,#d97706 100%)',
+              animation: 'gold-glow 2s ease-in-out infinite',
+            }}>
+              <Share2 size={18} /> Invite Friends Now
+            </button>
+            <button onClick={handleCopyLink} style={{
+              flex: 0.8, padding:'14px', borderRadius:18, border:'1px solid rgba(251,191,36,0.4)',
+              cursor:'pointer', fontSize:13, fontWeight:900, color:'#fbbf24',
+              background: 'rgba(251,191,36,0.12)', display:'flex', alignItems:'center',
+              justifyContent:'center', gap:6
+            }}>
+              {copied ? <Check size={16} color="#34d399" /> : <Copy size={16} />}
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+          </>
         ) : (
           <button onClick={watchAd} disabled={watching} style={{
             width:'100%', padding:'15px', borderRadius:18, border:'none', cursor:'pointer',
@@ -458,7 +515,7 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
       {/* ── EXCITING LEADERBOARD CARDS ── */}
       <div style={{ flexShrink:0, display:'flex', alignItems:'center', justifyContent:'space-between', padding:'2px 16px 6px' }}>
         <span style={{ fontSize:10, fontWeight:900, color:'rgba(255,255,255,0.4)', textTransform:'uppercase', letterSpacing:'0.15em', display:'flex', alignItems:'center', gap:4 }}>
-          {isEnded ? '👑 Top 30 Standings (Checking All Payments)' : '🏅 Top 30 Championship Standings'}
+          {isEnded ? `👑 Top ${maxWinners} Standings` : `🏅 Top ${maxWinners} Championship Standings`}
         </span>
         <button onClick={load} style={{ fontSize:10, fontWeight:700, color:'#818cf8', background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', gap:4 }}>
           <RefreshCw size={10}/> Refresh
@@ -471,16 +528,22 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
         ) : lb.length === 0 ? (
           <div style={{ textAlign:'center', padding:'40px 0' }}>
             <div style={{ fontSize:32 }}>🚀</div>
-            <div style={{ color:'rgba(255,255,255,0.3)', fontSize:13, fontWeight:700, marginTop:8 }}>Be the first to watch an ad!</div>
+            <div style={{ color:'rgba(255,255,255,0.4)', fontSize:13, fontWeight:800, marginTop:8 }}>
+              {isReferral ? 'Be the first to invite a friend & claim #1!' : 'Be the first to watch an ad!'}
+            </div>
+            {isReferral && (
+              <div style={{ color:'rgba(255,255,255,0.25)', fontSize:11, marginTop:4 }}>
+                Invited friends must complete 1 task to appear on the leaderboard.
+              </div>
+            )}
           </div>
         ) : lb.map((row) => {
           const isMe = String(row.telegram_id) === String(user?.telegram_id);
           const avatar = getAvatarDetails(row);
 
-          const cleanUser = row.username ? '@' + row.username.replace(/^@+/, '') : (row.first_name || 'Miner');
+          const cleanUser = row.username ? '@' + row.username.replace(/^@+/, '') : (row.first_name || 'Champion');
           const displayName = cleanUser.length > 13 ? cleanUser.slice(0, 11) + '..' : cleanUser;
 
-          // Vibrant styles for top 3 & current user
           let cardBg = 'rgba(255,255,255,0.025)';
           let cardBorder = '1px solid rgba(255,255,255,0.05)';
           let cardShadow = 'none';
@@ -501,72 +564,67 @@ export default function WeeklyAdTournamentModal({ isOpen, onClose, user }) {
             cardBorder = '1.5px solid rgba(245,158,11,0.35)';
           }
 
-          return (
-            <div key={row.rank} style={{
-              display:'flex', alignItems:'center', gap:10, marginBottom:8,
-              borderRadius:16, padding:'10px 12px',
-              background: cardBg,
-              border: cardBorder,
-              boxShadow: cardShadow,
-              transition: 'transform 0.15s ease'
-            }}>
-              {/* Rank Icon / Number */}
-              <div style={{ width:28, textAlign:'center', flexShrink:0 }}>
-                {row.rank === 1 ? <span style={{ fontSize:22, lineHeight:1 }}>🥇</span>
-                  : row.rank === 2 ? <span style={{ fontSize:22, lineHeight:1 }}>🥈</span>
-                  : row.rank === 3 ? <span style={{ fontSize:22, lineHeight:1 }}>🥉</span>
-                  : <span style={{ fontSize:12, fontWeight:900, color:'rgba(255,255,255,0.4)' }}>#{row.rank}</span>}
-              </div>
+          const rowScore = row.score !== undefined ? row.score : row.ads_watched;
 
-              {/* High-Dopamine Initial Avatar Circle (NO @ SYMBOL!) */}
-              <div style={{ position:'relative', flexShrink:0 }}>
+          return (
+            <div key={row.telegram_id} style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              padding:'10px 12px', borderRadius:16, marginBottom:8,
+              background: cardBg, border: cardBorder, boxShadow: cardShadow
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                {/* Rank Badge */}
                 <div style={{
-                  width:38, height:38, borderRadius:'50%', display:'flex',
-                  alignItems:'center', justifyContent:'center', fontWeight:900, fontSize:16, color:'#fff',
-                  background: avatar.gradient,
-                  border: avatar.border,
-                  boxShadow: avatar.boxShadow
+                  width: 28, height: 28, borderRadius: '50%',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontSize: row.rank <= 3 ? 16 : 12, fontWeight: 900,
+                  color: row.rank === 1 ? '#fbbf24' : row.rank === 2 ? '#e2e8f0' : row.rank === 3 ? '#f59e0b' : '#94a3b8',
+                  background: row.rank <= 3 ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)'
+                }}>
+                  {row.rank <= 3 ? (row.rank === 1 ? '🥇' : row.rank === 2 ? '🥈' : '🥉') : `#${row.rank}`}
+                </div>
+
+                {/* Avatar */}
+                <div style={{
+                  width: 34, height: 34, borderRadius: '50%',
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  fontWeight: 900, fontSize: 14, color: '#fff',
+                  background: avatar.gradient, border: avatar.border, boxShadow: avatar.boxShadow,
+                  position: 'relative'
                 }}>
                   {avatar.initial}
-                </div>
-                {avatar.badge && (
-                  <span style={{
-                    position:'absolute', bottom:-4, right:-4, fontSize:12, lineHeight:1,
-                    filter:'drop-shadow(0 0 4px rgba(0,0,0,0.8))'
-                  }}>
-                    {avatar.badge}
-                  </span>
-                )}
-              </div>
-
-              {/* User Name & Ads Watched */}
-              <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-                  <span style={{ fontSize:13, fontWeight:900, color:'#fff', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                    {displayName}
-                  </span>
-                  {isMe && <span style={{ fontSize:8, fontWeight:900, background:'#a855f7', color:'#fff', borderRadius:20, padding:'2px 6px', flexShrink:0 }}>YOU</span>}
-                </div>
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:2 }}>
-                  <span style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontWeight:700 }}>🔥 {row.ads_watched} ads</span>
-                  {row.rank <= 3 && (
-                    <span style={{ fontSize:8, fontWeight:900, color: row.rank===1 ? '#fbbf24' : row.rank===2 ? '#cbd5e1' : '#f59e0b', textTransform:'uppercase' }}>
-                      {row.rank===1 ? '• CHAMPION' : row.rank===2 ? '• RUNNER UP' : '• 3RD PODIUM'}
+                  {avatar.badge && (
+                    <span style={{ position: 'absolute', top: -7, right: -6, fontSize: 12 }}>
+                      {avatar.badge}
                     </span>
                   )}
                 </div>
+
+                {/* Name */}
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#fff', display:'flex', alignItems:'center', gap:4 }}>
+                    {displayName}
+                    {isMe && <span style={{ fontSize: 9, background: '#a855f7', color: '#fff', padding: '1px 5px', borderRadius: 8, fontWeight: 900 }}>YOU</span>}
+                  </div>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                    {rowScore} {isReferral ? 'valid refs' : 'ads'}
+                  </div>
+                </div>
               </div>
 
-              {/* Rewards */}
-              <div style={{ textAlign:'right', flexShrink:0 }}>
-                <div style={{ fontSize:13, fontWeight:900, color:'#fbbf24' }}>💎 {row.prize_gram}G</div>
-                <div style={{ fontSize:9, fontWeight:800, color:'#818cf8' }}>+{Number(row.prize_tasky).toLocaleString()} T</div>
+              {/* Prize Badge */}
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, fontWeight: 900, color: '#fbbf24' }}>
+                  {row.prize_gram} GRAM
+                </div>
+                <div style={{ fontSize: 9, fontWeight: 700, color: '#a855f7' }}>
+                  +{Number(row.prize_tasky).toLocaleString()} TASKY
+                </div>
               </div>
             </div>
           );
         })}
       </div>
-
     </div>
   );
 }
