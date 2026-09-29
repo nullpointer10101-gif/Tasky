@@ -100,8 +100,8 @@ async function ensureTables() {
       );
     `);
     await pool.query(`
-      ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS tournament_type VARCHAR(50) DEFAULT 'referral';
-      ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS winners_count INTEGER DEFAULT 20;
+      ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS tournament_type VARCHAR(50) DEFAULT 'ad';
+      ALTER TABLE campaign_tournaments ADD COLUMN IF NOT EXISTS winners_count INTEGER DEFAULT 30;
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS wallet_address VARCHAR(255);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS tx_hash VARCHAR(255);
       ALTER TABLE campaign_payouts ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending';
@@ -177,7 +177,7 @@ router.get('/tournament', async (req, res) => {
     const endMs = new Date(tournament.end_at).getTime();
     const nowMs = Date.now();
     const time_left_ms = Math.max(0, endMs - nowMs);
-    const isReferral = (tournament.tournament_type === 'referral') || (tournament.title && tournament.title.toLowerCase().includes('referral'));
+    const isReferral = (tournament.tournament_type === 'referral') || (tournament.title && tournament.title.toLowerCase().includes('referral') && !tournament.title.toLowerCase().includes('ad'));
     const maxWinners = parseInt(tournament.winners_count || (isReferral ? 20 : 30), 10);
 
     let leaderboard = [];
@@ -369,7 +369,7 @@ router.get('/payout-preview', async (req, res) => {
       return res.status(404).json({ error: 'No active or ended tournament found' });
     }
     const t = tournament.rows[0];
-    const isReferral = (t.tournament_type === 'referral') || (t.title && t.title.toLowerCase().includes('referral'));
+    const isReferral = (t.tournament_type === 'referral') || (t.title && t.title.toLowerCase().includes('referral') && !t.title.toLowerCase().includes('ad'));
     const maxWinners = parseInt(t.winners_count || (isReferral ? 20 : 30), 10);
 
     let winnersRes;
