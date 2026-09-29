@@ -117,7 +117,7 @@ export default function Referral({ user }) {
     };
     fetchData();
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user?.telegram_id]);
 
   const referralLink = refData?.referral_link || (user?.referral_code ? `https://t.me/TaskyAppbot?start=${user.referral_code}` : (user?.telegram_id ? `https://t.me/TaskyAppbot?start=${user.telegram_id}` : ''));
 

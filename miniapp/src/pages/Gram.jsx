@@ -181,13 +181,17 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
       setClaimCountdown('');
       return;
     }
+    // Use a ref so the interval callback can clear itself when the countdown expires
+    let intervalId;
     const updateTimer = () => {
       const claimTime = new Date(claimTimeStr).getTime();
       const unlockTime = claimTime + 24 * 60 * 60 * 1000;
       const diff = unlockTime - Date.now();
-      if (diff <= 0) { 
-        setClaimCountdown(''); 
-        fetchStatus(); 
+      if (diff <= 0) {
+        // Stop the interval FIRST — prevents fetchStatus() being called every second
+        clearInterval(intervalId);
+        setClaimCountdown('');
+        fetchStatus();
       } else {
         const h = Math.floor(diff / (1000 * 60 * 60));
         const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
@@ -196,8 +200,8 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
       }
     };
     updateTimer();
-    const interval = setInterval(updateTimer, 1000);
-    return () => clearInterval(interval);
+    intervalId = setInterval(updateTimer, 1000);
+    return () => clearInterval(intervalId);
   }, [status]);
 
   const handleWatchAd = async (provider = 'gigapub') => {

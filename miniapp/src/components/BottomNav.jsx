@@ -31,11 +31,8 @@ export default function BottomNav({ active, onChange, user }) {
           console.error(e);
         }
       };
+      // Fetch once on mount — no interval needed for a cosmetic dot indicator
       fetchGram();
-      
-      // Light refresh every 5 minutes (drastically saves server bandwidth)
-      const interval = setInterval(fetchGram, 300000);
-      return () => clearInterval(interval);
     }
   }, [user?.telegram_id]);
 

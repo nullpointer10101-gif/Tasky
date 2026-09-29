@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { verifyChannels, getChannelStatus } from '../api';
 import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Gem, Users, ExternalLink, RefreshCw } from 'lucide-react';
 import { useToast } from '../App';
@@ -46,23 +46,26 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     }
   }, [telegramId, refreshUser]);
 
+  // Keep a ref to channelStatus so the interval can read it without being a dep
+  const channelStatusRef = useRef(channelStatus);
+  useEffect(() => { channelStatusRef.current = channelStatus; }, [channelStatus]);
+
   useEffect(() => {
     // Initial check
     checkLiveStatus(false);
 
-    // Gentle background poll (30s) while verification modal is open
-    // 30s is enough — Telegram membership propagates within seconds anyway
+    // Gentle background poll (30s) while verification modal is open.
+    // Uses a ref so adding channelStatus to deps doesn't re-create the interval on every state change.
     const pollInterval = setInterval(() => {
-      if (!channelStatus.all_joined) {
+      if (!channelStatusRef.current.all_joined) {
         checkLiveStatus(true, 0);
       }
     }, 30000);
 
-    // Recheck whenever user comes back to window/app after opening Telegram links
+    // Recheck once whenever user comes back to window/app after opening Telegram links
     const handleRecheck = () => {
       if (document.visibilityState === 'visible' || document.visibilityState === undefined) {
-        checkLiveStatus(true, 1);
-        setTimeout(() => checkLiveStatus(true, 1), 1200);
+        checkLiveStatus(true, 1); // single call — no duplicate setTimeout
       }
     };
 
@@ -81,7 +84,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         window.Telegram.WebApp.offEvent('viewportChanged', handleRecheck);
       }
     };
-  }, [checkLiveStatus, channelStatus.all_joined]);
+  }, [checkLiveStatus]); // ← removed channelStatus.all_joined — was causing effect/interval re-registration on every status poll
 
   const openChannelLink = (url) => {
     try {

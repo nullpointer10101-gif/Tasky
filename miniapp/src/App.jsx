@@ -144,6 +144,8 @@ export default function App() {
     }
   }
 
+  const lastRefreshRef = useRef(0);
+
   useEffect(() => {
     console.log('[App] Mounted. Adding visibility change listener.');
     if (window.Telegram?.WebApp) {
@@ -157,8 +159,15 @@ export default function App() {
     const handleVisibilityChange = () => {
       console.log(`[App] Visibility changed to: ${document.visibilityState}`);
       if (document.visibilityState === 'visible') {
-        console.log('[App] App resumed from background. Triggering refreshUser()...');
-        refreshUser();
+        const now = Date.now();
+        // 60-second cooldown — prevents hammering /api/user on every app resume
+        if (now - lastRefreshRef.current > 60_000) {
+          lastRefreshRef.current = now;
+          console.log('[App] App resumed from background. Triggering refreshUser()...');
+          refreshUser();
+        } else {
+          console.log('[App] App resumed but skipping refreshUser() — last refresh was <60s ago.');
+        }
       } else if (document.visibilityState === 'hidden') {
         console.log('[App] App backgrounded.');
       }
@@ -166,17 +175,14 @@ export default function App() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
-    // Also bind to Telegram's viewportChanged as a fallback for older clients
+    // Telegram viewportChanged: only used for expand(), NOT for data refresh
+    // (visibilitychange already handles the resume case above)
     const handleViewportChanged = (e) => {
       if (!e.isStateStable) return;
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.expand();
       }
       console.log('[App] Telegram viewportChanged event fired.');
-      if (window.Telegram?.WebApp?.isExpanded && document.visibilityState !== 'visible') {
-        console.log('[App] Telegram expanded while document not visible, forcing refresh...');
-        refreshUser();
-      }
     };
 
     if (window.Telegram?.WebApp) {
