@@ -510,7 +510,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
                   transition={{ duration: 0.4 }}
                   className="font-black text-amber-400 text-lg leading-none"
                 >
-                  {count}<span className="text-xs text-white/40 font-bold"> / {TOTAL_ADS}</span>
+                  {count}<span className="text-xs text-white/40 font-bold"> / {totalAdsNeeded}</span>
                 </motion.span>
               </div>
 
@@ -1109,7 +1109,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
                     <Flame size={14} className="text-orange-400 fill-orange-400" /> {rewardCelebration.streak}x Streak
                   </span>
                   <span className="text-amber-400 font-black text-sm">
-                    {rewardCelebration.count} / {TOTAL_ADS} Ads
+                    {rewardCelebration.count} / {totalAdsNeeded} Ads
                   </span>
                 </div>
 
