@@ -37,36 +37,71 @@ function nextTier(rank, isReferral = true) {
 export function WeeklyAdTournamentFloatingBubble({ user, onOpen }) {
   return (
     <div
-      className="fixed z-40 flex flex-col items-end gap-1 pointer-events-auto"
-      style={{ bottom: '95px', right: '14px' }}
+      className="fixed z-40 flex flex-col items-end gap-1.5 pointer-events-auto select-none"
+      style={{ bottom: '92px', right: '14px' }}
     >
-      {/* Live Badge Pill */}
+      {/* Top Floating Reward Pill */}
       <div
-        className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-black text-black whitespace-nowrap shadow-xl border border-amber-300"
+        className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black text-white whitespace-nowrap shadow-2xl backdrop-blur-md border border-amber-400/40"
         style={{
-          background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 50%, #d97706 100%)',
-          boxShadow: '0 0 12px rgba(251, 191, 36, 0.65)'
+          background: 'linear-gradient(135deg, rgba(245, 158, 11, 0.95) 0%, rgba(217, 119, 6, 0.95) 100%)',
+          boxShadow: '0 4px 15px rgba(245, 158, 11, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4)'
         }}
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-red-600 animate-ping" />
-        🔥 1.50 GRAM
+        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
+        <span className="tracking-wide">🔥 1.50 GRAM</span>
       </div>
 
-      {/* Floating Trophy Champion Button */}
+      {/* Luxury Animated Championship Orb Button */}
       <button
         onClick={onOpen}
-        className="relative flex flex-col items-center justify-center overflow-hidden cursor-pointer shadow-2xl active:scale-90 transition-transform"
+        className="group relative flex items-center justify-center p-[2px] rounded-2xl cursor-pointer shadow-2xl active:scale-90 transition-all duration-300"
         style={{
-          width: '58px',
-          height: '58px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle at 35% 30%, #311c03 0%, #150901 60%, #3e1b00 100%)',
-          border: '2px solid #fbbf24',
-          boxShadow: '0 0 22px rgba(251, 191, 36, 0.6), inset 0 0 12px rgba(251, 191, 36, 0.35)'
+          width: '56px',
+          height: '56px',
+          background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #ec4899, #8b5cf6, #3b82f6)',
+          boxShadow: '0 0 25px rgba(251, 191, 36, 0.45), 0 8px 20px rgba(0, 0, 0, 0.6)'
         }}
       >
-        <span className="text-[22px] leading-none select-none mb-0.5" style={{ animation: 'trophy-bob 2.5s ease-in-out infinite' }}>🏆</span>
-        <span className="text-[8px] font-black leading-none text-amber-300 uppercase tracking-tighter font-mono">20-DAY</span>
+        {/* Animated Rotating Gradient Glow */}
+        <div
+          className="absolute inset-0 rounded-2xl opacity-75 blur-[3px] group-hover:opacity-100 transition-opacity"
+          style={{
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b, #8b5cf6, #06b6d4)',
+            animation: 'spin 4s linear infinite'
+          }}
+        />
+
+        {/* Inner Dark Crystal Surface */}
+        <div
+          className="relative w-full h-full rounded-[14px] flex flex-col items-center justify-center overflow-hidden"
+          style={{
+            background: 'linear-gradient(180deg, #161b2e 0%, #0a0d18 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.12)'
+          }}
+        >
+          {/* Glass Gloss Highlight */}
+          <div
+            className="absolute top-0 inset-x-0 h-1/2 opacity-30 pointer-events-none rounded-t-[14px]"
+            style={{
+              background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 100%)'
+            }}
+          />
+
+          <div className="relative flex flex-col items-center justify-center">
+            <span className="text-[24px] leading-none select-none drop-shadow-[0_2px_8px_rgba(251,191,36,0.8)] transform group-hover:scale-110 transition-transform">
+              👑
+            </span>
+            <span
+              className="text-[7.5px] font-black tracking-widest text-amber-300 uppercase mt-0.5 font-mono leading-none"
+              style={{
+                textShadow: '0 0 6px rgba(251, 191, 36, 0.8)'
+              }}
+            >
+              20-DAY
+            </span>
+          </div>
+        </div>
       </button>
     </div>
   );
