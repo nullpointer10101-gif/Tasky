@@ -22,7 +22,9 @@ import PromoCodes from './pages/PromoCodes';
 import NftHolders from './pages/NftHolders';
 import GramDeposits from './pages/GramDeposits';
 import LeaderboardRewards from './pages/LeaderboardRewards';
+import ChampionshipPayouts from './pages/ChampionshipPayouts';
 import TreasuryAndSystem from './pages/TreasuryAndSystem';
+
 
 import api from './api';
 import { Toaster } from 'react-hot-toast';
@@ -79,6 +81,7 @@ function App() {
             <Route path="gram-deposits" element={<GramDeposits />} />
             <Route path="treasury-status" element={<TreasuryAndSystem />} />
             <Route path="leaderboard-rewards" element={<LeaderboardRewards />} />
+            <Route path="championship-payouts" element={<ChampionshipPayouts />} />
 
             <Route path="users" element={<Users />} />
             <Route path="broadcast" element={<Broadcast />} />

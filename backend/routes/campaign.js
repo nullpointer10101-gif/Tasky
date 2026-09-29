@@ -521,4 +521,284 @@ router.post('/admin/approve-payout', async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/campaign/payout-preview — Admin: Get final top 30 with wallet addresses
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/payout-preview', async (req, res) => {
+  // Allow admin panel (no Telegram init data required — protected by Render's admin auth layer)
+  try {
+    const tournament = await pool.query(
+      "SELECT * FROM campaign_tournaments WHERE status IN ('ended_pending_admin_payout', 'active') ORDER BY id DESC LIMIT 1"
+    );
+    if (!tournament.rows[0]) {
+      return res.status(404).json({ error: 'No active or ended tournament found' });
+    }
+    const t = tournament.rows[0];
+
+    const winnersRes = await pool.query(`
+      SELECT 
+        u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
+        COUNT(a.id) as ads_watched
+      FROM ad_views a
+      JOIN users u ON u.telegram_id::text = a.telegram_id::text
+      WHERE a.created_at >= $1 AND a.created_at <= $2
+        AND u.is_banned = FALSE
+        AND NOT (u.telegram_id::text = ANY($3))
+      GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address
+      ORDER BY ads_watched DESC, u.telegram_id ASC
+      LIMIT 30
+    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS]);
+
+    const winners = winnersRes.rows.map((row, idx) => {
+      const rank = idx + 1;
+      const prize = getPrizeForRank(rank);
+      return {
+        rank,
+        telegram_id: row.telegram_id,
+        username: row.username || null,
+        first_name: row.first_name || 'Miner',
+        ads_watched: parseInt(row.ads_watched || 0, 10),
+        gram_wallet_address: row.gram_wallet_address || null,
+        prize_gram: prize.gram,
+        prize_tasky: prize.tasky
+      };
+    });
+
+    res.json({ success: true, tournament: t, winners });
+  } catch (err) {
+    console.error('[Campaign] payout-preview error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/campaign/distribute-prizes — Admin: bulk credit TASKY + post channel announcement
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/distribute-prizes', async (req, res) => {
+  const { customMessage = null } = req.body;
+  const client = await pool.connect();
+  try {
+    const tournamentRes = await pool.query(
+      "SELECT * FROM campaign_tournaments WHERE status = 'ended_pending_admin_payout' ORDER BY id DESC LIMIT 1"
+    );
+    if (!tournamentRes.rows[0]) {
+      return res.status(400).json({ error: 'No tournament pending payout. Tournament must be ended first.' });
+    }
+    const t = tournamentRes.rows[0];
+
+    const winnersRes = await client.query(`
+      SELECT 
+        u.telegram_id, u.username, u.first_name, u.gram_wallet_address,
+        COUNT(a.id) as ads_watched
+      FROM ad_views a
+      JOIN users u ON u.telegram_id::text = a.telegram_id::text
+      WHERE a.created_at >= $1 AND a.created_at <= $2
+        AND u.is_banned = FALSE
+        AND NOT (u.telegram_id::text = ANY($3))
+      GROUP BY u.telegram_id, u.username, u.first_name, u.gram_wallet_address
+      ORDER BY ads_watched DESC, u.telegram_id ASC
+      LIMIT 30
+    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS]);
+
+    const winners = winnersRes.rows;
+    if (winners.length === 0) {
+      return res.status(400).json({ error: 'No eligible winners found for this tournament' });
+    }
+
+    await client.query('BEGIN');
+
+    let taskyRewarded = 0;
+    let gramPendingCount = 0;
+
+    for (let i = 0; i < winners.length; i++) {
+      const w = winners[i];
+      const rank = i + 1;
+      const prize = getPrizeForRank(rank);
+
+      // Credit TASKY immediately to balance
+      await client.query(
+        `UPDATE users SET balance = COALESCE(balance,0) + $1, total_earned = COALESCE(total_earned,0) + $1 WHERE telegram_id::text = $2`,
+        [prize.tasky, String(w.telegram_id)]
+      );
+      taskyRewarded++;
+
+      // Check GRAM wallet
+      if (!w.gram_wallet_address) gramPendingCount++;
+
+      // Record payout entry
+      await client.query(`
+        INSERT INTO campaign_payouts (tournament_id, telegram_id, rank, gram_amount, tasky_amount, status, approved_at)
+        VALUES ($1, $2, $3, $4, $5, $6, NOW())
+        ON CONFLICT DO NOTHING
+      `, [
+        t.id, String(w.telegram_id), rank, prize.gram, prize.tasky,
+        w.gram_wallet_address ? 'tasky_paid_gram_pending_manual' : 'tasky_paid_gram_wallet_missing'
+      ]);
+    }
+
+    // Mark tournament as paid
+    await client.query("UPDATE campaign_tournaments SET status = 'paid' WHERE id = $1", [t.id]);
+    await client.query('COMMIT');
+
+    // Post to Tasky Payouts channel
+    let channelPost = false;
+    try {
+      const bot = require('../bot');
+      const tBot = (bot && !bot.isDummy) ? bot : null;
+      if (tBot) {
+        const channelRes = await pool.query('SELECT payout_channel_id FROM withdrawal_settings LIMIT 1');
+        const channelId = channelRes.rows[0]?.payout_channel_id || '@TaskyPayouts';
+
+        const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+        const top10 = winners.slice(0, 10);
+        const lines = top10.map((w, i) => {
+          const prize = getPrizeForRank(i + 1);
+          const handle = w.username ? `@${w.username}` : (w.first_name || 'Member');
+          return `${rankEmojis[i] || `${i+1}.`} ${handle} — <b>${prize.gram} GRAM + ${prize.tasky.toLocaleString()} TASKY</b>`;
+        }).join('\n');
+
+        const msgHtml =
+`🏆 <b>AD CHAMPIONSHIP — SEASON RESULTS!</b> 🏆
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 <b>Congratulations to our TOP GRINDERS!</b>
+Real GRAM. Real TASKY. Real payouts. Every season.
+
+<b>🔥 THIS SEASON'S WINNERS:</b>
+${lines}
+<i>…and ${winners.length > 10 ? winners.length - 10 + ' more winners' : ''} in ranks 11–30!</i>
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+💰 <b>PRIZE BREAKDOWN:</b>
+🥇 1st → <b>1.00 GRAM + 20,000 TASKY</b>
+🥈 2nd → <b>0.50 GRAM + 10,000 TASKY</b>
+🥉 3rd → <b>0.30 GRAM + 5,000 TASKY</b>
+🏅 4th–10th → <b>0.10 GRAM + 2,000 TASKY</b>
+🎖️ 11th–30th → <b>0.05 GRAM + 1,000 TASKY</b>
+
+${customMessage ? `\n💬 <i>${customMessage}</i>\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 <b>New season starting soon!</b>
+Watch ads. Climb the board. Win GRAM every week.
+<b>Your name could be here next season! 👑</b>`;
+
+        const inline_keyboard = [[
+          { text: '🏆 Watch Ads & Compete', url: 'https://t.me/TaskyAppbot/app' },
+          { text: '📊 View Results', url: 'https://t.me/TaskyAppbot/app' }
+        ]];
+
+        try {
+          const { generatePayoutCardPngBuffer } = require('../utils/payoutChannel');
+          const pngBuffer = generatePayoutCardPngBuffer({
+            amount: `${winners.length} Winners`,
+            token: 'PAID',
+            recipient: 'Ad Championship Season',
+            wallet: 'GRAM + TASKY Rewards',
+            type: 'Ad Championship Payout',
+            dateStr: new Date().toUTCString().replace('GMT', 'UTC')
+          });
+          await tBot.sendPhoto(channelId, pngBuffer, {
+            caption: msgHtml, parse_mode: 'HTML', reply_markup: { inline_keyboard }
+          }, { filename: 'championship-payout.png', contentType: 'image/png' });
+        } catch {
+          await tBot.sendMessage(channelId, msgHtml, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+        }
+        channelPost = true;
+      }
+    } catch (botErr) {
+      console.error('[Campaign] Channel post error:', botErr.message);
+    }
+
+    res.json({
+      success: true,
+      taskyRewarded,
+      gramPendingCount,
+      channelPost,
+      tournamentClosed: true,
+      total: winners.length,
+      message: `TASKY credited to ${taskyRewarded} users. ${gramPendingCount} GRAM sends pending manual action.`
+    });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('[Campaign] distribute-prizes error:', err.message);
+    res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/campaign/announce-winners — Admin: post winner announcement without paying
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/announce-winners', async (req, res) => {
+  const { customMessage = null } = req.body;
+  try {
+    const tournamentRes = await pool.query(
+      "SELECT * FROM campaign_tournaments WHERE status IN ('ended_pending_admin_payout','paid','active') ORDER BY id DESC LIMIT 1"
+    );
+    if (!tournamentRes.rows[0]) return res.status(404).json({ error: 'No tournament found' });
+    const t = tournamentRes.rows[0];
+
+    const winnersRes = await pool.query(`
+      SELECT u.telegram_id, u.username, u.first_name, COUNT(a.id) as ads_watched
+      FROM ad_views a
+      JOIN users u ON u.telegram_id::text = a.telegram_id::text
+      WHERE a.created_at >= $1 AND a.created_at <= $2
+        AND u.is_banned = FALSE AND NOT (u.telegram_id::text = ANY($3))
+      GROUP BY u.telegram_id, u.username, u.first_name
+      ORDER BY ads_watched DESC LIMIT 10
+    `, [t.start_at, t.end_at, KNOWN_FRAUD_IDS]);
+
+    const bot = require('../bot');
+    const tBot = (bot && !bot.isDummy) ? bot : null;
+    if (!tBot) return res.status(500).json({ error: 'Bot not available' });
+
+    const channelRes = await pool.query('SELECT payout_channel_id FROM withdrawal_settings LIMIT 1');
+    const channelId = channelRes.rows[0]?.payout_channel_id || '@TaskyPayouts';
+
+    const rankEmojis = ['🥇','🥈','🥉','4️⃣','5️⃣','6️⃣','7️⃣','8️⃣','9️⃣','🔟'];
+    const lines = winnersRes.rows.map((w, i) => {
+      const prize = getPrizeForRank(i + 1);
+      const handle = w.username ? `@${w.username}` : (w.first_name || 'Member');
+      return `${rankEmojis[i]} ${handle} — <b>${prize.gram} GRAM + ${prize.tasky.toLocaleString()} TASKY</b>`;
+    }).join('\n');
+
+    const msgHtml =
+`🏆 <b>AD CHAMPIONSHIP — FINAL STANDINGS!</b> 🏆
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+👑 <b>TOP 10 WINNERS THIS SEASON:</b>
+
+${lines}
+
+${customMessage ? `\n💬 <i>${customMessage}</i>\n` : ''}
+━━━━━━━━━━━━━━━━━━━━━━━━
+⚡ Prizes are being processed &amp; sent!
+Watch ads every day to compete next season. 🔥`;
+
+    const inline_keyboard = [[
+      { text: '🏆 Compete Next Season', url: 'https://t.me/TaskyAppbot/app' }
+    ]];
+
+    try {
+      const { generatePayoutCardPngBuffer } = require('../utils/payoutChannel');
+      const pngBuffer = generatePayoutCardPngBuffer({
+        amount: 'TOP 10', token: 'WINNERS',
+        recipient: 'Ad Championship', wallet: 'Season Results',
+        type: 'Championship Final Standings',
+        dateStr: new Date().toUTCString().replace('GMT', 'UTC')
+      });
+      await tBot.sendPhoto(channelId, pngBuffer, { caption: msgHtml, parse_mode: 'HTML', reply_markup: { inline_keyboard } }, { filename: 'championship-winners.png', contentType: 'image/png' });
+    } catch {
+      await tBot.sendMessage(channelId, msgHtml, { parse_mode: 'HTML', reply_markup: { inline_keyboard } });
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Campaign] announce-winners error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
+

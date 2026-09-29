@@ -55,6 +55,7 @@ export default function Layout({ setAuth }) {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/treasury-status', label: '🏦 Treasury & System', icon: Wallet },
     { path: '/leaderboard-rewards', label: '🏆 Leaderboard Rewards', icon: Trophy },
+    { path: '/championship-payouts', label: '🥇 Championship Payouts', icon: Trophy },
 
     { path: '/reactor-claims', label: '⚡ Reactor Claims', icon: Zap },
     { path: '/nft-holders', label: '✨ NFT Holders', icon: Sparkles },
