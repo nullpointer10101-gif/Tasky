@@ -658,39 +658,24 @@ router.post('/distribute-prizes', async (req, res) => {
         }).join('\n');
 
         const msgHtml =
-`👑 🏆 <b>AD CHAMPIONSHIP GRAND FINALE — WINNERS REWARDED!</b> 🏆 👑
+`👑 🏆 <b>AD CHAMPIONSHIP — GRAND FINALE!</b> 🏆 👑
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🔥 <b>THE 7-DAY BATTLE IS OVER! TOP 30 CHAMPIONS PAID!</b>
-Real GRAM. Real TASKY. Guaranteed payouts every season. 💎
+🔥 <b>TOP 30 CHAMPIONS PAID & REWARDED!</b> 💎
 
-🌟 <b>PODIUM CHAMPIONS SPOTLIGHT:</b>
-🥇 <b>#1 CHAMPION:</b> ${top10[0]?.username ? `@${top10[0].username}` : (top10[0]?.first_name || 'Champion')}
-    ⚡ <b>${top10[0]?.ads_watched?.toLocaleString()} Ads Watched</b>
-    🎁 <b>Prize: 1.00 GRAM + 20,000 TASKY</b>
-
-🥈 <b>#2 RUNNER-UP:</b> ${top10[1]?.username ? `@${top10[1].username}` : (top10[1]?.first_name || 'Runner-Up')}
-    ⚡ <b>${top10[1]?.ads_watched?.toLocaleString()} Ads Watched</b>
-    🎁 <b>Prize: 0.50 GRAM + 10,000 TASKY</b>
-
-🥉 <b>#3 BRONZE HERO:</b> ${top10[2]?.username ? `@${top10[2].username}` : (top10[2]?.first_name || 'Bronze Hero')}
-    ⚡ <b>${top10[2]?.ads_watched?.toLocaleString()} Ads Watched</b>
-    🎁 <b>Prize: 0.30 GRAM + 5,000 TASKY</b>
+🌟 <b>PODIUM WINNERS:</b>
+🥇 <b>#1:</b> ${top10[0]?.username ? `@${top10[0].username}` : (top10[0]?.first_name || 'Champion')} (<b>${parseInt(top10[0]?.ads_watched||0).toLocaleString()} ads</b>) → <b>1.00 GRAM + 20k TASKY</b>
+🥈 <b>#2:</b> ${top10[1]?.username ? `@${top10[1].username}` : (top10[1]?.first_name || 'Runner-Up')} (<b>${parseInt(top10[1]?.ads_watched||0).toLocaleString()} ads</b>) → <b>0.50 GRAM + 10k TASKY</b>
+🥉 <b>#3:</b> ${top10[2]?.username ? `@${top10[2].username}` : (top10[2]?.first_name || 'Bronze Hero')} (<b>${parseInt(top10[2]?.ads_watched||0).toLocaleString()} ads</b>) → <b>0.30 GRAM + 5k TASKY</b>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-🎖️ <b>TOP 10 FINAL LEADERBOARD:</b>
+🎖️ <b>TOP 10 STANDINGS:</b>
 ${lines}
-<i>…plus ${winners.length > 10 ? winners.length - 10 + ' more winners' : 'all contenders'} in ranks 11–30 rewarded!</i>
+<i>…plus ranks 11–30 contenders rewarded!</i>
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
-💰 <b>SEASON PRIZE POOL REWARDED:</b>
-💎 <b>3.50 GRAM + 69,000 TASKY Total Distributed!</b>
-⚡ <b>Status:</b> All TASKY credited & GRAM transfers issued! ✅
-
-${customMessage ? `\n📢 <i>${customMessage}</i>\n` : ''}
-━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 <b>NEW SEASON HAS OFFICIALLY LAUNCHED!</b>
-Grind sponsor ads daily. Climb the ranks. Win real GRAM every week!
-<b>Will YOU take the #1 Crown next season? 👑</b>`;
+💰 <b>TOTAL: 3.50 GRAM + 69,000 TASKY Distributed!</b> ✅
+${customMessage ? `📢 <i>${customMessage}</i>\n` : ''}
+🚀 <b>NEW SEASON HAS LAUNCHED! Will YOU be #1? 👑</b>`;
 
         const inline_keyboard = [
           [
