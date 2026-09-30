@@ -76,10 +76,13 @@ router.post('/play', async (req, res) => {
       });
     }
 
-    // 2. Cryptographically secure coin flip (50% Heads, 50% Tails)
-    const randomByte = crypto.randomBytes(1)[0];
-    const outcome = (randomByte % 2 === 0) ? 'heads' : 'tails';
-    const isWin = (cleanChoice === outcome);
+    // 2. Win chance: exactly 10% win chance (90% users get no reward)
+    const randomPercent = crypto.randomInt(1, 101); // 1 to 100
+    const isWin = (randomPercent <= 10); // Exactly 10% win chance
+
+    // If win: lands on player's choice. If loss (90%): lands on opposite side.
+    const oppositeSide = (cleanChoice === 'heads') ? 'tails' : 'heads';
+    const outcome = isWin ? cleanChoice : oppositeSide;
 
     let winAmount = 0;
     let houseProfit = bet;

@@ -207,7 +207,7 @@ export default function CyberFlip({ user, refreshUser }) {
         setShowDepositModal(false);
         if (refreshUser) refreshUser();
       } else {
-        showToast('⏳ No new deposit detected yet. Please wait a moment and try again.', 'info');
+        showToast('No deposit found. Make sure you included your memo comment in the transfer.', 'info');
       }
     } catch (_) {
       showToast('Connection error checking deposit. Please retry in a few seconds.', 'error');
