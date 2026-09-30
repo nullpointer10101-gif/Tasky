@@ -478,7 +478,7 @@ router.post('/deposit/auto-verify', async (req, res) => {
 
           if (matchedEvents.length === 0 || totalDepositedGram <= 0) {
             return res.status(404).json({
-              error: `No uncredited incoming deposit found for memo "${userMemo}". Make sure you transferred to ${ADMIN_WALLET} with comment "${userMemo}" and try again!`
+              error: `⏳ No new deposit detected yet. TON transfers usually take 15–30 seconds to confirm. If you just sent it, please wait a moment and tap verify again!`
             });
           }
 

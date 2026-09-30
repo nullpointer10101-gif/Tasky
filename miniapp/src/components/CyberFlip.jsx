@@ -163,13 +163,17 @@ export default function CyberFlip({ user, refreshUser }) {
     const nanoAmount = Math.round(amount * 1e9);
     const comment = encodeURIComponent(memoText);
     const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${nanoAmount}&text=${comment}`;
-    
-    if (window.Telegram?.WebApp?.openTelegramLink) {
-      window.Telegram.WebApp.openTelegramLink(tonkeeperUrl);
-    } else {
-      window.open(tonkeeperUrl, '_blank');
+
+    try {
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(tonkeeperUrl);
+      } else {
+        window.open(tonkeeperUrl, '_blank');
+      }
+    } catch (_) {
+      window.location.href = tonkeeperUrl;
     }
-    showToast('Opening Tonkeeper with pre-filled deposit...', 'success');
+    showToast(`Opening Tonkeeper for ${amount} GRAM deposit...`, 'success');
   };
 
   const copyToClipboard = (text, type) => {
@@ -195,15 +199,18 @@ export default function CyberFlip({ user, refreshUser }) {
       const { data, error } = await autoVerifyDeposit(telegramId);
       if (error) {
         showToast(error, 'error');
-      } else {
+      } else if (data?.success) {
         triggerHaptic('success');
         triggerConfetti();
-        showToast('🎉 Deposit verified & credited to your balance!', 'success');
+        const amt = data.amount_gram ? `+${data.amount_gram} GRAM ` : '';
+        showToast(`🎉 Deposit Verified! ${amt}added to your balance!`, 'success');
         setShowDepositModal(false);
         if (refreshUser) refreshUser();
+      } else {
+        showToast('⏳ No new deposit detected yet. Please wait a moment and try again.', 'info');
       }
     } catch (_) {
-      showToast('Error verifying deposit. Please retry in 1 minute.', 'error');
+      showToast('Connection error checking deposit. Please retry in a few seconds.', 'error');
     } finally {
       setVerifyingDeposit(false);
     }
