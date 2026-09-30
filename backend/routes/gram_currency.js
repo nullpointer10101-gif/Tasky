@@ -36,6 +36,23 @@ async function getUserMaxWithdrawalLimit(telegramId, dbClient = pool) {
                 maxLimit = Math.max(maxLimit, 0.03); // Mini Miner -> 0.03
             }
         }
+
+        // Check if user has deposited GRAM
+        const depRes = await dbClient.query(`
+            SELECT COALESCE(SUM(amount_gram), 0) as total_deposited
+            FROM gram_deposits
+            WHERE telegram_id::text = $1::text AND status = 'approved'
+        `, [telegramId]);
+        const totalDeposited = parseFloat(depRes.rows[0]?.total_deposited || 0);
+
+        if (totalDeposited >= 10.0) {
+            maxLimit = Math.max(maxLimit, 10.0);
+        } else if (totalDeposited >= 5.0) {
+            maxLimit = Math.max(maxLimit, 5.0);
+        } else if (totalDeposited >= 2.0) {
+            maxLimit = Math.max(maxLimit, 2.5);
+        }
+
         return maxLimit;
     } catch (err) {
         console.error('Error fetching user NFT max withdrawal limit:', err);

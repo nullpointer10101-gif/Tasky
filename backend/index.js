@@ -269,6 +269,7 @@ app.use('/api/reactor', require('./routes/reactor'));
 app.use('/api/campaign', require('./routes/campaign'));
 app.use('/api/admin/campaign', require('./routes/campaign'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/flip', require('./routes/flip'));
 
 // Always start Express first — DB failure won't block the UI
 

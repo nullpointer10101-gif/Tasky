@@ -186,6 +186,16 @@ export const getMyNftCards = withMock({ success: true, cards: [] }, (telegram_id
 export const claimNftYield = withMock({ success: true, message: 'Claimed successfully' }, (telegram_id, instance_id) => () => api.post('/api/nft/claim-yield', { telegram_id, instance_id }))
 export const autoVerifyDeposit = withMock({ success: true, message: 'Deposit verified' }, (telegram_id, tx_hash) => () => api.post('/api/nft/deposit/auto-verify', { telegram_id, tx_hash }))
 
+// --- CYBER FLIP (HEADS OR TAILS) ---
+export const playFlip = withMock(
+  { success: true, outcome: 'heads', is_win: true, win_amount: 3.80, new_balance: 10.0 },
+  (telegram_id, bet_amount, choice) => () => api.post('/api/flip/play', { telegram_id, bet_amount, choice })
+)
+export const getFlipStats = withMock(
+  { user: { total_flips: 0, win_rate: 0, history: [] }, live_feed: [], platform: { total_flips: 0 } },
+  (telegram_id) => () => api.get(`/api/flip/stats/${telegram_id}`)
+)
+
 export const getMySubmissions = withMock(mockData.getMySubmissions, (id) => () => api.get(`/api/tasks/my-submissions/${id}`))
 export const getWithdrawalSettings = withMock(mockData.getWithdrawalSettings, () => () => api.get('/api/withdrawal/settings'))
 export const requestWithdrawal = withMock({ success: true }, (body) => async () => {

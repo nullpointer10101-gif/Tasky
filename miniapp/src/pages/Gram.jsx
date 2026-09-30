@@ -34,7 +34,7 @@ function getProgressColor(count, total = 80) {
   return 'from-indigo-400 to-purple-500';
 }
 
-export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
+export default function Gram({ user, refreshUser, onOpenTournamentModal, navigate }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [watchingProvider, setWatchingProvider] = useState(null); // 'gigapub' | 'monetag' | null
@@ -425,6 +425,39 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal }) {
           </div>
         </div>
         <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 group-hover:bg-amber-500/40 transition-all shrink-0">
+          <ChevronRight size={18} />
+        </div>
+      </motion.div>
+
+      {/* ── CYBER FLIP BANNER ── */}
+      <motion.div
+        whileTap={{ scale: 0.97 }}
+        onClick={() => navigate && navigate('play')}
+        className="relative overflow-hidden rounded-2xl p-4 text-white cursor-pointer transition-all flex items-center justify-between group border border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.2)]"
+        style={{ background: 'linear-gradient(135deg, #091e3a 0%, #061226 50%, #15092a 100%)' }}
+      >
+        <div className="flex items-center gap-3.5 relative z-10">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-cyan-500/30 to-blue-600/30 border border-cyan-400/40 flex items-center justify-center text-cyan-300 shrink-0 shadow-md">
+            <Coins size={24} className="animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+              <span className="text-[9px] font-black uppercase tracking-wider bg-gradient-to-r from-cyan-400 to-blue-500 text-black px-2 py-0.5 rounded-full font-mono shadow-sm">
+                ⚡ 1.90X INSTANT
+              </span>
+              <span className="text-[9px] font-black bg-purple-950/80 text-purple-300 border border-purple-500/40 px-2 py-0.5 rounded-full font-mono">
+                50/50 COIN FLIP
+              </span>
+            </div>
+            <h3 className="text-sm font-black text-white flex items-center gap-1">
+              Cyber Flip (Heads or Tails) 🪙
+            </h3>
+            <p className="text-[11px] text-cyan-200/90 font-medium">
+              Bet 2+ GRAM & multiply your crypto in 3 seconds!
+            </p>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center text-cyan-300 group-hover:bg-cyan-500/40 transition-all shrink-0">
           <ChevronRight size={18} />
         </div>
       </motion.div>
