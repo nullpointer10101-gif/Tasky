@@ -9,8 +9,8 @@ const NAV_ITEMS = [
   { id: 'rig',      key: 'nav.rig',      Icon: Gem },
   { id: 'play',     key: 'Play',         Icon: Gamepad2 },
   { id: 'tasks',    key: 'nav.tasks',    Icon: ListChecks },
-  { id: 'gram',     key: 'Gram',         Icon: Coins },
-  { id: 'nft',      key: 'NFTs',         Icon: Sparkles },
+  { id: 'gram',     key: 'Gram',         Icon: Sparkles },
+  { id: 'flip',     key: 'Flip',         Icon: Coins },
   { id: 'referral', key: 'nav.referral', Icon: Users },
   { id: 'wallet',   key: 'nav.wallet',   Icon: Wallet },
 ]
@@ -72,8 +72,8 @@ export default function BottomNav({ active, onChange, user }) {
                 {id === 'gram' && showDot && (
                   <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-surface shadow-sm animate-pulse" />
                 )}
-                {id === 'nft' && (
-                  <span className="absolute -top-1 -right-1.5 w-2.5 h-2.5 bg-gradient-to-r from-amber-400 to-orange-400 rounded-full border border-surface shadow-[0_0_8px_rgba(251,191,36,0.9)] animate-pulse" />
+                {id === 'flip' && (
+                  <span className="absolute -top-1 -right-1.5 w-2 h-2 bg-rose-500 rounded-full border border-surface shadow-[0_0_8px_rgba(244,63,94,0.9)] animate-pulse" />
                 )}
               </div>
 
