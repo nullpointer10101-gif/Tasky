@@ -26,7 +26,6 @@ export default function CyberFlip({ user, refreshUser }) {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
-  const [txHashInput, setTxHashInput] = useState('');
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
 
   const telegramId = user?.telegram_id;
@@ -193,7 +192,7 @@ export default function CyberFlip({ user, refreshUser }) {
     triggerHaptic('medium');
 
     try {
-      const { data, error } = await autoVerifyDeposit(telegramId, txHashInput);
+      const { data, error } = await autoVerifyDeposit(telegramId);
       if (error) {
         showToast(error, 'error');
       } else {
@@ -201,7 +200,6 @@ export default function CyberFlip({ user, refreshUser }) {
         triggerConfetti();
         showToast('🎉 Deposit verified & credited to your balance!', 'success');
         setShowDepositModal(false);
-        setTxHashInput('');
         if (refreshUser) refreshUser();
       }
     } catch (_) {
@@ -724,27 +722,23 @@ export default function CyberFlip({ user, refreshUser }) {
               </div>
 
               {/* Instant Auto-Verifier */}
-              <div className="pt-2 border-t border-white/10 space-y-2">
-                <input
-                  type="text"
-                  placeholder="Paste Tx Hash (Optional)"
-                  value={txHashInput}
-                  onChange={(e) => setTxHashInput(e.target.value)}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl py-2 px-3 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
-                />
+              <div className="pt-2 border-t border-white/10 space-y-1.5">
+                <p className="text-[10px] text-white/50 text-center">
+                  Once your transfer is sent, tap below to check & credit your balance:
+                </p>
                 <motion.button
                   onClick={handleAutoVerify}
                   disabled={verifyingDeposit}
                   whileTap={{ scale: 0.98 }}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.3)] transition-all"
                 >
                   {verifyingDeposit ? (
                     <>
-                      <RefreshCw size={13} className="animate-spin" /> Verifying...
+                      <RefreshCw size={14} className="animate-spin" /> Checking Blockchain...
                     </>
                   ) : (
                     <>
-                      <Zap size={13} /> Verify Deposit ⚡
+                      <Zap size={14} /> Check & Credit Deposit ⚡
                     </>
                   )}
                 </motion.button>
