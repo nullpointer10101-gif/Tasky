@@ -2191,9 +2191,14 @@ router.post('/gram/claims/review', async (req, res) => {
 // Global tracking variables for broadcasts
 global.promoBroadcast = null;
 global.nftBroadcast = null;
+global.flipBroadcast = null;
 global.customBroadcast = null;
 global.gramReminderBroadcast = null;
 let cachedBannerPhotoId = null;
+
+router.get('/broadcast/flip-status', (req, res) => {
+  res.json(global.flipBroadcast || null);
+});
 
 router.get('/broadcast/promo-status', (req, res) => {
   res.json(global.promoBroadcast);
@@ -2245,6 +2250,7 @@ router.post('/broadcast/toggle-auto-gram', async (req, res) => {
 router.post('/broadcast/cancel/:type', (req, res) => {
   const { type } = req.params;
   const map = {
+    flip: 'flipBroadcast',
     nft: 'nftBroadcast',
     promo: 'promoBroadcast',
     gram: 'gramReminderBroadcast',
@@ -2279,6 +2285,92 @@ router.get('/broadcast/diagnostics', (req, res) => {
     nft_banner_path_exists: require('fs').existsSync(require('path').join(__dirname, '../public/uploads/nft_banner_official.jpg')),
     last_nft_broadcast: global.nftBroadcast || null
   });
+});
+
+router.post('/broadcast/flip', async (req, res) => {
+  const { message, target, button_text } = req.body;
+  if (!message) return res.status(400).json({ error: 'Message content is required' });
+
+  if (global.flipBroadcast && global.flipBroadcast.status === 'running') {
+    return res.status(400).json({ error: 'Another Cyber Flip broadcast is currently in progress.' });
+  }
+
+  try {
+    const adminIds = ['8823265955'];
+    if (process.env.ADMIN_TELEGRAM_ID && !adminIds.includes(process.env.ADMIN_TELEGRAM_ID)) {
+      adminIds.push(process.env.ADMIN_TELEGRAM_ID);
+    }
+    let targets = [];
+    if (target === 'admin') {
+      targets = adminIds;
+    } else {
+      const usersRes = await pool.query('SELECT telegram_id FROM users WHERE is_banned = false AND telegram_id IS NOT NULL');
+      targets = usersRes.rows.map(r => r.telegram_id);
+    }
+
+    console.log(`[FLIP BROADCAST] Target: ${target}, Count: ${targets.length}`);
+
+    global.flipBroadcast = {
+      target,
+      total: targets.length,
+      success: 0,
+      failed: 0,
+      status: 'running',
+      currentIdx: 0,
+      startTime: Date.now()
+    };
+
+    setImmediate(async () => {
+      const BATCH_SIZE = 25;
+      const activeBot = getActiveTelegramBot();
+      if (!activeBot) {
+        if (global.flipBroadcast) {
+          global.flipBroadcast.status = 'failed';
+          global.flipBroadcast.lastError = 'Telegram Bot token not provided on server';
+        }
+        return;
+      }
+
+      const replyMarkup = {
+        inline_keyboard: [
+          [{ text: button_text || '🪙 Play Cyber Flip (1.90X) Now ⚡', web_app: { url: 'https://tasky-v3.vercel.app' } }]
+        ]
+      };
+
+      for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+        if (global.flipBroadcast && global.flipBroadcast.status === 'cancelled') break;
+
+        const batch = targets.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (tid) => {
+          try {
+            await sendWithRetry(() => activeBot.sendMessage(tid, message, {
+              parse_mode: 'HTML',
+              reply_markup: replyMarkup
+            }));
+            if (global.flipBroadcast) global.flipBroadcast.success++;
+          } catch (err) {
+            if (global.flipBroadcast) {
+              global.flipBroadcast.failed++;
+              global.flipBroadcast.lastError = err.message;
+            }
+          }
+        }));
+
+        if (global.flipBroadcast) {
+          global.flipBroadcast.currentIdx = Math.min(targets.length, i + BATCH_SIZE);
+        }
+        await new Promise(r => setTimeout(r, 60));
+      }
+
+      if (global.flipBroadcast && global.flipBroadcast.status !== 'cancelled') {
+        global.flipBroadcast.status = 'done';
+      }
+    });
+
+    res.json({ success: true, message: `Started Cyber Flip broadcast to ${targets.length} targets.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.post('/broadcast/nft', async (req, res) => {

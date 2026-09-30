@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import toast from 'react-hot-toast';
-import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem, Clock, Play, CheckCircle, Zap } from 'lucide-react';
+import { Send, AlertTriangle, Code, RefreshCw, Gift, Rocket, Image as ImageIcon, Gem, Clock, Play, CheckCircle, Zap, Coins } from 'lucide-react';
 
 const StatusWidget = ({ status, themeColor = 'purple', onCancel, type }) => {
   if (!status) return null;
@@ -115,11 +115,12 @@ export default function Broadcast() {
   const [promoStatus, setPromoStatus] = useState(null);
   const [isBroadcastingPromo, setIsBroadcastingPromo] = useState(false);
 
-  // NFT Miners Launch Broadcast State
-  const [nftTarget, setNftTarget] = useState('admin'); // 'admin' or 'all'
-  const [nftStatus, setNftStatus] = useState(null);
-  const [isBroadcastingNft, setIsBroadcastingNft] = useState(false);
-  const [nftTemplateIndex, setNftTemplateIndex] = useState(0);
+  // Cyber Flip (Heads or Tails) Broadcast State
+  const [flipTarget, setFlipTarget] = useState('admin'); // 'admin' or 'all'
+  const [flipStatus, setFlipStatus] = useState(null);
+  const [isBroadcastingFlip, setIsBroadcastingFlip] = useState(false);
+  const [flipTemplateIndex, setFlipTemplateIndex] = useState(0);
+  const [flipButtonText, setFlipButtonText] = useState('🪙 Play Cyber Flip (1.90X) Now ⚡');
 
   // GRAM Currency Broadcast State
   const [gramTarget, setGramTarget] = useState('admin'); // 'admin' or 'all'
@@ -129,43 +130,26 @@ export default function Broadcast() {
   const [autoGramSettings, setAutoGramSettings] = useState(null);
   const [isTogglingAutoGram, setIsTogglingAutoGram] = useState(false);
 
-  const bannerOptions = [
+  const flipTemplates = [
     {
-      id: 'official',
-      label: '🖼️ Official NFT Miners Promo Banner (0.7 & 1.5 GRAM)',
-      url: 'https://tasky3.onrender.com/uploads/nft_banner_official.jpg'
+      label: 'Variant 1: 1.90X Game Launch 🪙',
+      text: `🚀 <b>NEW GAME LAUNCH: CYBER FLIP (HEADS OR TAILS)!</b> 🪙\n\nTasky family, multiply your GRAM in just 3 seconds!\n\n🎲 <b>How to Play:</b>\n1. Pick <b>HEADS</b> or <b>TAILS</b>\n2. Bet 2+ GRAM\n3. Win <b>1.90X instant payout</b> directly into your balance!\n\n💎 <b>Instant Deposit via Tonkeeper:</b> 1-tap top up & auto-verification!\n\n👉 <b>Tap below to flip your coin now:</b>`
     },
     {
-      id: 'none',
-      label: '🚫 No Image (Text Only)',
-      url: null
+      label: 'Variant 2: Instant Payout Urgency 🔥',
+      text: `🔥 <b>TEST YOUR LUCK: 1.90X INSTANT FLIP IS LIVE!</b> 🚀\n\nMultiply your crypto right now inside the Tasky Mini App!\n\n• <b>Instant 3-second rounds</b>\n• <b>1.90X Payout</b> on every win\n• Starts from just <b>2 GRAM</b>\n\n⚡️ <b>Tap below and make your first flip:</b>`
+    },
+    {
+      label: 'Variant 3: Short & High-Converting 🎯',
+      text: `🪙 <b>HEADS OR TAILS? WIN 1.90X NOW!</b> 💎\n\nCyber Flip is officially live on Tasky! Pick your side, place your bet, and collect instant GRAM winnings directly.\n\n👇 <b>Play Cyber Flip Now:</b>`
+    },
+    {
+      label: 'Variant 4: Custom Message ✍️',
+      text: `🪙 <b>CYBER FLIP SPECIAL ANNOUNCEMENT</b> ⚡️\n\nWrite your custom announcement message here...`
     }
   ];
 
-  const [selectedImageUrl, setSelectedImageUrl] = useState(bannerOptions[0].url);
-
-  const nftTemplates = [
-    {
-      label: 'Variant 1: High Yield Launch ⚡️',
-      text: `🚀 <b>NEW FEATURE LAUNCH: TASKY NFT MINERS!</b> 💎\n\nTasky family, buy limited <b>Tasky NFT Digital Miners</b> and earn guaranteed daily GRAM returns!\n\n🚀 <b>Tasky Turbo Miner #02:</b> 1.0 GRAM ➔ 1.5 GRAM Total Return (10 Days)\n⚡️ <b>Tasky Mini Miner #01:</b> 0.5 GRAM ➔ 0.7 GRAM Total Return (10 Days)\n\n💎 <b>Instant Pay via Tonkeeper:</b> Direct 1-tap TON/GRAM deposit & instant on-chain verification!\n\n👉 <b>Tap below to claim your NFT Miner now:</b>`
-    },
-    {
-      label: 'Variant 2: Passive Daily Income 📈',
-      text: `🔥 <b>EARN PASSIVE GRAM EVERY DAY FOR 10 DAYS!</b> 🎁\n\nUnlock your personal Tasky NFT Miner and start mining daily GRAM rewards automatically!\n\n• <b>1.0 GRAM Turbo Miner:</b> Pays <b>+0.15 GRAM/day</b> for 10 Days (1.5 GRAM Total!)\n• <b>0.5 GRAM Mini Miner:</b> Pays <b>+0.07 GRAM/day</b> for 10 Days (0.7 GRAM Total!)\n\n⚡️ Transfer via Tonkeeper with zero admin wait time!\n\n💎 <b>Start Mining Today:</b>`
-    },
-    {
-      label: 'Variant 3: Limited Stock Urgency 🚨',
-      text: `🚨 <b>LIMITED NFT MINERS AVAILABLE - ACT FAST!</b> ⚡️\n\nOnly <b>100 Tasky NFT Miners</b> were generated for Season 2 launch!\n\n💰 Own a miner today to earn up to <b>1.5 GRAM</b> returned directly to your vault balance!\n\n👉 <b>Secure Your NFT Miner Before Stock Runs Out:</b>`
-    },
-    {
-      label: 'Variant 4: Buy Once, Earn Daily 🏆',
-      text: `🏆 <b>BUY ONCE. EARN GRAM DAILY FOR 10 DAYS!</b> 💎\n\nPurchase limited Tasky NFT miners to automatically generate guaranteed daily GRAM returns directly to your vault balance.\n\n✨ <b>140% Guaranteed ROI</b> over 10 days!\n\n👉 <b>Open Tasky & Activate Your Miner Now:</b>`
-    },
-    {
-      label: 'Variant 5: Custom Message ✍️',
-      text: `🚀 <b>TASKY SPECIAL ANNOUNCEMENT</b> 💎\n\nWrite your custom announcement message here...`
-    }
-  ];
+  const [flipCustomText, setFlipCustomText] = useState(flipTemplates[0].text);
 
   const gramTemplates = [
     {
@@ -202,21 +186,19 @@ export default function Broadcast() {
     }
   ];
 
-  const [nftCustomText, setNftCustomText] = useState(nftTemplates[0].text);
-
   const fetchAllStatuses = async () => {
     try {
-      const [nftRes, promoRes, gramRes, customRes, autoGramRes] = await Promise.allSettled([
-        api.get('/broadcast/nft-status'),
+      const [flipRes, promoRes, gramRes, customRes, autoGramRes] = await Promise.allSettled([
+        api.get('/broadcast/flip-status'),
         api.get('/broadcast/promo-status'),
         api.get('/broadcast/gram-reminder-status'),
         api.get('/broadcast/custom-status'),
         api.get('/broadcast/auto-gram-status')
       ]);
 
-      if (nftRes.status === 'fulfilled') {
-        setNftStatus(nftRes.value.data);
-        setIsBroadcastingNft(nftRes.value.data?.status === 'running');
+      if (flipRes.status === 'fulfilled') {
+        setFlipStatus(flipRes.value.data);
+        setIsBroadcastingFlip(flipRes.value.data?.status === 'running');
       }
       if (promoRes.status === 'fulfilled') {
         setPromoStatus(promoRes.value.data);
@@ -239,10 +221,10 @@ export default function Broadcast() {
   // Heartbeat background sync
   useEffect(() => {
     fetchAllStatuses();
-    const anyRunning = isBroadcastingNft || isBroadcastingPromo || isBroadcastingGram || isBroadcastingCustom;
+    const anyRunning = isBroadcastingFlip || isBroadcastingPromo || isBroadcastingGram || isBroadcastingCustom;
     const interval = setInterval(fetchAllStatuses, anyRunning ? 1500 : 30000);
     return () => clearInterval(interval);
-  }, [isBroadcastingNft, isBroadcastingPromo, isBroadcastingGram, isBroadcastingCustom]);
+  }, [isBroadcastingFlip, isBroadcastingPromo, isBroadcastingGram, isBroadcastingCustom]);
 
   const handleCancel = async (type) => {
     if (!window.confirm(`Stop and cancel the ${type.toUpperCase()} broadcast?`)) return;
@@ -255,9 +237,9 @@ export default function Broadcast() {
     }
   };
 
-  const handleSelectNftTemplate = (idx) => {
-    setNftTemplateIndex(idx);
-    setNftCustomText(nftTemplates[idx].text);
+  const handleSelectFlipTemplate = (idx) => {
+    setFlipTemplateIndex(idx);
+    setFlipCustomText(flipTemplates[idx].text);
   };
 
   const handleSendCustom = async () => {
@@ -323,38 +305,38 @@ export default function Broadcast() {
     }
   };
 
-  const handleSendNft = async () => {
-    if (!nftCustomText.trim()) {
-      toast.error('NFT message content cannot be empty');
+  const handleSendFlip = async () => {
+    if (!flipCustomText.trim()) {
+      toast.error('Cyber Flip message content cannot be empty');
       return;
     }
 
-    const confirmMsg = nftTarget === 'admin'
-      ? 'Send NFT Miners Broadcast preview to ADMIN ONLY (8823265955)?'
-      : 'Broadcast NFT Miners announcement to ALL active users?';
+    const confirmMsg = flipTarget === 'admin'
+      ? 'Send Cyber Flip Broadcast preview to ADMIN ONLY (8823265955)?'
+      : 'Broadcast Cyber Flip announcement to ALL active users?';
 
     if (!window.confirm(confirmMsg)) return;
 
     try {
-      setNftStatus({
-        target: nftTarget,
+      setFlipStatus({
+        target: flipTarget,
         total: 0,
         success: 0,
         failed: 0,
         status: 'running',
         currentIdx: 0
       });
-      setIsBroadcastingNft(true);
-      await api.post('/broadcast/nft', { 
-        message: nftCustomText, 
-        target: nftTarget,
-        image_url: selectedImageUrl
+      setIsBroadcastingFlip(true);
+      await api.post('/broadcast/flip', { 
+        message: flipCustomText, 
+        target: flipTarget,
+        button_text: flipButtonText
       });
-      toast.success('NFT Miners broadcast started!');
+      toast.success('Cyber Flip broadcast started!');
     } catch (error) {
-      toast.error(error.response?.data?.error || 'Failed to start NFT broadcast');
-      setIsBroadcastingNft(false);
-      setNftStatus(null);
+      toast.error(error.response?.data?.error || 'Failed to start Cyber Flip broadcast');
+      setIsBroadcastingFlip(false);
+      setFlipStatus(null);
     }
   };
 
@@ -421,21 +403,21 @@ export default function Broadcast() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
-        {/* CARD 1: NFT DIGITAL MINERS LAUNCH BROADCASTER */}
+        {/* CARD 1: CYBER FLIP (HEADS OR TAILS) BROADCASTER */}
         <div className="flex flex-col gap-4">
-          <div className="bg-purple-500/10 border border-purple-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-purple-500/5">
-            <div className="w-9 h-9 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-400 shrink-0 font-bold">
-              <Rocket size={18} />
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-3xl p-4 flex gap-3 items-start shadow-sm shadow-amber-500/5">
+            <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 shrink-0 font-bold">
+              <Coins size={18} />
             </div>
             <div>
-              <h3 className="text-purple-400 font-bold mb-0.5 text-sm leading-tight">✨ NFT Miners Broadcaster</h3>
-              <p className="text-purple-400/80 text-[11px]">
-                Announce new NFT Miners with attached promo banners and deposit links.
+              <h3 className="text-amber-400 font-bold mb-0.5 text-sm leading-tight">🪙 Cyber Flip (1.90X) Broadcaster</h3>
+              <p className="text-amber-400/80 text-[11px]">
+                Broadcast 1.90X instant payout Cyber Flip coin toss launch with direct Mini App deep link.
               </p>
             </div>
           </div>
 
-          <div className="bg-surface-soft border border-purple-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 relative overflow-hidden flex-1 flex flex-col justify-between space-y-4">
+          <div className="bg-surface-soft border border-amber-500/30 rounded-3xl p-5 shadow-xl shadow-black/20 relative overflow-hidden flex-1 flex flex-col justify-between space-y-4">
             <div className="space-y-4">
               
               {/* Target Selector */}
@@ -446,10 +428,10 @@ export default function Broadcast() {
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    onClick={() => setNftTarget('admin')}
+                    onClick={() => setFlipTarget('admin')}
                     className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
-                      nftTarget === 'admin'
-                        ? 'bg-purple-600 text-white border-purple-400 shadow-md'
+                      flipTarget === 'admin'
+                        ? 'bg-amber-500 text-black border-amber-400 shadow-md font-black'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
                     }`}
                   >
@@ -457,10 +439,10 @@ export default function Broadcast() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setNftTarget('all')}
+                    onClick={() => setFlipTarget('all')}
                     className={`py-2 px-2.5 rounded-xl text-[11px] font-black border transition-all ${
-                      nftTarget === 'all'
-                        ? 'bg-purple-600 text-white border-purple-400 shadow-md'
+                      flipTarget === 'all'
+                        ? 'bg-amber-500 text-black border-amber-400 shadow-md font-black'
                         : 'bg-black/30 text-ink-soft border-white/10 hover:text-white'
                     }`}
                   >
@@ -469,51 +451,35 @@ export default function Broadcast() {
                 </div>
               </div>
 
-              {/* Banner Image Selector */}
+              {/* Button Text Selector */}
               <div>
                 <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5 flex items-center gap-1">
-                  <ImageIcon size={12} className="text-amber-400" />
-                  2. Banner Image
+                  <Zap size={12} className="text-amber-400" />
+                  2. Telegram Inline Button Text
                 </label>
-                <div className="space-y-1.5">
-                  {bannerOptions.map((opt) => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => setSelectedImageUrl(opt.url)}
-                      className={`w-full flex items-center justify-between p-2 rounded-xl border text-[11px] font-bold transition-all ${
-                        selectedImageUrl === opt.url
-                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
-                          : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
-                      }`}
-                    >
-                      <span className="truncate pr-1">{opt.label}</span>
-                      {opt.url && (
-                        <img
-                          src={opt.url}
-                          alt="preview"
-                          className="w-10 h-7 rounded-md object-cover border border-white/20 shrink-0"
-                        />
-                      )}
-                    </button>
-                  ))}
-                </div>
+                <input
+                  type="text"
+                  value={flipButtonText}
+                  onChange={(e) => setFlipButtonText(e.target.value)}
+                  placeholder="Button Label..."
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl px-3 py-2 text-ink text-xs font-semibold focus:outline-none focus:border-amber-500"
+                />
               </div>
 
               {/* Variant Selector */}
               <div>
                 <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
-                  3. Text Variant
+                  3. Text Template Variant
                 </label>
                 <div className="space-y-1">
-                  {nftTemplates.map((t, idx) => (
+                  {flipTemplates.map((t, idx) => (
                     <button
                       key={idx}
                       type="button"
-                      onClick={() => handleSelectNftTemplate(idx)}
+                      onClick={() => handleSelectFlipTemplate(idx)}
                       className={`w-full text-left py-1.5 px-2.5 rounded-xl text-[11px] font-bold border transition-all ${
-                        nftTemplateIndex === idx
-                          ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                        flipTemplateIndex === idx
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                           : 'bg-black/20 text-ink-soft border-white/5 hover:text-white'
                       }`}
                     >
@@ -526,28 +492,28 @@ export default function Broadcast() {
               {/* Message Editor */}
               <div>
                 <label className="text-[11px] font-bold text-ink-soft uppercase tracking-wider block mb-1.5">
-                  4. Caption Editor (HTML)
+                  4. Message Content (HTML Supported)
                 </label>
                 <textarea
-                  value={nftCustomText}
-                  onChange={(e) => setNftCustomText(e.target.value)}
+                  value={flipCustomText}
+                  onChange={(e) => setFlipCustomText(e.target.value)}
                   rows={4}
-                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-[11px] font-mono focus:outline-none focus:border-purple-500 resize-none"
+                  className="w-full bg-[#0a0f1c] border border-border/50 rounded-xl p-3 text-ink text-[11px] font-mono focus:outline-none focus:border-amber-500 resize-none"
                 />
               </div>
 
               {/* Live Status Widget */}
-              <StatusWidget status={nftStatus} themeColor="purple" onCancel={handleCancel} type="nft" />
+              <StatusWidget status={flipStatus} themeColor="amber" onCancel={handleCancel} type="flip" />
             </div>
 
             {/* Action Button */}
             <button
-              onClick={handleSendNft}
-              disabled={isBroadcastingNft || !nftCustomText.trim()}
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 disabled:opacity-50 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-purple-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
+              onClick={handleSendFlip}
+              disabled={isBroadcastingFlip || !flipCustomText.trim()}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:opacity-95 disabled:opacity-50 text-black font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
             >
-              {isBroadcastingNft ? <RefreshCw size={14} className="animate-spin" /> : <Send size={14} />}
-              <span>{nftTarget === 'admin' ? 'Test NFT Broadcast (Admin)' : 'Broadcast NFT to ALL'}</span>
+              {isBroadcastingFlip ? <RefreshCw size={14} className="animate-spin text-black" /> : <Send size={14} className="text-black" />}
+              <span>{flipTarget === 'admin' ? 'Test Flip Broadcast (Admin)' : 'Broadcast Flip to ALL'}</span>
             </button>
           </div>
         </div>
