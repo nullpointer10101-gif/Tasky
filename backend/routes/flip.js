@@ -229,6 +229,56 @@ router.get('/stats/:telegram_id(\\d+)', async (req, res) => {
       };
     });
 
+    // Realistic community feed simulation if real flips are low
+    const SIMULATED_PLAYERS = [
+      '@ton_***77', 'Alex***', '@cry***ox', '@kaz***01', '@sam***dev',
+      '@vip***99', 'Dmit***', '@roma***12', 'Vital***', '@coin***44',
+      'Max***ton', '@star***88', 'Elena***', '@pro***flip', '@gram***whales',
+      'Igor***', '@ton_***king', 'Oleg***', '@lucky***7', '@cyber***x'
+    ];
+
+    const SIMULATED_TEMPLATES = [
+      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 1.2 },
+      { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 3.1 },
+      { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 5.4 },
+      { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 7.8 },
+      { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 10.5 },
+      { bet: 5.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 14.2 },
+      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 18.0 },
+      { bet: 10.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 23.5 },
+      { bet: 2.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 29.8 },
+      { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 37.0 },
+      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 46.2 },
+      { bet: 5.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 58.0 },
+      { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 72.5 },
+      { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 91.0 },
+      { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 115.0 }
+    ];
+
+    const now = Date.now();
+    const enrichedFeed = [...liveFeed];
+
+    for (let i = enrichedFeed.length; i < 15; i++) {
+      const tpl = SIMULATED_TEMPLATES[i % SIMULATED_TEMPLATES.length];
+      const player = SIMULATED_PLAYERS[i % SIMULATED_PLAYERS.length];
+      const createdAt = new Date(now - tpl.mins * 60 * 1000).toISOString();
+      const winAmount = tpl.is_win ? parseFloat((tpl.bet * 1.90).toFixed(2)) : 0;
+
+      enrichedFeed.push({
+        id: `sim_${i}_${Math.floor(now / 180000)}`,
+        player,
+        bet_amount: tpl.bet,
+        choice: tpl.choice,
+        outcome: tpl.outcome,
+        is_win: tpl.is_win,
+        win_amount: winAmount,
+        created_at: createdAt
+      });
+    }
+
+    // Sort descending by created_at so 1m ago is at the top
+    enrichedFeed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
     // 4. Platform aggregates
     const platformRes = await pool.query(`
       SELECT 
@@ -237,6 +287,9 @@ router.get('/stats/:telegram_id(\\d+)', async (req, res) => {
         COALESCE(SUM(win_amount), 0) as platform_total_paid
       FROM gram_flips
     `);
+
+    const realPlatformFlips = parseInt(platformRes.rows[0].platform_total_flips || 0, 10);
+    const displayPlatformFlips = realPlatformFlips > 0 ? realPlatformFlips + 1280 : 1280;
 
     res.json({
       user: {
@@ -257,11 +310,11 @@ router.get('/stats/:telegram_id(\\d+)', async (req, res) => {
           created_at: r.created_at
         }))
       },
-      live_feed: liveFeed,
+      live_feed: enrichedFeed,
       platform: {
-        total_flips: parseInt(platformRes.rows[0].platform_total_flips || 0, 10),
-        total_wagered: parseFloat(platformRes.rows[0].platform_total_wagered || 0),
-        total_paid: parseFloat(platformRes.rows[0].platform_total_paid || 0)
+        total_flips: displayPlatformFlips,
+        total_wagered: parseFloat(platformRes.rows[0].platform_total_wagered || 0) + 3840.0,
+        total_paid: parseFloat(platformRes.rows[0].platform_total_paid || 0) + 3520.0
       }
     });
 

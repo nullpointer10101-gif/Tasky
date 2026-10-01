@@ -13,6 +13,59 @@ const MIN_BET = 2.0;
 const MULTIPLIER = 1.90;
 const DEPOSIT_WALLET = 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
 
+const SIMULATED_PLAYERS = [
+  '@ton_***77', 'Alex***', '@cry***ox', '@kaz***01', '@sam***dev',
+  '@vip***99', 'Dmit***', '@roma***12', 'Vital***', '@coin***44',
+  'Max***ton', '@star***88', 'Elena***', '@pro***flip', '@gram***whales',
+  'Igor***', '@ton_***king', 'Oleg***', '@lucky***7', '@cyber***x'
+];
+
+const DEFAULT_FEED_TEMPLATES = [
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 1.2 },
+  { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 3.1 },
+  { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 5.4 },
+  { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 7.8 },
+  { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 10.5 },
+  { bet: 5.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 14.2 },
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 18.0 },
+  { bet: 10.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 23.5 },
+  { bet: 2.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 29.8 },
+  { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 37.0 },
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 46.2 },
+  { bet: 5.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 58.0 },
+  { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 72.5 },
+  { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 91.0 },
+  { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 115.0 }
+];
+
+function generateClientFallbackFeed() {
+  const now = Date.now();
+  return DEFAULT_FEED_TEMPLATES.map((tpl, i) => ({
+    id: `cl_sim_${i}`,
+    player: SIMULATED_PLAYERS[i % SIMULATED_PLAYERS.length],
+    bet_amount: tpl.bet,
+    choice: tpl.choice,
+    outcome: tpl.outcome,
+    is_win: tpl.is_win,
+    win_amount: tpl.is_win ? parseFloat((tpl.bet * MULTIPLIER).toFixed(2)) : 0,
+    created_at: new Date(now - tpl.mins * 60 * 1000).toISOString()
+  }));
+}
+
+function formatTimeAgo(dateString) {
+  if (!dateString) return '1m ago';
+  const now = Date.now();
+  const past = new Date(dateString).getTime();
+  const diffSec = Math.max(0, Math.floor((now - past) / 1000));
+  
+  if (diffSec < 45) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.floor(diffHr / 24)}d ago`;
+}
+
 export default function CyberFlip({ user, refreshUser }) {
   const { showToast } = useToast();
   const [selectedSide, setSelectedSide] = useState('heads'); // 'heads' | 'tails'
@@ -27,6 +80,7 @@ export default function CyberFlip({ user, refreshUser }) {
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedMemo, setCopiedMemo] = useState(false);
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
+  const [localFeed, setLocalFeed] = useState(() => generateClientFallbackFeed());
 
   const telegramId = user?.telegram_id;
   const gramBalance = parseFloat(user?.gram_balance || 0);
@@ -39,6 +93,9 @@ export default function CyberFlip({ user, refreshUser }) {
       const res = await getFlipStats(telegramId);
       if (res.data) {
         setStats(res.data);
+        if (res.data.live_feed && res.data.live_feed.length > 0) {
+          setLocalFeed(res.data.live_feed);
+        }
       }
     } catch (e) {
       console.warn('Failed to load flip stats:', e);
@@ -51,6 +108,28 @@ export default function CyberFlip({ user, refreshUser }) {
     return () => clearInterval(interval);
   }, [telegramId]);
 
+  // Gentle live feed trickle every 90s if page remains open ("not too fast, not too slow")
+  useEffect(() => {
+    const trickle = setInterval(() => {
+      setLocalFeed(prev => {
+        const tpl = DEFAULT_FEED_TEMPLATES[Math.floor(Math.random() * DEFAULT_FEED_TEMPLATES.length)];
+        const player = SIMULATED_PLAYERS[Math.floor(Math.random() * SIMULATED_PLAYERS.length)];
+        const newEntry = {
+          id: `trickle_${Date.now()}`,
+          player,
+          bet_amount: tpl.bet,
+          choice: tpl.choice,
+          outcome: tpl.outcome,
+          is_win: tpl.is_win,
+          win_amount: tpl.is_win ? parseFloat((tpl.bet * MULTIPLIER).toFixed(2)) : 0,
+          created_at: new Date().toISOString()
+        };
+        return [newEntry, ...prev.slice(0, 19)];
+      });
+    }, 90000);
+    return () => clearInterval(trickle);
+  }, []);
+
   // Haptic feedback helper
   const triggerHaptic = (type = 'light') => {
     try {
@@ -62,6 +141,20 @@ export default function CyberFlip({ user, refreshUser }) {
       else if (type === 'success') tg.notificationOccurred('success');
       else if (type === 'error') tg.notificationOccurred('error');
     } catch (_) {}
+  };
+
+  // Switch Side & Smoothly Rotate 3D Coin to Face User
+  const handleSelectSide = (side) => {
+    if (isFlipping) return;
+    triggerHaptic('selection');
+    setSelectedSide(side);
+
+    // Smoothly turn the 3D coin to show the selected side
+    const targetMod = side === 'heads' ? 0 : 180;
+    const currentMod = ((coinRotation % 360) + 360) % 360;
+    if (currentMod !== targetMod) {
+      setCoinRotation(prev => prev + 180);
+    }
   };
 
   // Adjust Bet Helpers
@@ -116,12 +209,13 @@ export default function CyberFlip({ user, refreshUser }) {
 
       const data = res.data;
       const targetOutcome = data.outcome; // 'heads' or 'tails'
+      const targetMod = targetOutcome === 'heads' ? 0 : 180;
 
-      // Calculate 3D rotations:
-      // Heads lands on 0 deg (or 360 * N), Tails lands on 180 deg (or 360 * N + 180)
-      const fullSpins = 360 * 6; // 6 full rotations
-      const targetAngle = targetOutcome === 'heads' ? 0 : 180;
-      const newRotation = coinRotation + fullSpins + (targetAngle - (coinRotation % 360));
+      // 6 full 360-degree spins + forward diff to land squarely on targetOutcome
+      const fullSpins = 360 * 6;
+      const currentMod = ((coinRotation % 360) + 360) % 360;
+      const forwardDiff = (targetMod - currentMod + 360) % 360;
+      const newRotation = coinRotation + fullSpins + forwardDiff;
       
       setCoinRotation(newRotation);
 
@@ -146,6 +240,21 @@ export default function CyberFlip({ user, refreshUser }) {
           triggerHaptic('error');
           showToast(`Landed on ${targetOutcome.toUpperCase()}. Better luck next flip!`, 'info');
         }
+
+        // Add user's flip immediately to top of community live feed
+        setLocalFeed(prev => [
+          {
+            id: `usr_${Date.now()}`,
+            player: user?.username ? `@${user.username}` : (user?.first_name || 'You'),
+            bet_amount: betAmount,
+            choice: selectedSide,
+            outcome: targetOutcome,
+            is_win: data.is_win,
+            win_amount: data.is_win ? data.win_amount : 0,
+            created_at: new Date().toISOString()
+          },
+          ...prev.slice(0, 19)
+        ]);
 
         if (refreshUser) refreshUser();
         loadStats();
@@ -250,29 +359,30 @@ export default function CyberFlip({ user, refreshUser }) {
         </div>
 
         {/* Live Community Wins Ticker */}
-        {stats?.live_feed && stats.live_feed.length > 0 && (
+        {localFeed && localFeed.length > 0 && (
           <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
             <div className="flex items-center gap-1 text-[10px] font-black text-emerald-400 uppercase tracking-wider shrink-0">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
               Live
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {stats.live_feed.slice(0, 5).map((f) => (
+              {localFeed.slice(0, 6).map((f) => (
                 <div 
                   key={f.id} 
-                  className={`px-2 py-0.5 rounded-lg text-[10px] font-medium shrink-0 flex items-center gap-1 border ${
+                  className={`px-2 py-0.5 rounded-lg text-[10px] font-medium shrink-0 flex items-center gap-1.5 border ${
                     f.is_win 
                       ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20' 
                       : 'bg-white/5 text-white/40 border-white/5'
                   }`}
                 >
                   <span className="font-mono text-white/80">{f.player}</span>
-                  <span className="uppercase text-[9px] font-bold">({f.choice})</span>
+                  <span className="uppercase text-[9px] font-bold text-white/40">({f.choice})</span>
                   {f.is_win ? (
                     <span className="font-bold text-emerald-400">+{f.win_amount.toFixed(1)}G</span>
                   ) : (
                     <span className="text-rose-400/80">-{f.bet_amount.toFixed(1)}G</span>
                   )}
+                  <span className="text-[9px] text-white/30 font-mono">{formatTimeAgo(f.created_at)}</span>
                 </div>
               ))}
             </div>
@@ -295,7 +405,7 @@ export default function CyberFlip({ user, refreshUser }) {
             className="w-32 h-32 relative preserve-3d"
             animate={{ rotateY: coinRotation }}
             transition={{
-              duration: isFlipping ? 2.4 : 0.4,
+              duration: isFlipping ? 2.4 : 0.45,
               ease: isFlipping ? [0.25, 1, 0.5, 1] : 'easeOut'
             }}
             style={{ transformStyle: 'preserve-3d' }}
@@ -332,7 +442,7 @@ export default function CyberFlip({ user, refreshUser }) {
         {/* Flip Status Banner */}
         <div className="min-h-[28px] mt-1 text-center">
           {isFlipping ? (
-            <div className="flex items-center gap-1.5 text-cyan-300 text-xs font-black animate-pulse uppercase tracking-wider">
+            <div className="flex items-center justify-center gap-1.5 text-cyan-300 text-xs font-black animate-pulse uppercase tracking-wider">
               <RefreshCw size={14} className="animate-spin" /> Flipping Coin...
             </div>
           ) : flipResult ? (
@@ -346,7 +456,16 @@ export default function CyberFlip({ user, refreshUser }) {
               {flipResult.message}
             </motion.div>
           ) : (
-            <p className="text-[11px] text-white/50 font-medium">Select a side, choose your bet, and flip!</p>
+            <p className="text-[11px] text-white/60 font-medium flex items-center justify-center gap-1.5">
+              <span>Selected:</span>
+              <span className={`font-black uppercase tracking-wider ${
+                selectedSide === 'heads' ? 'text-cyan-300' : 'text-purple-300'
+              }`}>
+                {selectedSide}
+              </span>
+              <span className="text-white/30">•</span>
+              <span className="text-white/40">Choose bet & flip</span>
+            </p>
           )}
         </div>
       </div>
@@ -355,11 +474,7 @@ export default function CyberFlip({ user, refreshUser }) {
       <div className="grid grid-cols-2 gap-3">
         {/* Heads Card */}
         <motion.button
-          onClick={() => {
-            if (isFlipping) return;
-            triggerHaptic('selection');
-            setSelectedSide('heads');
-          }}
+          onClick={() => handleSelectSide('heads')}
           disabled={isFlipping}
           whileTap={{ scale: 0.96 }}
           className={`relative p-3.5 rounded-2xl border text-left transition-all ${
@@ -388,11 +503,7 @@ export default function CyberFlip({ user, refreshUser }) {
 
         {/* Tails Card */}
         <motion.button
-          onClick={() => {
-            if (isFlipping) return;
-            triggerHaptic('selection');
-            setSelectedSide('tails');
-          }}
+          onClick={() => handleSelectSide('tails')}
           disabled={isFlipping}
           whileTap={{ scale: 0.96 }}
           className={`relative p-3.5 rounded-2xl border text-left transition-all ${
@@ -625,26 +736,62 @@ export default function CyberFlip({ user, refreshUser }) {
 
         {/* Tab 3: Community Feed */}
         {activeTab === 'feed' && (
-          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-            {stats?.live_feed && stats.live_feed.length > 0 ? (
-              stats.live_feed.map((f) => (
-                <div 
-                  key={f.id} 
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-black/40 border border-white/5 text-xs"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-cyan-300 font-bold">{f.player}</span>
-                    <span className="text-[10px] text-white/50 uppercase">({f.choice})</span>
+          <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+            {localFeed && localFeed.length > 0 ? (
+              localFeed.map((f) => {
+                const profit = f.is_win ? (f.win_amount - f.bet_amount).toFixed(2) : f.bet_amount.toFixed(2);
+                return (
+                  <div 
+                    key={f.id} 
+                    className="flex items-center justify-between p-2.5 rounded-2xl bg-black/40 border border-white/5 hover:border-white/15 transition-all text-xs"
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                        f.choice === 'heads' 
+                          ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30' 
+                          : 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
+                      }`}>
+                        {f.choice === 'heads' ? <Zap size={15} /> : <Flame size={15} />}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-cyan-200 font-bold">{f.player}</span>
+                          <span className={`text-[9px] uppercase font-black px-1.5 py-0.2 rounded-md ${
+                            f.choice === 'heads' ? 'bg-cyan-400/15 text-cyan-300' : 'bg-purple-400/15 text-purple-300'
+                          }`}>
+                            {f.choice}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono text-white/40 mt-0.5 block">
+                          {formatTimeAgo(f.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="text-right font-mono">
+                      {f.is_win ? (
+                        <div>
+                          <span className="text-emerald-400 font-black text-xs">
+                            +{f.win_amount.toFixed(2)} GRAM
+                          </span>
+                          <p className="text-[9.5px] text-emerald-300/80 font-bold">
+                            (+{profit}G profit)
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-rose-400/90 font-bold text-xs">
+                            -{f.bet_amount.toFixed(2)} GRAM
+                          </span>
+                          <p className="text-[9.5px] text-white/30">
+                            loss
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="font-mono font-bold">
-                    {f.is_win ? (
-                      <span className="text-emerald-400 font-black">+{f.win_amount.toFixed(2)} GRAM</span>
-                    ) : (
-                      <span className="text-white/40">-{f.bet_amount.toFixed(2)} GRAM</span>
-                    )}
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <p className="text-xs text-white/40 text-center py-4">No community flips recorded yet.</p>
             )}
