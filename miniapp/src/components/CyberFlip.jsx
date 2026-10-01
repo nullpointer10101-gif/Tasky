@@ -52,11 +52,10 @@ function generateClientFallbackFeed() {
   }));
 }
 
-function formatTimeAgo(dateString) {
+function formatTimeAgo(dateString, currentNow = Date.now()) {
   if (!dateString) return '1m ago';
-  const now = Date.now();
   const past = new Date(dateString).getTime();
-  const diffSec = Math.max(0, Math.floor((now - past) / 1000));
+  const diffSec = Math.max(0, Math.floor((currentNow - past) / 1000));
   
   if (diffSec < 45) return 'just now';
   const diffMin = Math.floor(diffSec / 60);
@@ -81,10 +80,19 @@ export default function CyberFlip({ user, refreshUser }) {
   const [copiedMemo, setCopiedMemo] = useState(false);
   const [verifyingDeposit, setVerifyingDeposit] = useState(false);
   const [localFeed, setLocalFeed] = useState(() => generateClientFallbackFeed());
+  const [nowTick, setNowTick] = useState(Date.now());
 
   const telegramId = user?.telegram_id;
   const gramBalance = parseFloat(user?.gram_balance || 0);
   const memoText = `TASKY_${telegramId}`;
+
+  // Continuously refresh relative timestamps every 10 seconds so data ages in real-time
+  useEffect(() => {
+    const tickInterval = setInterval(() => {
+      setNowTick(Date.now());
+    }, 10000);
+    return () => clearInterval(tickInterval);
+  }, []);
 
   // Fetch flip stats and live feed
   const loadStats = async () => {
@@ -108,7 +116,7 @@ export default function CyberFlip({ user, refreshUser }) {
     return () => clearInterval(interval);
   }, [telegramId]);
 
-  // Gentle live feed trickle every 90s if page remains open ("not too fast, not too slow")
+  // Gentle live feed trickle every 75s if page remains open ("not too fast, not too slow")
   useEffect(() => {
     const trickle = setInterval(() => {
       setLocalFeed(prev => {
@@ -126,7 +134,7 @@ export default function CyberFlip({ user, refreshUser }) {
         };
         return [newEntry, ...prev.slice(0, 19)];
       });
-    }, 90000);
+    }, 75000);
     return () => clearInterval(trickle);
   }, []);
 
@@ -143,18 +151,11 @@ export default function CyberFlip({ user, refreshUser }) {
     } catch (_) {}
   };
 
-  // Switch Side & Smoothly Rotate 3D Coin to Face User
+  // Switch Side (Heads <-> Tails) with immediate visual & haptic update
   const handleSelectSide = (side) => {
     if (isFlipping) return;
     triggerHaptic('selection');
     setSelectedSide(side);
-
-    // Smoothly turn the 3D coin to show the selected side
-    const targetMod = side === 'heads' ? 0 : 180;
-    const currentMod = ((coinRotation % 360) + 360) % 360;
-    if (currentMod !== targetMod) {
-      setCoinRotation(prev => prev + 180);
-    }
   };
 
   // Adjust Bet Helpers
@@ -230,6 +231,7 @@ export default function CyberFlip({ user, refreshUser }) {
       // Settle flip after 2.4s animation
       setTimeout(() => {
         setIsFlipping(false);
+        setSelectedSide(targetOutcome);
         setFlipResult(data);
 
         if (data.is_win) {
@@ -382,7 +384,7 @@ export default function CyberFlip({ user, refreshUser }) {
                   ) : (
                     <span className="text-rose-400/80">-{f.bet_amount.toFixed(1)}G</span>
                   )}
-                  <span className="text-[9px] text-white/30 font-mono">{formatTimeAgo(f.created_at)}</span>
+                  <span className="text-[9px] text-white/30 font-mono">{formatTimeAgo(f.created_at, nowTick)}</span>
                 </div>
               ))}
             </div>
@@ -394,49 +396,72 @@ export default function CyberFlip({ user, refreshUser }) {
       <div className="relative rounded-3xl bg-gradient-to-b from-[#100d23] to-[#070512] border border-white/10 p-6 flex flex-col items-center justify-center overflow-hidden">
         {/* Glow backdrop */}
         <div 
-          className={`absolute inset-0 opacity-20 blur-3xl transition-colors duration-700 pointer-events-none ${
+          className={`absolute inset-0 opacity-25 blur-3xl transition-colors duration-700 pointer-events-none ${
             selectedSide === 'heads' ? 'bg-cyan-500' : 'bg-purple-600'
           }`}
         />
 
-        {/* 3D Coin Container */}
-        <div className="relative w-36 h-36 my-3 perspective-[1000px] flex items-center justify-center">
-          <motion.div
-            className="w-32 h-32 relative preserve-3d"
-            animate={{ rotateY: coinRotation }}
-            transition={{
-              duration: isFlipping ? 2.4 : 0.45,
-              ease: isFlipping ? [0.25, 1, 0.5, 1] : 'easeOut'
-            }}
-            style={{ transformStyle: 'preserve-3d' }}
-          >
-            {/* FRONT SIDE: HEADS (CYAN/BLUE) */}
-            <div 
-              className="absolute inset-0 rounded-full bg-gradient-to-br from-cyan-400 via-blue-600 to-indigo-900 border-4 border-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.6)] flex flex-col items-center justify-center text-white backface-hidden"
-              style={{ backfaceVisibility: 'hidden' }}
-            >
-              <div className="w-24 h-24 rounded-full border border-cyan-200/40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm">
-                <Zap size={32} className="text-cyan-200 mb-0.5" />
-                <span className="text-[11px] font-black tracking-widest uppercase text-cyan-100">HEADS</span>
-                <span className="text-[8px] font-mono text-cyan-300/80">CYBER</span>
-              </div>
-            </div>
-
-            {/* BACK SIDE: TAILS (PURPLE/MAGENTA) */}
-            <div 
-              className="absolute inset-0 rounded-full bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-950 border-4 border-purple-300 shadow-[0_0_25px_rgba(168,85,247,0.6)] flex flex-col items-center justify-center text-white backface-hidden"
-              style={{ 
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)'
-              }}
-            >
-              <div className="w-24 h-24 rounded-full border border-purple-200/40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm">
-                <Flame size={32} className="text-purple-200 mb-0.5" />
-                <span className="text-[11px] font-black tracking-widest uppercase text-purple-100">TAILS</span>
-                <span className="text-[8px] font-mono text-purple-300/80">GRAM</span>
-              </div>
-            </div>
-          </motion.div>
+        {/* 3D Interactive Coin Container - Can click coin itself to flip side! */}
+        <div 
+          onClick={() => {
+            if (isFlipping) return;
+            handleSelectSide(selectedSide === 'heads' ? 'tails' : 'heads');
+          }}
+          className="relative w-36 h-36 my-3 perspective-[1000px] flex items-center justify-center cursor-pointer select-none group"
+          title="Click to flip side"
+        >
+          <AnimatePresence mode="wait">
+            {isFlipping ? (
+              <motion.div
+                key="coin-flipping"
+                initial={{ scale: 0.9, rotateY: 0 }}
+                animate={{ 
+                  rotateY: 2160,
+                  scale: [1, 1.15, 1]
+                }}
+                transition={{
+                  duration: 2.4,
+                  ease: [0.25, 1, 0.5, 1]
+                }}
+                className="w-32 h-32 rounded-full bg-gradient-to-tr from-cyan-400 via-purple-500 to-amber-400 border-4 border-white/80 shadow-[0_0_35px_rgba(255,255,255,0.6)] flex flex-col items-center justify-center text-white"
+              >
+                <div className="w-24 h-24 rounded-full border border-white/40 flex flex-col items-center justify-center bg-black/30 backdrop-blur-sm shadow-inner">
+                  <RefreshCw size={36} className="text-white mb-1 animate-spin" />
+                  <span className="text-[10px] font-black tracking-widest uppercase text-white animate-pulse">FLIPPING</span>
+                </div>
+              </motion.div>
+            ) : selectedSide === 'heads' ? (
+              <motion.div
+                key="coin-heads"
+                initial={{ rotateY: 180, scale: 0.85, opacity: 0.6 }}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                exit={{ rotateY: -180, scale: 0.85, opacity: 0.6 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="w-32 h-32 rounded-full bg-gradient-to-br from-cyan-400 via-blue-600 to-indigo-900 border-4 border-cyan-300 shadow-[0_0_30px_rgba(6,182,212,0.7)] flex flex-col items-center justify-center text-white group-hover:brightness-110 active:scale-95 transition-all"
+              >
+                <div className="w-24 h-24 rounded-full border border-cyan-200/40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
+                  <Zap size={34} className="text-cyan-200 mb-0.5 animate-pulse" />
+                  <span className="text-[12px] font-black tracking-widest uppercase text-cyan-100">HEADS</span>
+                  <span className="text-[8px] font-mono text-cyan-300 font-bold">CYBER</span>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="coin-tails"
+                initial={{ rotateY: 180, scale: 0.85, opacity: 0.6 }}
+                animate={{ rotateY: 0, scale: 1, opacity: 1 }}
+                exit={{ rotateY: -180, scale: 0.85, opacity: 0.6 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                className="w-32 h-32 rounded-full bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-950 border-4 border-purple-300 shadow-[0_0_30px_rgba(168,85,247,0.7)] flex flex-col items-center justify-center text-white group-hover:brightness-110 active:scale-95 transition-all"
+              >
+                <div className="w-24 h-24 rounded-full border border-purple-200/40 flex flex-col items-center justify-center bg-black/20 backdrop-blur-sm shadow-inner">
+                  <Flame size={34} className="text-purple-200 mb-0.5 animate-pulse" />
+                  <span className="text-[12px] font-black tracking-widest uppercase text-purple-100">TAILS</span>
+                  <span className="text-[8px] font-mono text-purple-300 font-bold">GRAM</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Flip Status Banner */}
@@ -464,7 +489,7 @@ export default function CyberFlip({ user, refreshUser }) {
                 {selectedSide}
               </span>
               <span className="text-white/30">•</span>
-              <span className="text-white/40">Choose bet & flip</span>
+              <span className="text-white/40">Tap coin or side to switch</span>
             </p>
           )}
         </div>
@@ -763,7 +788,7 @@ export default function CyberFlip({ user, refreshUser }) {
                           </span>
                         </div>
                         <span className="text-[10px] font-mono text-white/40 mt-0.5 block">
-                          {formatTimeAgo(f.created_at)}
+                          {formatTimeAgo(f.created_at, nowTick)}
                         </span>
                       </div>
                     </div>

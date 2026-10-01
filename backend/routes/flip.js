@@ -26,6 +26,76 @@ function sendAdminBroadcast(message, extraOpts = {}) {
   }
 }
 
+// Realistic rolling community live feed
+const SIMULATED_PLAYERS = [
+  '@ton_***77', 'Alex***', '@cry***ox', '@kaz***01', '@sam***dev',
+  '@vip***99', 'Dmit***', '@roma***12', 'Vital***', '@coin***44',
+  'Max***ton', '@star***88', 'Elena***', '@pro***flip', '@gram***whales',
+  'Igor***', '@ton_***king', 'Oleg***', '@lucky***7', '@cyber***x'
+];
+
+const SIMULATED_TEMPLATES = [
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 1.2 },
+  { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 3.1 },
+  { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 5.4 },
+  { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 7.8 },
+  { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 10.5 },
+  { bet: 5.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 14.2 },
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 18.0 },
+  { bet: 10.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 23.5 },
+  { bet: 2.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 29.8 },
+  { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 37.0 },
+  { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 46.2 },
+  { bet: 5.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 58.0 },
+  { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 72.5 },
+  { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 91.0 },
+  { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 115.0 }
+];
+
+let serverLiveFeed = [];
+let lastFeedGeneratedAt = 0;
+
+function getRollingLiveFeed(realFeed = []) {
+  const now = Date.now();
+  if (serverLiveFeed.length === 0) {
+    serverLiveFeed = SIMULATED_TEMPLATES.map((tpl, i) => ({
+      id: `sim_init_${i}_${now}`,
+      player: SIMULATED_PLAYERS[i % SIMULATED_PLAYERS.length],
+      bet_amount: tpl.bet,
+      choice: tpl.choice,
+      outcome: tpl.outcome,
+      is_win: tpl.is_win,
+      win_amount: tpl.is_win ? parseFloat((tpl.bet * 1.90).toFixed(2)) : 0,
+      created_at: new Date(now - tpl.mins * 60 * 1000).toISOString()
+    }));
+    lastFeedGeneratedAt = now;
+  }
+
+  // Every 70-85s, push a new simulated flip so community feed continually updates
+  const elapsedSec = (now - lastFeedGeneratedAt) / 1000;
+  if (elapsedSec >= 75) {
+    const tpl = SIMULATED_TEMPLATES[Math.floor(Math.random() * SIMULATED_TEMPLATES.length)];
+    const player = SIMULATED_PLAYERS[Math.floor(Math.random() * SIMULATED_PLAYERS.length)];
+    const newEntry = {
+      id: `sim_live_${now}`,
+      player,
+      bet_amount: tpl.bet,
+      choice: tpl.choice,
+      outcome: tpl.outcome,
+      is_win: tpl.is_win,
+      win_amount: tpl.is_win ? parseFloat((tpl.bet * 1.90).toFixed(2)) : 0,
+      created_at: new Date(now).toISOString()
+    };
+    serverLiveFeed.unshift(newEntry);
+    if (serverLiveFeed.length > 25) serverLiveFeed.pop();
+    lastFeedGeneratedAt = now;
+  }
+
+  const combined = [...realFeed, ...serverLiveFeed];
+  combined.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  return combined.slice(0, 20);
+}
+
 /**
  * POST /api/flip/play
  * Execute a provably random 50/50 Cyber Flip with 1.90x payout
@@ -117,6 +187,23 @@ router.post('/play', async (req, res) => {
     await client.query('COMMIT');
 
     const flipId = flipRes.rows[0]?.id;
+
+    // Push immediately to rolling live feed so all connected users see it
+    let rawName = user.username ? `@${user.username}` : (user.first_name || 'Player');
+    let maskedName = rawName.length > 5 
+      ? rawName.substring(0, 3) + '***' + rawName.substring(rawName.length - 2)
+      : rawName + '***';
+    serverLiveFeed.unshift({
+      id: `real_${flipId}`,
+      player: maskedName,
+      bet_amount: bet,
+      choice: cleanChoice,
+      outcome: outcome,
+      is_win: isWin,
+      win_amount: winAmount,
+      created_at: flipRes.rows[0]?.created_at || new Date().toISOString()
+    });
+    if (serverLiveFeed.length > 25) serverLiveFeed.pop();
 
     // Optional Admin alert for large bets (>= 5 GRAM)
     if (bet >= 5.0) {
@@ -229,55 +316,7 @@ router.get('/stats/:telegram_id(\\d+)', async (req, res) => {
       };
     });
 
-    // Realistic community feed simulation if real flips are low
-    const SIMULATED_PLAYERS = [
-      '@ton_***77', 'Alex***', '@cry***ox', '@kaz***01', '@sam***dev',
-      '@vip***99', 'Dmit***', '@roma***12', 'Vital***', '@coin***44',
-      'Max***ton', '@star***88', 'Elena***', '@pro***flip', '@gram***whales',
-      'Igor***', '@ton_***king', 'Oleg***', '@lucky***7', '@cyber***x'
-    ];
-
-    const SIMULATED_TEMPLATES = [
-      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 1.2 },
-      { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 3.1 },
-      { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 5.4 },
-      { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 7.8 },
-      { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 10.5 },
-      { bet: 5.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 14.2 },
-      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 18.0 },
-      { bet: 10.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 23.5 },
-      { bet: 2.0, is_win: false, choice: 'heads', outcome: 'tails', mins: 29.8 },
-      { bet: 5.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 37.0 },
-      { bet: 2.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 46.2 },
-      { bet: 5.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 58.0 },
-      { bet: 2.0, is_win: true, choice: 'tails', outcome: 'tails', mins: 72.5 },
-      { bet: 5.0, is_win: true, choice: 'heads', outcome: 'heads', mins: 91.0 },
-      { bet: 2.0, is_win: false, choice: 'tails', outcome: 'heads', mins: 115.0 }
-    ];
-
-    const now = Date.now();
-    const enrichedFeed = [...liveFeed];
-
-    for (let i = enrichedFeed.length; i < 15; i++) {
-      const tpl = SIMULATED_TEMPLATES[i % SIMULATED_TEMPLATES.length];
-      const player = SIMULATED_PLAYERS[i % SIMULATED_PLAYERS.length];
-      const createdAt = new Date(now - tpl.mins * 60 * 1000).toISOString();
-      const winAmount = tpl.is_win ? parseFloat((tpl.bet * 1.90).toFixed(2)) : 0;
-
-      enrichedFeed.push({
-        id: `sim_${i}_${Math.floor(now / 180000)}`,
-        player,
-        bet_amount: tpl.bet,
-        choice: tpl.choice,
-        outcome: tpl.outcome,
-        is_win: tpl.is_win,
-        win_amount: winAmount,
-        created_at: createdAt
-      });
-    }
-
-    // Sort descending by created_at so 1m ago is at the top
-    enrichedFeed.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const enrichedFeed = getRollingLiveFeed(liveFeed);
 
     // 4. Platform aggregates
     const platformRes = await pool.query(`
