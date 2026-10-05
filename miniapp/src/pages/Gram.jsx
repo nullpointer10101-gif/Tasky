@@ -893,8 +893,8 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
         {claimsHistory.length > 0 ? (
           <div className="space-y-2 pt-1">
             {claimsHistory.map(claim => {
-              const isApproved = claim.status === 'approved';
-              const isPending = claim.status === 'pending';
+              const isApproved = claim.status === 'approved' || claim.status === 'done';
+              const isPending = claim.status === 'pending' || claim.status === 'processing';
               const isRejected = claim.status === 'rejected';
 
               const formattedDate = claim.requested_at 
