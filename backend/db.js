@@ -492,6 +492,25 @@ const initDB = async () => {
       CREATE INDEX IF NOT EXISTS idx_reactor_claims_status ON reactor_claims(status);
       CREATE INDEX IF NOT EXISTS idx_reactor_claims_telegram_id ON reactor_claims(telegram_id);
 
+      -- PARTNER SELF-SERVE PROMOTIONS TABLE
+      CREATE TABLE IF NOT EXISTS partner_promotions (
+        id SERIAL PRIMARY KEY,
+        telegram_id BIGINT NOT NULL,
+        promotion_type VARCHAR(20) NOT NULL,
+        title VARCHAR(120) NOT NULL,
+        target_url VARCHAR(500) NOT NULL,
+        target_users INT NOT NULL,
+        price_gram NUMERIC(10,4) NOT NULL,
+        memo VARCHAR(64) UNIQUE NOT NULL,
+        status VARCHAR(20) DEFAULT 'pending_payment',
+        completed_users INT DEFAULT 0,
+        created_task_id INT,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_telegram_id ON partner_promotions(telegram_id);
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_memo ON partner_promotions(memo);
+      CREATE INDEX IF NOT EXISTS idx_partner_promotions_status ON partner_promotions(status);
+
       UPDATE tasks SET 
         title = 'Support Tasky Name Suffix 🐾',
         subtitle = 'Add | Tasky 🐾 to the end of your Telegram Last Name to claim 0.0001 GRAM!',

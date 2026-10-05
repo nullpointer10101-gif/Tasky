@@ -11,6 +11,7 @@ import { useToast } from '../App';
 import PromoCodeModal from '../components/PromoCodeModal';
 import GramClaimModal from '../components/GramClaimModal';
 import CyberReactorModal, { useReactorTimer } from '../components/CyberReactorModal';
+import PromoteProjectModal from '../components/PromoteProjectModal';
 import { useIsAdmin } from '../AdminContext';
 import { initOfferwall, openOfferwall } from '../offerwall';
 
@@ -61,6 +62,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
   const [isPromoModalOpen, setIsPromoModalOpen] = useState(false);
   const [isGramModalOpen, setIsGramModalOpen] = useState(false);
   const [isReactorModalOpen, setIsReactorModalOpen] = useState(false);
+  const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
   const [gramStatusData, setGramStatusData] = useState(null);
   const { showToast } = useToast();
   const isAdmin = useIsAdmin();
@@ -551,15 +553,18 @@ export default function Tasks({ user, refreshUser, navigate }) {
 
             {placementCategory === 'partner' && (
                 <div className="mt-2 mb-6">
-                  <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300  relative overflow-hidden group" onClick={() => window.open('https://t.me/taskycs', '_blank')}>
-                    
+                  <Card className="bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20 p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:border-indigo-500/50 transition-all duration-300 relative overflow-hidden group" onClick={() => setIsPromoteModalOpen(true)}>
+                    <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-black text-[11px] font-black shadow-md flex items-center gap-1">
+                      <Flame size={12} /> 1.00 GRAM
+                    </div>
+
                     <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center mb-4 shadow-lg shadow-indigo-500/30 relative z-10 group-hover:scale-110 transition-transform duration-300">
                       <Rocket size={26} />
                     </div>
                     <h3 className="font-black text-ink text-xl mb-1 relative z-10 tracking-tight">Promote Your Project</h3>
-                    <p className="text-sm text-ink-soft mb-5 relative z-10 font-medium px-4">Want to get listed here? Grow your community with thousands of active users.</p>
-                    <button className="bg-ink hover:bg-indigo-500 text-surface font-bold py-2.5 px-8 rounded-xl transition-colors shadow-md relative z-10 flex items-center gap-2">
-                      <Send size={16} /> Contact Sales
+                    <p className="text-sm text-ink-soft mb-5 relative z-10 font-medium px-4">Want to get listed here? Grow your community with 1,000+ active users.</p>
+                    <button className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-bold py-2.5 px-8 rounded-xl transition-all shadow-md relative z-10 flex items-center gap-2">
+                      <Rocket size={16} /> Create Campaign
                     </button>
                   </Card>
                 </div>
@@ -936,6 +941,16 @@ export default function Tasks({ user, refreshUser, navigate }) {
           reloadData && reloadData();
         }}
         user={user}
+      />
+
+      <PromoteProjectModal
+        isOpen={isPromoteModalOpen}
+        onClose={() => setIsPromoteModalOpen(false)}
+        userGramBalance={parseFloat(user?.gram_balance || 0)}
+        telegramId={user?.telegram_id}
+        onSuccess={() => {
+          reloadData && reloadData();
+        }}
       />
     </div>
     </>

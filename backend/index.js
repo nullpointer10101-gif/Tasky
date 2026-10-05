@@ -268,6 +268,7 @@ app.use('/api/offerwall', require('./routes/offerwall'));
 app.use('/api/reactor', require('./routes/reactor'));
 app.use('/api/campaign', require('./routes/campaign'));
 app.use('/api/admin/campaign', require('./routes/campaign'));
+app.use('/api/partner', require('./routes/partner'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/flip', require('./routes/flip'));
 
