@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
-import { Rocket, Send, Bot, Globe, Copy, Check, Sparkles, ShieldCheck, AlertCircle, RefreshCw, Zap, CreditCard, ChevronRight, X } from 'lucide-react';
+import { Rocket, Send, Bot, Globe, Copy, Check, Sparkles, ShieldCheck, AlertCircle, RefreshCw, Zap, CreditCard, ChevronRight, X, ExternalLink, Wallet } from 'lucide-react';
+import { useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
 import { BACKEND_URL } from '../api';
 
@@ -9,6 +10,8 @@ const ADMIN_WALLET = 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
 
 export default function PromoteProjectModal({ isOpen, onClose, userGramBalance = 0, telegramId, onSuccess }) {
   const { addToast } = useToast();
+  const [tonConnectUI] = useTonConnectUI();
+
   const [step, setStep] = useState('configure'); // 'configure' | 'payment'
   const [promotionType, setPromotionType] = useState('channel'); // 'channel' | 'bot' | 'link'
   const [title, setTitle] = useState('');
@@ -94,6 +97,54 @@ export default function PromoteProjectModal({ isOpen, onClose, userGramBalance =
       addToast(err.message, 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAutoOpenWallet = async () => {
+    if (!campaign) return;
+    const price = parseFloat(campaign.price_gram);
+    const nanoAmount = Math.round(price * 1e9);
+    const memo = campaign.memo;
+
+    // Automatically copy memo to clipboard
+    try {
+      await navigator.clipboard.writeText(memo);
+      addToast('Memo copied! Opening wallet...', 'info');
+    } catch (e) {}
+
+    const tonkeeperUrl = `https://app.tonkeeper.com/transfer/${ADMIN_WALLET}?amount=${nanoAmount}&text=${encodeURIComponent(memo)}`;
+
+    // Try TON Connect UI transaction if connected
+    if (tonConnectUI && tonConnectUI.connected) {
+      try {
+        setLoading(true);
+        await tonConnectUI.sendTransaction({
+          validUntil: Math.floor(Date.now() / 1000) + 600,
+          messages: [
+            {
+              address: ADMIN_WALLET,
+              amount: nanoAmount.toString()
+            }
+          ]
+        });
+        addToast('Transaction sent via wallet! Click Verify once confirmed.', 'success');
+      } catch (err) {
+        console.warn('[TonConnect] Send transaction cancelled or error, falling back to deep link:', err?.message);
+        if (window.Telegram?.WebApp?.openLink) {
+          window.Telegram.WebApp.openLink(tonkeeperUrl);
+        } else {
+          window.open(tonkeeperUrl, '_blank');
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Direct deep link fallback for Tonkeeper / Telegram Wallet
+      if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(tonkeeperUrl);
+      } else {
+        window.open(tonkeeperUrl, '_blank');
+      }
     }
   };
 
@@ -349,39 +400,53 @@ export default function PromoteProjectModal({ isOpen, onClose, userGramBalance =
                     <CreditCard size={14} className="text-indigo-400" /> Option B: Pay On-Chain (TON)
                   </span>
 
-                  {/* Wallet Address */}
-                  <div>
-                    <label className="text-[11px] text-gray-400 font-semibold block mb-1">Admin Wallet Address</label>
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-gray-300">
-                      <span className="truncate pr-2">{ADMIN_WALLET}</span>
-                      <button
-                        onClick={() => copyToClipboard(ADMIN_WALLET, 'wallet')}
-                        className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 transition-colors shrink-0"
-                      >
-                        {copiedWallet ? <Check size={14} /> : <Copy size={14} />}
-                      </button>
-                    </div>
-                  </div>
+                  {/* Auto-Open Wallet Button */}
+                  <button
+                    onClick={handleAutoOpenWallet}
+                    disabled={loading}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-black text-sm shadow-lg shadow-indigo-500/30 flex items-center justify-center gap-2 transition-all group"
+                  >
+                    <Wallet size={18} className="group-hover:scale-110 transition-transform" />
+                    <span>Pay {campaign?.price_gram} TON via Wallet (Auto-Open)</span>
+                    <ExternalLink size={14} />
+                  </button>
 
-                  {/* Memo Code */}
-                  <div>
-                    <label className="text-[11px] text-amber-400 font-bold block mb-1">
-                      Required Deposit Memo / Comment (CRITICAL)
-                    </label>
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300">
-                      <span className="font-bold tracking-wider">{campaign?.memo}</span>
-                      <button
-                        onClick={() => copyToClipboard(campaign?.memo, 'memo')}
-                        className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 transition-colors shrink-0"
-                      >
-                        {copiedMemo ? <Check size={14} /> : <Copy size={14} />}
-                      </button>
+                  {/* Manual Details Fallback */}
+                  <div className="pt-2 border-t border-white/10 space-y-2">
+                    {/* Wallet Address */}
+                    <div>
+                      <label className="text-[11px] text-gray-400 font-semibold block mb-1">Admin Wallet Address</label>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-black/40 border border-white/10 text-xs font-mono text-gray-300">
+                        <span className="truncate pr-2">{ADMIN_WALLET}</span>
+                        <button
+                          onClick={() => copyToClipboard(ADMIN_WALLET, 'wallet')}
+                          className="p-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 transition-colors shrink-0"
+                        >
+                          {copiedWallet ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Memo Code */}
+                    <div>
+                      <label className="text-[11px] text-amber-400 font-bold block mb-1">
+                        Required Deposit Memo / Comment (CRITICAL)
+                      </label>
+                      <div className="flex items-center justify-between p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs font-mono text-amber-300">
+                        <span className="font-bold tracking-wider">{campaign?.memo}</span>
+                        <button
+                          onClick={() => copyToClipboard(campaign?.memo, 'memo')}
+                          className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 transition-colors shrink-0"
+                        >
+                          {copiedMemo ? <Check size={14} /> : <Copy size={14} />}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
                   <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-200 flex items-start gap-2">
                     <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                    <span>Send <strong>{campaign?.price_gram} TON/GRAM</strong> to the wallet above and paste the Memo into the transfer comment!</span>
+                    <span>Send <strong>{campaign?.price_gram} TON/GRAM</strong> with the exact Memo code in your transfer comment!</span>
                   </div>
 
                   <button
