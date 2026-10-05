@@ -103,9 +103,14 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
   const handleVerify = async () => {
     setLoading(true);
     try {
-      const { data, error } = await verifyChannels(telegramId);
-      if (error) {
-        showToast(typeof error === 'string' ? error : 'Please join all 4 channels to unlock!', 'error');
+      const { data, error, status } = await verifyChannels(telegramId);
+      if (data && data.retry) {
+        // Telegram API timed out — not a hard failure, ask user to retry
+        showToast('⏳ Verification timed out. Please wait a moment and try again.', 'error');
+        await checkLiveStatus(true);
+      } else if (error) {
+        const msg = typeof error === 'string' ? error : 'Please join all 4 channels to unlock!';
+        showToast(msg, 'error');
         await checkLiveStatus(true);
       } else if (data && data.success) {
         triggerConfetti({ particleCount: 150, spread: 90 });
@@ -120,7 +125,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         await checkLiveStatus(true);
       }
     } catch (err) {
-      showToast('Connection error. Please make sure you joined all 4 channels and try again!', 'error');
+      showToast('Connection error. Please make sure you joined all channels and try again!', 'error');
       await checkLiveStatus(true);
     } finally {
       setLoading(false);

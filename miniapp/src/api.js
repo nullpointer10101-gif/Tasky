@@ -353,7 +353,22 @@ export const getChannelStatus = withMock(
 
 export const verifyChannels = withMock(
   { success: true, new_balance: 200 },
-  (telegram_id) => () => api.post('/api/users/verify-channels', { telegram_id })
+  (telegram_id) => async () => {
+    try {
+      const res = await axios.post(`${BACKEND_URL}/api/users/verify-channels`, { telegram_id }, {
+        timeout: 35000,
+        headers: { 'Content-Type': 'application/json', ...(typeof window !== 'undefined' && window.Telegram?.WebApp?.initData ? { 'x-telegram-init-data': window.Telegram.WebApp.initData } : {}) }
+      });
+      return { data: res.data, error: null };
+    } catch (err) {
+      // 503 = Telegram API timeout (retry signal) — pass body through as data
+      if (err.response?.status === 503 && err.response?.data?.retry) {
+        return { data: err.response.data, error: null };
+      }
+      const error = err.response?.data?.error || err.message || 'Something went wrong';
+      return { data: null, error };
+    }
+  }
 )
 
 // --- REFERRAL COMMISSION CLAIM ---
