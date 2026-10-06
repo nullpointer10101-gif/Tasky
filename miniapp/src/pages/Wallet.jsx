@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightLeft, History,
   CheckCircle2, Clock, Wallet as WalletIcon, ExternalLink, Coins,
-  Lock, X, ArrowDown, Gem, ShieldCheck, AlertCircle, Loader2, ArrowUpRight, Copy, RefreshCw, Flame
+  Lock, X, ArrowDown, Gem, ShieldCheck, AlertCircle, Loader2, ArrowUpRight, Copy, RefreshCw, Flame, Sparkles
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
