@@ -229,7 +229,8 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const totalRefs = user?.valid_referrals || 0;
   const hasEnoughAds = localAdsWatched >= 1000;
   const hasEnoughRefs = totalRefs >= 20;
-  const meetsSwapRequirements = hasEnoughAds || hasEnoughRefs;
+  const hasGramDeposit = Number(user?.gram_balance || 0) >= 5 || Boolean(user?.has_verified_swaps);
+  const meetsSwapRequirements = hasGramDeposit || hasEnoughAds || hasEnoughRefs;
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
@@ -619,80 +620,63 @@ export default function Wallet({ user, refreshUser, navigate }) {
             {/* Action Button / Requirement UI */}
             <div className="w-full z-30 pt-2 pb-2 space-y-4">
               
-              {!meetsSwapRequirements && balance >= minSwap && (
-                <div className="bg-surface border border-border rounded-2xl p-4 shadow-sm space-y-4">
-                  <h3 className="text-xs font-black text-ink-soft tracking-wider text-center uppercase">Complete one task to unlock Swap</h3>
+              {!meetsSwapRequirements && (
+                <div className="bg-gradient-to-b from-surface to-surface-soft border border-cyan-500/30 rounded-3xl p-5 shadow-lg space-y-3.5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
                   
-                  {/* Task 1: Ads */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-ink">Watch Ads</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-black text-indigo-500">{localAdsWatched} / 1000</span>
-                        <button 
-                          onClick={handleWatchAd}
-                          disabled={isWatchingAd || adCooldown > 0}
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold active:scale-95 transition-transform ${isWatchingAd || adCooldown > 0 ? 'bg-indigo-500/50 text-white/70' : 'bg-indigo-500 text-white'}`}
-                        >
-                          {isWatchingAd ? 'Watching...' : adCooldown > 0 ? `Wait (${adCooldown}s)` : 'Watch'}
-                        </button>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shadow-sm">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-black text-cyan-300 uppercase tracking-wider">Account Verification Required</h3>
+                        <p className="text-[10px] font-bold text-ink-soft">Unlock Lifetime Unlimited Swaps</p>
                       </div>
                     </div>
-                    <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
-                      <div 
-                        className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (localAdsWatched / 1000) * 100)}%` }}
-                      />
-                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                      5 GRAM
+                    </span>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div className="h-[1px] flex-1 bg-border" />
-                    <span className="text-[10px] font-black text-ink-faint uppercase">OR</span>
-                    <div className="h-[1px] flex-1 bg-border" />
+                  {/* Explanatory Notice */}
+                  <div className="bg-cyan-950/40 border border-cyan-500/20 rounded-2xl p-3 space-y-1.5">
+                    <div className="flex items-center gap-1.5 text-cyan-400 font-bold text-[11px]">
+                      <Sparkles size={13} />
+                      <span>100% Refundable Verification</span>
+                    </div>
+                    <p className="text-[10.5px] text-slate-300 leading-relaxed font-medium">
+                      These 5 GRAM are strictly for account verification. You can withdraw your GRAM back at any time (only <strong className="text-white">0.10 GRAM</strong> network fee is deducted). Unlocks <strong className="text-cyan-300">Lifetime Instant Swaps</strong> permanently!
+                    </p>
                   </div>
 
-                  {/* Task 2: Referrals */}
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-ink">Invite Friends</span>
-                      <span className="font-black text-teal-500">{totalRefs} / 20</span>
-                    </div>
-                    <div className="h-1.5 bg-surface-soft rounded-full overflow-hidden border border-border">
-                      <div 
-                        className="h-full bg-gradient-to-r from-teal-400 to-emerald-500 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, (totalRefs / 20) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
+                  <button
+                    onClick={() => setShowSwapVerificationModal(true)}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
+                  >
+                    <span>Deposit 5 GRAM to Unlock Swaps</span>
+                    <ArrowUpRight size={16} />
+                  </button>
                 </div>
               )}
 
-              {!isSelectedActive ? (
-                <Button 
-                  onClick={() => setIsUsdtTeaserOpen(true)}
-                  className="w-full font-black py-4 rounded-2xl active:scale-95 transition-all bg-surface border border-border text-ink "
-                >
-                  <Lock size={16} className="inline mr-2 -mt-1" />
-                  Unlocking Soon
-                </Button>
-              ) : hasPendingSwap ? (
-                <div className="w-full py-4 rounded-2xl bg-warning font-black text-white text-center ">
+              {hasPendingSwap ? (
+                <div className="w-full py-4 rounded-2xl bg-warning font-black text-white text-center shadow-lg">
                   Pending Swap in Progress
                 </div>
               ) : (
                 <Button
                   onClick={handleSwap}
                   disabled={isSwapping || !isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance || !meetsSwapRequirements}
-                  className={`w-full font-black py-4 rounded-2xl active:scale-95 transition-all  ${
+                  className={`w-full font-black py-4 rounded-2xl active:scale-95 transition-all ${
                     (!isConnected || !swapAmount || Number(swapAmount) < minSwap || Number(swapAmount) > balance || !meetsSwapRequirements)
                       ? 'bg-surface border border-border text-ink-faint shadow-none'
-                      : 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white'
+                      : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
                   }`}
                 >
                   {isSwapping ? 'Processing...' : 
                    !isConnected ? 'Connect Wallet First' :
-                   !meetsSwapRequirements ? 'Complete Requirements to Swap' :
+                   !meetsSwapRequirements ? 'Deposit 5 GRAM to Unlock' :
                    !swapAmount ? 'Enter Amount' :
                    Number(swapAmount) < minSwap ? `Minimum ${minSwap} TASKY` :
                    Number(swapAmount) > balance ? 'Insufficient Balance' :
@@ -894,22 +878,45 @@ export default function Wallet({ user, refreshUser, navigate }) {
                   Account Verification Required
                 </h3>
                 <p className="text-[10px] text-cyan-200/70 mt-0.5">
-                  Lifetime Unlimited Swaps
+                  Unlock Lifetime Unlimited Swaps
                 </p>
               </div>
             </div>
 
-            <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3.5 space-y-2">
+            <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-4 space-y-2.5">
               <div className="flex justify-between items-center text-xs font-bold text-slate-300">
                 <span>Verification Deposit:</span>
-                <span className="text-cyan-400 font-black text-sm">5 GRAM</span>
+                <span className="text-cyan-400 font-black text-sm">5.00 GRAM</span>
               </div>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
-                To prevent automated bot abuse and verify wallet ownership, a one-time <strong className="text-white">5 GRAM deposit</strong> is required to unlock lifetime unlimited swaps.
+              <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-2.5 space-y-1">
+                <p className="text-[11px] font-bold text-cyan-300">
+                  ✨ 100% Refundable & Lifetime Unlock
+                </p>
+                <p className="text-[10.5px] text-slate-300 leading-relaxed font-medium">
+                  These 5 GRAM are strictly for verifying real user ownership. You can withdraw your GRAM back at any time (only <strong className="text-white">0.10 GRAM</strong> verification network fee is deducted).
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-surface-soft/60 border border-border rounded-2xl p-3 space-y-2 text-left">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-bold text-ink-soft">Required Memo (Comment):</span>
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(`VERIFY_${user?.telegram_id || ''}`);
+                    showToast('Memo copied!', 'success');
+                  }}
+                  className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                >
+                  <Copy size={11} /> Copy Memo
+                </button>
+              </div>
+              <p className="font-mono text-xs font-black text-ink bg-surface px-2.5 py-1.5 rounded-lg border border-border">
+                VERIFY_{user?.telegram_id || ''}
               </p>
             </div>
 
-            <div className="pt-2 space-y-2.5">
+            <div className="pt-1 space-y-2.5">
               <button
                 onClick={() => handlePayVerificationDeposit('tonkeeper')}
                 className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
@@ -922,7 +929,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 onClick={() => handlePayVerificationDeposit('other')}
                 className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
               >
-                <span>Deposit via Connected Wallet</span>
+                <span>Deposit via TON Wallet</span>
                 <WalletIcon size={14} />
               </button>
 
@@ -930,7 +937,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 onClick={() => setShowSwapVerificationModal(false)}
                 className="w-full py-2 px-4 rounded-xl text-slate-400 hover:text-slate-200 font-semibold text-xs transition-colors text-center"
               >
-                Cancel
+                Close
               </button>
             </div>
           </div>
