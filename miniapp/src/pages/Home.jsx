@@ -70,7 +70,7 @@ export default function Home({ user, refreshUser, navigate, onOpenTournamentModa
   if (!user) return null;
 
   const usdtRate = swapRates.find(r => r.token_name === 'USDT' && r.is_active);
-  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 20000;
+  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : (10000 / 1.5);
   const usdtValue = (parseFloat(user.balance || 0) / taskyPerUsdt).toFixed(2);
 
   return (

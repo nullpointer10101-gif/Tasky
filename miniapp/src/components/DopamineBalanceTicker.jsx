@@ -1,10 +1,10 @@
 import React from 'react';
 import { Sparkles } from 'lucide-react';
 
-export default function DopamineBalanceTicker({ balance = 0, gramBalance = 0, speedPerHour = 5.0, usdtRate = 20000 }) {
+export default function DopamineBalanceTicker({ balance = 0, gramBalance = 0, speedPerHour = 5.0, usdtRate = (10000 / 1.5) }) {
   const baseBalance = Number(balance) || 0;
-  // USDT balance is calculated based on current swap rate
-  const usdtValue = (baseBalance / (Number(usdtRate) || 20000)).toFixed(2);
+  // USDT balance is calculated based on current swap rate (10,000 TASKY = 1.5 USDT)
+  const usdtValue = (baseBalance / (Number(usdtRate) || (10000 / 1.5))).toFixed(2);
   
   // Format GRAM balance nicely
   const formattedGram = Number(gramBalance || 0).toLocaleString(undefined, { 

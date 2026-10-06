@@ -108,12 +108,11 @@ router.post('/request', async (req, res) => {
             return res.status(400).json({ error: 'Insufficient TASKY balance' });
         }
         
-        const hasEnoughAds = (user.withdrawal_ads_watched || 0) >= 1000;
-        const hasEnoughRefs = (user.valid_referrals || 0) >= 20;
+        const hasGramDeposit = parseFloat(user.gram_balance || 0) >= 5 || Boolean(user.has_verified_swaps);
         
-        if (!hasEnoughAds && !hasEnoughRefs) {
+        if (!hasGramDeposit) {
             await client.query('ROLLBACK');
-            return res.status(400).json({ error: `You must watch 1000 ads OR have 20 valid referrals to swap. Ads: ${user.withdrawal_ads_watched || 0}/1000, Valid Friends: ${user.valid_referrals || 0}/20` });
+            return res.status(400).json({ error: 'Account Verification Required: Please deposit 5 GRAM to verify your account and unlock lifetime unlimited swaps.' });
         }
         
         // apply 0% fee
@@ -125,11 +124,7 @@ router.post('/request', async (req, res) => {
         const receiveAmount = netAmount / parseFloat(rate.tasky_per_unit);
         
         // deduct balance
-        if (hasEnoughAds && !hasEnoughRefs) {
-            await client.query('UPDATE users SET balance = balance - $1, withdrawal_ads_watched = 0 WHERE telegram_id = $2', [amount, telegram_id]);
-        } else {
-            await client.query('UPDATE users SET balance = balance - $1 WHERE telegram_id = $2', [amount, telegram_id]);
-        }
+        await client.query('UPDATE users SET balance = balance - $1 WHERE telegram_id = $2', [amount, telegram_id]);
         
         // Fraud check
         const fraud = await checkFraud(telegram_id, dbWalletAddress, client);

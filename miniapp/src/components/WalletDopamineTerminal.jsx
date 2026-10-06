@@ -5,7 +5,7 @@ import { ArrowRightLeft, DollarSign, Zap, Lock, Unlock, TrendingUp, Sparkles, Sh
 export default function WalletDopamineTerminal({
   user,
   balance = 0,
-  swapRates = { ton: 20000, usdt: 20000 },
+  swapRates = { ton: (10000 / 1.5), usdt: (10000 / 1.5) },
   showToast
 }) {
   const [taskyAmount, setTaskyAmount] = useState('10000');
@@ -13,14 +13,12 @@ export default function WalletDopamineTerminal({
   const [flashQuote, setFlashQuote] = useState(false);
 
   const numBalance = Number(balance) || 0;
-  const usdtVal = (numBalance / 20000).toFixed(2);
-  const unlockTarget = 1.00;
+  const usdtVal = (numBalance / (10000 / 1.5)).toFixed(2);
+  const unlockTarget = 1.50;
   const progressPercent = Math.min(100, (Number(usdtVal) / unlockTarget) * 100);
 
-  // Quote calculation
-  const calculatedOutput = selectedCurrency === 'usdt' 
-    ? (Number(taskyAmount || 0) / 20000).toFixed(4)
-    : (Number(taskyAmount || 0) / 20000).toFixed(4);
+  // Quote calculation (10,000 TASKY = 1.50 USDT)
+  const calculatedOutput = ((Number(taskyAmount || 0) / 10000) * 1.5).toFixed(4);
 
   // Live flashing quote effect
   useEffect(() => {

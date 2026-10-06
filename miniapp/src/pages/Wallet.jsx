@@ -212,11 +212,11 @@ export default function Wallet({ user, refreshUser, navigate }) {
   };
 
   const usdtRate = rates.find(r => r.token_name === 'USDT' && r.is_active);
-  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : 20000;
+  const taskyPerUsdt = usdtRate ? Number(usdtRate.tasky_per_unit) : (10000 / 1.5);
   
   const currentRate = rates.find(r => r.token_name === selectedDestination) || usdtRate;
-  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : 20000;
-  const minSwap = currentRate ? Number(currentRate.min_tasky) : 20000;
+  const taskyPerUnit = currentRate ? Number(currentRate.tasky_per_unit) : (10000 / 1.5);
+  const minSwap = currentRate ? Number(currentRate.min_tasky) : 10000;
   
 
     
@@ -230,7 +230,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
   const hasEnoughAds = localAdsWatched >= 1000;
   const hasEnoughRefs = totalRefs >= 20;
   const hasGramDeposit = Number(user?.gram_balance || 0) >= 5 || Boolean(user?.has_verified_swaps);
-  const meetsSwapRequirements = hasGramDeposit || hasEnoughAds || hasEnoughRefs;
+  const meetsSwapRequirements = hasGramDeposit;
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
@@ -608,7 +608,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
               </div>
 
               <div className="text-[10.5px] text-ink-faint font-semibold mt-4 bg-surface/50 px-3.5 py-1.5 rounded-full border border-border/50 flex items-center gap-2">
-                <span>Rate: {Number(taskyPerUnit).toLocaleString()} TASKY = 1 {selectedDestination}</span>
+                <span className="text-cyan-400 font-black">Rate: 10,000 TASKY = 1.50 {selectedDestination}</span>
                 <span className="text-border">•</span>
                 <span className="text-amber-400/90 font-bold">Min: {Number(minSwap).toLocaleString()} TASKY</span>
               </div>

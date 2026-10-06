@@ -120,8 +120,8 @@ const mockData = {
     target_users_milestone: 500000
   },
   getSwapRates: [
-    { token_name: 'DOGS', tasky_per_unit: 10, min_tasky: 3000, is_active: true },
-    { token_name: 'USDT', tasky_per_unit: 20000, min_tasky: 20000, is_active: false }
+    { token_name: 'DOGS', tasky_per_unit: 10, min_tasky: 3000, is_active: false },
+    { token_name: 'USDT', tasky_per_unit: 6666.666666666667, min_tasky: 10000, is_active: true }
   ],
   getSwapHistory: [
     { id: 1, telegram_id: '123456', tasky_amount: 1000, receive_token: 'USDT', receive_amount: 2, status: 'pending', requested_at: new Date().toISOString(), chain: 'TON' }
