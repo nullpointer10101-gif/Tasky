@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRightLeft, History,
   CheckCircle2, Clock, Wallet as WalletIcon, ExternalLink, Coins,
-  Lock, X, ArrowDown, Gem, ShieldCheck, AlertCircle, Loader2, ArrowUpRight, Copy, RefreshCw, Flame, Sparkles
+  Lock, X, ArrowDown, Gem, ShieldCheck, AlertCircle, Loader2, ArrowUpRight, Copy, RefreshCw, Flame, Sparkles, Check
 } from 'lucide-react';
 import Card from '../components/Card';
 import Button from '../components/Button';
@@ -234,17 +234,56 @@ export default function Wallet({ user, refreshUser, navigate }) {
 
   const hasPendingSwap = history.some(h => h.status === 'pending');
 
+  const DEPOSIT_WALLET = 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
   const [showSwapVerificationModal, setShowSwapVerificationModal] = useState(false);
+  const [addressCopied, setAddressCopied] = useState(false);
+  const [memoCopied, setMemoCopied] = useState(false);
+  const [isCheckingDeposit, setIsCheckingDeposit] = useState(false);
+
+  const handleCopyDepositAddress = () => {
+    navigator.clipboard.writeText(DEPOSIT_WALLET);
+    setAddressCopied(true);
+    showToast('Deposit address copied!', 'success');
+    setTimeout(() => setAddressCopied(false), 2500);
+  };
+
+  const handleCopyMemo = () => {
+    const memo = `VERIFY_${user?.telegram_id || ''}`;
+    navigator.clipboard.writeText(memo);
+    setMemoCopied(true);
+    showToast('Memo / Comment copied!', 'success');
+    setTimeout(() => setMemoCopied(false), 2500);
+  };
+
+  const handleCheckDepositStatus = async () => {
+    if (isCheckingDeposit) return;
+    setIsCheckingDeposit(true);
+    try {
+      const freshUser = await refreshUser();
+      const hasVerified = Number(freshUser?.gram_balance || 0) >= 5 || Boolean(freshUser?.has_verified_swaps);
+      if (hasVerified) {
+        triggerConfetti();
+        showToast('🎉 Verification Confirmed! Lifetime Unlimited Swaps Unlocked!', 'success');
+        setShowSwapVerificationModal(false);
+      } else {
+        showToast('Deposit not detected yet. TON network transactions may take 15–45s. Please retry in a moment!', 'info');
+      }
+    } catch (e) {
+      console.error('Failed to check deposit status:', e);
+      showToast('Could not check status right now. Please try again.', 'error');
+    } finally {
+      setIsCheckingDeposit(false);
+    }
+  };
 
   const handlePayVerificationDeposit = (walletType = 'tonkeeper') => {
-    const depositWallet = 'UQDAqNQO65I06uJT4oxnfQPAQoE3qnMYYSeXtat_fF-JioNR';
     const amountGram = 5;
     const nanoAmount = Math.round(amountGram * 1e9);
     const comment = encodeURIComponent(`VERIFY_${user?.telegram_id || ''}`);
 
     let url = walletType === 'tonkeeper'
-      ? `https://app.tonkeeper.com/transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`
-      : `ton://transfer/${depositWallet}?amount=${nanoAmount}&text=${comment}`;
+      ? `https://app.tonkeeper.com/transfer/${DEPOSIT_WALLET}?amount=${nanoAmount}&text=${comment}`
+      : `ton://transfer/${DEPOSIT_WALLET}?amount=${nanoAmount}&text=${comment}`;
 
     if (window.Telegram?.WebApp?.openLink) {
       window.Telegram.WebApp.openLink(url);
@@ -252,7 +291,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
       window.open(url, '_blank');
     }
 
-    showToast(`Opening ${walletType === 'tonkeeper' ? 'Tonkeeper' : 'TON Wallet'} for 5 GRAM account verification...`, 'success');
+    showToast(`Opening Tonkeeper for 5 GRAM account verification...`, 'success');
   };
 
   const handleSwap = async () => {
@@ -861,83 +900,151 @@ export default function Wallet({ user, refreshUser, navigate }) {
       {/* Account Verification Modal for Lifetime Swaps (5 GRAM Deposit) */}
       {showSwapVerificationModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#0f172a] border border-cyan-500/40 rounded-3xl p-6 max-w-sm w-full space-y-4 shadow-2xl relative text-left">
+          <div className="bg-[#0b1324] border border-cyan-500/40 rounded-3xl p-5 max-w-sm w-full space-y-3.5 shadow-2xl relative text-left max-h-[92vh] overflow-y-auto">
+            {/* Close Button */}
             <button
               onClick={() => setShowSwapVerificationModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 transition-colors"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/70 active:scale-95 transition-all z-10"
             >
               <X size={16} />
             </button>
 
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-                <ShieldCheck size={26} />
+            {/* Header */}
+            <div className="flex items-center gap-3 pr-8">
+              <div className="w-11 h-11 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-lg shadow-cyan-500/20">
+                <ShieldCheck size={24} />
               </div>
               <div>
-                <h3 className="text-sm font-black text-cyan-300 uppercase tracking-wide">
-                  Account Verification Required
-                </h3>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="text-xs font-black text-cyan-300 uppercase tracking-wide">
+                    Account Verification
+                  </h3>
+                  <span className="bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] font-black px-1.5 py-0.5 rounded-md">
+                    Required
+                  </span>
+                </div>
                 <p className="text-[10px] text-cyan-200/70 mt-0.5">
                   Unlock Lifetime Unlimited Swaps
                 </p>
               </div>
             </div>
 
-            <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-4 space-y-2.5">
+            {/* Deposit Amount & Refundable Guarantee */}
+            <div className="bg-cyan-950/40 border border-cyan-500/30 rounded-2xl p-3.5 space-y-2">
               <div className="flex justify-between items-center text-xs font-bold text-slate-300">
-                <span>Verification Deposit:</span>
-                <span className="text-cyan-400 font-black text-sm">5.00 GRAM</span>
+                <span>Verification Amount:</span>
+                <span className="text-cyan-400 font-black text-base">5.00 GRAM</span>
               </div>
               <div className="bg-cyan-500/10 border border-cyan-500/20 rounded-xl p-2.5 space-y-1">
-                <p className="text-[11px] font-bold text-cyan-300">
-                  ✨ 100% Refundable & Lifetime Unlock
-                </p>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-cyan-300">
+                  <Sparkles size={12} />
+                  <span>100% Refundable & Lifetime Unlock</span>
+                </div>
                 <p className="text-[10.5px] text-slate-300 leading-relaxed font-medium">
-                  These 5 GRAM are strictly for verifying real user ownership. You can withdraw your GRAM back at any time (only <strong className="text-white">0.10 GRAM</strong> verification network fee is deducted).
+                  Strictly for verifying human user ownership. You can withdraw your 5 GRAM back at any time (only <strong className="text-white">0.10 GRAM</strong> network fee is deducted).
                 </p>
               </div>
             </div>
 
-            <div className="bg-surface-soft/60 border border-border rounded-2xl p-3 space-y-2 text-left">
+            {/* Deposit Wallet Address Card with Copy Button */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1.5 text-left">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] font-bold text-ink-soft">Required Memo (Comment):</span>
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-300/80">
+                  Official Deposit Address (TON):
+                </span>
                 <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(`VERIFY_${user?.telegram_id || ''}`);
-                    showToast('Memo copied!', 'success');
-                  }}
-                  className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                  onClick={handleCopyDepositAddress}
+                  className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all ${
+                    addressCopied
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30 hover:bg-cyan-500/25'
+                  }`}
                 >
-                  <Copy size={11} /> Copy Memo
+                  {addressCopied ? (
+                    <>
+                      <Check size={11} className="text-emerald-400" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={11} /> Copy Address
+                    </>
+                  )}
                 </button>
               </div>
-              <p className="font-mono text-xs font-black text-ink bg-surface px-2.5 py-1.5 rounded-lg border border-border">
+              <div className="font-mono text-[10.5px] font-bold text-slate-200 bg-black/40 px-2.5 py-1.5 rounded-xl border border-white/10 break-all select-all leading-tight">
+                {DEPOSIT_WALLET}
+              </div>
+            </div>
+
+            {/* Required Memo Card with Copy Button */}
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-3 space-y-1.5 text-left">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300/90">
+                  Required Memo / Comment:
+                </span>
+                <button
+                  onClick={handleCopyMemo}
+                  className={`text-[10px] font-bold flex items-center gap-1 px-2 py-0.5 rounded-lg border transition-all ${
+                    memoCopied
+                      ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30 hover:bg-amber-500/25'
+                  }`}
+                >
+                  {memoCopied ? (
+                    <>
+                      <Check size={11} className="text-emerald-400" /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={11} /> Copy Memo
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="font-mono text-xs font-black text-amber-300 bg-black/40 px-2.5 py-1.5 rounded-xl border border-amber-500/20 select-all">
                 VERIFY_{user?.telegram_id || ''}
+              </div>
+              <p className="text-[9.5px] text-amber-200/60 font-medium">
+                ⚠️ Always attach this Memo in your transfer to link deposit automatically.
               </p>
             </div>
 
-            <div className="pt-1 space-y-2.5">
+            {/* Action Buttons */}
+            <div className="pt-1 space-y-2">
+              {/* Primary: 1-Tap Tonkeeper Pay */}
               <button
                 onClick={() => handlePayVerificationDeposit('tonkeeper')}
-                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/25 active:scale-95 transition-all"
               >
-                <span>Deposit 5 GRAM via Tonkeeper</span>
+                <span>Pay 5 GRAM via Tonkeeper</span>
                 <ArrowUpRight size={16} />
               </button>
               
+              {/* Secondary: Check Deposit Status Button */}
               <button
-                onClick={() => handlePayVerificationDeposit('other')}
-                className="w-full py-3 px-4 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors"
+                onClick={handleCheckDepositStatus}
+                disabled={isCheckingDeposit}
+                className="w-full py-3 px-4 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 active:scale-95 transition-all disabled:opacity-50"
               >
-                <span>Deposit via TON Wallet</span>
-                <WalletIcon size={14} />
+                {isCheckingDeposit ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin text-cyan-300" />
+                    <span>Checking TON Network...</span>
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw size={14} className="text-cyan-300" />
+                    <span>I Have Deposited — Check Status</span>
+                  </>
+                )}
               </button>
 
+              {/* Close Button */}
               <button
                 onClick={() => setShowSwapVerificationModal(false)}
-                className="w-full py-2 px-4 rounded-xl text-slate-400 hover:text-slate-200 font-semibold text-xs transition-colors text-center"
+                className="w-full py-1.5 text-slate-400 hover:text-slate-200 font-semibold text-xs transition-colors text-center"
               >
-                Close
+                Dismiss
               </button>
             </div>
           </div>
