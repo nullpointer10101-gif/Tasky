@@ -150,7 +150,7 @@ const withMock = (mockValue, fn) => async (...args) => {
 };
 
 export const registerUser   = withMock(() => ({ id: 1, balance: '28460', ...mockData.getUser }), (body) => () => api.post('/api/users/register', body))
-export const getUser        = withMock(() => ({ ...mockData.getUser }), (id) => () => api.get(`/api/users/${id}`))
+export const getUser        = withMock(() => ({ ...mockData.getUser }), (id) => () => api.get(`/api/users/${id}?_t=${Date.now()}`))
 export const checkin        = withMock({ bonus_earned: 100, streak_days: 14 }, (telegram_id) => () => api.post('/api/users/checkin', { telegram_id }))
 export const playSpin       = withMock(() => {
   mockData.getUser.spins_used_today = (mockData.getUser.spins_used_today || 0) + 1;
@@ -355,12 +355,14 @@ export const verifyChannels = withMock(
   { success: true, new_balance: 200 },
   (telegram_id) => async () => {
     try {
-      const res = await axios.post(`${BACKEND_URL}/api/users/verify-channels`, { telegram_id }, {
+      getCache.clear();
+      const res = await api.post(`/api/users/verify-channels`, { telegram_id }, {
         timeout: 35000,
-        headers: { 'Content-Type': 'application/json', ...(typeof window !== 'undefined' && window.Telegram?.WebApp?.initData ? { 'x-telegram-init-data': window.Telegram.WebApp.initData } : {}) }
       });
+      getCache.clear();
       return { data: res.data, error: null };
     } catch (err) {
+      getCache.clear();
       // 503 = Telegram API timeout (retry signal) — pass body through as data
       if (err.response?.status === 503 && err.response?.data?.retry) {
         return { data: err.response.data, error: null };

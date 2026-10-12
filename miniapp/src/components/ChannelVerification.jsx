@@ -4,7 +4,7 @@ import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Gem, Users, Externa
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 
-export default function ChannelVerification({ user, refreshUser, tgUser }) {
+export default function ChannelVerification({ user, setUser, refreshUser, tgUser }) {
   const telegramId = user?.telegram_id || tgUser?.id || tgUser?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   
   const [loading, setLoading] = useState(false);
@@ -21,6 +21,50 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
 
   const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
 
+  const handleVerify = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const { data, error } = await verifyChannels(telegramId);
+      if (data && data.retry) {
+        // Telegram API timed out — not a hard failure, ask user to retry
+        showToast('⏳ Verification timed out. Please wait a moment and try again.', 'error');
+        await checkLiveStatus(true);
+      } else if (error) {
+        const msg = typeof error === 'string' ? error : 'Please join all 4 channels to unlock!';
+        showToast(msg, 'error');
+        await checkLiveStatus(true);
+      } else if (data && data.success) {
+        triggerConfetti({ particleCount: 150, spread: 90 });
+        if (data.reward_granted) {
+          showToast('🎉 All 4 communities verified! +200 TASKY added to your balance.', 'success');
+        } else {
+          showToast('🎉 All 4 communities verified! Welcome to Tasky.', 'success');
+        }
+        // Immediately unlock Mini App
+        if (setUser) {
+          setUser(prev => ({
+            ...prev,
+            ...(data.user || {}),
+            has_verified_channels: true,
+            balance: data.new_balance !== undefined ? data.new_balance : (data.user?.balance ?? (Number(prev?.balance || 0) + 200))
+          }));
+        }
+        if (refreshUser) {
+          refreshUser().catch(() => {});
+        }
+      } else {
+        showToast('Please join all 4 channels before continuing.', 'error');
+        await checkLiveStatus(true);
+      }
+    } catch (err) {
+      showToast('Connection error. Please make sure you joined all channels and try again!', 'error');
+      await checkLiveStatus(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const checkLiveStatus = useCallback(async (silent = false, retries = 2) => {
     if (!telegramId) return;
     if (!silent) setCheckingStatus(true);
@@ -29,7 +73,12 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
       if (data && !error) {
         setChannelStatus(data);
         if (data.all_joined) {
-          await refreshUser();
+          if (setUser) {
+            setUser(prev => ({ ...prev, has_verified_channels: true }));
+          }
+          if (refreshUser) {
+            refreshUser().catch(() => {});
+          }
         }
       } else if (retries > 0) {
         setTimeout(() => checkLiveStatus(silent, retries - 1), 1500);
@@ -44,7 +93,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } finally {
       setCheckingStatus(false);
     }
-  }, [telegramId, refreshUser]);
+  }, [telegramId, refreshUser, setUser]);
 
   // Keep a ref to channelStatus so the interval can read it without being a dep
   const channelStatusRef = useRef(channelStatus);
@@ -55,7 +104,6 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     checkLiveStatus(false);
 
     // Gentle background poll (30s) while verification modal is open.
-    // Uses a ref so adding channelStatus to deps doesn't re-create the interval on every state change.
     const pollInterval = setInterval(() => {
       if (!channelStatusRef.current.all_joined) {
         checkLiveStatus(true, 0);
@@ -65,7 +113,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     // Recheck once whenever user comes back to window/app after opening Telegram links
     const handleRecheck = () => {
       if (document.visibilityState === 'visible' || document.visibilityState === undefined) {
-        checkLiveStatus(true, 1); // single call — no duplicate setTimeout
+        checkLiveStatus(true, 1);
       }
     };
 
@@ -84,7 +132,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         window.Telegram.WebApp.offEvent('viewportChanged', handleRecheck);
       }
     };
-  }, [checkLiveStatus]); // ← removed channelStatus.all_joined — was causing effect/interval re-registration on every status poll
+  }, [checkLiveStatus]);
 
   const openChannelLink = (url) => {
     try {
@@ -96,42 +144,9 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
     } catch (_) {
       window.open(url, '_blank');
     }
-    // Single delayed recheck after user returns from Telegram — saves 2 extra API calls per tap
+    // Single delayed recheck after user returns from Telegram
     setTimeout(() => checkLiveStatus(true), 4000);
   };
-
-  const handleVerify = async () => {
-    setLoading(true);
-    try {
-      const { data, error, status } = await verifyChannels(telegramId);
-      if (data && data.retry) {
-        // Telegram API timed out — not a hard failure, ask user to retry
-        showToast('⏳ Verification timed out. Please wait a moment and try again.', 'error');
-        await checkLiveStatus(true);
-      } else if (error) {
-        const msg = typeof error === 'string' ? error : 'Please join all 4 channels to unlock!';
-        showToast(msg, 'error');
-        await checkLiveStatus(true);
-      } else if (data && data.success) {
-        triggerConfetti({ particleCount: 150, spread: 90 });
-        if (data.reward_granted) {
-          showToast('🎉 All 4 communities verified! +200 TASKY added to your balance.', 'success');
-        } else {
-          showToast('🎉 All 4 communities verified! Welcome to Tasky.', 'success');
-        }
-        await refreshUser();
-      } else {
-        showToast('Please join all 4 channels before continuing.', 'error');
-        await checkLiveStatus(true);
-      }
-    } catch (err) {
-      showToast('Connection error. Please make sure you joined all channels and try again!', 'error');
-      await checkLiveStatus(true);
-    } finally {
-      setLoading(false);
-    }
-  };
-
 
   const channels = [
     {
@@ -291,7 +306,7 @@ export default function ChannelVerification({ user, refreshUser, tgUser }) {
         {/* Action Button */}
         <button
           onClick={handleVerify}
-          disabled={loading || checkingStatus}
+          disabled={loading}
           className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
             joinedCount === 4
               ? 'bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-slate-950 shadow-emerald-500/25'

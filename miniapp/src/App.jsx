@@ -292,7 +292,7 @@ export default function App() {
           <AnimatePresence>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           </AnimatePresence>
-          <ChannelVerification user={user} refreshUser={refreshUser} tgUser={tgUser} />
+          <ChannelVerification user={user} setUser={setUser} refreshUser={refreshUser} tgUser={tgUser} />
         </div>
       </ToastContext.Provider>
     );

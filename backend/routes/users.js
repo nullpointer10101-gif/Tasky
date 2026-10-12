@@ -60,11 +60,20 @@ const checkTelegramMembership = async (channelKeyOrHandle, telegramId) => {
     const target = CHANNEL_TARGETS[channelKeyOrHandle] || { handle: channelKeyOrHandle, chatId: null };
     
     const evalResult = (res) => {
-        if (!res.ok || !res.result) return null; // null = unknown
-        const status = res.result.status;
-        if (status === 'left' || status === 'kicked') return false; // definitive: NOT a member
-        return ['member', 'administrator', 'creator'].includes(status) ||
-               (status === 'restricted' && res.result.is_member !== false);
+        if (!res) return null; // null = unknown
+        if (res.ok && res.result) {
+            const status = res.result.status;
+            if (status === 'left' || status === 'kicked') return false; // definitive: NOT a member
+            return ['member', 'administrator', 'creator'].includes(status) ||
+                   (status === 'restricted' && res.result.is_member !== false);
+        }
+        if (res.description) {
+            const desc = res.description.toLowerCase();
+            if (desc.includes('participant_id_invalid') || desc.includes('user not found') || desc.includes('user_not_participant')) {
+                return false; // definitive: NOT a member
+            }
+        }
+        return null; // Unknown / timeout / rate limit
     };
 
     // 1. Try numeric chat ID first (fastest and most authoritative)
@@ -509,10 +518,10 @@ router.post('/special-offer/claim', async (req, res) => {
 router.get('/channel-status', async (req, res) => {
     const rawId = req.query.telegram_id || req.body?.telegram_id;
     if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
-    const telegram_id = rawId;
+    const telegram_id = String(rawId);
 
     try {
-        const userRes = await pool.query('SELECT has_verified_channels FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await pool.query('SELECT has_verified_channels FROM users WHERE telegram_id::text = $1', [telegram_id]);
         const alreadyVerified = userRes.rows[0]?.has_verified_channels === true;
 
         // If already verified, skip Telegram API calls entirely (saves quota + avoids false negatives)
@@ -533,16 +542,7 @@ router.get('/channel-status', async (req, res) => {
             checkTelegramMembership('community', telegram_id)
         ]);
 
-        // For display: if API errored, show as not-yet-joined (amber, not red) — don't false-positive
         const allJoined = r1.joined && r2.joined && r3.joined && r4.joined;
-
-        if (allJoined) {
-            try {
-                await pool.query('UPDATE users SET has_verified_channels = TRUE WHERE telegram_id = $1', [telegram_id]);
-            } catch (dbErr) {
-                console.log('[ChannelStatus] DB update warning:', dbErr.message);
-            }
-        }
 
         res.json({
             tasky_official: r1.joined,
@@ -550,7 +550,6 @@ router.get('/channel-status', async (req, res) => {
             alphadrop: r3.joined,
             community: r4.joined,
             all_joined: allJoined,
-            // Extra info so frontend can know if results are uncertain
             api_errors: [r1.apiError, r2.apiError, r3.apiError, r4.apiError].filter(Boolean).length
         });
     } catch (error) {
@@ -563,20 +562,20 @@ router.get('/channel-status', async (req, res) => {
 router.post('/verify-channels', async (req, res) => {
     const rawId = req.body?.telegram_id || req.query?.telegram_id;
     if (!rawId) return res.status(400).json({ error: 'telegram_id required' });
-    const telegram_id = rawId;
+    const telegram_id = String(rawId);
 
     try {
-        const userRes = await pool.query('SELECT has_verified_channels, balance, created_at FROM users WHERE telegram_id = $1', [telegram_id]);
+        const userRes = await pool.query('SELECT * FROM users WHERE telegram_id::text = $1', [telegram_id]);
         if (userRes.rows.length === 0) return res.status(404).json({ error: 'User not found' });
 
-        const wasVerified = userRes.rows[0].has_verified_channels;
+        const existingUser = userRes.rows[0];
 
-        // Already verified — skip re-checking Telegram, just confirm
-        if (wasVerified) {
-            const updateRes = await pool.query('SELECT balance FROM users WHERE telegram_id = $1', [telegram_id]);
+        // Already verified — skip re-checking Telegram, confirm immediately
+        if (existingUser.has_verified_channels) {
             return res.json({ 
                 success: true, 
-                new_balance: parseFloat(updateRes.rows[0]?.balance || 0),
+                user: existingUser,
+                new_balance: parseFloat(existingUser.balance || 0),
                 reward_granted: false
             });
         }
@@ -588,21 +587,18 @@ router.post('/verify-channels', async (req, res) => {
             checkTelegramMembership('community', telegram_id)
         ]);
 
-        const results = [r1, r2, r3, r4];
-        const apiErrors = results.filter(r => r.apiError).length;
-        const definitivelyNotJoined = [
-            !r1.joined && !r1.apiError ? 'Tasky Official Channel (@Tasky_Official)' : null,
-            !r2.joined && !r2.apiError ? 'Tasky Payouts 💎 (@TaskyPayouts)' : null,
-            !r3.joined && !r3.apiError ? 'AlphaDrop Daily (@AlphaDropDaily)' : null,
-            !r4.joined && !r4.apiError ? 'Official Community Group (@TaskyOfficialCommunity)' : null,
-        ].filter(Boolean);
+        const results = [
+            { name: 'Tasky Official Channel (@Tasky_Official)', ...r1 },
+            { name: 'Tasky Payouts 💎 (@TaskyPayouts)', ...r2 },
+            { name: 'AlphaDrop Daily (@AlphaDropDaily)', ...r3 },
+            { name: 'Official Community Group (@TaskyOfficialCommunity)', ...r4 },
+        ];
 
-        // Grace rule: if Telegram API errors caused failures but user joined ≥3 channels definitively, let them through
-        // This prevents false rejections due to Telegram API rate limits / timeouts
-        const definitivelyJoined = results.filter(r => r.joined && !r.apiError).length;
-        const apiOnlyFails = results.filter(r => !r.joined && r.apiError).length;
-        const allowGrace = definitivelyJoined >= 3 && definitivelyNotJoined.length === 0;
+        const definitivelyNotJoined = results.filter(r => !r.joined && !r.apiError).map(r => r.name);
+        const joinedCount = results.filter(r => r.joined).length;
+        const apiErrorsCount = results.filter(r => r.apiError).length;
 
+        // If user definitely hasn't joined some channels, give specific clear names:
         if (definitivelyNotJoined.length > 0) {
             return res.status(400).json({ 
                 error: `Please join: ${definitivelyNotJoined.join(', ')}`,
@@ -616,28 +612,34 @@ router.post('/verify-channels', async (req, res) => {
             });
         }
 
-        // If API errors prevent full verification and grace not met, ask user to retry
-        if (apiErrors > 0 && !allowGrace) {
+        // Grace rule: if Telegram API experienced rate limits/timeouts on some channels,
+        // but user joined at least 2 channels and NO channels returned "not joined", let them through
+        const allowGrace = joinedCount >= 2 && definitivelyNotJoined.length === 0;
+
+        if (apiErrorsCount > 0 && !allowGrace && joinedCount < 4) {
             return res.status(503).json({
                 error: 'Telegram verification timed out. Please wait a moment and try again.',
                 retry: true
             });
         }
 
-        // All joined (or grace applies) — grant reward
+        // All joined (or grace applies) — unlock and grant welcome reward
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
             const updateRes = await client.query(`
                 UPDATE users 
                 SET balance = balance + 200, has_verified_channels = TRUE 
-                WHERE telegram_id = $1 
-                RETURNING balance
+                WHERE telegram_id::text = $1 
+                RETURNING *
             `, [telegram_id]);
             await client.query('COMMIT');
+
+            const updatedUser = updateRes.rows[0];
             res.json({ 
                 success: true, 
-                new_balance: parseFloat(updateRes.rows[0].balance),
+                user: updatedUser,
+                new_balance: parseFloat(updatedUser.balance),
                 reward_granted: true
             });
         } catch (err) {
