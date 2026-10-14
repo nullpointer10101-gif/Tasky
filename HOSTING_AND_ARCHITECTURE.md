@@ -8,8 +8,8 @@ This document is the **single source of truth** for all hosting environments, pr
 
 | Component | Host / Platform | Project / Service Name | Live URL | Deployment Command |
 | :--- | :--- | :--- | :--- | :--- |
-| **Telegram Bot** | Render | `Tasky4` | [`@TaskyAppbot`](https://t.me/TaskyAppbot) | `git push origin main` |
-| **Backend API** | Render | `Tasky4` | `https://tasky4.onrender.com/api` | `git push origin main` |
+| **Telegram Bot** | Render | `Tasky-5` | [`@TaskyAppbot`](https://t.me/TaskyAppbot) | `git push origin main` |
+| **Backend API** | Render | `Tasky-5` | `https://tasky-5.onrender.com/api` | `git push origin main` |
 | **Database** | Neon PostgreSQL | `Tasky` | PostgreSQL URI | Managed via Neon Console |
 | **Mini App (Frontend)** | Vercel (CDN) | `tasky-v3` (Vercel) | `https://tasky-v3.vercel.app/` | `npx vercel --prod --yes` in `miniapp/` |
 | **Admin Panel** | Vercel (CDN) | `tasky-d81s` (Vercel) | `https://tasky-d81s.vercel.app/` | `npx vercel --prod --yes` in `admin-frontend/` |
@@ -19,13 +19,13 @@ This document is the **single source of truth** for all hosting environments, pr
 ## 2. Platform Accounts & Infrastructure Details
 
 ### 2.1 Render (Backend & API Host)
-- **Service Name**: `Tasky4`
-- **Base URL**: `https://tasky4.onrender.com`
+- **Service Name**: `Tasky-5`
+- **Base URL**: `https://tasky-5.onrender.com`
 - **GitHub Repository**: `https://github.com/nullpointer10101-gif/Tasky.git` (Branch: `main`)
 - **Vercel Redirection**:
-  - Mini App: `https://tasky4.onrender.com/` -> 302 Redirects to `https://tasky-v3.vercel.app/`
-  - Admin Panel: `https://tasky4.onrender.com/admin` -> 302 Redirects to `https://tasky-d81s.vercel.app/`
-  - Health Check: `https://tasky4.onrender.com/api/health`
+  - Mini App: `https://tasky-5.onrender.com/` -> 302 Redirects to `https://tasky-v3.vercel.app/`
+  - Admin Panel: `https://tasky-5.onrender.com/admin` -> 302 Redirects to `https://tasky-d81s.vercel.app/`
+  - Health Check: `https://tasky-5.onrender.com/api/health`
 
 ### 2.2 Vercel (Free Static CDN — $0 Render Bill)
 - **Primary Vercel Account**: `meelas-projects-784c876a`

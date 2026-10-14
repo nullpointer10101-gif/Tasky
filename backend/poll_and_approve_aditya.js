@@ -3,7 +3,7 @@ const https = require('https');
 function post(path, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(body);
-    const req = https.request(`https://tasky4.onrender.com${path}`, {
+    const req = https.request(`https://tasky-5.onrender.com${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -30,7 +30,7 @@ function post(path, body, headers = {}) {
 
 function get(path) {
   return new Promise((resolve, reject) => {
-    https.get(`https://tasky4.onrender.com${path}`, {
+    https.get(`https://tasky-5.onrender.com${path}`, {
       headers: { 'x-admin-password': 'meela' }
     }, (res) => {
       let data = '';
