@@ -225,7 +225,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
             <div className="flex items-center gap-2">
               <span>Progress:</span>
               <span className={allClicked ? 'text-emerald-400 font-black' : 'text-amber-400 font-black'}>
-                {allClicked ? 'All 4 Channels Visited ✓' : `${clickedCount} / 4 Visited`}
+                {allClicked ? 'All 4 Channels Joined ✓' : `${clickedCount} / 4 Joined`}
               </span>
             </div>
             <div className="text-[11px] text-white/50">
@@ -271,7 +271,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
                 <div className="shrink-0">
                   {isDone ? (
                     <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Visited ✓
+                      <CheckCircle2 size={12} /> Joined ✓
                     </span>
                   ) : (
                     <button
@@ -301,8 +301,8 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
           </div>
         </div>
 
-        {/* Claim / Unlock Action Button - ONLY VISIBLE ONCE ALL 4 CHANNELS ARE CLICKED */}
-        {allClicked ? (
+        {/* Claim Action Button - HIDDEN COMPLETELY UNTIL ALL 4 APPEAR JOINED */}
+        {allClicked && (
           <button
             onClick={handleClaim}
             disabled={loading}
@@ -320,11 +320,6 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
               </>
             )}
           </button>
-        ) : (
-          <div className="w-full py-3.5 px-4 rounded-2xl border border-white/10 bg-white/5 text-white/50 text-xs font-semibold flex items-center justify-center gap-2">
-            <AlertCircle size={14} className="text-amber-400 shrink-0" />
-            <span>Click & join all 4 channels above to reveal the Claim button</span>
-          </div>
         )}
 
         {/* Quick helper */}

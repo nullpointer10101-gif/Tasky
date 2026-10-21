@@ -56,7 +56,7 @@ export default function App() {
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false)
   const [dismissedVerification, setDismissedVerification] = useState(() => {
     try {
-      return localStorage.getItem('tasky_verification_dismissed') === 'true';
+      return localStorage.getItem('tasky_verification_v2_dismissed') === 'true';
     } catch {
       return false;
     }
@@ -306,7 +306,7 @@ export default function App() {
             tgUser={tgUser}
             onDismiss={() => {
               try {
-                localStorage.setItem('tasky_verification_dismissed', 'true');
+                localStorage.setItem('tasky_verification_v2_dismissed', 'true');
               } catch (_) {}
               setDismissedVerification(true);
             }}
