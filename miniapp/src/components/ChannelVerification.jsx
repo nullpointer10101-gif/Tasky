@@ -8,23 +8,13 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
   const telegramId = user?.telegram_id || tgUser?.id || tgUser?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   
   const [loading, setLoading] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(true);
-  
-  // Real-time backend status for each channel
-  const [channelStatus, setChannelStatus] = useState({
-    tasky_official: false,
-    tasky_payouts: false,
-    alphadrop: false,
-    community: false,
-    all_joined: false
-  });
 
   const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
 
-  const storageKey = `tasky_channels_clicked_${telegramId || 'guest'}`;
+  const storageKey = `tasky_channels_clicked_v2_${telegramId || 'guest'}`;
   const [clickedChannels, setClickedChannels] = useState(() => {
     try {
-      const saved = localStorage.getItem(`tasky_channels_clicked_${telegramId || 'guest'}`);
+      const saved = localStorage.getItem(`tasky_channels_clicked_v2_${telegramId || 'guest'}`);
       return saved ? JSON.parse(saved) : {};
     } catch {
       return {};
@@ -73,60 +63,6 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     }
   };
 
-  const checkLiveStatus = useCallback(async (silent = false, retries = 1) => {
-    if (!telegramId) return;
-    if (!silent) setCheckingStatus(true);
-    try {
-      const { data, error } = await getChannelStatus(telegramId);
-      if (data && !error) {
-        setChannelStatus(data);
-      }
-    } catch (e) {
-      console.error('Channel status check error:', e);
-    } finally {
-      setCheckingStatus(false);
-    }
-  }, [telegramId]);
-
-  // Keep a ref to channelStatus so the interval can read it without being a dep
-  const channelStatusRef = useRef(channelStatus);
-  useEffect(() => { channelStatusRef.current = channelStatus; }, [channelStatus]);
-
-  useEffect(() => {
-    // Initial check
-    checkLiveStatus(false);
-
-    // Gentle background poll (30s) while verification modal is open.
-    const pollInterval = setInterval(() => {
-      if (!channelStatusRef.current.all_joined) {
-        checkLiveStatus(true, 0);
-      }
-    }, 30000);
-
-    // Recheck once whenever user comes back to window/app after opening Telegram links
-    const handleRecheck = () => {
-      if (document.visibilityState === 'visible' || document.visibilityState === undefined) {
-        checkLiveStatus(true, 1);
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleRecheck);
-    window.addEventListener('focus', handleRecheck);
-
-    if (window.Telegram?.WebApp?.onEvent) {
-      window.Telegram.WebApp.onEvent('viewportChanged', handleRecheck);
-    }
-
-    return () => {
-      clearInterval(pollInterval);
-      document.removeEventListener('visibilitychange', handleRecheck);
-      window.removeEventListener('focus', handleRecheck);
-      if (window.Telegram?.WebApp?.offEvent) {
-        window.Telegram.WebApp.offEvent('viewportChanged', handleRecheck);
-      }
-    };
-  }, [checkLiveStatus]);
-
   const openChannelLink = (channelId, url) => {
     // Record click locally
     setClickedChannels(prev => {
@@ -146,8 +82,6 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     } catch (_) {
       window.open(url, '_blank');
     }
-    // Background status check after user returns
-    setTimeout(() => checkLiveStatus(true), 3000);
   };
 
   const channels = [
@@ -158,7 +92,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/Tasky_Official',
       icon: Send,
       color: 'indigo',
-      isJoined: Boolean(channelStatus.tasky_official || clickedChannels.tasky_official)
+      isJoined: Boolean(clickedChannels.tasky_official)
     },
     {
       id: 'tasky_payouts',
@@ -167,7 +101,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/TaskyPayouts',
       icon: Gem,
       color: 'amber',
-      isJoined: Boolean(channelStatus.tasky_payouts || clickedChannels.tasky_payouts)
+      isJoined: Boolean(clickedChannels.tasky_payouts)
     },
     {
       id: 'alphadrop',
@@ -176,7 +110,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/AlphaDropDaily',
       icon: Send,
       color: 'cyan',
-      isJoined: Boolean(channelStatus.alphadrop || clickedChannels.alphadrop)
+      isJoined: Boolean(clickedChannels.alphadrop)
     },
     {
       id: 'community',
@@ -185,7 +119,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/TaskyOfficialCommunity',
       icon: Users,
       color: 'violet',
-      isJoined: Boolean(channelStatus.community || clickedChannels.community)
+      isJoined: Boolean(clickedChannels.community)
     }
   ];
 
