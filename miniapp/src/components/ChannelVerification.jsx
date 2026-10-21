@@ -19,6 +19,8 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     all_joined: false
   });
 
+  const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
+
   const storageKey = `tasky_channels_clicked_${telegramId || 'guest'}`;
   const [clickedChannels, setClickedChannels] = useState(() => {
     try {
