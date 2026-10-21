@@ -580,50 +580,9 @@ router.post('/verify-channels', async (req, res) => {
             });
         }
 
-        const [r1, r2, r3, r4] = await Promise.all([
-            checkTelegramMembership('tasky_official', telegram_id),
-            checkTelegramMembership('tasky_payouts', telegram_id),
-            checkTelegramMembership('alphadrop', telegram_id),
-            checkTelegramMembership('community', telegram_id)
-        ]);
-
-        const results = [
-            { name: 'Tasky Official Channel (@Tasky_Official)', ...r1 },
-            { name: 'Tasky Payouts 💎 (@TaskyPayouts)', ...r2 },
-            { name: 'AlphaDrop Daily (@AlphaDropDaily)', ...r3 },
-            { name: 'Official Community Group (@TaskyOfficialCommunity)', ...r4 },
-        ];
-
-        const definitivelyNotJoined = results.filter(r => !r.joined && !r.apiError).map(r => r.name);
-        const joinedCount = results.filter(r => r.joined).length;
-        const apiErrorsCount = results.filter(r => r.apiError).length;
-
-        // If user definitely hasn't joined some channels, give specific clear names:
-        if (definitivelyNotJoined.length > 0) {
-            return res.status(400).json({ 
-                error: `Please join: ${definitivelyNotJoined.join(', ')}`,
-                status: {
-                    tasky_official: r1.joined,
-                    tasky_payouts: r2.joined,
-                    alphadrop: r3.joined,
-                    community: r4.joined,
-                    all_joined: false
-                }
-            });
-        }
-
-        // Grace rule: if Telegram API experienced rate limits/timeouts on some channels,
-        // but user joined at least 2 channels and NO channels returned "not joined", let them through
-        const allowGrace = joinedCount >= 2 && definitivelyNotJoined.length === 0;
-
-        if (apiErrorsCount > 0 && !allowGrace && joinedCount < 4) {
-            return res.status(503).json({
-                error: 'Telegram verification timed out. Please wait a moment and try again.',
-                retry: true
-            });
-        }
-
-        // All joined (or grace applies) — unlock and grant welcome reward
+        // Allow verification:
+        // We no longer strictly block users because Telegram getChatMember frequently fails/rate-limits.
+        // As long as the user triggers verification (after clicking all channels on the frontend), grant entry & reward.
         const client = await pool.connect();
         try {
             await client.query('BEGIN');

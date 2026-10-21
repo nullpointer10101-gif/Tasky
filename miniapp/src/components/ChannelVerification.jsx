@@ -19,81 +19,66 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     all_joined: false
   });
 
-  const { showToast } = useToast() || { showToast: (msg) => alert(msg) };
+  const storageKey = `tasky_channels_clicked_${telegramId || 'guest'}`;
+  const [clickedChannels, setClickedChannels] = useState(() => {
+    try {
+      const saved = localStorage.getItem(`tasky_channels_clicked_${telegramId || 'guest'}`);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
 
-  const handleVerify = async () => {
+  const handleClaim = async () => {
     if (loading) return;
     setLoading(true);
     try {
       const { data, error } = await verifyChannels(telegramId);
-      if (data && data.retry) {
-        // Telegram API timed out — not a hard failure, ask user to retry
-        showToast('⏳ Verification timed out. Please wait a moment and try again.', 'error');
-        await checkLiveStatus(true);
-      } else if (error) {
-        const msg = typeof error === 'string' ? error : 'Please join all 4 channels to unlock!';
-        showToast(msg, 'error');
-        await checkLiveStatus(true);
-      } else if (data && data.success) {
-        triggerConfetti({ particleCount: 150, spread: 90 });
-        if (data.reward_granted) {
-          showToast('🎉 All 4 communities verified! +200 TASKY added to your balance.', 'success');
-        } else {
-          showToast('🎉 All 4 communities verified! Welcome to Tasky.', 'success');
-        }
-        // Immediately unlock Mini App
-        if (setUser) {
-          setUser(prev => ({
-            ...prev,
-            ...(data.user || {}),
-            has_verified_channels: true,
-            balance: data.new_balance !== undefined ? data.new_balance : (data.user?.balance ?? (Number(prev?.balance || 0) + 200))
-          }));
-        }
-        if (refreshUser) {
-          refreshUser().catch(() => {});
-        }
+      triggerConfetti({ particleCount: 150, spread: 90 });
+      if (data?.reward_granted) {
+        showToast('🎉 Welcome bonus claimed! +200 TASKY added to your balance.', 'success');
       } else {
-        showToast('Please join all 4 channels before continuing.', 'error');
-        await checkLiveStatus(true);
+        showToast('🎉 Welcome to Tasky!', 'success');
+      }
+      if (setUser) {
+        setUser(prev => ({
+          ...prev,
+          ...(data?.user || {}),
+          has_verified_channels: true,
+          balance: data?.new_balance !== undefined ? data.new_balance : (data?.user?.balance ?? (Number(prev?.balance || 0) + (data?.reward_granted ? 200 : 0)))
+        }));
+      }
+      if (refreshUser) {
+        refreshUser().catch(() => {});
       }
     } catch (err) {
-      showToast('Connection error. Please make sure you joined all channels and try again!', 'error');
-      await checkLiveStatus(true);
+      console.error('Claim error:', err);
+      // Even if network blips, unlock locally
+      if (setUser) {
+        setUser(prev => ({
+          ...prev,
+          has_verified_channels: true
+        }));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const checkLiveStatus = useCallback(async (silent = false, retries = 2) => {
+  const checkLiveStatus = useCallback(async (silent = false, retries = 1) => {
     if (!telegramId) return;
     if (!silent) setCheckingStatus(true);
     try {
       const { data, error } = await getChannelStatus(telegramId);
       if (data && !error) {
         setChannelStatus(data);
-        if (data.all_joined) {
-          if (setUser) {
-            setUser(prev => ({ ...prev, has_verified_channels: true }));
-          }
-          if (refreshUser) {
-            refreshUser().catch(() => {});
-          }
-        }
-      } else if (retries > 0) {
-        setTimeout(() => checkLiveStatus(silent, retries - 1), 1500);
-        return;
       }
     } catch (e) {
       console.error('Channel status check error:', e);
-      if (retries > 0) {
-        setTimeout(() => checkLiveStatus(silent, retries - 1), 1500);
-        return;
-      }
     } finally {
       setCheckingStatus(false);
     }
-  }, [telegramId, refreshUser, setUser]);
+  }, [telegramId]);
 
   // Keep a ref to channelStatus so the interval can read it without being a dep
   const channelStatusRef = useRef(channelStatus);
@@ -134,7 +119,16 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     };
   }, [checkLiveStatus]);
 
-  const openChannelLink = (url) => {
+  const openChannelLink = (channelId, url) => {
+    // Record click locally
+    setClickedChannels(prev => {
+      const updated = { ...prev, [channelId]: true };
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(updated));
+      } catch (_) {}
+      return updated;
+    });
+
     try {
       if (window.Telegram?.WebApp?.openTelegramLink) {
         window.Telegram.WebApp.openTelegramLink(url);
@@ -144,8 +138,8 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
     } catch (_) {
       window.open(url, '_blank');
     }
-    // Single delayed recheck after user returns from Telegram
-    setTimeout(() => checkLiveStatus(true), 4000);
+    // Background status check after user returns
+    setTimeout(() => checkLiveStatus(true), 3000);
   };
 
   const channels = [
@@ -156,7 +150,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/Tasky_Official',
       icon: Send,
       color: 'indigo',
-      isJoined: Boolean(channelStatus.tasky_official)
+      isJoined: Boolean(channelStatus.tasky_official || clickedChannels.tasky_official)
     },
     {
       id: 'tasky_payouts',
@@ -165,7 +159,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/TaskyPayouts',
       icon: Gem,
       color: 'amber',
-      isJoined: Boolean(channelStatus.tasky_payouts)
+      isJoined: Boolean(channelStatus.tasky_payouts || clickedChannels.tasky_payouts)
     },
     {
       id: 'alphadrop',
@@ -174,7 +168,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/AlphaDropDaily',
       icon: Send,
       color: 'cyan',
-      isJoined: Boolean(channelStatus.alphadrop)
+      isJoined: Boolean(channelStatus.alphadrop || clickedChannels.alphadrop)
     },
     {
       id: 'community',
@@ -183,11 +177,12 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       url: 'https://t.me/TaskyOfficialCommunity',
       icon: Users,
       color: 'violet',
-      isJoined: Boolean(channelStatus.community)
+      isJoined: Boolean(channelStatus.community || clickedChannels.community)
     }
   ];
 
-  const joinedCount = channels.filter(c => c.isJoined).length;
+  const clickedCount = channels.filter(c => c.isJoined).length;
+  const allClicked = clickedCount === 4;
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center bg-bg px-5 py-6 text-center relative overflow-y-auto hide-scrollbar">
@@ -214,25 +209,20 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
           </h1>
 
           <p className="text-xs text-white/60 leading-relaxed px-2">
-            Join all official communities below to unlock the app and claim your <strong>+200 TASKY</strong> welcome bonus.
+            Click all 4 channels below to join our official communities and unlock your <strong>+200 TASKY</strong> welcome bonus.
           </p>
 
           {/* Progress bar */}
           <div className="bg-white/5 border border-white/10 rounded-xl p-2.5 flex items-center justify-between text-xs font-bold text-white/70">
             <div className="flex items-center gap-2">
-              <span>Status:</span>
-              <span className={joinedCount === 4 ? 'text-emerald-400 font-black' : 'text-amber-400 font-black'}>
-                {checkingStatus ? 'Checking live membership...' : `${joinedCount} / 4 Joined`}
+              <span>Progress:</span>
+              <span className={allClicked ? 'text-emerald-400 font-black' : 'text-amber-400 font-black'}>
+                {allClicked ? 'All 4 Channels Visited ✓' : `${clickedCount} / 4 Visited`}
               </span>
             </div>
-            <button
-              onClick={() => checkLiveStatus(false)}
-              disabled={checkingStatus}
-              className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors"
-              title="Refresh status"
-            >
-              <RefreshCw size={13} className={checkingStatus ? 'animate-spin' : ''} />
-            </button>
+            <div className="text-[11px] text-white/50">
+              {allClicked ? 'Ready to Claim!' : `${4 - clickedCount} remaining`}
+            </div>
           </div>
         </div>
 
@@ -245,7 +235,7 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
             return (
               <div
                 key={ch.id}
-                onClick={() => !isDone && openChannelLink(ch.url)}
+                onClick={() => openChannelLink(ch.id, ch.url)}
                 className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left cursor-pointer ${
                   isDone
                     ? 'bg-emerald-500/10 border-emerald-500/30'
@@ -273,13 +263,13 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
                 <div className="shrink-0">
                   {isDone ? (
                     <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                      <CheckCircle2 size={12} /> Joined ✓
+                      <CheckCircle2 size={12} /> Visited ✓
                     </span>
                   ) : (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        openChannelLink(ch.url);
+                        openChannelLink(ch.id, ch.url);
                       }}
                       className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-indigo-500 hover:bg-indigo-600 text-white shadow-sm flex items-center gap-1 transition-all active:scale-95"
                     >
@@ -303,38 +293,36 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
           </div>
         </div>
 
-        {/* Action Button */}
-        <button
-          onClick={handleVerify}
-          disabled={loading}
-          className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
-            joinedCount === 4
-              ? 'bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-slate-950 shadow-emerald-500/25'
-              : 'bg-gradient-to-r from-[#3F00E7] via-indigo-600 to-indigo-700 text-white shadow-indigo-500/25'
-          }`}
-        >
-          {loading ? (
-            <>
-              <Loader2 className="animate-spin" size={16} />
-              Verifying 4 Channels...
-            </>
-          ) : joinedCount === 4 ? (
-            <>
-              <CheckCircle2 size={18} />
-              ✓ Enter Tasky App Now
-            </>
-          ) : (
-            <>
-              <CheckCircle2 size={16} />
-              Verify & Unlock Tasky
-            </>
-          )}
-        </button>
+        {/* Claim / Unlock Action Button - ONLY VISIBLE ONCE ALL 4 CHANNELS ARE CLICKED */}
+        {allClicked ? (
+          <button
+            onClick={handleClaim}
+            disabled={loading}
+            className="w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 bg-gradient-to-r from-emerald-400 via-teal-500 to-emerald-600 text-slate-950 shadow-emerald-500/25 animate-pulse"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={16} />
+                Claiming Reward...
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={18} />
+                🎁 Claim +200 TASKY & Enter App
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="w-full py-3.5 px-4 rounded-2xl border border-white/10 bg-white/5 text-white/50 text-xs font-semibold flex items-center justify-center gap-2">
+            <AlertCircle size={14} className="text-amber-400 shrink-0" />
+            <span>Click & join all 4 channels above to reveal the Claim button</span>
+          </div>
+        )}
 
         {/* Quick helper */}
         <p className="text-[10.5px] text-white/40 flex items-center justify-center gap-1 pb-1">
-          <AlertCircle size={11} />
-          <span>Tap Join on unjoined channels, then tap Verify.</span>
+          <Sparkles size={11} className="text-amber-400" />
+          <span>Click each link to open Telegram, then return to claim.</span>
         </p>
       </div>
     </div>
