@@ -54,6 +54,13 @@ export default function App() {
   const [networkError, setNetworkError] = useState(false)
   const [isReactorModalOpen, setIsReactorModalOpen] = useState(false)
   const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false)
+  const [dismissedVerification, setDismissedVerification] = useState(() => {
+    try {
+      return localStorage.getItem('tasky_verification_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  })
   const mainScrollRef = useRef(null)
 
   useEffect(() => {
@@ -285,14 +292,25 @@ export default function App() {
     );
   }
 
-  if (!user.has_verified_channels) {
+  if (!user.has_verified_channels || !dismissedVerification) {
     return (
       <ToastContext.Provider value={{ showToast }}>
         <div className="flex flex-col h-full overflow-hidden bg-bg">
           <AnimatePresence>
             {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
           </AnimatePresence>
-          <ChannelVerification user={user} setUser={setUser} refreshUser={refreshUser} tgUser={tgUser} />
+          <ChannelVerification 
+            user={user} 
+            setUser={setUser} 
+            refreshUser={refreshUser} 
+            tgUser={tgUser}
+            onDismiss={() => {
+              try {
+                localStorage.setItem('tasky_verification_dismissed', 'true');
+              } catch (_) {}
+              setDismissedVerification(true);
+            }}
+          />
         </div>
       </ToastContext.Provider>
     );

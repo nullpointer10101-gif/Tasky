@@ -4,7 +4,7 @@ import { Send, CheckCircle2, AlertCircle, Loader2, Sparkles, Gem, Users, Externa
 import { useToast } from '../App';
 import triggerConfetti from '../confetti';
 
-export default function ChannelVerification({ user, setUser, refreshUser, tgUser }) {
+export default function ChannelVerification({ user, setUser, refreshUser, tgUser, onDismiss }) {
   const telegramId = user?.telegram_id || tgUser?.id || tgUser?.telegram_id || window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
   
   const [loading, setLoading] = useState(false);
@@ -53,6 +53,9 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
       if (refreshUser) {
         refreshUser().catch(() => {});
       }
+      if (onDismiss) {
+        onDismiss();
+      }
     } catch (err) {
       console.error('Claim error:', err);
       // Even if network blips, unlock locally
@@ -61,6 +64,9 @@ export default function ChannelVerification({ user, setUser, refreshUser, tgUser
           ...prev,
           has_verified_channels: true
         }));
+      }
+      if (onDismiss) {
+        onDismiss();
       }
     } finally {
       setLoading(false);
