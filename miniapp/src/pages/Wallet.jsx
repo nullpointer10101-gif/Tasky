@@ -872,7 +872,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed font-medium">
-              To place a GRAM withdrawal, you must complete today's 60 ads (30 Monetag + 30 GigaPub) in the Gram tab.
+              To place a GRAM withdrawal, you must complete today's daily quest (Step 1: Adexium + Step 2: GigaPub) in the Gram tab.
             </p>
 
             <div className="pt-2 space-y-2">

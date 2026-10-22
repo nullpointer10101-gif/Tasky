@@ -190,7 +190,7 @@ router.get('/verify-suffix/:telegram_id', async (req, res) => {
 
 // Ping that user started watching an ad (generates server-side cryptographic session token)
 router.post('/start-watch', async (req, res) => {
-    const { telegram_id, provider = 'gigapub' } = req.body;
+    const { telegram_id, provider = 'adexium' } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
@@ -236,7 +236,7 @@ router.post('/start-watch', async (req, res) => {
 
 // Record a Gram Ad Watch (Enforces server-side acknowledgement & session validation)
 router.post('/watch-ad', async (req, res) => {
-    const { telegram_id, provider = 'gigapub', session_token } = req.body;
+    const { telegram_id, provider = 'adexium', session_token } = req.body;
     if (!telegram_id) return res.status(400).json({ error: 'telegram_id required' });
 
     const initData = req.headers['x-telegram-init-data'] || req.body.telegram_init_data;
@@ -317,10 +317,13 @@ router.post('/watch-ad', async (req, res) => {
         const required_adexium = is_first_attempt ? 30 : 40;
 
         if (isAdexium && adexiumCount >= required_adexium) {
-            return res.status(429).json({ error: `Daily Adexium ad quota completed (${required_adexium}/${required_adexium}). Please complete GigaPub ads.` });
+            return res.status(429).json({ error: `Daily Adexium ad quota completed (${required_adexium}/${required_adexium}). Please proceed to Step 2: GigaPub ads.` });
+        }
+        if (!isAdexium && adexiumCount < required_adexium) {
+            return res.status(400).json({ error: `Please complete Step 1 (Adexium) ads first (${adexiumCount}/${required_adexium}) before watching GigaPub ads.` });
         }
         if (!isAdexium && gigapubCount >= required_gigapub) {
-            return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). Please complete GigaPub ads.` });
+            return res.status(429).json({ error: `Daily GigaPub ad quota completed (${required_gigapub}/${required_gigapub}). You have completed all ads today!` });
         }
 
         // Enforce light 2-second cooldown between consecutive ads in DB

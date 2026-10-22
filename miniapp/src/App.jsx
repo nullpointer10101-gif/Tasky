@@ -18,7 +18,7 @@ import SpecialOfferPopup from './components/SpecialOfferPopup'
 import CyberReactorModal, { CyberReactorFloatingBubble } from './components/CyberReactorModal'
 import WeeklyAdTournamentModal, { WeeklyAdTournamentFloatingBubble } from './components/WeeklyAdTournamentModal'
 import { registerUser } from './api'
-import { initGigaAds, triggerStartupAd } from './adUtils'
+import { initGigaAds, initAdexium, triggerStartupAd } from './adUtils'
 import { AdminProvider } from './AdminContext'
 import ChannelVerification from './components/ChannelVerification'
 
@@ -132,6 +132,7 @@ export default function App() {
 
   useEffect(() => {
     boot();
+    initAdexium();
     initGigaAds();
   }, [tgUser]);
 

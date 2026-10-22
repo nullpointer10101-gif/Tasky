@@ -92,9 +92,9 @@ export function prefetchGramAd() {
 
 /**
  * Executes an Adexium interstitial ad without restrictions,
- * with seamless GigaPub fallback if no ad is returned
+ * with optional GigaPub fallback if allowFallback is true
  */
-export async function showAdexiumAd() {
+export async function showAdexiumAd(allowFallback = false) {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
@@ -110,18 +110,26 @@ export async function showAdexiumAd() {
   let widget = getOrInitAdexiumWidget();
   if (!widget) {
     let waited = 0;
-    while (!widget && waited < 1500) {
-      await new Promise(r => setTimeout(r, 50));
-      waited += 50;
+    while (!widget && waited < 4000) {
+      await new Promise(r => setTimeout(r, 100));
+      waited += 100;
       widget = getOrInitAdexiumWidget();
     }
   }
 
-  // If widget is warming up or unavailable, trigger GigaPub fallback
+  // If widget is warming up or unavailable
   if (!widget) {
-    console.warn('[AdManager] Adexium SDK warming up, trying GigaPub partner fallback...');
-    const fallbackRes = await showGigaPubDirect('gigapub');
-    return { ...fallbackRes, network: 'adexium' };
+    console.warn('[AdManager] Adexium SDK warming up...');
+    if (allowFallback) {
+      console.warn('[AdManager] Trying GigaPub partner fallback...');
+      const fallbackRes = await showGigaPubDirect('gigapub');
+      return fallbackRes;
+    }
+    return {
+      success: false,
+      network: 'adexium',
+      error: 'Adexium ad sponsor is warming up. Please tap again in a moment!'
+    };
   }
 
   const startTime = Date.now();
@@ -164,7 +172,7 @@ export async function showAdexiumAd() {
       const elapsed = (Date.now() - startTime) / 1000;
       console.log(`[AdManager] Adexium ad closed. Elapsed: ${elapsed.toFixed(1)}s, playbackCompleted: ${playbackCompleted}`);
 
-      if (elapsed >= 10.0) {
+      if (elapsed >= 10.0 || playbackCompleted) {
         resolve({ success: true, network: 'adexium' });
       } else {
         resolve({
@@ -179,18 +187,36 @@ export async function showAdexiumAd() {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium no fill/error — trying GigaPub fallback...');
-      const fb = await showGigaPubDirect('gigapub');
-      resolve({ ...fb, network: 'adexium' });
+      console.log('[AdManager] Adexium requestAdError (no fill / network busy)');
+      if (allowFallback) {
+        console.log('[AdManager] Falling back to GigaPub partner...');
+        const fb = await showGigaPubDirect('gigapub');
+        resolve(fb);
+      } else {
+        resolve({
+          success: false,
+          network: 'adexium',
+          error: 'Adexium ad sponsor is temporarily busy. Please tap again to retry!'
+        });
+      }
     };
 
     const onNoAd = async () => {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium noAdFound — trying GigaPub fallback...');
-      const fb = await showGigaPubDirect('gigapub');
-      resolve({ ...fb, network: 'adexium' });
+      console.log('[AdManager] Adexium noAdFound');
+      if (allowFallback) {
+        console.log('[AdManager] Falling back to GigaPub partner...');
+        const fb = await showGigaPubDirect('gigapub');
+        resolve(fb);
+      } else {
+        resolve({
+          success: false,
+          network: 'adexium',
+          error: 'Adexium is currently refreshing inventory. Please tap again shortly.'
+        });
+      }
     };
 
     widget.on('adReceived', onAdReceived);
@@ -345,25 +371,26 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
 
 /**
  * Rewarded Ads Router:
- * 1st: Adexium -> 2nd: GigaPub
+ * ALWAYS strongly pushes 1st: Adexium -> 2nd: GigaPub (fallback)
  */
 export async function showRewardedAd(providerName = 'adexium') {
-  console.log(`[AdManager] 🎯 Executing Ad Chain (1st Adexium -> 2nd GigaPub)...`);
+  console.log(`[AdManager] 🎯 Executing Strong Push Ad Chain (1st Adexium -> 2nd GigaPub)...`);
   
-  // 1st: Try Adexium
-  const adexiumRes = await showAdexiumAd();
+  // 1st Priority: Always strongly attempt Adexium
+  const adexiumRes = await showAdexiumAd(false);
   if (adexiumRes.success) {
+    console.log('[AdManager] ✅ Rewarded ad served successfully via 1st Priority (Adexium)');
     return adexiumRes;
   }
 
-  // If user actively closed Adexium early, return early
-  if (adexiumRes.error && adexiumRes.error.includes('closed early')) {
+  // If user actively closed Adexium early, return early with message so user completes duration
+  if (adexiumRes.error && (adexiumRes.error.includes('closed early') || adexiumRes.error.includes('at least 10 seconds'))) {
     return adexiumRes;
   }
 
-  // 2nd: Try GigaPub
-  console.log(`[AdManager] 🔄 Adexium unavailable — trying GigaPub fallback...`);
-  return await showGigaPubDirect(providerName);
+  // 2nd Priority: Fallback to GigaPub only if Adexium had no ad / error / no inventory
+  console.log(`[AdManager] 🔄 Adexium unavailable or no fill — falling back to 2nd Priority GigaPub (${providerName})...`);
+  return await showGigaPubDirect('gigapub');
 }
 
 // Backward-compatibility aliases

@@ -7,9 +7,9 @@ import {
 } from 'lucide-react';
 import { useTonAddress, useTonConnectUI } from '@tonconnect/ui-react';
 import { useToast } from '../App';
-import triggerConfetti from '../confetti';
 import { getGramStatus, claimGramReward, watchGramAd, startWatchGramAd, verifyGramSuffix } from '../api';
-import { showRewardedAd, showAdexiumAd, showMonetagAd, prefetchGramAd } from '../adUtils';
+import triggerConfetti from '../confetti';
+import { showRewardedAd, showAdexiumAd, showGigaPubDirect, showMonetagAd, prefetchGramAd } from '../adUtils';
 import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
@@ -193,7 +193,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
     return () => clearInterval(intervalId);
   }, [status]);
 
-  const handleWatchAd = async (provider = 'gigapub') => {
+  const handleWatchAd = async (provider = 'adexium') => {
     if (status?.last_ad_time) {
       const secs = (Date.now() - new Date(status.last_ad_time).getTime()) / 1000;
       if (secs < 1) {
@@ -203,8 +203,15 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
     }
 
     const isAdexium = provider === 'adexium' || provider === 'monetag';
+
+    // STRONG PUSH: User must complete Step 1 (Adexium) before Step 2 (GigaPub)
+    if (!isAdexium && currentAdexium < reqAdexium) {
+      showToast(`Please complete Step 1 (Adexium) ads first (${currentAdexium}/${reqAdexium})!`, 'info');
+      return;
+    }
+
     if (isAdexium && currentAdexium >= reqAdexium) {
-      showToast(`You have already completed ${reqAdexium} Adexium ads today!`, 'info');
+      showToast(`You have already completed ${reqAdexium} Adexium ads today! Proceed to Step 2: GigaPub.`, 'info');
       return;
     }
     if (!isAdexium && currentGiga >= reqGiga) {
@@ -225,9 +232,9 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
 
       let adResult;
       if (isAdexium) {
-        adResult = await showAdexiumAd();
+        adResult = await showAdexiumAd(false);
       } else {
-        adResult = await showRewardedAd('gram');
+        adResult = await showGigaPubDirect('gigapub');
       }
 
       if (!adResult.success) {
@@ -606,10 +613,10 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                 <Sparkles size={16} className="text-cyan-400 shrink-0 mt-0.5" />
                 <div className="space-y-0.5">
                   <p className="text-[11px] font-black text-cyan-300 uppercase tracking-wide">
-                    Dual Sponsor Requirement
+                    Step-by-Step Daily Quest
                   </p>
                   <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
-                    Complete <strong className="text-cyan-300">{reqAdexium} Adexium Ads</strong> + <strong className="text-indigo-300">{reqGiga} GigaPub Ads</strong> to unlock your daily 0.02 GRAM claim.
+                    Watch <strong className="text-cyan-300">1st: {reqAdexium} Adexium Ads</strong>, then complete <strong className="text-indigo-300">2nd: {reqGiga} GigaPub Ads</strong> to unlock your daily 0.02 GRAM claim.
                   </p>
                 </div>
               </div>
@@ -618,17 +625,25 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
             {/* ── DUAL PROVIDER ACTION CARDS ── */}
             {!isQuestFinished && (
               <div className="w-full space-y-3 pt-1 text-left">
-                {/* Option 1: Adexium */}
-                <div className={`p-4 rounded-2xl border transition-all ${adexiumCount >= reqAdexium ? 'bg-cyan-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-cyan-950/30 to-[#0b1f33]/60 border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.1)]'}`}>
+                {/* Step 1: Adexium */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  adexiumCount >= reqAdexium 
+                    ? 'bg-cyan-950/25 border-emerald-500/40' 
+                    : 'bg-gradient-to-r from-cyan-950/40 to-[#0b1f33]/70 border-cyan-400/50 shadow-[0_0_20px_rgba(6,182,212,0.2)]'
+                }`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 font-black text-xs flex items-center justify-center border border-cyan-500/30">1</span>
+                      <span className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 font-black text-xs flex items-center justify-center border border-cyan-500/40 shadow-sm">1</span>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 1: Adexium</p>
-                          <span className="text-[8.5px] bg-cyan-500/20 text-cyan-300 font-black px-1.5 py-0.5 rounded border border-cyan-500/30 uppercase">{reqAdexium} Ads</span>
+                          <p className="text-xs font-black text-white uppercase tracking-wider">Step 1: Adexium</p>
+                          {adexiumCount < reqAdexium ? (
+                            <span className="text-[8.5px] bg-cyan-500 text-slate-950 font-black px-1.5 py-0.5 rounded uppercase animate-pulse">Required First</span>
+                          ) : (
+                            <span className="text-[8.5px] bg-emerald-500/20 text-emerald-400 font-black px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">Done ✓</span>
+                          )}
                         </div>
-                        <p className="text-[9.5px] text-white/40 font-bold">Adexium Sponsor Network</p>
+                        <p className="text-[9.5px] text-cyan-200/60 font-bold">Priority Ad Network — Watch 1st</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -640,21 +655,21 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
 
                   <div className="w-full bg-white/5 h-2 rounded-full overflow-hidden mb-3 border border-white/5">
                     <div 
-                      className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-500"
                       style={{ width: `${Math.min(100, (adexiumCount / reqAdexium) * 100)}%` }}
                     />
                   </div>
 
                   {adexiumCount >= reqAdexium ? (
                     <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                      <CheckCircle2 size={14} /> Adexium Quota Completed ({reqAdexium}/{reqAdexium}) ✓
+                      <CheckCircle2 size={14} /> Step 1: Adexium Completed ({reqAdexium}/{reqAdexium}) ✓
                     </div>
                   ) : (
                     <motion.button
                       onClick={() => handleWatchAd('adexium')}
                       disabled={isWatchingAd}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)] border border-cyan-400/20 disabled:opacity-60 cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(6,182,212,0.35)] border border-cyan-300/40 disabled:opacity-60 cursor-pointer"
                     >
                       {isWatchingAd && (watchingProvider === 'adexium' || watchingProvider === 'monetag') ? (
                         <>
@@ -663,7 +678,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                         </>
                       ) : (
                         <>
-                          <Play size={13} fill="currentColor" />
+                          <Play size={14} fill="currentColor" />
                           <span>Watch Adexium Ad — {reqAdexium - adexiumCount} Left</span>
                         </>
                       )}
@@ -671,17 +686,33 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                   )}
                 </div>
 
-                {/* Option 2: GigaPub */}
-                <div className={`p-4 rounded-2xl border transition-all ${gigaCount >= reqGiga ? 'bg-indigo-950/25 border-emerald-500/40' : 'bg-gradient-to-r from-indigo-950/40 to-[#1b103c]/60 border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.1)]'}`}>
+                {/* Step 2: GigaPub */}
+                <div className={`p-4 rounded-2xl border transition-all ${
+                  gigaCount >= reqGiga 
+                    ? 'bg-indigo-950/25 border-emerald-500/40' 
+                    : adexiumCount < reqAdexium
+                      ? 'bg-slate-900/40 border-white/10 opacity-70'
+                      : 'bg-gradient-to-r from-indigo-950/40 to-[#1b103c]/60 border-indigo-500/40 shadow-[0_0_15px_rgba(99,102,241,0.15)]'
+                }`}>
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-black text-xs flex items-center justify-center border border-indigo-500/30">2</span>
+                      <span className={`w-6 h-6 rounded-lg font-black text-xs flex items-center justify-center border ${
+                        adexiumCount < reqAdexium
+                          ? 'bg-white/5 text-white/40 border-white/10'
+                          : 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+                      }`}>2</span>
                       <div>
                         <div className="flex items-center gap-1.5">
-                          <p className="text-xs font-black text-white uppercase tracking-wider">Option 2: GigaPub</p>
-                          <span className="text-[8.5px] bg-indigo-500/20 text-indigo-300 font-black px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase">{reqGiga} Ads</span>
+                          <p className="text-xs font-black text-white uppercase tracking-wider">Step 2: GigaPub</p>
+                          {adexiumCount < reqAdexium ? (
+                            <span className="text-[8.5px] bg-white/10 text-white/50 font-black px-1.5 py-0.5 rounded border border-white/10 uppercase">Locked</span>
+                          ) : gigaCount >= reqGiga ? (
+                            <span className="text-[8.5px] bg-emerald-500/20 text-emerald-400 font-black px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">Done ✓</span>
+                          ) : (
+                            <span className="text-[8.5px] bg-indigo-500/20 text-indigo-300 font-black px-1.5 py-0.5 rounded border border-indigo-500/30 uppercase">Active Step</span>
+                          )}
                         </div>
-                        <p className="text-[9.5px] text-white/40 font-bold">Primary Sponsor Network</p>
+                        <p className="text-[9.5px] text-white/40 font-bold">Secondary Sponsor Network</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -700,14 +731,22 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
 
                   {gigaCount >= reqGiga ? (
                     <div className="w-full py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5">
-                      <CheckCircle2 size={14} /> GigaPub Quota Completed ({reqGiga}/{reqGiga}) ✓
+                      <CheckCircle2 size={14} /> Step 2: GigaPub Completed ({reqGiga}/{reqGiga}) ✓
                     </div>
+                  ) : adexiumCount < reqAdexium ? (
+                    <button
+                      onClick={() => showToast(`👉 Please finish Step 1 (Adexium) ads first (${adexiumCount}/${reqAdexium})!`, 'info')}
+                      className="w-full py-3.5 rounded-xl bg-white/5 border border-white/10 text-white/40 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed hover:bg-white/10 transition-all"
+                    >
+                      <Lock size={13} />
+                      <span>Complete Step 1: Adexium First ({adexiumCount}/${reqAdexium})</span>
+                    </button>
                   ) : (
                     <motion.button
                       onClick={() => handleWatchAd('gigapub')}
                       disabled={isWatchingAd}
                       whileTap={{ scale: 0.96 }}
-                      className="w-full py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-60 cursor-pointer"
+                      className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-[0_0_15px_rgba(99,102,241,0.25)] border border-indigo-400/20 disabled:opacity-60 cursor-pointer"
                     >
                       {isWatchingAd && watchingProvider === 'gigapub' ? (
                         <>
@@ -716,7 +755,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                         </>
                       ) : (
                         <>
-                          <Play size={13} fill="currentColor" />
+                          <Play size={14} fill="currentColor" />
                           <span>Watch GigaPub Ad — {reqGiga - gigaCount} Left</span>
                         </>
                       )}
@@ -992,7 +1031,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
       <Card className="p-4 bg-white/5 border border-white/5 space-y-2">
         <h4 className="text-[11px] font-black text-white/60 uppercase tracking-widest">Quest Guidelines</h4>
         <ul className="text-xs text-white/40 space-y-1.5 leading-relaxed text-left list-disc list-inside">
-          <li>Complete your daily quota of 60 ads (30 GigaPub + 30 Monetag) in 24 hours.</li>
+          <li>Complete your daily quota ({reqAdexium} Adexium in Step 1 + {reqGiga} GigaPub in Step 2) within 24 hours.</li>
           <li>Each claim is automatically processed and sent directly to your connected TON wallet.</li>
           <li>Automated bots, fake clickers, or skipped sessions will lead to permanent account suspension.</li>
         </ul>
@@ -1174,7 +1213,7 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                     animate={{ scale: [1, 1.02, 1] }}
                     transition={{ repeat: Infinity, duration: 1.5 }}
                     onClick={() => {
-                      const nextProvider = currentGiga < 30 ? 'gigapub' : 'monetag';
+                      const nextProvider = currentAdexium < reqAdexium ? 'adexium' : 'gigapub';
                       setRewardCelebration(null);
                       setTimeout(() => {
                         handleWatchAd(nextProvider);
@@ -1183,7 +1222,11 @@ export default function Gram({ user, refreshUser, onOpenTournamentModal, navigat
                     className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 text-slate-950 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.4)] active:scale-95 transition-all"
                   >
                     <Play size={16} fill="currentColor" />
-                    Watch Next Ad ({rewardCelebration.left} Left) 🚀
+                    <span>
+                      {currentAdexium < reqAdexium 
+                        ? `Watch Next: Step 1 Adexium (${reqAdexium - currentAdexium} Left) 🚀` 
+                        : `Watch Next: Step 2 GigaPub (${reqGiga - currentGiga} Left) 🚀`}
+                    </span>
                   </motion.button>
                 ) : (
                   <button
