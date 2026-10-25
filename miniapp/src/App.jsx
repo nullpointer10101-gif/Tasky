@@ -16,7 +16,6 @@ import WalletManager from './components/WalletManager'
 import WithdrawalPopup from './components/WithdrawalPopup'
 import SpecialOfferPopup from './components/SpecialOfferPopup'
 import CyberReactorModal, { CyberReactorFloatingBubble } from './components/CyberReactorModal'
-import WeeklyAdTournamentModal, { WeeklyAdTournamentFloatingBubble } from './components/WeeklyAdTournamentModal'
 import { registerUser } from './api'
 import { initGigaAds, initAdexium, triggerStartupAd } from './adUtils'
 import { AdminProvider } from './AdminContext'
@@ -53,7 +52,6 @@ export default function App() {
   const [maintenance, setMaintenance] = useState(false)
   const [networkError, setNetworkError] = useState(false)
   const [isReactorModalOpen, setIsReactorModalOpen] = useState(false)
-  const [isTournamentModalOpen, setIsTournamentModalOpen] = useState(false)
   const [dismissedVerification, setDismissedVerification] = useState(() => {
     try {
       return localStorage.getItem('tasky_verification_v2_dismissed') === 'true';
@@ -327,11 +325,7 @@ export default function App() {
           <WithdrawalPopup user={user} refreshUser={refreshUser} />
           <SpecialOfferPopup user={user} />
           <CyberReactorFloatingBubble user={user} onOpen={() => setIsReactorModalOpen(true)} />
-          {activePage !== 'flip' && activePage !== 'play' && (
-            <WeeklyAdTournamentFloatingBubble user={user} onOpen={() => setIsTournamentModalOpen(true)} />
-          )}
           <CyberReactorModal isOpen={isReactorModalOpen} onClose={() => { setIsReactorModalOpen(false); refreshUser(); }} user={user} />
-          <WeeklyAdTournamentModal isOpen={isTournamentModalOpen} onClose={() => { setIsTournamentModalOpen(false); refreshUser(); }} user={user} />
           <WalletManager user={user} refreshUser={refreshUser} />
           <Header user={user} navigate={setActivePage} activePage={activePage} />
 
@@ -355,7 +349,6 @@ export default function App() {
                 tgUser={tgUser}
                 refreshUser={refreshUser}
                 navigate={setActivePage}
-                onOpenTournamentModal={() => setIsTournamentModalOpen(true)}
               />
             </motion.div>
           </main>
