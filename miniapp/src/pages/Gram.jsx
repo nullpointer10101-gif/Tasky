@@ -214,7 +214,7 @@ export default function Gram({ user, refreshUser, navigate }) {
       // Start server session token in background (zero UI latency)
       const startPromise = startWatchGramAd(user?.telegram_id, 'adexium').catch(() => null);
 
-      const adResult = await showAdexiumAd(false);
+      const adResult = await showRewardedAd('adexium');
 
       if (!adResult.success) {
         showToast(adResult.error || 'You must watch the entire ad to get progress.', 'error');

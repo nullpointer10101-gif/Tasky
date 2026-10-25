@@ -73,9 +73,10 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
               AND created_at >= NOW() - INTERVAL '24 hours'
         `, [tidStr]);
         const gigapub_ads_watched_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
-        const adexium_ads_watched_today = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
-        const monetag_ads_watched_today = adexium_ads_watched_today; // backward compat alias
-        const ads_watched_today = gigapub_ads_watched_today + adexium_ads_watched_today;
+        const raw_adexium_count = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
+        const ads_watched_today = gigapub_ads_watched_today + raw_adexium_count;
+        const adexium_ads_watched_today = ads_watched_today; // Every gram ad counts toward the 40 daily goal
+        const monetag_ads_watched_today = ads_watched_today;
         const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
         // 3. Get recent Gram claims history
@@ -306,9 +307,10 @@ router.post('/watch-ad', async (req, res) => {
         
         let gigapubCount = parseInt(countRes.rows[0].gigapub_count || 0, 10);
         let adexiumCount = parseInt(countRes.rows[0].adexium_count || 0, 10);
+        let totalAdsWatched = gigapubCount + adexiumCount;
         const lastAdTime = countRes.rows[0].last_ad_time;
 
-        const targetAdType = isAdexium ? 'gram_adexium' : 'gram_gigapub';
+        const targetAdType = 'gram_adexium';
 
         const claimsCountRes = await pool.query("SELECT COUNT(*) FROM gram_claims WHERE telegram_id::text = $1 AND status IN ('approved', 'pending', 'done')", [tidStr]);
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
@@ -316,7 +318,7 @@ router.post('/watch-ad', async (req, res) => {
         const required_gigapub = 0;
         const required_adexium = 40;
 
-        if (adexiumCount >= required_adexium) {
+        if (totalAdsWatched >= required_adexium) {
             return res.status(429).json({ error: `Daily Adexium ad quota completed (${required_adexium}/${required_adexium}). You have completed all ads today!` });
         }
 
@@ -341,16 +343,15 @@ router.post('/watch-ad', async (req, res) => {
             [tidStr]
         );
 
-        if (isAdexium) adexiumCount++;
-        else gigapubCount++;
+        totalAdsWatched++;
 
         res.json({
             success: true,
-            provider: provider,
-            gigapub_ads_watched_today: gigapubCount,
-            adexium_ads_watched_today: adexiumCount,
-            monetag_ads_watched_today: adexiumCount,
-            ads_watched_today: gigapubCount + adexiumCount
+            provider: 'adexium',
+            gigapub_ads_watched_today: 0,
+            adexium_ads_watched_today: totalAdsWatched,
+            monetag_ads_watched_today: totalAdsWatched,
+            ads_watched_today: totalAdsWatched
         });
     } catch (err) {
         console.error('Error recording gram ad watch:', err);
@@ -467,10 +468,10 @@ router.post('/claim', async (req, res) => {
         const required_gigapub = 0;
         const required_adexium = 40;
 
-        if (adexiumWatched < required_adexium) {
+        if (ads_watched_today < required_adexium) {
             await client.query('ROLLBACK');
             return res.status(400).json({ 
-                error: `Please complete all ${required_adexium} Adexium ads (${Math.min(required_adexium, adexiumWatched)}/${required_adexium}) to claim!` 
+                error: `Please complete all ${required_adexium} Adexium ads (${Math.min(required_adexium, ads_watched_today)}/${required_adexium}) to claim!` 
             });
         }
 

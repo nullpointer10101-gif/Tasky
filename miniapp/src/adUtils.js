@@ -55,10 +55,64 @@ export function initAdexium() {
 }
 
 /**
+ * Ensures Telegram environment variables are available for Adexium SDK
+ */
+export function setupAdexiumTelegramEnv() {
+  if (typeof window === 'undefined') return;
+  try {
+    const tg = window.Telegram?.WebApp;
+    const user = tg?.initDataUnsafe?.user;
+
+    // 1. Polyfill window.Telegram.WebView so Adexium's tryGetUser never throws
+    if (window.Telegram && !window.Telegram.WebView) {
+      window.Telegram.WebView = {
+        initParams: {
+          tgWebAppPlatform: tg?.platform || 'android',
+          tgWebAppData: tg?.initData || ''
+        }
+      };
+    }
+
+    // 2. Populate sessionStorage with __telegram__initParams
+    if (tg?.initData) {
+      try {
+        sessionStorage.setItem('__telegram__initParams', JSON.stringify({
+          tgWebAppData: tg.initData,
+          tgWebAppPlatform: tg.platform || 'android'
+        }));
+      } catch (e) {}
+    }
+
+    // 3. Pre-populate Adexium local storage user cache
+    if (user && user.id) {
+      try {
+        const uObj = {
+          id: user.id,
+          first_name: user.first_name || '',
+          last_name: user.last_name || '',
+          username: user.username || '',
+          language_code: user.language_code || 'en',
+          is_premium: !!user.is_premium,
+          platform: tg?.platform || 'android',
+          initData: tg?.initData || '',
+          serialized: JSON.stringify(user),
+          from: 'window'
+        };
+        localStorage.setItem('tg-ads-co-interstitial-userData', JSON.stringify(uObj));
+      } catch (e) {}
+    }
+  } catch (err) {
+    console.warn('[AdManager] setupAdexiumTelegramEnv warning:', err);
+  }
+}
+
+/**
  * Returns or creates the singleton Adexium widget instance
  */
 export function getOrInitAdexiumWidget() {
   if (typeof window === 'undefined') return null;
+  setupAdexiumTelegramEnv();
+
   if (window.__adexiumInstance) return window.__adexiumInstance;
   if (window.adexiumWidget) {
     window.__adexiumInstance = window.adexiumWidget;
@@ -92,9 +146,9 @@ export function prefetchGramAd() {
 
 /**
  * Executes an Adexium interstitial ad without restrictions,
- * with optional GigaPub fallback if allowFallback is true
+ * with guaranteed video ad playback (falls back to GigaPub if Adexium has no fill/fails)
  */
-export async function showAdexiumAd(allowFallback = false) {
+export async function showAdexiumAd(allowFallback = true) {
   if (typeof window === 'undefined') {
     return { success: false, error: 'Browser environment required' };
   }
@@ -105,30 +159,31 @@ export async function showAdexiumAd(allowFallback = false) {
     }
   } catch (e) {}
 
+  setupAdexiumTelegramEnv();
+  initGigaAds();
   initAdexium();
 
   let widget = getOrInitAdexiumWidget();
   if (!widget) {
     let waited = 0;
-    while (!widget && waited < 4000) {
+    while (!widget && waited < 2000) {
       await new Promise(r => setTimeout(r, 100));
       waited += 100;
       widget = getOrInitAdexiumWidget();
     }
   }
 
-  // If widget is warming up or unavailable
+  // If widget is unavailable or failed to initialize, instantly fall back
   if (!widget) {
     console.warn('[AdManager] Adexium SDK warming up...');
     if (allowFallback) {
-      console.warn('[AdManager] Trying GigaPub partner fallback...');
-      const fallbackRes = await showGigaPubDirect('gigapub');
-      return fallbackRes;
+      console.warn('[AdManager] Seamlessly playing rewarded video ad via partner network...');
+      return await showGigaPubDirect('adexium');
     }
     return {
       success: false,
       network: 'adexium',
-      error: 'Adexium ad sponsor is warming up. Please tap again in a moment!'
+      error: 'Ad sponsor is warming up. Please tap again in a moment!'
     };
   }
 
@@ -187,16 +242,15 @@ export async function showAdexiumAd(allowFallback = false) {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium requestAdError (no fill / network busy)');
+      console.log('[AdManager] Adexium requestAdError (filling via partner)...');
       if (allowFallback) {
-        console.log('[AdManager] Falling back to GigaPub partner...');
-        const fb = await showGigaPubDirect('gigapub');
+        const fb = await showGigaPubDirect('adexium');
         resolve(fb);
       } else {
         resolve({
           success: false,
           network: 'adexium',
-          error: 'Adexium ad sponsor is temporarily busy. Please tap again to retry!'
+          error: 'Ad sponsor is temporarily busy. Please tap again to retry!'
         });
       }
     };
@@ -205,16 +259,15 @@ export async function showAdexiumAd(allowFallback = false) {
       if (isSettled) return;
       isSettled = true;
       cleanup();
-      console.log('[AdManager] Adexium noAdFound');
+      console.log('[AdManager] Adexium noAdFound (filling via partner)...');
       if (allowFallback) {
-        console.log('[AdManager] Falling back to GigaPub partner...');
-        const fb = await showGigaPubDirect('gigapub');
+        const fb = await showGigaPubDirect('adexium');
         resolve(fb);
       } else {
         resolve({
           success: false,
           network: 'adexium',
-          error: 'Adexium is currently refreshing inventory. Please tap again shortly.'
+          error: 'Ad sponsor is currently refreshing inventory. Please tap again shortly.'
         });
       }
     };
@@ -233,13 +286,16 @@ export async function showAdexiumAd(allowFallback = false) {
       onError();
     }
 
-    // Safety timeout of 40 seconds
+    // Safety timeout of 7 seconds: if Adexium doesn't answer within 7s, ensure ad comes via partner
     setTimeout(() => {
       if (!isSettled) {
         isSettled = true;
         cleanup();
         if (playbackCompleted) {
           resolve({ success: true, network: 'adexium' });
+        } else if (allowFallback) {
+          console.log('[AdManager] Adexium response timed out — ensuring ad displays via partner video...');
+          showGigaPubDirect('adexium').then(resolve);
         } else {
           resolve({
             success: false,
@@ -248,7 +304,7 @@ export async function showAdexiumAd(allowFallback = false) {
           });
         }
       }
-    }, 40000);
+    }, 7000);
   });
 }
 
@@ -374,12 +430,11 @@ export async function showGigaPubDirect(providerName = 'gigapub') {
  * ALWAYS strongly pushes 1st: Adexium -> 2nd: GigaPub (fallback)
  */
 export async function showRewardedAd(providerName = 'adexium') {
-  console.log(`[AdManager] 🎯 Executing Strong Push Ad Chain (1st Adexium -> 2nd GigaPub)...`);
+  console.log(`[AdManager] 🎯 Executing Guaranteed Ad Chain (1st Adexium -> 2nd GigaPub)...`);
   
-  // 1st Priority: Always strongly attempt Adexium
-  const adexiumRes = await showAdexiumAd(false);
+  // 1st Priority: Attempt Adexium with automatic fallback
+  const adexiumRes = await showAdexiumAd(true);
   if (adexiumRes.success) {
-    console.log('[AdManager] ✅ Rewarded ad served successfully via 1st Priority (Adexium)');
     return adexiumRes;
   }
 
@@ -388,9 +443,9 @@ export async function showRewardedAd(providerName = 'adexium') {
     return adexiumRes;
   }
 
-  // 2nd Priority: Fallback to GigaPub only if Adexium had no ad / error / no inventory
-  console.log(`[AdManager] 🔄 Adexium unavailable or no fill — falling back to 2nd Priority GigaPub (${providerName})...`);
-  return await showGigaPubDirect('gigapub');
+  // Final direct attempt via partner to guarantee ad plays
+  console.log(`[AdManager] Direct fallback to ensure ad comes...`);
+  return await showGigaPubDirect('adexium');
 }
 
 // Backward-compatibility aliases
