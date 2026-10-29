@@ -116,18 +116,18 @@ export default function GramClaimModal({ isOpen, onClose, user, onClaimSuccess }
                   <div className="bg-black/30 rounded-2xl p-4 border border-white/5">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-xs font-bold text-white/60">Today's Ad Progress</span>
-                      <span className="text-xs font-black text-amber-400">{status?.ads_watched_today || 0} / 60 watched</span>
+                      <span className="text-xs font-black text-amber-400">{status?.ads_watched_today || 0} / {status?.total_required_ads || 50} watched</span>
                     </div>
                     <div className="w-full bg-white/5 h-2.5 rounded-full overflow-hidden p-0.5 border border-white/5">
                       <div 
                         className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.min(100, ((status?.ads_watched_today || 0) / 60) * 100)}%` }}
+                        style={{ width: `${Math.min(100, ((status?.ads_watched_today || 0) / (status?.total_required_ads || 50)) * 100)}%` }}
                       />
                     </div>
                     
-                    {status?.ads_watched_today < 60 ? (
+                    {(status?.ads_watched_today || 0) < (status?.total_required_ads || 50) ? (
                       <p className="text-[11px] text-white/40 mt-2 font-medium">
-                        Complete all 60 daily ads to unlock the 0.02 GRAM claim button.
+                        Complete all {status?.total_required_ads || 50} daily ads to unlock the 0.02 GRAM claim button.
                       </p>
                     ) : (
                       <p className="text-[11px] text-emerald-400 mt-2 font-bold flex items-center justify-center gap-1">
@@ -167,7 +167,7 @@ export default function GramClaimModal({ isOpen, onClose, user, onClaimSuccess }
                   )}
 
                   {/* Input Form */}
-                  {status?.ads_watched_today >= 60 && (
+                  {(status?.ads_watched_today || 0) >= (status?.total_required_ads || 50) && (
                     <div className="space-y-3 text-left">
                       <label className="text-xs font-black text-white/60 uppercase tracking-wider flex items-center gap-1.5 ml-1">
                         <Wallet size={12} className="text-amber-500" /> Gram Wallet Address
@@ -184,7 +184,7 @@ export default function GramClaimModal({ isOpen, onClose, user, onClaimSuccess }
                   )}
 
                   {/* Action Button */}
-                  {status?.ads_watched_today >= 60 ? (
+                  {(status?.ads_watched_today || 0) >= (status?.total_required_ads || 50) ? (
                     <button
                       onClick={handleClaim}
                       disabled={status?.claimed_in_last_24h || isSubmitting}
@@ -211,7 +211,7 @@ export default function GramClaimModal({ isOpen, onClose, user, onClaimSuccess }
                       disabled
                       className="w-full py-4 rounded-2xl bg-white/5 border border-white/10 text-white/30 font-black text-sm uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed"
                     >
-                      Locked (Watch {60 - status?.ads_watched_today} more ads)
+                      Locked (Watch {Math.max(0, (status?.total_required_ads || 50) - (status?.ads_watched_today || 0))} more ads)
                     </button>
                   )}
                 </div>

@@ -75,7 +75,7 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const gigapub_ads_watched_today = parseInt(adCountRes.rows[0].gigapub_count || 0, 10);
         const raw_adexium_count = parseInt(adCountRes.rows[0].adexium_count || 0, 10);
         const ads_watched_today = gigapub_ads_watched_today + raw_adexium_count;
-        const adexium_ads_watched_today = ads_watched_today; // Every gram ad counts toward the 40 daily goal
+        const adexium_ads_watched_today = ads_watched_today; // Every gram ad counts toward the 50 daily goal
         const monetag_ads_watched_today = ads_watched_today;
         const last_ad_time = adCountRes.rows[0].last_ad_time || null;
 
@@ -106,8 +106,8 @@ router.get('/status/:telegram_id(\\d+)', async (req, res) => {
         const current_claim_seq = total_previous_claims + 1;
         const is_first_attempt = total_previous_claims === 0;
         const required_gigapub = 0;
-        const required_adexium = 40;
-        const total_required_ads = 40;
+        const required_adexium = 50;
+        const total_required_ads = 50;
 
         const userRefRes = await pool.query('SELECT total_referrals, referral_code FROM users WHERE telegram_id::text = $1', [tidStr]);
         const total_referrals = parseInt(userRefRes.rows[0]?.total_referrals || 0, 10);
@@ -316,7 +316,7 @@ router.post('/watch-ad', async (req, res) => {
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const is_first_attempt = total_previous_claims === 0;
         const required_gigapub = 0;
-        const required_adexium = 40;
+        const required_adexium = 50;
 
         if (totalAdsWatched >= required_adexium) {
             return res.status(429).json({ error: `Daily Adexium ad quota completed (${required_adexium}/${required_adexium}). You have completed all ads today!` });
@@ -466,7 +466,7 @@ router.post('/claim', async (req, res) => {
         const total_previous_claims = parseInt(claimsCountRes.rows[0]?.count || 0, 10);
         const is_first_attempt = total_previous_claims === 0;
         const required_gigapub = 0;
-        const required_adexium = 40;
+        const required_adexium = 50;
 
         if (ads_watched_today < required_adexium) {
             await client.query('ROLLBACK');

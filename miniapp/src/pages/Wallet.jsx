@@ -863,7 +863,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
               </div>
               <div>
                 <h3 className="text-sm font-black text-amber-300 uppercase tracking-wide">
-                  Complete Today's Claim (40 Ads) First
+                  Complete Today's Claim (50 Ads) First
                 </h3>
                 <p className="text-[10px] text-amber-200/70 mt-0.5">
                   Daily Requirement Locked
@@ -872,7 +872,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed font-medium">
-              To place a GRAM withdrawal, you must complete today's daily quest (40 Adexium ads) in the Gram tab.
+              To place a GRAM withdrawal, you must complete today's daily quest (50 Adexium ads) in the Gram tab.
             </p>
 
             <div className="pt-2 space-y-2">
@@ -883,7 +883,7 @@ export default function Wallet({ user, refreshUser, navigate }) {
                 }}
                 className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg active:scale-95 transition-all"
               >
-                <span>Go to Gram & Complete 40 Ads</span>
+                <span>Go to Gram & Complete 50 Ads</span>
                 <ArrowUpRight size={16} />
               </button>
               <button

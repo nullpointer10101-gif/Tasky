@@ -424,7 +424,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
                   <div className="flex-1 min-w-0 pr-16 relative z-10 text-left">
                     <h3 className="font-black text-[15.5px] leading-tight mb-0.5 text-amber-500 flex items-center gap-1.5">
                       Gram Daily Reward
-                      {gramStatusData?.ads_watched_today >= 60 && !gramStatusData?.claimed_in_last_24h && (
+                      {gramStatusData?.ads_watched_today >= (gramStatusData?.total_required_ads || 50) && !gramStatusData?.claimed_in_last_24h && (
                         <span className="flex h-2 w-2 relative">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -432,7 +432,7 @@ export default function Tasks({ user, refreshUser, navigate }) {
                       )}
                     </h3>
                     <p className="text-[12.5px] truncate text-amber-400/80 font-bold">
-                      {gramStatusData ? `Progress: ${gramStatusData.ads_watched_today}/60 ads watched` : 'Claim 0.02 GRAM daily'}
+                      {gramStatusData ? `Progress: ${gramStatusData.ads_watched_today}/${gramStatusData.total_required_ads || 50} ads watched` : 'Claim 0.02 GRAM daily'}
                     </p>
                   </div>
                   

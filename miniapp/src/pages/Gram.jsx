@@ -14,7 +14,7 @@ import Card from '../components/Card';
 
 const SUFFIX = '| Tasky 🐾';
 
-function getAdsLeft(count, total = 40) {
+function getAdsLeft(count, total = 50) {
   const left = Math.max(0, total - count);
   if (count >= total) return null;
   if (left <= 1) return { text: '🏆 1 AD LEFT!', urgency: 'ultra' };
@@ -24,7 +24,7 @@ function getAdsLeft(count, total = 40) {
   return { text: `⚡ ${left} ads remaining`, urgency: 'low' };
 }
 
-function getProgressColor(count, total = 40) {
+function getProgressColor(count, total = 50) {
   const pct = (count / total) * 100;
   if (pct >= 100) return 'from-emerald-400 to-teal-400';
   if (pct >= 80) return 'from-pink-400 to-rose-500';
@@ -153,8 +153,8 @@ export default function Gram({ user, refreshUser, navigate }) {
     if (user?.telegram_id) fetchStatus();
   }, [user?.telegram_id]);
 
-  const reqAdexium = 40;
-  const totalAdsNeeded = 40;
+  const reqAdexium = 50;
+  const totalAdsNeeded = 50;
 
   const currentAdexium = Math.min(reqAdexium, status?.adexium_ads_watched_today ?? status?.monetag_ads_watched_today ?? 0);
   const totalCount = currentAdexium;
@@ -371,7 +371,7 @@ export default function Gram({ user, refreshUser, navigate }) {
           <Coins className="text-amber-400" /> Gram Daily Ads
         </h1>
         <p className="text-xs text-indigo-300 font-bold max-w-xs mx-auto leading-relaxed">
-          Watch 40 sponsor ads daily (Adexium) and receive <span className="text-emerald-400 font-black">0.02 GRAM</span> directly to your wallet!
+          Watch 50 sponsor ads daily (Adexium) and receive <span className="text-emerald-400 font-black">0.02 GRAM</span> directly to your wallet!
         </p>
       </div>
 
@@ -463,7 +463,7 @@ export default function Gram({ user, refreshUser, navigate }) {
             {claimCountdown}
           </div>
           <p className="text-[11.5px] text-white/60 font-bold leading-normal px-2">
-            🎉 You completed all 40 ads and claimed your 0.02 GRAM daily reward! Next quest opens in 24 hours.
+            🎉 You completed all 50 ads and claimed your 0.02 GRAM daily reward! Next quest opens in 24 hours.
           </p>
         </Card>
       ) : (
@@ -556,7 +556,7 @@ export default function Gram({ user, refreshUser, navigate }) {
                     Daily Adexium Quest
                   </p>
                   <p className="text-[10.5px] text-white/80 font-semibold leading-relaxed">
-                    Watch <strong className="text-cyan-300">40 Adexium Ads</strong> to unlock your daily 0.02 GRAM claim directly to your wallet.
+                    Watch <strong className="text-cyan-300">50 Adexium Ads</strong> to unlock your daily 0.02 GRAM claim directly to your wallet.
                   </p>
                 </div>
               </div>
@@ -584,7 +584,7 @@ export default function Gram({ user, refreshUser, navigate }) {
                             <span className="text-[8.5px] bg-emerald-500/20 text-emerald-400 font-black px-1.5 py-0.5 rounded border border-emerald-500/30 uppercase">Done ✓</span>
                           )}
                         </div>
-                        <p className="text-[9.5px] text-cyan-200/60 font-bold">Watch 40 ads to claim 0.02 GRAM</p>
+                        <p className="text-[9.5px] text-cyan-200/60 font-bold">Watch 50 ads to claim 0.02 GRAM</p>
                       </div>
                     </div>
                     <div className="text-right">
